@@ -1,25 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { 
-  Form, 
-  Input, 
-  Button, 
-  Card, 
-  Typography, 
-  Select, 
-  DatePicker, 
-  InputNumber, 
-  message, 
+import {
+  Form,
+  Input,
+  Button,
+  Card,
+  Typography,
+  Select,
+  DatePicker,
+  InputNumber,
+  message,
   Steps,
   Row,
   Col,
   Alert,
   Divider
 } from 'antd';
-import { 
-  SaveOutlined, 
-  ArrowLeftOutlined, 
+import {
+  SaveOutlined,
+  ArrowLeftOutlined,
   PlusOutlined,
   CloseOutlined,
   CheckOutlined,
@@ -50,7 +50,7 @@ const TRANSMISION_OPTIONS = [
 const COMBUSTIBLE_OPTIONS = [
   { value: 'Gasolina', label: 'Gasolina' },
   { value: 'Diesel', label: 'Diésel' },
-  { value: 'Elécrico', label: 'Eléctrico' }
+  { value: 'Elécrico', label: 'Elécrico' }
 ];
 
 const NuevoVehiculo = ({ editMode = false }) => {
@@ -59,17 +59,17 @@ const NuevoVehiculo = ({ editMode = false }) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Estados para manejar la selección en cascada
   const [marcaId, setMarcaId] = useState(null);
   const [editingMarcaId, setEditingMarcaId] = useState(null);
   const [editingMarcaNombre, setEditingMarcaNombre] = useState('');
   const [modeloId, setModeloId] = useState(null);
   const [selectedGeneracionId, setSelectedGeneracionId] = useState(null);
-  
+
   // Estados para manejar valores del formulario manualmente
   const [anioValue, setAnioValue] = useState(new Date().getFullYear());
-  
+
   // Estado para los años disponibles
   const [aniosDisponibles, setAniosDisponibles] = useState([]);
   const [estadoValue, setEstadoValue] = useState('DISPONIBLE');
@@ -77,26 +77,26 @@ const NuevoVehiculo = ({ editMode = false }) => {
   const [precioCompraValue, setPrecioCompraValue] = useState(null);
   const [costoGruaValue, setCostoGruaValue] = useState(0);
   const [comisionesValue, setComisionesValue] = useState(0);
-  
+
   // Estados para los nuevos campos enum
   const [traccionValue, setTraccionValue] = useState('4x2');
   const [transmisionValue, setTransmisionValue] = useState('Automatico');
   const [combustibleValue, setCombustibleValue] = useState('Gasolina');
-  
+
   // Estado para el modal de nueva marca
   const [nuevaMarcaModal, setNuevaMarcaModal] = useState(false);
   const [nuevaMarcaNombre, setNuevaMarcaNombre] = useState('');
   const [creandoMarca, setCreandoMarca] = useState(false);
-  
+
   // Estado para el modal de nuevo modelo
   const [nuevoModeloModal, setNuevoModeloModal] = useState(false);
   const [nuevoModeloNombre, setNuevoModeloNombre] = useState('');
   const [creandoModelo, setCreandoModelo] = useState(false);
-  
+
   // Estado para la edición de modelos
   const [editingModeloId, setEditingModeloId] = useState(null);
   const [editingModeloNombre, setEditingModeloNombre] = useState('');
-  
+
   // Estado para la edición de generaciones
   const [editingGeneracionId, setEditingGeneracionId] = useState(null);
   const [editingGeneracionNombre, setEditingGeneracionNombre] = useState('');
@@ -109,13 +109,13 @@ const NuevoVehiculo = ({ editMode = false }) => {
   const [anioInicio, setAnioInicio] = useState(new Date().getFullYear());
   const [anioFin, setAnioFin] = useState(new Date().getFullYear());
   const [creandoGeneracion, setCreandoGeneracion] = useState(false);
-  
+
   // DEBUG: Estado para mostrar información
   const [debugInfo, setDebugInfo] = useState('');
-  
+
   // Hooks para cargar datos
-  const { 
-    data: generaciones = [], 
+  const {
+    data: generaciones = [],
     isLoading: isLoadingGeneraciones,
     error: errorGeneraciones,
     createGeneracion,
@@ -123,48 +123,48 @@ const NuevoVehiculo = ({ editMode = false }) => {
   } = useGeneraciones(modeloId);
 
   // Este es el hook que obtiene la lista de marcas, incluyendo 'Toyota'
-  const { 
-    data: marcas = [], 
+  const {
+    data: marcas = [],
     isLoading: isLoadingMarcas,
     error: errorMarcas,
     createMarcaMutation,
-    updateMarca 
+    updateMarca
   } = useMarcas();
-  
-  const { 
-    data: modelos = [], 
+
+  const {
+    data: modelos = [],
     isLoading: isLoadingModelos,
     error: errorModelos,
     createModelo,
-    updateModelo 
+    updateModelo
   } = useModelos(marcaId);
-  
-  
+
+
   // Efecto para actualizar los años disponibles cuando cambia la generación seleccionada
   useEffect(() => {
     if (!selectedGeneracionId || !generaciones || generaciones.length === 0) {
       setAniosDisponibles([]);
       return;
     }
-    
+
     // Buscar la generación seleccionada
     const generacionSeleccionada = generaciones.find(g => g.id === selectedGeneracionId);
     if (!generacionSeleccionada) {
       setAniosDisponibles([]);
       return;
     }
-    
+
     const anioInicio = generacionSeleccionada.anioInicio || new Date().getFullYear();
     const anioFin = generacionSeleccionada.anioFin || new Date().getFullYear();
-    
+
     const anios = [];
     for (let i = anioInicio; i <= anioFin; i++) {
       anios.push(i);
     }
-    
+
     setAniosDisponibles(anios.sort((a, b) => b - a)); // Orden descendente
   }, [selectedGeneracionId, generaciones]);
-  
+
   // DEBUG: Efecto para mostrar información de estado - ACTUALIZADO
   useEffect(() => {
     const formValues = form.getFieldsValue();
@@ -191,7 +191,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
     `;
     setDebugInfo(info);
   }, [marcaId, modeloId, selectedGeneracionId, generaciones, isLoadingGeneraciones, errorGeneraciones, form, anioValue, estadoValue, notasValue, precioCompraValue, costoGruaValue, comisionesValue]);
-  
+
   // Mostrar errores si los hay
   useEffect(() => {
     if (errorMarcas) {
@@ -204,18 +204,18 @@ const NuevoVehiculo = ({ editMode = false }) => {
       message.error('Error al cargar las generaciones: ' + (errorGeneraciones.message || 'Error desconocido'));
     }
   }, [errorMarcas, errorModelos, errorGeneraciones]);
-  
+
   // Cargar datos del vehículo si está en modo edición - ACTUALIZADO
-  const { isLoading: isLoadingVehiculo } = useVehiculo(id, { 
+  const { isLoading: isLoadingVehiculo } = useVehiculo(id, {
     enabled: editMode,
     onSuccess: (data) => {
       console.log('✅ Datos del vehículo cargados:', data);
-      
+
       // Establecer los IDs para cargar los datos relacionados
       setMarcaId(data.marcaId);
       setModeloId(data.modeloId);
       setSelectedGeneracionId(data.generacionId);
-      
+
       // Establecer valores de estado
       setAnioValue(data.anio);
       setEstadoValue(data.estado);
@@ -223,12 +223,12 @@ const NuevoVehiculo = ({ editMode = false }) => {
       setPrecioCompraValue(data.precioCompra);
       setCostoGruaValue(data.costoGrua || 0);
       setComisionesValue(data.comisiones || 0);
-      
+
       // Establecer valores de los nuevos campos enum
       setTraccionValue(data.traccion || '4x2');
       setTransmisionValue(data.transmision || 'Automatico');
       setCombustibleValue(data.combustible || 'Gasolina');
-      
+
       // Crear objeto con los datos formateados para el formulario
       const datosFormateados = {
         ...data,
@@ -239,9 +239,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
         costoGrua: data.costoGrua || 0,
         comisiones: data.comisiones || 0
       };
-      
+
       console.log('📋 Datos formateados para el formulario:', datosFormateados);
-      
+
       // Establecer los valores del formulario después de un delay
       setTimeout(() => {
         form.setFieldsValue(datosFormateados);
@@ -253,7 +253,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
       message.error('Error al cargar los datos del vehículo: ' + (error.message || 'Error desconocido'));
     }
   });
-  
+
   // Efecto para establecer valores iniciales en modo creación - ACTUALIZADO
   useEffect(() => {
     if (!editMode) {
@@ -264,43 +264,43 @@ const NuevoVehiculo = ({ editMode = false }) => {
         costoGrua: 0,
         comisiones: 0
       };
-      
+
       setEstadoValue('DISPONIBLE');
       setAnioValue(new Date().getFullYear());
       setCostoGruaValue(0);
       setComisionesValue(0);
-      
+
       // Establecer valores por defecto para los nuevos campos enum
       setTraccionValue('4x2');
       setTransmisionValue('Automatico');
       setCombustibleValue('Gasolina');
-      
+
       form.setFieldsValue(defaultValues);
       console.log('🆕 Valores iniciales establecidos para nuevo vehículo');
     }
   }, [form, editMode]);
-  
+
   // Manejar cambios en los valores del formulario
   const handleFormValuesChange = (changedValues, allValues) => {
     console.log('🔄 Cambio en el formulario:', { changedValues, allValues });
-    
+
     // Si cambia la marca, limpiar modelo y generación
     if ('marcaId' in changedValues) {
       handleMarcaChange(changedValues.marcaId);
     }
-    
+
     // Si cambia el modelo, limpiar generación
     if ('modeloId' in changedValues) {
       handleModeloChange(changedValues.modeloId);
     }
-    
+
     // Si cambia la generación, actualizarla
     if ('generacionId' in changedValues) {
       console.log('🎯 Generación seleccionada:', changedValues.generacionId);
       setSelectedGeneracionId(changedValues.generacionId);
     }
   };
-  
+
   // Resetear modelos y generaciones cuando cambia la marca
   const handleMarcaChange = (value) => {
     console.log('🏷️ Marca seleccionada:', value);
@@ -310,7 +310,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
     form.setFieldsValue({ modeloId: undefined, generacionId: undefined });
     console.log('🧹 Campos limpiados por cambio de marca');
   };
-  
+
   // Resetear generaciones cuando cambia el modelo
   const handleModeloChange = (value) => {
     console.log('🚗 Modelo seleccionado:', value);
@@ -339,7 +339,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
         nombre: editingModeloNombre.trim(),
         marcaId: marcaId
       });
-      
+
       setEditingModeloId(null);
       setEditingModeloNombre('');
     } catch (error) {
@@ -353,7 +353,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
     setEditingModeloId(null);
     setEditingModeloNombre('');
   };
-  
+
   // Función para manejar la edición de una marca
   const handleEditarMarca = (marca) => {
     setEditingMarcaId(marca.id);
@@ -372,7 +372,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
         id: editingMarcaId,
         nombre: editingMarcaNombre.trim()
       });
-      
+
       setEditingMarcaId(null);
       setEditingMarcaNombre('');
     } catch (error) {
@@ -393,11 +393,11 @@ const NuevoVehiculo = ({ editMode = false }) => {
       message.warning('Por favor ingresa el nombre de la marca');
       return;
     }
-    
+
     try {
       setCreandoMarca(true);
       const response = await createMarcaMutation.mutateAsync({ nombre: nuevaMarcaNombre.trim() });
-      
+
       // Actualizar el formulario con la nueva marca seleccionada
       if (response?.data?.id) {
         setMarcaId(response.data.id);
@@ -413,7 +413,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
       setCreandoMarca(false);
     }
   };
-  
+
   // Función para manejar el cambio de generación
   const handleGeneracionChange = (value) => {
     console.log('🔧 Generación seleccionada:', value);
@@ -432,7 +432,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
   // Función para guardar la edición de una generación
   const handleGuardarEdicionGeneracion = async () => {
     if (!editingGeneracionId || !editingGeneracionNombre.trim()) return;
-    
+
     try {
       await updateGeneracion.mutateAsync({
         id: editingGeneracionId,
@@ -441,7 +441,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
         anioFin: editingAnioFin,
         modeloId: modeloId
       });
-      
+
       setEditingGeneracionId(null);
       setEditingGeneracionNombre('');
     } catch (error) {
@@ -472,19 +472,19 @@ const NuevoVehiculo = ({ editMode = false }) => {
       message.warning('Por favor ingresa el nombre del modelo');
       return;
     }
-    
+
     if (!marcaId) {
       message.warning('Por favor selecciona una marca primero');
       return;
     }
-    
+
     try {
       setCreandoModelo(true);
-      const response = await createModelo.mutateAsync({ 
+      const response = await createModelo.mutateAsync({
         nombre: nuevoModeloNombre.trim(),
         marcaId: marcaId
       });
-      
+
       // Actualizar la lista de modelos y seleccionar el nuevo modelo
       if (response?.id) {
         setModeloId(response.id);
@@ -515,18 +515,18 @@ const NuevoVehiculo = ({ editMode = false }) => {
 
     try {
       setCreandoGeneracion(true);
-      const response = await createGeneracion.mutateAsync({ 
+      const response = await createGeneracion.mutateAsync({
         nombre: nuevaGeneracionNombre.trim(),
         modeloId: modeloId,
         anioInicio: parseInt(anioInicio, 10),
         anioFin: parseInt(anioFin, 10)
       });
-      
+
       if (response?.data?.id) {
         const newGeneration = response.data;
         setSelectedGeneracionId(newGeneration.id);
         form.setFieldsValue({ generacionId: newGeneration.id });
-        
+
         // Update available years
         const startYear = newGeneration.anioInicio || new Date().getFullYear();
         const endYear = newGeneration.anioFin || new Date().getFullYear();
@@ -535,7 +535,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
           anios.push(i);
         }
         setAniosDisponibles(anios);
-        
+
         setNuevaGeneracionModal(false);
         setNuevaGeneracionNombre('');
         setAnioInicio(new Date().getFullYear());
@@ -548,13 +548,13 @@ const NuevoVehiculo = ({ editMode = false }) => {
       setCreandoGeneracion(false);
     }
   };
-  
+
   const createVehiculo = useCreateVehiculo({
     onSuccess: () => {
       message.success('Vehículo guardado exitosamente');
       // Use a slightly longer timeout and ensure navigation happens after state updates
       setTimeout(() => {
-        navigate('/vehiculos', { 
+        navigate('/vehiculos', {
           replace: true,
           state: { from: 'create' }  // Optional: for tracking navigation source
         });
@@ -572,7 +572,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
       }, 1500);
     }
   });
-  
+
   const updateVehiculo = useUpdateVehiculo({
     onSuccess: () => {
       message.success('Vehículo actualizado exitosamente');
@@ -588,7 +588,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
       setIsSubmitting(false);
     }
   });
-  
+
   // Reglas de validación para los campos del formulario
   const formRules = {
     marcaId: [
@@ -611,7 +611,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
   const onFinish = async (values) => {
     console.log('🚀 === INICIANDO ENVÍO DEL FORMULARIO ===');
     setIsSubmitting(true);
-    
+
     try {
       // Usar valores del estado como respaldo para los campos del formulario - ACTUALIZADO
       const formData = {
@@ -628,14 +628,14 @@ const NuevoVehiculo = ({ editMode = false }) => {
         // Formatear la fecha correctamente
         fechaIngreso: values.fechaIngreso ? values.fechaIngreso.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD')
       };
-      
+
       console.log('📝 Datos del formulario (combinados con estado):', formData);
       console.log('💰 Valores financieros específicos:', {
         precioCompra: formData.precioCompra,
         costoGrua: formData.costoGrua,
         comisiones: formData.comisiones
       });
-      
+
       // Validar que se haya seleccionado una generación
       if (!formData.generacionId || isNaN(formData.generacionId) || formData.generacionId <= 0) {
         const errorMsg = 'Debe seleccionar una generación válida';
@@ -644,7 +644,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
         setIsSubmitting(false);
         return;
       }
-      
+
       // Validar año
       if (!formData.anio || isNaN(formData.anio) || formData.anio < 1900 || formData.anio > new Date().getFullYear() + 1) {
         const errorMsg = `El año debe estar entre 1900 y ${new Date().getFullYear() + 1}`;
@@ -653,7 +653,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
         setIsSubmitting(false);
         return;
       }
-      
+
       // Validar precio de compra
       if (formData.precioCompra === undefined || formData.precioCompra === null || isNaN(formData.precioCompra) || formData.precioCompra <= 0) {
         const errorMsg = 'El precio de compra es requerido y debe ser mayor a 0';
@@ -662,10 +662,10 @@ const NuevoVehiculo = ({ editMode = false }) => {
         setIsSubmitting(false);
         return;
       }
-      
+
       // Buscar la generación seleccionada para verificar que existe
       const generacionSeleccionada = generaciones.find(g => g.id === formData.generacionId);
-      
+
       if (!generacionSeleccionada) {
         const errorMsg = 'La generación seleccionada no es válida';
         console.error('❌', errorMsg, 'ID:', formData.generacionId);
@@ -674,9 +674,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
         setIsSubmitting(false);
         return;
       }
-      
+
       console.log('✅ Generación encontrada:', generacionSeleccionada);
-      
+
       // Preparar los datos para enviar al backend
       const vehiculoData = {
         generacionId: formData.generacionId,
@@ -693,15 +693,15 @@ const NuevoVehiculo = ({ editMode = false }) => {
         transmision: transmisionValue,
         combustible: combustibleValue
       };
-    
+
       console.log('📤 Datos finales a enviar:', vehiculoData);
-      
+
       // Validar estructura antes de enviar
       const requiredFields = ['generacionId', 'anio', 'precioCompra', 'fechaIngreso', 'estado'];
-      const missingFields = requiredFields.filter(field => 
+      const missingFields = requiredFields.filter(field =>
         vehiculoData[field] === null || vehiculoData[field] === undefined
       );
-      
+
       if (missingFields.length > 0) {
         const errorMsg = `Faltan campos requeridos: ${missingFields.join(', ')}`;
         console.error('❌', errorMsg);
@@ -709,9 +709,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
         setIsSubmitting(false);
         return;
       }
-      
+
       console.log('✅ Todos los campos requeridos están presentes');
-      
+
       // Llamar a la API para crear o actualizar el vehículo
       if (editMode && id) {
         console.log('🔄 Actualizando vehículo existente...');
@@ -723,10 +723,10 @@ const NuevoVehiculo = ({ editMode = false }) => {
       }
     } catch (error) {
       console.error('❌ Error al procesar el formulario:', error);
-      
+
       // Manejo detallado de errores
       let errorMessage = 'Error al procesar el formulario';
-      
+
       if (error.response) {
         // El servidor respondió con un código de estado fuera del rango 2xx
         if (error.response.data) {
@@ -751,7 +751,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
         // Algo sucedió en la configuración de la solicitud
         errorMessage = error.message;
       }
-      
+
       console.error('📌 Detalles del error:', {
         message: error.message,
         response: error.response?.data,
@@ -759,86 +759,86 @@ const NuevoVehiculo = ({ editMode = false }) => {
         headers: error.response?.headers,
         request: error.request
       });
-      
+
       message.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleNext = async () => {
     try {
       console.log('🔄 Iniciando proceso de siguiente paso...');
-      
+
       // PASO 1: Obtener valores actuales del formulario
       const currentValues = form.getFieldsValue();
       console.log('📋 Valores actuales en formulario:', currentValues);
-      
+
       // PASO 2: Forzar que se mantengan los valores en el formulario
       if (currentStep === 0) {
         console.log('💾 Guardando valores del paso 1...');
-        
+
         // Usar valores de estado como respaldo
         const paso1Values = {
           marcaId: currentValues.marcaId || marcaId,
-          modeloId: currentValues.modeloId || modeloId, 
+          modeloId: currentValues.modeloId || modeloId,
           generacionId: currentValues.generacionId || selectedGeneracionId,
           anio: currentValues.anio || anioValue,
           estado: currentValues.estado || estadoValue,
           notas: currentValues.notas || notasValue
         };
-        
+
         console.log('📝 Valores a persistir:', paso1Values);
-        
+
         // Forzar que los valores se mantengan en el formulario
         form.setFieldsValue(paso1Values);
-        
+
         // Esperar un momento para que se actualice
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         // Verificar que se guardaron correctamente
         const valoresVerificacion = form.getFieldsValue();
         console.log('✅ Verificación post-guardado:', valoresVerificacion);
-        
+
         // Validaciones manuales críticas
         if (!paso1Values.anio) {
           message.error('Por favor ingrese el año del vehículo antes de continuar');
           return;
         }
-        
+
         if (!paso1Values.generacionId) {
           message.error('Por favor seleccione una generación antes de continuar');
           return;
         }
-        
+
         console.log('✅ Validaciones manuales pasaron correctamente');
       }
-      
+
       // PASO 3: Validar campos usando Ant Design
       let fieldsToValidate = [];
-      
+
       if (currentStep === 0) {
         fieldsToValidate = ['marcaId', 'modeloId', 'generacionId', 'anio', 'estado'];
       } else if (currentStep === 1) {
         fieldsToValidate = ['precioCompra', 'fechaIngreso'];
       }
-      
+
       console.log('🔍 Validando campos con Ant Design:', fieldsToValidate);
-      
+
       try {
         const validatedValues = await form.validateFields(fieldsToValidate);
         console.log('✅ Validación Ant Design exitosa:', validatedValues);
-        
+
         // Verificación final específica para el año
         if (currentStep === 0 && !validatedValues.anio) {
           throw new Error('El año no está presente después de la validación');
         }
-        
+
       } catch (validationError) {
         console.error('❌ Error en validación Ant Design:', validationError);
-        
+
         if (validationError.errorFields && validationError.errorFields.length > 0) {
-          const errorMessages = validationError.errorFields.map(field => 
+          const errorMessages = validationError.errorFields.map(field =>
             `${field.name[0]}: ${field.errors[0]}`
           );
           message.error(`Faltan campos: ${errorMessages.join(', ')}`);
@@ -847,21 +847,21 @@ const NuevoVehiculo = ({ editMode = false }) => {
         }
         return;
       }
-      
+
       // PASO 4: Avanzar al siguiente paso
       console.log('🎉 Todo validado correctamente, avanzando al paso:', currentStep + 1);
       setCurrentStep(currentStep + 1);
-      
+
     } catch (error) {
       console.error('❌ Error general en handleNext:', error);
       message.error('Error inesperado: ' + error.message);
     }
   };
-  
+
   const handlePrev = () => {
     setCurrentStep(currentStep - 1);
   };
-  
+
   const steps = [
     {
       title: 'Información Básica',
@@ -874,7 +874,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 name="marcaId"
                 rules={formRules.marcaId}
               >
-                <Select 
+                <Select
                   placeholder="Selecciona una marca"
                   loading={isLoadingMarcas}
                   onChange={handleMarcaChange}
@@ -927,9 +927,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
                             />
                           </div>
                         ) : (
-                          <div 
-                            style={{ 
-                              padding: '4px 8px', 
+                          <div
+                            style={{
+                              padding: '4px 8px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
@@ -952,55 +952,55 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 >
                   {marcas.map((marca) => (
                     <Option key={marca.id} value={marca.id} label={marca.nombre}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    {editingMarcaId === marca.id ? (
-                      <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
-                        <Input
-                          value={editingMarcaNombre}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            setEditingMarcaNombre(e.target.value);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          style={{ flex: 1 }}
-                          autoFocus
-                        />
-                        <Button 
-                          type="text" 
-                          icon={<CheckOutlined style={{ color: 'green' }} />} 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleGuardarEdicionMarca();
-                          }}
-                          size="small"
-                        />
-                        <Button 
-                          type="text" 
-                          icon={<CloseOutlined />} 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCancelarEdicionMarca();
-                          }}
-                          size="small"
-                        />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        {editingMarcaId === marca.id ? (
+                          <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
+                            <Input
+                              value={editingMarcaNombre}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                setEditingMarcaNombre(e.target.value);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              style={{ flex: 1 }}
+                              autoFocus
+                            />
+                            <Button
+                              type="text"
+                              icon={<CheckOutlined style={{ color: 'green' }} />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleGuardarEdicionMarca();
+                              }}
+                              size="small"
+                            />
+                            <Button
+                              type="text"
+                              icon={<CloseOutlined />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelarEdicionMarca();
+                              }}
+                              size="small"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <span>{marca.nombre}</span>
+                            <Button
+                              type="text"
+                              icon={<EditOutlined />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditarMarca(marca);
+                              }}
+                              size="small"
+                            />
+                          </>
+                        )}
                       </div>
-                    ) : (
-                      <>
-                        <span>{marca.nombre}</span>
-                        <Button 
-                          type="text" 
-                          icon={<EditOutlined />} 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditarMarca(marca);
-                          }}
-                          size="small"
-                        />
-                      </>
-                    )}
-                  </div>
-                </Option>
+                    </Option>
                   ))}
                   {nuevaMarcaModal && (
                     <Option className="add-new-option" value="" style={{ display: 'none' }}>
@@ -1016,7 +1016,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 name="modeloId"
                 rules={formRules.modeloId}
               >
-                <Select 
+                <Select
                   placeholder="Selecciona un modelo"
                   loading={isLoadingModelos}
                   onChange={handleModeloChange}
@@ -1070,9 +1070,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
                             />
                           </div>
                         ) : (
-                          <div 
-                            style={{ 
-                              padding: '4px 8px', 
+                          <div
+                            style={{
+                              padding: '4px 8px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
@@ -1111,18 +1111,18 @@ const NuevoVehiculo = ({ editMode = false }) => {
                               style={{ flex: 1 }}
                               autoFocus
                             />
-                            <Button 
-                              type="text" 
-                              icon={<CheckOutlined style={{ color: 'green' }} />} 
+                            <Button
+                              type="text"
+                              icon={<CheckOutlined style={{ color: 'green' }} />}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleGuardarEdicionModelo();
                               }}
                               size="small"
                             />
-                            <Button 
-                              type="text" 
-                              icon={<CloseOutlined />} 
+                            <Button
+                              type="text"
+                              icon={<CloseOutlined />}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleCancelarEdicionModelo();
@@ -1133,9 +1133,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
                         ) : (
                           <>
                             <span>{modelo.nombre}</span>
-                            <Button 
-                              type="text" 
-                              icon={<EditOutlined />} 
+                            <Button
+                              type="text"
+                              icon={<EditOutlined />}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEditarModelo(modelo);
@@ -1161,7 +1161,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 name="generacionId"
                 rules={formRules.generacionId}
               >
-                <Select 
+                <Select
                   placeholder="Selecciona una generación"
                   loading={isLoadingGeneraciones}
                   onChange={handleGeneracionChange}
@@ -1236,9 +1236,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
                           </div>
                         </div>
                       ) : (
-                        <div 
-                          style={{ 
-                            padding: '4px 8px', 
+                        <div
+                          style={{
+                            padding: '4px 8px',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -1264,7 +1264,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                     const startYear = generacion.anioInicio || new Date().getFullYear();
                     const endYear = generacion.anioFin || new Date().getFullYear();
                     const displayText = `${generacion.nombre} (${startYear}-${endYear})`;
-                    
+
                     return (
                       <Option key={generacion.id} value={generacion.id} label={displayText}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -1298,18 +1298,18 @@ const NuevoVehiculo = ({ editMode = false }) => {
                                 />
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                <Button 
-                                  type="text" 
-                                  icon={<CheckOutlined style={{ color: 'green' }} />} 
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: 'green' }} />}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleGuardarEdicionGeneracion();
                                   }}
                                   size="small"
                                 />
-                                <Button 
-                                  type="text" 
-                                  icon={<CloseOutlined />} 
+                                <Button
+                                  type="text"
+                                  icon={<CloseOutlined />}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleCancelarEdicionGeneracion();
@@ -1321,9 +1321,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
                           ) : (
                             <>
                               <span>{displayText}</span>
-                              <Button 
-                                type="text" 
-                                icon={<EditOutlined />} 
+                              <Button
+                                type="text"
+                                icon={<EditOutlined />}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleEditarGeneracion(generacion);
@@ -1345,7 +1345,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
               </Form.Item>
             </Col>
           </Row>
-          
+
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item
@@ -1356,7 +1356,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 ]}
                 preserve={true}
               >
-                <Select 
+                <Select
                   showSearch
                   style={{ width: '100%' }}
                   placeholder={aniosDisponibles.length > 0 ? "Seleccione el año" : "Seleccione una generación primero"}
@@ -1387,7 +1387,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 rules={[{ required: true, message: 'Por favor selecciona el estado del vehículo' }]}
                 preserve={true}
               >
-                <Select 
+                <Select
                   placeholder="Selecciona el estado"
                   style={{ width: '100%' }}
                   value={estadoValue}
@@ -1404,7 +1404,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
               </Form.Item>
             </Col>
           </Row>
-          
+
           <Row gutter={16}>
             <Col xs={24} md={8}>
               <Form.Item
@@ -1412,7 +1412,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 label="Tracción"
                 preserve={true}
               >
-                <Select 
+                <Select
                   placeholder="Selecciona la tracción"
                   style={{ width: '100%' }}
                   value={traccionValue}
@@ -1436,7 +1436,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 label="Transmisión"
                 preserve={true}
               >
-                <Select 
+                <Select
                   placeholder="Selecciona la transmisión"
                   style={{ width: '100%' }}
                   value={transmisionValue}
@@ -1460,7 +1460,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 label="Combustible"
                 preserve={true}
               >
-                <Select 
+                <Select
                   placeholder="Selecciona el tipo de combustible"
                   style={{ width: '100%' }}
                   value={combustibleValue}
@@ -1479,7 +1479,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
               </Form.Item>
             </Col>
           </Row>
-          
+
           <Row gutter={16}>
             <Col xs={24}>
               <Form.Item
@@ -1487,9 +1487,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 label="Notas"
                 preserve={true}
               >
-                <TextArea 
-                  rows={4} 
-                  placeholder="Ingresa notas adicionales sobre el vehículo" 
+                <TextArea
+                  rows={4}
+                  placeholder="Ingresa notas adicionales sobre el vehículo"
                   maxLength={500}
                   showCount
                   value={notasValue}
@@ -1515,8 +1515,8 @@ const NuevoVehiculo = ({ editMode = false }) => {
               label="Precio de compra"
               rules={formRules.precioCompra}
             >
-              <InputNumber 
-                style={{ width: '100%' }} 
+              <InputNumber
+                style={{ width: '100%' }}
                 min={0}
                 step={1000}
                 formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -1537,8 +1537,8 @@ const NuevoVehiculo = ({ editMode = false }) => {
               name="costoGrua"
               label="Costo de grúa"
             >
-              <InputNumber 
-                style={{ width: '100%' }} 
+              <InputNumber
+                style={{ width: '100%' }}
                 min={0}
                 step={100}
                 formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -1559,8 +1559,8 @@ const NuevoVehiculo = ({ editMode = false }) => {
               name="comisiones"
               label="Comisiones"
             >
-              <InputNumber 
-                style={{ width: '100%' }} 
+              <InputNumber
+                style={{ width: '100%' }}
                 min={0}
                 step={100}
                 formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -1582,8 +1582,8 @@ const NuevoVehiculo = ({ editMode = false }) => {
               label="Fecha de ingreso"
               rules={formRules.fechaIngreso}
             >
-              <DatePicker 
-                style={{ width: '100%' }} 
+              <DatePicker
+                style={{ width: '100%' }}
                 format="DD/MM/YYYY"
                 disabledDate={(current) => {
                   return current && current > dayjs().endOf('day');
@@ -1601,19 +1601,19 @@ const NuevoVehiculo = ({ editMode = false }) => {
           <Form.Item
             name="imagenUrl"
             label="URL de la imagen principal"
-            rules={[{ 
+            rules={[{
               required: false,
               type: 'url',
               message: 'Por favor ingresa una URL válida'
             }]}
           >
-            <Input 
-              placeholder="https://ejemplo.com/imagen.jpg" 
+            <Input
+              placeholder="https://ejemplo.com/imagen.jpg"
               allowClear
             />
           </Form.Item>
-          
-   
+
+
         </div>
       ),
     },
@@ -1621,26 +1621,26 @@ const NuevoVehiculo = ({ editMode = false }) => {
       title: 'Confirmar',
     },
   ];
-  
+
   // Mostrar loading solo cuando sea necesario
   const isLoading = isLoadingMarcas || (editMode && isLoadingVehiculo);
-  
+
   if (isLoading) {
     return <Loading />;
   }
 
   return (
     <div>
-      <Card 
+      <Card
         title={
           <Title level={4} style={{ margin: 0 }}>
             {editMode ? 'Editar Vehículo' : 'Nuevo Vehículo'}
           </Title>
         }
         extra={
-          <Button 
-            type="text" 
-            icon={<ArrowLeftOutlined />} 
+          <Button
+            type="text"
+            icon={<ArrowLeftOutlined />}
             onClick={() => navigate('/vehiculos')}
             disabled={isSubmitting}
           >
@@ -1657,13 +1657,13 @@ const NuevoVehiculo = ({ editMode = false }) => {
           style={{ marginBottom: '16px' }}
           closable
         />
-        
+
         <Steps current={currentStep} style={{ marginBottom: '24px' }}>
           {steps.map(item => (
             <Step key={item.title} title={item.title} />
           ))}
         </Steps>
-        
+
         <Form
           form={form}
           layout="vertical"
@@ -1674,17 +1674,17 @@ const NuevoVehiculo = ({ editMode = false }) => {
           <div style={{ minHeight: '300px' }}>
             {steps[currentStep].content}
           </div>
-          
+
           <div style={{ marginTop: '24px' }}>
-            <div style={{ 
-              display: 'flex', 
+            <div style={{
+              display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
               <div>
                 {currentStep > 0 && (
-                  <Button 
-                    onClick={handlePrev} 
+                  <Button
+                    onClick={handlePrev}
                     disabled={isSubmitting}
                   >
                     Anterior
@@ -1693,8 +1693,8 @@ const NuevoVehiculo = ({ editMode = false }) => {
               </div>
               <div>
                 {currentStep < steps.length - 1 && (
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     onClick={handleNext}
                     disabled={isSubmitting}
                   >
@@ -1702,8 +1702,8 @@ const NuevoVehiculo = ({ editMode = false }) => {
                   </Button>
                 )}
                 {currentStep === steps.length - 1 && (
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     htmlType="submit"
                     icon={<SaveOutlined />}
                     loading={isSubmitting}
