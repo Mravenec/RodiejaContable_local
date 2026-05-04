@@ -254,9 +254,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
     }
   });
 
-  // Efecto para establecer valores iniciales en modo creación - ACTUALIZADO
+  // Efecto para establecer valores iniciales en modo creación - CORREGIDO
   useEffect(() => {
-    if (!editMode) {
+    if (!editMode && !modeloId) {
       const defaultValues = {
         estado: 'DISPONIBLE',
         fechaIngreso: dayjs(),
@@ -278,7 +278,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
       form.setFieldsValue(defaultValues);
       console.log('🆕 Valores iniciales establecidos para nuevo vehículo');
     }
-  }, [form, editMode]);
+  }, [form, editMode, modeloId]);
 
   // Manejar cambios en los valores del formulario
   const handleFormValuesChange = (changedValues, allValues) => {
@@ -289,8 +289,8 @@ const NuevoVehiculo = ({ editMode = false }) => {
       handleMarcaChange(changedValues.marcaId);
     }
 
-    // Si cambia el modelo, limpiar generación
-    if ('modeloId' in changedValues) {
+    // Si cambia el modelo, limpiar generación SOLO si es diferente al actual
+    if ('modeloId' in changedValues && changedValues.modeloId !== modeloId) {
       handleModeloChange(changedValues.modeloId);
     }
 
@@ -486,9 +486,9 @@ const NuevoVehiculo = ({ editMode = false }) => {
       });
 
       // Actualizar la lista de modelos y seleccionar el nuevo modelo
-      if (response?.id) {
-        setModeloId(response.id);
-        form.setFieldsValue({ modeloId: response.id });
+      if (response?.data?.id) {
+        setModeloId(response.data.id);
+        form.setFieldsValue({ modeloId: response.data.id });
         message.success(`Modelo "${nuevoModeloNombre}" creado exitosamente`);
         setNuevoModeloModal(false);
         setNuevoModeloNombre('');
