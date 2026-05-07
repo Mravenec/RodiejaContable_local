@@ -205,6 +205,21 @@ Content-Type: application/json
   "referencia": "OTR-INC-001",
   "estado": "COMPLETADA"
 }
+### ========================================
+### ACTUALIZACIÓN DE TRANSACCIÓN (PUT)
+### ========================================
+
+PUT http://localhost:8080/api/transacciones-financieras/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "descripcion": "Descripción actualizada desde PUT",
+  "monto": 15000000.00,
+  "referencia": "REF-ACTUALIZADA-001",
+  "estado": "COMPLETADA"
+}
+
 
 ### ========================================
 ### CONSULTAS ADICIONALES ÚTILES

@@ -116,6 +116,14 @@ public class TransaccionesFinancierasService {
             existingTransaccion.setDia((byte) transaccion.getFecha().getDayOfMonth());
             existingTransaccion.setMes((byte) transaccion.getFecha().getMonthValue());
             existingTransaccion.setAnio((short) transaccion.getFecha().getYear());
+        } else {
+            // Si no se proporciona fecha, mantener los valores existentes
+            LocalDate existingDate = existingTransaccion.getFecha();
+            if (existingDate != null) {
+                existingTransaccion.setDia((byte) existingDate.getDayOfMonth());
+                existingTransaccion.setMes((byte) existingDate.getMonthValue());
+                existingTransaccion.setAnio((short) existingDate.getYear());
+            }
         }
         
         existingTransaccion.setTipoTransaccionId(transaccion.getTipoTransaccionId());

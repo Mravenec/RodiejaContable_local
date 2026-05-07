@@ -72,13 +72,19 @@ public class TransaccionesFinancierasController {
     }
     
     @PutMapping("/{id}")
-    public ResponseEntity<TransaccionesFinancieras> update(
-            @PathVariable Integer id, 
-            @RequestBody TransaccionesFinancieras transaccion) {
-        
-        transaccion.setId(id); // Asegurar que el ID del path coincida con el del body
-        TransaccionesFinancieras transaccionActualizada = transaccionesService.update(id, transaccion);
-        return new ResponseEntity<>(transaccionActualizada, HttpStatus.OK);
+    public ResponseEntity<TransaccionesFinancieras> update(@PathVariable Integer id, @RequestBody TransaccionesFinancieras transaccion) {
+        try {
+            TransaccionesFinancieras existing = transaccionesService.findById(id);
+            if (existing == null) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            
+            transaccion.setId(id);
+            TransaccionesFinancieras updated = transaccionesService.update(id, transaccion);
+            return new ResponseEntity<>(updated, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     
     @DeleteMapping("/{id}")
@@ -87,7 +93,7 @@ public class TransaccionesFinancierasController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
     
-    @PutMapping("/{id}/estado")
+    @PatchMapping("/{id}/estado")
     public ResponseEntity<Void> updateEstado(
             @PathVariable Integer id,
             @RequestParam TransaccionesFinancierasEstado estado) {
