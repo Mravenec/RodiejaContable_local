@@ -72,17 +72,22 @@ public class TransaccionesFinancierasController {
     }
     
     @PutMapping("/{id}")
-    public ResponseEntity<TransaccionesFinancieras> update(@PathVariable Integer id, @RequestBody TransaccionesFinancieras transaccion) {
+    public ResponseEntity<TransaccionesFinancieras> update(
+            @PathVariable Integer id, 
+            @RequestBody TransaccionesFinancieras transaccion) {
+        
         try {
-            TransaccionesFinancieras existing = transaccionesService.findById(id);
-            if (existing == null) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
+            System.out.println("PUT Request - ID: " + id);
+            System.out.println("PUT Request - Transacción recibida: " + transaccion);
+            System.out.println("PUT Request - Fecha recibida: " + transaccion.getFecha());
+            System.out.println("PUT Request - Descripción: " + transaccion.getDescripcion());
             
-            transaccion.setId(id);
-            TransaccionesFinancieras updated = transaccionesService.update(id, transaccion);
-            return new ResponseEntity<>(updated, HttpStatus.OK);
+            transaccion.setId(id); // Asegurar que el ID del path coincida con el del body
+            TransaccionesFinancieras transaccionActualizada = transaccionesService.update(id, transaccion);
+            return new ResponseEntity<>(transaccionActualizada, HttpStatus.OK);
         } catch (Exception e) {
+            System.err.println("Error en PUT endpoint: " + e.getMessage());
+            e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

@@ -358,8 +358,8 @@ const Finanzas = () => {
   };
 
   const editarTransaccion = (transaccion) => {
-    // Navegar a la página de edición con el ID de la transacción
-    navigate(`/finanzas/editar/${transaccion.codigoTransaccion}`);
+    // Navegar a la página de edición con el ID numérico de la transacción
+    navigate(`/finanzas/editar/${transaccion.id}`);
   };
 
   const confirmarEliminar = (transaccion) => {

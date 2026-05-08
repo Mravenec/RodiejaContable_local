@@ -108,12 +108,10 @@ public class TransaccionesFinancierasRepository {
     }
     
     public TransaccionesFinancieras update(TransaccionesFinancieras transaccion) {
-        return dsl.update(TRANSACCIONES_FINANCIERAS)
+        // Realizar la actualización
+        int rowsUpdated = dsl.update(TRANSACCIONES_FINANCIERAS)
                  .set(TRANSACCIONES_FINANCIERAS.CODIGO_TRANSACCION, transaccion.getCodigoTransaccion())
                  .set(TRANSACCIONES_FINANCIERAS.FECHA, transaccion.getFecha())
-                 .set(TRANSACCIONES_FINANCIERAS.DIA, transaccion.getDia())
-                 .set(TRANSACCIONES_FINANCIERAS.MES, transaccion.getMes())
-                 .set(TRANSACCIONES_FINANCIERAS.ANIO, transaccion.getAnio())
                  .set(TRANSACCIONES_FINANCIERAS.TIPO_TRANSACCION_ID, transaccion.getTipoTransaccionId())
                  .set(TRANSACCIONES_FINANCIERAS.EMPLEADO_ID, transaccion.getEmpleadoId())
                  .set(TRANSACCIONES_FINANCIERAS.VEHICULO_ID, transaccion.getVehiculoId())
@@ -127,9 +125,16 @@ public class TransaccionesFinancierasRepository {
                  .set(TRANSACCIONES_FINANCIERAS.ACTIVO, transaccion.getActivo())
                  .set(TRANSACCIONES_FINANCIERAS.FECHA_ACTUALIZACION, transaccion.getFechaActualizacion())
                  .where(TRANSACCIONES_FINANCIERAS.ID.eq(transaccion.getId()))
-                 .returning()
-                 .fetchOne()
-                 .into(TransaccionesFinancieras.class);
+                 .execute();
+        
+        // Si no se actualizó ninguna fila, lanzar excepción
+        if (rowsUpdated == 0) {
+            throw new RuntimeException("No se encontró la transacción con ID: " + transaccion.getId());
+        }
+        
+        // Devolver la transacción actualizada buscándola nuevamente
+        return findById(transaccion.getId())
+                 .orElseThrow(() -> new RuntimeException("No se encontró la transacción después de actualizar: " + transaccion.getId()));
     }
     
     public boolean delete(Integer id) {

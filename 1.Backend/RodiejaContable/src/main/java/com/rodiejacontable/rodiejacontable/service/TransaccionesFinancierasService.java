@@ -111,20 +111,26 @@ public class TransaccionesFinancierasService {
         existingTransaccion.setCodigoTransaccion(transaccion.getCodigoTransaccion());
         existingTransaccion.setFecha(transaccion.getFecha() != null ? transaccion.getFecha() : existingTransaccion.getFecha());
         
-        // Actualizar día, mes y año si la fecha cambió
+        // Actualizar la fecha si cambió
         if (transaccion.getFecha() != null) {
-            existingTransaccion.setDia((byte) transaccion.getFecha().getDayOfMonth());
-            existingTransaccion.setMes((byte) transaccion.getFecha().getMonthValue());
-            existingTransaccion.setAnio((short) transaccion.getFecha().getYear());
-        } else {
-            // Si no se proporciona fecha, mantener los valores existentes
-            LocalDate existingDate = existingTransaccion.getFecha();
-            if (existingDate != null) {
-                existingTransaccion.setDia((byte) existingDate.getDayOfMonth());
-                existingTransaccion.setMes((byte) existingDate.getMonthValue());
-                existingTransaccion.setAnio((short) existingDate.getYear());
+            // Si la fecha viene como String del frontend, convertirla a LocalDate
+            String className = transaccion.getFecha().getClass().getSimpleName();
+            if ("String".equals(className)) {
+                try {
+                    String fechaStr = transaccion.getFecha().toString();
+                    LocalDate fechaParaProcesar = LocalDate.parse(fechaStr);
+                    existingTransaccion.setFecha(fechaParaProcesar);
+                } catch (Exception e) {
+                    System.err.println("Error parseando fecha: " + transaccion.getFecha() + " - " + e.getMessage());
+                    // Mantener fecha existente si hay error
+                    existingTransaccion.setFecha(existingTransaccion.getFecha());
+                }
+            } else {
+                // Si ya es LocalDate, usarlo directamente
+                existingTransaccion.setFecha(transaccion.getFecha());
             }
         }
+        // Nota: Los campos dia, mes, anio son columnas generadas en la BD y se actualizan automáticamente
         
         existingTransaccion.setTipoTransaccionId(transaccion.getTipoTransaccionId());
         existingTransaccion.setEmpleadoId(transaccion.getEmpleadoId());
