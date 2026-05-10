@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Form, Input, InputNumber, Button, Card, Typography, message, Select, DatePicker, Row, Col } from 'antd';
-import moment from 'moment';
+import { Form, Input, InputNumber, Button, Card, Typography, message, Select, Row, Col } from 'antd';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -15,15 +14,7 @@ const EditarTransaccion = () => {
   const [vehiculos, setVehiculos] = useState([]);
   const [empleados, setEmpleados] = useState([]);
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    cargarTransaccion();
-    cargarTiposTransacciones();
-    cargarVehiculos();
-    cargarEmpleados();
-  }, [id]);
-
-  const cargarTransaccion = async () => {
+  const cargarTransaccion = useCallback(async () => {
     try {
       const response = await fetch(`http://localhost:8080/api/transacciones-financieras/${id}`);
       if (response.ok) {
@@ -39,7 +30,9 @@ const EditarTransaccion = () => {
         
         form.setFieldsValue({
           ...data,
-          fecha: fechaFormateada
+          fecha: fechaFormateada,
+          monto: data.monto ? parseFloat(data.monto) : null,
+          comisionEmpleado: data.comisionEmpleado ? parseFloat(data.comisionEmpleado) : null
         });
         console.log('Transacción cargada por ID:', id, data);
       } else {
@@ -49,7 +42,7 @@ const EditarTransaccion = () => {
       console.error('Error al cargar transacción por ID:', error);
       message.error('Error al conectar con el servidor');
     }
-  };
+  }, [id, form]);
 
   const cargarTiposTransacciones = async () => {
     try {
@@ -86,6 +79,14 @@ const EditarTransaccion = () => {
       console.error('Error cargando empleados:', error);
     }
   };
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    cargarTransaccion();
+    cargarTiposTransacciones();
+    cargarVehiculos();
+    cargarEmpleados();
+  }, [cargarTransaccion, id]);
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -197,7 +198,7 @@ const EditarTransaccion = () => {
                 <Select placeholder="Seleccionar vehículo" allowClear>
                   {vehiculos.map(vehiculo => (
                     <Option key={vehiculo.id} value={vehiculo.id}>
-                      {vehiculo.marca} {vehiculo.modelo}
+                      {vehiculo.codigoVehiculo} - {vehiculo.anio}
                     </Option>
                   ))}
                 </Select>
@@ -208,14 +209,14 @@ const EditarTransaccion = () => {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                label="Monto"
+                label="Monto (₡)"
                 name="monto"
                 rules={[{ required: true, message: 'El monto es requerido' }]}
               >
                 <InputNumber
                   style={{ width: '100%' }}
-                  formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?=\d{3}))/g, ',')}
-                  parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                  formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={value => value.replace(/[₡$\s?,]/g, '')}
                   precision={2}
                   placeholder="0.00"
                 />
@@ -223,13 +224,13 @@ const EditarTransaccion = () => {
             </Col>
             <Col span={12}>
               <Form.Item
-                label="Comisión Empleado"
+                label="Comisión (₡)"
                 name="comisionEmpleado"
               >
                 <InputNumber
                   style={{ width: '100%' }}
-                  formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?=\d{3}))/g, ',')}
-                  parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                  formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={value => value.replace(/[₡$\s?,]/g, '')}
                   precision={2}
                   placeholder="0.00"
                 />

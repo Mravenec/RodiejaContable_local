@@ -82,6 +82,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
   const [traccionValue, setTraccionValue] = useState('4x2');
   const [transmisionValue, setTransmisionValue] = useState('Automatico');
   const [combustibleValue, setCombustibleValue] = useState('Gasolina');
+  const [cilindrajeValue, setCilindrajeValue] = useState('');
 
   // Estado para el modal de nueva marca
   const [nuevaMarcaModal, setNuevaMarcaModal] = useState(false);
@@ -228,6 +229,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
       setTraccionValue(data.traccion || '4x2');
       setTransmisionValue(data.transmision || 'Automatico');
       setCombustibleValue(data.combustible || 'Gasolina');
+      setCilindrajeValue(data.cilindraje || '');
 
       // Crear objeto con los datos formateados para el formulario
       const datosFormateados = {
@@ -274,6 +276,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
       setTraccionValue('4x2');
       setTransmisionValue('Automatico');
       setCombustibleValue('Gasolina');
+      setCilindrajeValue('');
 
       form.setFieldsValue(defaultValues);
       console.log('🆕 Valores iniciales establecidos para nuevo vehículo');
@@ -691,7 +694,8 @@ const NuevoVehiculo = ({ editMode = false }) => {
         // Agregar los nuevos campos enum
         traccion: traccionValue,
         transmision: transmisionValue,
-        combustible: combustibleValue
+        combustible: combustibleValue,
+        cilindraje: formData.cilindraje || cilindrajeValue || null
       };
 
       console.log('📤 Datos finales a enviar:', vehiculoData);
@@ -1481,7 +1485,27 @@ const NuevoVehiculo = ({ editMode = false }) => {
           </Row>
 
           <Row gutter={16}>
-            <Col xs={24}>
+            <Col xs={24} md={8}>
+              <Form.Item
+                name="cilindraje"
+                label="Cilindraje"
+                rules={[
+                  { max: 200, message: 'El cilindraje no puede exceder 200 caracteres' }
+                ]}
+                preserve={true}
+              >
+                <Input
+                  placeholder="Ej: 1.8L, 1600cc, V6 3.5L, Eléctrico"
+                  maxLength={200}
+                  value={cilindrajeValue}
+                  onChange={(e) => {
+                    setCilindrajeValue(e.target.value);
+                    form.setFieldsValue({ cilindraje: e.target.value });
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={16}>
               <Form.Item
                 name="notas"
                 label="Notas"

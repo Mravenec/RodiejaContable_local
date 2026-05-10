@@ -280,7 +280,8 @@ const EditarVehiculo = () => {
         precioVenta: vehiculo.precioVenta,
         activo: vehiculo.activo !== false,
         notas: vehiculo.notas,
-        costoRecuperado: vehiculo.costoRecuperado || 0
+        costoRecuperado: vehiculo.costoRecuperado || 0,
+        cilindraje: vehiculo.cilindraje || ''
       });
       
       // Load transactions and repuestos for this vehicle
@@ -341,7 +342,8 @@ const EditarVehiculo = () => {
         fechaIngreso: values.fechaIngreso && values.fechaIngreso.isValid() ? values.fechaIngreso.format('YYYY-MM-DD') : null,
         fechaVenta: values.fechaVenta && values.fechaVenta.isValid() ? values.fechaVenta.format('YYYY-MM-DD') : null,
         estado: values.estado,
-        notas: values.notas || ''
+        notas: values.notas || '',
+        cilindraje: values.cilindraje || null
       };
       
       // Remove calculated fields from payload as they're handled in backend
@@ -596,6 +598,16 @@ const EditarVehiculo = () => {
                         <Option value="DESARMADO">Desarmado</Option>
                         <Option value="REPARACION">En Reparación</Option>
                       </Select>
+                    </Form.Item>
+                  </Descriptions.Item>
+
+                  <Descriptions.Item label="Cilindraje">
+                    <Form.Item
+                      name="cilindraje"
+                      style={{ margin: 0 }}
+                      rules={[{ max: 200, message: 'El cilindraje no puede exceder 200 caracteres' }]}
+                    >
+                      <Input placeholder="Ej: 1.8L, 1600cc, V6" maxLength={200} />
                     </Form.Item>
                   </Descriptions.Item>
                   

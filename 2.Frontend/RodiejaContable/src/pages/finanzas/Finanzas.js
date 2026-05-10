@@ -6,7 +6,6 @@ import {
   Input, 
   Button, 
   Space, 
-  DatePicker, 
   Select, 
   Modal, 
   Typography, 
@@ -33,7 +32,6 @@ import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
 
-const { RangePicker } = DatePicker;
 const { Option } = Select;
 const { Text } = Typography;
 

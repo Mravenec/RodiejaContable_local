@@ -18,19 +18,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
-import org.jooq.Function22;
 import org.jooq.Identity;
 import org.jooq.Index;
 import org.jooq.Name;
 import org.jooq.Record;
-import org.jooq.Records;
-import org.jooq.Row22;
 import org.jooq.Schema;
-import org.jooq.SelectField;
 import org.jooq.Table;
 import org.jooq.TableField;
 import org.jooq.TableOptions;
@@ -130,6 +125,11 @@ public class Vehiculos extends TableImpl<VehiculosRecord> {
      * The column <code>sistema_vehicular.vehiculos.combustible</code>.
      */
     public final TableField<VehiculosRecord, VehiculosCombustible> COMBUSTIBLE = createField(DSL.name("combustible"), SQLDataType.VARCHAR(8).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VehiculosCombustible.class), this, "");
+
+    /**
+     * The column <code>sistema_vehicular.vehiculos.cilindraje</code>.
+     */
+    public final TableField<VehiculosRecord, String> CILINDRAJE = createField(DSL.name("cilindraje"), SQLDataType.VARCHAR(200).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)), this, "");
 
     /**
      * The column <code>sistema_vehicular.vehiculos.fecha_ingreso</code>.
@@ -286,29 +286,5 @@ public class Vehiculos extends TableImpl<VehiculosRecord> {
     @Override
     public Vehiculos rename(Table<?> name) {
         return new Vehiculos(name.getQualifiedName(), null);
-    }
-
-    // -------------------------------------------------------------------------
-    // Row22 type methods
-    // -------------------------------------------------------------------------
-
-    @Override
-    public Row22<Integer, String, Integer, String, Integer, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VehiculosTraccion, VehiculosTransmision, VehiculosCombustible, LocalDate, VehiculosEstado, BigDecimal, LocalDate, Byte, String, LocalDateTime, LocalDateTime> fieldsRow() {
-        return (Row22) super.fieldsRow();
-    }
-
-    /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
-     */
-    public <U> SelectField<U> mapping(Function22<? super Integer, ? super String, ? super Integer, ? super String, ? super Integer, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VehiculosTraccion, ? super VehiculosTransmision, ? super VehiculosCombustible, ? super LocalDate, ? super VehiculosEstado, ? super BigDecimal, ? super LocalDate, ? super Byte, ? super String, ? super LocalDateTime, ? super LocalDateTime, ? extends U> from) {
-        return convertFrom(Records.mapping(from));
-    }
-
-    /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Class,
-     * Function)}.
-     */
-    public <U> SelectField<U> mapping(Class<U> toType, Function22<? super Integer, ? super String, ? super Integer, ? super String, ? super Integer, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VehiculosTraccion, ? super VehiculosTransmision, ? super VehiculosCombustible, ? super LocalDate, ? super VehiculosEstado, ? super BigDecimal, ? super LocalDate, ? super Byte, ? super String, ? super LocalDateTime, ? super LocalDateTime, ? extends U> from) {
-        return convertFrom(toType, Records.mapping(from));
     }
 }

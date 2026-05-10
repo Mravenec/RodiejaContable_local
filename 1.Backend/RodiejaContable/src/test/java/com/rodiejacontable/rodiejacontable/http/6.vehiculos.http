@@ -502,8 +502,8 @@ Content-Type: application/json
   "notas": "Perfecto para principiantes"
 }
 
-### Ejemplo completo con todos los campos
-### Vehículo 31 - Corolla 2021 (Ejemplo completo)
+### Ejemplo completo con todos los campos incluyendo CILINDRAJE
+### Vehículo 31 - Corolla 2021 con cilindraje
 POST http://localhost:8080/api/vehiculos
 Content-Type: application/json
 
@@ -518,7 +518,61 @@ Content-Type: application/json
   "estado": "DESARMADO",
   "precioVenta": null,
   "fechaVenta": null,
+  "cilindraje": "1.8L",
   "notas": "Vehículo en buen estado, recuperado de aseguradora, llantas al 80%."
+}
+
+### Prueba CREATE con diferentes formatos de cilindraje
+### Vehículo 32 - Honda Civic con cilindraje en cc
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 4,
+  "anio": 2019,
+  "precioCompra": 6400000.00,
+  "costoGrua": 50000.00,
+  "comisiones": 95000.00,
+  "fechaIngreso": "2023-03-08",
+  "estado": "DISPONIBLE",
+  "cilindraje": "1600cc",
+  "notas": "Hatchback, muy deportivo, motor 1.6L"
+}
+
+### Vehículo 33 - CR-V con cilindraje V6
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 6,
+  "anio": 2019,
+  "precioCompra": 9200000.00,
+  "costoGrua": 75000.00,
+  "comisiones": 135000.00,
+  "fechaIngreso": "2023-03-15",
+  "estado": "DISPONIBLE",
+  "traccion": "4x4",
+  "transmision": "Automatico",
+  "combustible": "Gasolina",
+  "cilindraje": "V6 3.5L",
+  "notas": "SUV familiar, tracción integral"
+}
+
+### Vehículo 34 - Eléctrico
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 4,
+  "anio": 2021,
+  "precioCompra": 12000000.00,
+  "costoGrua": 80000.00,
+  "comisiones": 150000.00,
+  "fechaIngreso": "2023-04-12",
+  "estado": "DISPONIBLE",
+  "combustible": "Elécrico",
+  "cilindraje": "Eléctrico",
+  "notas": "Honda Civic eléctrico, cero emisiones"
 }
 
 ### Actualizar vehículo (PUT test)
@@ -584,3 +638,27 @@ Content-Type: application/json
 {
   "notas": "Test minimal - solo notas"
 }
+
+### Pruebas UPDATE con CILINDRAJE
+### Actualizar solo cilindraje (PUT test)
+PUT http://localhost:8080/api/vehiculos/2
+Content-Type: application/json
+
+{
+  "cilindraje": "2.0L Turbo"
+}
+
+### Actualizar múltiples campos incluyendo cilindraje
+PUT http://localhost:8080/api/vehiculos/2
+Content-Type: application/json
+
+{
+  "precioVenta": 7500000.00,
+  "fechaVenta": "2023-06-15",
+  "estado": "VENDIDO",
+  "cilindraje": "2.0L Turbo",
+  "notas": "Vendido con cilindraje actualizado - motor turbo"
+}
+
+### Verificar vehículo con cilindraje actualizado
+GET http://localhost:8080/api/vehiculos/2

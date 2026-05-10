@@ -61,6 +61,11 @@ public class VehiculosService {
         // Validar que la generación existe
         generacionesRepository.findById(vehiculo.getGeneracionId())
             .orElseThrow(() -> new ResourceNotFoundException("Generación no encontrada con ID: " + vehiculo.getGeneracionId()));
+            
+        // Validar longitud máxima de cilindraje (200 caracteres)
+        if (vehiculo.getCilindraje() != null && vehiculo.getCilindraje().length() > 200) {
+            throw new IllegalArgumentException("El cilindraje no puede exceder 200 caracteres");
+        }
         
         // Establecer valores por defecto
         if (vehiculo.getFechaIngreso() == null) {
@@ -130,6 +135,12 @@ public class VehiculosService {
         }
         if (vehiculo.getNotas() != null) {
             existingVehiculo.setNotas(vehiculo.getNotas());
+        }
+        if (vehiculo.getCilindraje() != null) {
+            if (vehiculo.getCilindraje().length() > 200) {
+                throw new IllegalArgumentException("El cilindraje no puede exceder 200 caracteres");
+            }
+            existingVehiculo.setCilindraje(vehiculo.getCilindraje());
         }
         
         // Usar el Repository con la lógica correcta

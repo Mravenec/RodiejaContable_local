@@ -94,6 +94,7 @@ CREATE TABLE vehiculos (
     traccion ENUM ('4x2','4x4'),
     transmision ENUM ('Automatico','Manual'),
     combustible ENUM ('Gasolina','Diesel','Elécrico'),
+    cilindraje VARCHAR(200),
     fecha_ingreso DATE NOT NULL,
     estado ENUM('DISPONIBLE', 'VENDIDO', 'DESARMADO', 'REPARACION') DEFAULT 'DISPONIBLE',
     precio_venta DECIMAL(12,2) DEFAULT NULL,

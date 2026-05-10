@@ -37,6 +37,7 @@ public class Vehiculos implements Serializable {
     private VehiculosTraccion traccion;
     private VehiculosTransmision transmision;
     private VehiculosCombustible combustible;
+    private String cilindraje;
     private LocalDate fechaIngreso;
     private VehiculosEstado estado;
     private BigDecimal precioVenta;
@@ -63,6 +64,7 @@ public class Vehiculos implements Serializable {
         this.traccion = value.traccion;
         this.transmision = value.transmision;
         this.combustible = value.combustible;
+        this.cilindraje = value.cilindraje;
         this.fechaIngreso = value.fechaIngreso;
         this.estado = value.estado;
         this.precioVenta = value.precioVenta;
@@ -88,6 +90,7 @@ public class Vehiculos implements Serializable {
         VehiculosTraccion traccion,
         VehiculosTransmision transmision,
         VehiculosCombustible combustible,
+        String cilindraje,
         LocalDate fechaIngreso,
         VehiculosEstado estado,
         BigDecimal precioVenta,
@@ -111,6 +114,7 @@ public class Vehiculos implements Serializable {
         this.traccion = traccion;
         this.transmision = transmision;
         this.combustible = combustible;
+        this.cilindraje = cilindraje;
         this.fechaIngreso = fechaIngreso;
         this.estado = estado;
         this.precioVenta = precioVenta;
@@ -332,6 +336,21 @@ public class Vehiculos implements Serializable {
     }
 
     /**
+     * Getter for <code>sistema_vehicular.vehiculos.cilindraje</code>.
+     */
+    public String getCilindraje() {
+        return this.cilindraje;
+    }
+
+    /**
+     * Setter for <code>sistema_vehicular.vehiculos.cilindraje</code>.
+     */
+    public Vehiculos setCilindraje(String cilindraje) {
+        this.cilindraje = cilindraje;
+        return this;
+    }
+
+    /**
      * Getter for <code>sistema_vehicular.vehiculos.fecha_ingreso</code>.
      */
     public LocalDate getFechaIngreso() {
@@ -544,6 +563,12 @@ public class Vehiculos implements Serializable {
         }
         else if (!this.combustible.equals(other.combustible))
             return false;
+        if (this.cilindraje == null) {
+            if (other.cilindraje != null)
+                return false;
+        }
+        else if (!this.cilindraje.equals(other.cilindraje))
+            return false;
         if (this.fechaIngreso == null) {
             if (other.fechaIngreso != null)
                 return false;
@@ -613,6 +638,7 @@ public class Vehiculos implements Serializable {
         result = prime * result + ((this.traccion == null) ? 0 : this.traccion.hashCode());
         result = prime * result + ((this.transmision == null) ? 0 : this.transmision.hashCode());
         result = prime * result + ((this.combustible == null) ? 0 : this.combustible.hashCode());
+        result = prime * result + ((this.cilindraje == null) ? 0 : this.cilindraje.hashCode());
         result = prime * result + ((this.fechaIngreso == null) ? 0 : this.fechaIngreso.hashCode());
         result = prime * result + ((this.estado == null) ? 0 : this.estado.hashCode());
         result = prime * result + ((this.precioVenta == null) ? 0 : this.precioVenta.hashCode());
@@ -642,6 +668,7 @@ public class Vehiculos implements Serializable {
         sb.append(", ").append(traccion);
         sb.append(", ").append(transmision);
         sb.append(", ").append(combustible);
+        sb.append(", ").append(cilindraje);
         sb.append(", ").append(fechaIngreso);
         sb.append(", ").append(estado);
         sb.append(", ").append(precioVenta);

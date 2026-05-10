@@ -204,6 +204,10 @@ public class VehiculosController {
             vehiculo.setNotas(vehiculoData.get("notas").toString());
         }
         
+        if (vehiculoData.containsKey("cilindraje") && vehiculoData.get("cilindraje") != null) {
+            vehiculo.setCilindraje(vehiculoData.get("cilindraje").toString());
+        }
+        
         System.out.println("Vehículo antes de guardar: " + vehiculo);
         Vehiculos nuevoVehiculo = vehiculosService.create(vehiculo);
         System.out.println("Vehículo después de guardar: " + nuevoVehiculo);
@@ -311,6 +315,10 @@ public class VehiculosController {
         
         if (vehiculoData.containsKey("notas") && vehiculoData.get("notas") != null) {
             existente.setNotas(vehiculoData.get("notas").toString());
+        }
+        
+        if (vehiculoData.containsKey("cilindraje") && vehiculoData.get("cilindraje") != null) {
+            existente.setCilindraje(vehiculoData.get("cilindraje").toString());
         }
         
         System.out.println("Vehículo antes de actualizar: " + existente);
