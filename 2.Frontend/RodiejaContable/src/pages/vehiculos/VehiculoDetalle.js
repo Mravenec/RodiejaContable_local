@@ -539,169 +539,216 @@ const VehiculoDetalle = () => {
             <TabPane tab={
               <span><FileTextOutlined /> Información General</span>
             } key="1">
-              <Descriptions bordered column={{ xs: 1, sm: 2 }}>
-                <Descriptions.Item label="Año">{vehiculo.anio || 'No especificado'}</Descriptions.Item>
-                <Descriptions.Item label="Código">{vehiculo.codigoVehiculo || 'Sin código'}</Descriptions.Item>
-                <Descriptions.Item label="Fecha de Ingreso">
-                  {formatDate(vehiculo.fechaIngreso)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Estado">
-                  {getEstadoTag(vehiculo.estado)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Transmisión">{vehiculo.transmision || 'No especificado'}</Descriptions.Item>
-                <Descriptions.Item label="Tracción">{vehiculo.traccion || 'No especificado'}</Descriptions.Item>
-                <Descriptions.Item label="Combustible">{vehiculo.combustible || 'No especificado'}</Descriptions.Item>
-                <Descriptions.Item label="Precio de Compra">
-                  {formatCurrency(vehiculo.precioCompra || 0)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Costo de Grúa">
-                  {formatCurrency(vehiculo.costoGrua || 0)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Comisiones">
-                  {formatCurrency(vehiculo.comisiones || 0)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Inversión Total">
-                  <strong>{formatCurrency(vehiculo.inversionTotal || 0)}</strong>
-                </Descriptions.Item>
-                <Descriptions.Item label="Monto Recuperado">
-                  <div>
-                    <div style={{ 
-                      color: vehiculo.costoRecuperado < 0 ? '#722ed1' : '#52c41a', 
-                      fontWeight: 500,
-                      marginBottom: 4
-                    }}>
-                      {formatCurrency(vehiculo.costoRecuperado || 0)}
-                    </div>
-                    {vehiculo.inversionTotal > 0 && (() => {
-                      const porcentaje = ((vehiculo.costoRecuperado || 0) / vehiculo.inversionTotal) * 100;
-                      const porcentajeAbsoluto = Math.abs(porcentaje);
-                      const porcentajeBase = Math.min(100, porcentajeAbsoluto);
-                      const porcentajeExcedente = Math.max(0, porcentajeAbsoluto - 100);
-                      const esNegativo = porcentaje < 0;
-                      
-                      return (
-                        <div> 
-                          <div style={{ 
-                            width: '100%', 
-                            backgroundColor: '#f0f0f0', 
-                            borderRadius: 4,
-                            marginTop: 4,
-                            height: 6,
-                            position: 'relative',
-                            overflow: 'hidden'
-                          }}>
-                            {/* Barra base (hasta 100%) */}
-                            {porcentajeAbsoluto > 0 && (
-                              <div 
-                                style={{
-                                  width: '100%',
-                                  height: '100%',
-                                  backgroundColor: esNegativo ? '#722ed1' : '#52c41a',
-                                  position: 'absolute',
-                                  left: 0,
-                                  top: 0,
-                                  transition: 'width 0.3s',
-                                  maxWidth: `${Math.min(100, porcentajeBase)}%`
-                                }}
-                              />
-                            )}
-                            
-                            {/* Barra de excedente (más del 100%) */}
-                            {porcentajeExcedente > 0 && (
-                              <div 
-                                style={{
-                                  width: `${porcentajeExcedente}%`,
-                                  height: '100%',
-                                  backgroundColor: esNegativo ? '#722ed1' : '#faad14', // Dorado para excedente positivo, morado para excedente negativo
-                                  position: 'absolute',
-                                  right: 0,
-                                  top: 0,
-                                  transition: 'width 0.3s',
-                                  borderTopRightRadius: 4,
-                                  borderBottomRightRadius: 4
-                                }}
-                              />
-                            )}
-                          </div>
+              <div>
+                {/* Información Básica del Vehículo */}
+                <Card 
+                  size="small" 
+                  title={<><Text strong>📋 Información Básica</Text></>}
+                  style={{ marginBottom: '16px' }}
+                >
+                  <Descriptions column={{ xs: 1, sm: 2 }} size="small">
+                    <Descriptions.Item label="Año" labelStyle={{ fontWeight: 'bold' }}>
+                      <Text style={{ fontSize: '15px' }}>{vehiculo.anio || 'No especificado'}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Código" labelStyle={{ fontWeight: 'bold' }}>
+                      <Text code>{vehiculo.codigoVehiculo || 'Sin código'}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Fecha de Ingreso" labelStyle={{ fontWeight: 'bold' }}>
+                      {formatDate(vehiculo.fechaIngreso)}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Estado" labelStyle={{ fontWeight: 'bold' }}>
+                      {getEstadoTag(vehiculo.estado)}
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+
+                {/* Especificaciones Técnicas */}
+                <Card 
+                  size="small" 
+                  title={<><Text strong>⚙️ Especificaciones Técnicas</Text></>}
+                  style={{ marginBottom: '16px' }}
+                >
+                  <Descriptions column={{ xs: 1, sm: 2 }} size="small">
+                    <Descriptions.Item label="Transmisión" labelStyle={{ fontWeight: 'bold' }}>
+                      <Tag color="blue">{vehiculo.transmision || 'No especificado'}</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Tracción" labelStyle={{ fontWeight: 'bold' }}>
+                      <Tag color="green">{vehiculo.traccion || 'No especificado'}</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Combustible" labelStyle={{ fontWeight: 'bold' }}>
+                      <Tag color="orange">{vehiculo.combustible || 'No especificado'}</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Cilindraje" labelStyle={{ fontWeight: 'bold' }}>
+                      <Tag color="purple">{vehiculo.cilindraje || 'No especificado'}</Tag>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+
+                {/* Información Financiera */}
+                <Card 
+                  size="small" 
+                  title={<><Text strong>💰 Información Financiera</Text></>}
+                  style={{ marginBottom: '16px' }}
+                >
+                  <Descriptions column={{ xs: 1, sm: 2 }} size="small">
+                    <Descriptions.Item label="Precio de Compra" labelStyle={{ fontWeight: 'bold' }}>
+                      <Text style={{ color: '#1890ff', fontSize: '16px' }}>
+                        {formatCurrency(vehiculo.precioCompra || 0)}
+                      </Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Costo de Grúa" labelStyle={{ fontWeight: 'bold' }}>
+                      {formatCurrency(vehiculo.costoGrua || 0)}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Comisiones" labelStyle={{ fontWeight: 'bold' }}>
+                      {formatCurrency(vehiculo.comisiones || 0)}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Inversión Total" labelStyle={{ fontWeight: 'bold' }}>
+                      <Text strong style={{ color: '#52c41a', fontSize: '17px' }}>
+                        {formatCurrency(vehiculo.inversionTotal || 0)}
+                      </Text>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+
+                {/* Información Adicional */}
+                <Card 
+                  size="small" 
+                  title={<><Text strong>📊 Estado Financiero Detallado</Text></>}
+                  style={{ marginBottom: '16px' }}
+                >
+                  <Descriptions column={{ xs: 1, sm: 2 }} size="small">
+                    <Descriptions.Item label="Monto Recuperado" labelStyle={{ fontWeight: 'bold' }}>
+                      <div>
+                        <div style={{ 
+                          color: vehiculo.costoRecuperado < 0 ? '#722ed1' : '#52c41a', 
+                          fontWeight: 500,
+                          marginBottom: 4
+                        }}>
+                          {formatCurrency(vehiculo.costoRecuperado || 0)}
+                        </div>
+                        {vehiculo.inversionTotal > 0 && (() => {
+                          const porcentaje = ((vehiculo.costoRecuperado || 0) / vehiculo.inversionTotal) * 100;
+                          const porcentajeAbsoluto = Math.abs(porcentaje);
+                          const porcentajeBase = Math.min(100, porcentajeAbsoluto);
+                          const porcentajeExcedente = Math.max(0, porcentajeAbsoluto - 100);
+                          const esNegativo = porcentaje < 0;
                           
-                          <div style={{ 
-                            fontSize: 12, 
-                            color: '#666',
-                            marginTop: 4,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                          }}>
-                            <span>
-                              {porcentaje.toLocaleString('es-CR', { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: 2 
-                              })}% de la inversión
-                            </span>
-                            {porcentajeExcedente > 0 && (
-                              <span style={{ 
-                                color: esNegativo ? '#722ed1' : '#d48806', // Color de texto para el excedente
-                                fontWeight: 500,
-                                marginLeft: 8,
-                                display: 'inline-flex',
+                          return (
+                            <div> 
+                              <div style={{ 
+                                width: '100%', 
+                                backgroundColor: '#f0f0f0', 
+                                borderRadius: 4,
+                                marginTop: 4,
+                                height: 6,
+                                position: 'relative',
+                                overflow: 'hidden'
+                              }}>
+                                {porcentajeAbsoluto > 0 && (
+                                  <div 
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      backgroundColor: esNegativo ? '#722ed1' : '#52c41a',
+                                      position: 'absolute',
+                                      left: 0,
+                                      top: 0,
+                                      transition: 'width 0.3s',
+                                      maxWidth: `${Math.min(100, porcentajeBase)}%`
+                                    }}
+                                  />
+                                )}
+                                
+                                {porcentajeExcedente > 0 && (
+                                  <div 
+                                    style={{
+                                      width: `${porcentajeExcedente}%`,
+                                      height: '100%',
+                                      backgroundColor: esNegativo ? '#722ed1' : '#faad14',
+                                      position: 'absolute',
+                                      right: 0,
+                                      top: 0,
+                                      transition: 'width 0.3s',
+                                      borderTopRightRadius: 4,
+                                      borderBottomRightRadius: 4
+                                    }}
+                                  />
+                                )}
+                              </div>
+                              
+                              <div style={{ 
+                                fontSize: 12, 
+                                color: '#666',
+                                marginTop: 4,
+                                display: 'flex',
+                                justifyContent: 'space-between',
                                 alignItems: 'center'
                               }}>
-                                <span style={{ 
-                                  display: 'inline-block',
-                                  width: 8, 
-                                  height: 8, 
-                                  borderRadius: '50%',
-                                  backgroundColor: esNegativo ? '#722ed1' : '#faad14',
-                                  marginRight: 4
-                                }} />
-                                +{porcentajeExcedente.toFixed(2)}% de {esNegativo ? 'pérdida' : 'ganancia'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </Descriptions.Item>
-                <Descriptions.Item label="Monto Pendiente">
-                  <div style={{
-                    color: (vehiculo.costoPendiente || 0) < 0 ? '#52c41a' : '#f5222d',
-                    fontWeight: 500
-                  }}>
-                    {vehiculo.costoPendiente < 0 ? '+' : ''}{formatCurrency(Math.abs(vehiculo.costoPendiente || 0))}
-                  </div>
-                </Descriptions.Item>
-                {vehiculo.precioVenta && (
-                  <Descriptions.Item label="Precio de Venta">
-                    <strong style={{ color: '#52c41a' }}>
-                      {formatCurrency(vehiculo.precioVenta)}
-                    </strong>
-                  </Descriptions.Item>
-                )}
-                {vehiculo.fechaVenta && (
-                  <Descriptions.Item label="Fecha de Venta">
-                    {formatDate(vehiculo.fechaVenta)}
-                  </Descriptions.Item>
-                )}
-                <Descriptions.Item label="Notas" span={2}>
-                  {vehiculo.notas || 'Sin notas adicionales.'}
-                </Descriptions.Item>
-              </Descriptions>
+                                <span>
+                                  {porcentaje.toLocaleString('es-CR', { 
+                                    minimumFractionDigits: 2, 
+                                    maximumFractionDigits: 2 
+                                  })}% de la inversión
+                                </span>
+                                {porcentajeExcedente > 0 && (
+                                  <span style={{ 
+                                    color: esNegativo ? '#722ed1' : '#d48806',
+                                    fontWeight: 500,
+                                    marginLeft: 8,
+                                    display: 'inline-flex',
+                                    alignItems: 'center'
+                                  }}>
+                                    <span style={{ 
+                                      display: 'inline-block',
+                                      width: 8, 
+                                      height: 8, 
+                                      borderRadius: '50%',
+                                      backgroundColor: esNegativo ? '#722ed1' : '#faad14',
+                                      marginRight: 4
+                                    }} />
+                                    +{porcentajeExcedente.toFixed(2)}% de {esNegativo ? 'pérdida' : 'ganancia'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Monto Pendiente" labelStyle={{ fontWeight: 'bold' }}>
+                      <div style={{
+                        color: (vehiculo.costoPendiente || 0) < 0 ? '#52c41a' : '#f5222d',
+                        fontWeight: 500
+                      }}>
+                        {vehiculo.costoPendiente < 0 ? '+' : ''}{formatCurrency(Math.abs(vehiculo.costoPendiente || 0))}
+                      </div>
+                    </Descriptions.Item>
+                    {vehiculo.precioVenta && (
+                      <Descriptions.Item label="Precio de Venta" labelStyle={{ fontWeight: 'bold' }}>
+                        <strong style={{ color: '#52c41a', fontSize: '16px' }}>
+                          {formatCurrency(vehiculo.precioVenta)}
+                        </strong>
+                      </Descriptions.Item>
+                    )}
+                    {vehiculo.fechaVenta && (
+                      <Descriptions.Item label="Fecha de Venta" labelStyle={{ fontWeight: 'bold' }}>
+                        {formatDate(vehiculo.fechaVenta)}
+                      </Descriptions.Item>
+                    )}
+                    <Descriptions.Item label="Notas" span={2} labelStyle={{ fontWeight: 'bold' }}>
+                      <Text italic>{vehiculo.notas || 'Sin notas adicionales.'}</Text>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+              </div>
             </TabPane>
             
             <TabPane tab={
               <span><ToolOutlined /> Repuestos</span>
             } key="2">
               <div style={{ marginTop: '16px' }}>
-                <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ marginBottom: '16px' }}>
                   <Text strong>Repuestos extraídos de este vehículo</Text>
-                  <Button 
-                    type="primary" 
-                    size="small"
-                    onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}
-                  >
-                    Agregar Repuesto
-                  </Button>
                 </div>
 
                 {loadingRepuestos ? (

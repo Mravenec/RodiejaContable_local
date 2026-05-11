@@ -551,65 +551,113 @@ const EditarVehiculo = () => {
 
             <Tabs defaultActiveKey="1" style={{ marginTop: '16px', width: '100%' }}>
               <TabPane tab={<span><FileTextOutlined /> Información General</span>} key="1">
-                <Descriptions bordered column={{ xs: 1, sm: 2 }}>
-                  <Descriptions.Item label="Año">
-                    <Form.Item
-                      name="anio"
-                      style={{ margin: 0 }}
-                      rules={[{ required: true, message: 'El año es requerido' }]}
-                    >
-                      <InputNumber 
-                        style={{ width: '100%' }}
-                        min={1900}
-                        max={new Date().getFullYear() + 1}
-                      />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Código">
-                    <Form.Item
-                      name="codigoVehiculo"
-                      style={{ margin: 0 }}
-                      rules={[{ required: true, message: 'El código es requerido' }]}
-                    >
-                      <Input />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Fecha de Ingreso">
-                    <Form.Item
-                      name="fechaIngreso"
-                      style={{ margin: 0 }}
-                      rules={[{ required: true, message: 'La fecha de ingreso es requerida' }]}
-                    >
-                      <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Estado">
-                    <Form.Item
-                      name="estado"
-                      style={{ margin: 0 }}
-                      rules={[{ required: true, message: 'El estado es requerido' }]}
-                    >
-                      <Select>
-                        <Option value="DISPONIBLE">Disponible</Option>
-                        <Option value="VENDIDO">Vendido</Option>
-                        <Option value="DESARMADO">Desarmado</Option>
-                        <Option value="REPARACION">En Reparación</Option>
-                      </Select>
-                    </Form.Item>
-                  </Descriptions.Item>
+                <div style={{ background: '#fafafa', padding: '16px', borderRadius: '8px' }}>
+                  <Descriptions 
+                    bordered 
+                    column={{ xs: 1, sm: 2 }} 
+                    size="small" 
+                    style={{ width: '100%', background: 'white' }}
+                    labelStyle={{ width: '120px', fontWeight: 'bold' }}
+                    contentStyle={{ padding: '12px 16px' }}
+                  >
+                    {/* Información Básica */}
+                    <Descriptions.Item label="Año">
+                      <Form.Item
+                        name="anio"
+                        style={{ margin: 0, marginBottom: 0 }}
+                        rules={[{ required: true, message: 'El año es requerido' }]}
+                      >
+                        <InputNumber 
+                          style={{ width: '100%' }}
+                          placeholder="Año"
+                          min={1900}
+                          max={new Date().getFullYear() + 1}
+                        />
+                      </Form.Item>
+                    </Descriptions.Item>
+                    
+                    <Descriptions.Item label="Código">
+                      <Form.Item
+                        name="codigoVehiculo"
+                        style={{ margin: 0, marginBottom: 0 }}
+                        rules={[{ required: true, message: 'El código es requerido' }]}
+                      >
+                        <Input placeholder="Ej: TOCO-001" />
+                      </Form.Item>
+                    </Descriptions.Item>
+                    
+                    <Descriptions.Item label="Fecha Ingreso">
+                      <Form.Item
+                        name="fechaIngreso"
+                        style={{ margin: 0, marginBottom: 0 }}
+                        rules={[{ required: true, message: 'La fecha de ingreso es requerida' }]}
+                      >
+                        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Selecciona fecha" />
+                      </Form.Item>
+                    </Descriptions.Item>
+                    
+                    <Descriptions.Item label="Estado">
+                      <Form.Item
+                        name="estado"
+                        style={{ margin: 0, marginBottom: 0 }}
+                        rules={[{ required: true, message: 'El estado es requerido' }]}
+                      >
+                        <Select placeholder="Selecciona estado">
+                          <Option value="DISPONIBLE">Disponible</Option>
+                          <Option value="VENDIDO">Vendido</Option>
+                          <Option value="DESARMADO">Desarmado</Option>
+                          <Option value="REPARACION">En Reparación</Option>
+                        </Select>
+                      </Form.Item>
+                    </Descriptions.Item>
 
-                  <Descriptions.Item label="Cilindraje">
-                    <Form.Item
-                      name="cilindraje"
-                      style={{ margin: 0 }}
-                      rules={[{ max: 200, message: 'El cilindraje no puede exceder 200 caracteres' }]}
-                    >
-                      <Input placeholder="Ej: 1.8L, 1600cc, V6" maxLength={200} />
-                    </Form.Item>
-                  </Descriptions.Item>
+                    {/* Especificaciones Técnicas */}
+                    <Descriptions.Item label="Transmisión">
+                      <Form.Item
+                        name="transmision"
+                        style={{ margin: 0, marginBottom: 0 }}
+                      >
+                        <Select placeholder="Selecciona transmisión">
+                          <Option value="Automatico">Automático</Option>
+                          <Option value="Manual">Manual</Option>
+                        </Select>
+                      </Form.Item>
+                    </Descriptions.Item>
+
+                    <Descriptions.Item label="Tracción">
+                      <Form.Item
+                        name="traccion"
+                        style={{ margin: 0, marginBottom: 0 }}
+                      >
+                        <Select placeholder="Selecciona tracción">
+                          <Option value="4x2">4x2</Option>
+                          <Option value="4x4">4x4</Option>
+                        </Select>
+                      </Form.Item>
+                    </Descriptions.Item>
+
+                    <Descriptions.Item label="Combustible">
+                      <Form.Item
+                        name="combustible"
+                        style={{ margin: 0, marginBottom: 0 }}
+                      >
+                        <Select placeholder="Selecciona combustible">
+                          <Option value="Gasolina">Gasolina</Option>
+                          <Option value="Diesel">Diésel</Option>
+                          <Option value="Eléctrico">Eléctrico</Option>
+                        </Select>
+                      </Form.Item>
+                    </Descriptions.Item>
+
+                    <Descriptions.Item label="Cilindraje">
+                      <Form.Item
+                        name="cilindraje"
+                        style={{ margin: 0, marginBottom: 0 }}
+                        rules={[{ max: 200, message: 'El cilindraje no puede exceder 200 caracteres' }]}
+                      >
+                        <Input placeholder="Ej: 1.8L, 1600cc, V6 3.5L" maxLength={200} />
+                      </Form.Item>
+                    </Descriptions.Item>
                   
                   <Descriptions.Item label="Precio de Compra">
                     <Form.Item
@@ -749,6 +797,7 @@ const EditarVehiculo = () => {
                     </Form.Item>
                   </Descriptions.Item>
                 </Descriptions>
+                </div>
               </TabPane>
               
               <TabPane tab={<span><ToolOutlined /> Repuestos</span>} key="2">

@@ -15,7 +15,8 @@ import {
   Row,
   Col,
   Alert,
-  Divider
+  Divider,
+  Tag
 } from 'antd';
 import {
   SaveOutlined,
@@ -31,7 +32,7 @@ import { useModelos } from '../../hooks/useModelos';
 import { useGeneraciones } from '../../hooks/useGeneraciones';
 import { useCreateVehiculo, useUpdateVehiculo, useVehiculo } from '../../hooks/useVehiculos';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Step } = Steps;
 const { TextArea } = Input;
 const { Option } = Select;
@@ -50,7 +51,7 @@ const TRANSMISION_OPTIONS = [
 const COMBUSTIBLE_OPTIONS = [
   { value: 'Gasolina', label: 'Gasolina' },
   { value: 'Diesel', label: 'Diésel' },
-  { value: 'Elécrico', label: 'Elécrico' }
+  { value: 'Eléctrico', label: 'Eléctrico' }
 ];
 
 const NuevoVehiculo = ({ editMode = false }) => {
@@ -770,20 +771,22 @@ const NuevoVehiculo = ({ editMode = false }) => {
     }
   };
 
+  
   const handleNext = async () => {
     try {
       console.log('🔄 Iniciando proceso de siguiente paso...');
-
+      
       // PASO 1: Obtener valores actuales del formulario
       const currentValues = form.getFieldsValue();
       console.log('📋 Valores actuales en formulario:', currentValues);
-
+      
       // PASO 2: Forzar que se mantengan los valores en el formulario
+      let paso1Values = {};
       if (currentStep === 0) {
         console.log('💾 Guardando valores del paso 1...');
-
+        
         // Usar valores de estado como respaldo
-        const paso1Values = {
+        paso1Values = {
           marcaId: currentValues.marcaId || marcaId,
           modeloId: currentValues.modeloId || modeloId,
           generacionId: currentValues.generacionId || selectedGeneracionId,
@@ -791,20 +794,25 @@ const NuevoVehiculo = ({ editMode = false }) => {
           estado: currentValues.estado || estadoValue,
           notas: currentValues.notas || notasValue
         };
-
+        
         console.log('📝 Valores a persistir:', paso1Values);
-
+        
         // Forzar que los valores se mantengan en el formulario
-        form.setFieldsValue(paso1Values);
+        Object.keys(paso1Values).forEach(key => {
+          if (paso1Values[key]) {
+            form.setFieldsValue({ [key]: paso1Values[key] });
+          }
+        });
+        
+        console.log('✅ Valores forzados en el formulario');
+      }
+      
+      // Verificar que se guardaron correctamente
+      const valoresVerificacion = form.getFieldsValue();
+      console.log('✅ Verificación post-guardado:', valoresVerificacion);
 
-        // Esperar un momento para que se actualice
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Verificar que se guardaron correctamente
-        const valoresVerificacion = form.getFieldsValue();
-        console.log('✅ Verificación post-guardado:', valoresVerificacion);
-
-        // Validaciones manuales críticas
+      // Validaciones manuales críticas (solo si estamos en el paso 1)
+      if (currentStep === 0 && paso1Values) {
         if (!paso1Values.anio) {
           message.error('Por favor ingrese el año del vehículo antes de continuar');
           return;
@@ -1696,6 +1704,125 @@ const NuevoVehiculo = ({ editMode = false }) => {
           autoComplete="off"
         >
           <div style={{ minHeight: '300px' }}>
+            {/* Resumen Detallado del Vehículo */}
+            {currentStep === 3 && (
+              <Card 
+                size="small" 
+                title={<><Text strong>📋 Resumen del Vehículo</Text></>}
+                style={{ marginBottom: '16px', background: '#f0f8ff', border: '1px solid #1890ff' }}
+              >
+                <Row gutter={[16, 8]}>
+                  <Col xs={24} sm={12} md={8}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Marca</Text>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>
+                        {marcas.find(m => m.id === parseInt(marcaId || 0))?.nombre || 'No seleccionada'}
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={12} md={8}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Modelo</Text>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>
+                        {modelos.find(m => m.id === parseInt(modeloId || 0))?.nombre || 'No seleccionado'}
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={12} md={8}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Generación</Text>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>
+                        {generaciones.find(g => g.id === parseInt(selectedGeneracionId || 0))?.nombre || 'No seleccionada'}
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={12} md={8}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Año</Text>
+                      <div style={{ fontSize: '18px', fontWeight: 'bold', marginTop: '4px', color: '#1890ff' }}>
+                        {anioValue || new Date().getFullYear()}
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+
+                {/* Especificaciones Técnicas */}
+                <Divider style={{ margin: '16px 0' }}>Especificaciones Técnicas</Divider>
+                <Row gutter={[16, 8]}>
+                  <Col xs={24} sm={12} md={6}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Transmisión</Text>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
+                        <Tag color="blue">{transmisionValue || 'No seleccionada'}</Tag>
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Tracción</Text>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
+                        <Tag color="green">{traccionValue || 'No seleccionada'}</Tag>
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Combustible</Text>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
+                        <Tag color="orange">{combustibleValue || 'No seleccionado'}</Tag>
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Cilindraje</Text>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
+                        <Tag color="purple">{cilindrajeValue || 'No especificado'}</Tag>
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+
+                {/* Información Financiera */}
+                <Divider style={{ margin: '16px 0' }}>Información Financiera</Divider>
+                <Row gutter={[16, 8]}>
+                  <Col xs={24} sm={12} md={8}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Precio Compra</Text>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px', color: '#52c41a' }}>
+                        {precioCompraValue ? `₡ ${parseFloat(precioCompraValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={12} md={8}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Costo Grúa</Text>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>
+                        {costoGruaValue ? `₡ ${parseFloat(costoGruaValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={12} md={8}>
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <Text type="secondary">Comisiones</Text>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>
+                        {comisionesValue ? `₡ ${parseFloat(comisionesValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+
+                <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                  <Text type="secondary">
+                    <Text strong>Inversión Total Estimada: </Text>
+                    <Text style={{ fontSize: '18px', fontWeight: 'bold', color: '#1890ff' }}>
+                      ₡ {parseFloat((precioCompraValue || 0) + (costoGruaValue || 0) + (comisionesValue || 0)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                    </Text>
+                  </Text>
+                </div>
+              </Card>
+            )}
+            
             {steps[currentStep].content}
           </div>
 
