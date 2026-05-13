@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from 'react-query';
 import { 
   Form, 
   Input, 
@@ -12,17 +13,23 @@ import {
   Row,
   Col,
   Divider,
-  Radio
+  Radio,
+  Checkbox
 } from 'antd';
 import { 
   SaveOutlined, 
   ArrowLeftOutlined,
-  ShoppingCartOutlined
+  ShoppingCartOutlined,
+  InfoCircleOutlined,
+  PlusOutlined,
+  CheckOutlined,
+  CloseOutlined
 } from '@ant-design/icons';
 import { useMarcas } from '../../hooks/useMarcas';
 import { useModelos } from '../../hooks/useModelos';
 import { useGeneraciones } from '../../hooks/useGeneraciones';
 import { useVehiculos } from '../../hooks/useVehiculos';
+import api from '../../api/axios';
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -32,6 +39,7 @@ const NuevoRepuesto = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   
   // Obtener vehiculoId de los query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -39,6 +47,7 @@ const NuevoRepuesto = () => {
   
   const [loading, setLoading] = useState(false);
   const [tipoRepuesto, setTipoRepuesto] = useState('con_vehiculo');
+  const [ubicacionFisicaHabilitada, setUbicacionFisicaHabilitada] = useState(false);
   
   // Determinar si el selector debe estar deshabilitado (modo lectura)
   const selectorDeshabilitado = !!vehiculoId;
@@ -47,6 +56,121 @@ const NuevoRepuesto = () => {
   const [marcaSeleccionada, setMarcaSeleccionada] = useState(null);
   const [modeloSeleccionado, setModeloSeleccionado] = useState(null);
   const [generacionSeleccionada, setGeneracionSeleccionada] = useState(null);
+
+  // Estados para manejar nuevo marca/modelo/generacion inline
+  const [nuevaMarcaModal, setNuevaMarcaModal] = useState(false);
+  const [nuevaMarcaNombre, setNuevaMarcaNombre] = useState('');
+  const [creandoMarca, setCreandoMarca] = useState(false);
+
+  const [nuevoModeloModal, setNuevoModeloModal] = useState(false);
+  const [nuevoModeloNombre, setNuevoModeloNombre] = useState('');
+  const [creandoModelo, setCreandoModelo] = useState(false);
+
+  const [nuevaGeneracionModal, setNuevaGeneracionModal] = useState(false);
+  const [nuevaGeneracionNombre, setNuevaGeneracionNombre] = useState('');
+  const [nuevaGeneracionAnioInicio, setNuevaGeneracionAnioInicio] = useState('');
+  const [nuevaGeneracionAnioFin, setNuevaGeneracionAnioFin] = useState('');
+  const [creandoGeneracion, setCreandoGeneracion] = useState(false);
+
+  // Función para crear nueva marca
+  const handleNuevaMarca = async () => {
+    if (!nuevaMarcaNombre.trim()) {
+      message.warning('Por favor ingrese el nombre de la marca');
+      return;
+    }
+
+    setCreandoMarca(true);
+    try {
+      const response = await api.post('/marcas', {
+        nombre: nuevaMarcaNombre.trim()
+      });
+      
+      console.log('Marca creada:', response.data);
+      message.success('Marca creada exitosamente');
+      
+      setNuevaMarcaModal(false);
+      setNuevaMarcaNombre('');
+      
+      // Refrescar la lista de marcas
+      queryClient.invalidateQueries('marcas');
+      
+    } catch (error) {
+      console.error('Error al crear marca:', error);
+      message.error('Error al crear marca: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setCreandoMarca(false);
+    }
+  };
+
+  // Función para crear nuevo modelo
+  const handleNuevoModelo = async () => {
+    if (!nuevoModeloNombre.trim()) {
+      message.warning('Por favor ingrese el nombre del modelo');
+      return;
+    }
+
+    setCreandoModelo(true);
+    try {
+      const response = await api.post('/modelos', {
+        nombre: nuevoModeloNombre.trim(),
+        marcaId: marcaSeleccionada
+      });
+      
+      console.log('Modelo creado:', response.data);
+      message.success('Modelo creado exitosamente');
+      
+      setNuevoModeloModal(false);
+      setNuevoModeloNombre('');
+      
+      // Refrescar la lista de modelos
+      queryClient.invalidateQueries('modelos');
+      
+    } catch (error) {
+      console.error('Error al crear modelo:', error);
+      message.error('Error al crear modelo: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setCreandoModelo(false);
+    }
+  };
+
+  // Función para crear nueva generación
+  const handleNuevaGeneracion = async () => {
+    if (!nuevaGeneracionNombre.trim()) {
+      message.warning('Por favor ingrese el nombre de la generación');
+      return;
+    }
+    if (!nuevaGeneracionAnioInicio || !nuevaGeneracionAnioFin) {
+      message.warning('Por favor ingrese los años de inicio y fin');
+      return;
+    }
+
+    setCreandoGeneracion(true);
+    try {
+      const response = await api.post('/generaciones', {
+        nombre: nuevaGeneracionNombre.trim(),
+        anioInicio: parseInt(nuevaGeneracionAnioInicio),
+        anioFin: parseInt(nuevaGeneracionAnioFin),
+        modeloId: modeloSeleccionado
+      });
+      
+      console.log('Generación creada:', response.data);
+      message.success('Generación creada exitosamente');
+      
+      setNuevaGeneracionModal(false);
+      setNuevaGeneracionNombre('');
+      setNuevaGeneracionAnioInicio('');
+      setNuevaGeneracionAnioFin('');
+      
+      // Refrescar la lista de generaciones
+      queryClient.invalidateQueries('generaciones');
+      
+    } catch (error) {
+      console.error('Error al crear generación:', error);
+      message.error('Error al crear generación: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setCreandoGeneracion(false);
+    }
+  };
 
   // Hooks para cargar datos
   const { data: marcas = [], isLoading: loadingMarcas } = useMarcas();
@@ -526,6 +650,69 @@ const NuevoRepuesto = () => {
                       loading={loadingMarcas}
                       onChange={onMarcaChange}
                       value={marcaSeleccionada}
+                      dropdownRender={(menu) => (
+                        <div>
+                          {menu}
+                          <Divider style={{ margin: '8px 0' }} />
+                          {nuevaMarcaModal ? (
+                            <div style={{ padding: '8px', display: 'flex', gap: '8px' }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                placeholder="Nombre de la marca"
+                                value={nuevaMarcaNombre}
+                                onChange={(e) => setNuevaMarcaNombre(e.target.value)}
+                                onPressEnter={handleNuevaMarca}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    setNuevaMarcaModal(false);
+                                    setNuevaMarcaNombre('');
+                                  }
+                                }}
+                                style={{ flex: 1 }}
+                              />
+                              <Button
+                                type="text"
+                                icon={<CheckOutlined style={{ color: '#52c41a' }} />}
+                                onClick={handleNuevaMarca}
+                                loading={creandoMarca}
+                                disabled={!nuevaMarcaNombre.trim()}
+                                title="Agregar"
+                              />
+                              <Button
+                                type="text"
+                                danger
+                                icon={<CloseOutlined />}
+                                onClick={() => {
+                                  setNuevaMarcaModal(false);
+                                  setNuevaMarcaNombre('');
+                                }}
+                                disabled={creandoMarca}
+                                title="Cancelar"
+                              />
+                            </div>
+                          ) : (
+                            <div 
+                              style={{ 
+                                padding: '4px 8px', 
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#1890ff'
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setNuevaMarcaModal(true);
+                                setNuevaMarcaNombre('');
+                              }}
+                            >
+                              <PlusOutlined style={{ marginRight: 8 }} />
+                              Agregar nueva marca
+                            </div>
+                          )}
+                        </div>
+                      )}
                     >
                       {marcas.map(marca => (
                         <Option key={marca.id} value={marca.id}>{marca.nombre}</Option>
@@ -544,6 +731,69 @@ const NuevoRepuesto = () => {
                       disabled={!marcaSeleccionada}
                       onChange={onModeloChange}
                       value={modeloSeleccionado}
+                      dropdownRender={(menu) => (
+                        <div>
+                          {menu}
+                          <Divider style={{ margin: '8px 0' }} />
+                          {nuevoModeloModal ? (
+                            <div style={{ padding: '8px', display: 'flex', gap: '8px' }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                placeholder="Nombre del modelo"
+                                value={nuevoModeloNombre}
+                                onChange={(e) => setNuevoModeloNombre(e.target.value)}
+                                onPressEnter={handleNuevoModelo}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    setNuevoModeloModal(false);
+                                    setNuevoModeloNombre('');
+                                  }
+                                }}
+                                style={{ flex: 1 }}
+                              />
+                              <Button
+                                type="text"
+                                icon={<CheckOutlined style={{ color: '#52c41a' }} />}
+                                onClick={handleNuevoModelo}
+                                loading={creandoModelo}
+                                disabled={!nuevoModeloNombre.trim()}
+                                title="Agregar"
+                              />
+                              <Button
+                                type="text"
+                                danger
+                                icon={<CloseOutlined />}
+                                onClick={() => {
+                                  setNuevoModeloModal(false);
+                                  setNuevoModeloNombre('');
+                                }}
+                                disabled={creandoModelo}
+                                title="Cancelar"
+                              />
+                            </div>
+                          ) : (
+                            <div 
+                              style={{ 
+                                padding: '4px 8px', 
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#1890ff'
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setNuevoModeloModal(true);
+                                setNuevoModeloNombre('');
+                              }}
+                            >
+                              <PlusOutlined style={{ marginRight: 8 }} />
+                              Agregar nuevo modelo
+                            </div>
+                          )}
+                        </div>
+                      )}
                     >
                       {modelos.map(modelo => (
                         <Option key={modelo.id} value={modelo.id}>{modelo.nombre}</Option>
@@ -562,6 +812,84 @@ const NuevoRepuesto = () => {
                       disabled={!modeloSeleccionado}
                       onChange={onGeneracionChange}
                       value={generacionSeleccionada}
+                      dropdownRender={(menu) => (
+                        <div>
+                          {menu}
+                          <Divider style={{ margin: '8px 0' }} />
+                          {nuevaGeneracionModal ? (
+                            <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                placeholder="Nombre de la generación"
+                                value={nuevaGeneracionNombre}
+                                onChange={(e) => setNuevaGeneracionNombre(e.target.value)}
+                                style={{ width: '100%' }}
+                              />
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <Input
+                                  size="small"
+                                  placeholder="Año inicio"
+                                  value={nuevaGeneracionAnioInicio}
+                                  onChange={(e) => setNuevaGeneracionAnioInicio(e.target.value)}
+                                  style={{ flex: 1 }}
+                                />
+                                <Input
+                                  size="small"
+                                  placeholder="Año fin"
+                                  value={nuevaGeneracionAnioFin}
+                                  onChange={(e) => setNuevaGeneracionAnioFin(e.target.value)}
+                                  style={{ flex: 1 }}
+                                />
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: '#52c41a' }} />}
+                                  onClick={handleNuevaGeneracion}
+                                  loading={creandoGeneracion}
+                                  disabled={!nuevaGeneracionNombre.trim() || !nuevaGeneracionAnioInicio || !nuevaGeneracionAnioFin}
+                                  title="Agregar"
+                                />
+                                <Button
+                                  type="text"
+                                  danger
+                                  icon={<CloseOutlined />}
+                                  onClick={() => {
+                                    setNuevaGeneracionModal(false);
+                                    setNuevaGeneracionNombre('');
+                                    setNuevaGeneracionAnioInicio('');
+                                    setNuevaGeneracionAnioFin('');
+                                  }}
+                                  disabled={creandoGeneracion}
+                                  title="Cancelar"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div 
+                              style={{ 
+                                padding: '4px 8px', 
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#1890ff'
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setNuevaGeneracionModal(true);
+                                setNuevaGeneracionNombre('');
+                                setNuevaGeneracionAnioInicio('');
+                                setNuevaGeneracionAnioFin('');
+                              }}
+                            >
+                              <PlusOutlined style={{ marginRight: 8 }} />
+                              Agregar nueva generación
+                            </div>
+                          )}
+                        </div>
+                      )}
                     >
                       {generaciones.map(generacion => (
                         <Option key={generacion.id} value={generacion.id}>
@@ -636,9 +964,7 @@ const NuevoRepuesto = () => {
                   <Form.Item name="estado" label="Estado" rules={[{ required: true }]}>
                     <Select>
                       <Option value="STOCK">En Stock</Option>
-                      <Option value="VENDIDO">Vendido</Option>
                       <Option value="PROCESO">En Proceso</Option>
-                      <Option value="AGOTADO">Agotado</Option>
                       <Option value="DAÑADO">Dañado</Option>
                       <Option value="USADO_INTERNO">Usado Interno</Option>
                     </Select>
@@ -658,138 +984,168 @@ const NuevoRepuesto = () => {
 
               <Divider orientation="left">Ubicación Física</Divider>
               
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="bodega" label="Bodega">
-                    <Select>
-                      <Option value={`0${separator}`}>Sin especificar</Option>
-                      <Option value={`R${separator}`}>Bodega R</Option>
-                      <Option value={`D${separator}`}>Bodega D</Option>
-                      <Option value={`C${separator}`}>Bodega C</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="zona" label="Zona">
-                    <Select>
-                      <Option value={`0${separator}`}>Sin especificar</Option>
-                      {Array.from({length: 22}, (_, i) => (
-                        <Option key={`Z${i+1}${separator}`} value={`Z${i+1}${separator}`}>Zona {i+1}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
+              <div style={{ marginBottom: '16px' }}>
+                <Checkbox
+                  checked={ubicacionFisicaHabilitada}
+                  onChange={(e) => setUbicacionFisicaHabilitada(e.target.checked)}
+                >
+                  Habilitar formulario de ubicación física (opcional)
+                </Checkbox>
+              </div>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="pared" label="Pared">
-                    <Select>
-                      <Option value={`0${separator}`}>Sin especificar</Option>
-                      <Option value={`PE${separator}`}>Pared Este</Option>
-                      <Option value={`PO${separator}`}>Pared Oeste</Option>
-                      <Option value={`PN${separator}`}>Pared Norte</Option>
-                      <Option value={`PS${separator}`}>Pared Sur</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="estante" label="Estante">
-                    <Select>
-                      {Array.from({length: 14}, (_, i) => (
-                        <Option key={`E${i+1}`} value={`E${i+1}`}>Estante {i+1}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
+              {ubicacionFisicaHabilitada ? (
+                <div style={{ 
+                  padding: '16px', 
+                  border: '1px solid #d9d9d9', 
+                  borderRadius: '6px',
+                  backgroundColor: '#fafafa'
+                }}>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="bodega" label="Bodega">
+                        <Select>
+                          <Option value={`0${separator}`}>Sin especificar</Option>
+                          <Option value={`R${separator}`}>Bodega R</Option>
+                          <Option value={`D${separator}`}>Bodega D</Option>
+                          <Option value={`C${separator}`}>Bodega C</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="zona" label="Zona">
+                        <Select>
+                          <Option value={`0${separator}`}>Sin especificar</Option>
+                          {Array.from({length: 22}, (_, i) => (
+                            <Option key={`Z${i+1}${separator}`} value={`Z${i+1}${separator}`}>Zona {i+1}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="malla" label="Malla">
-                    <Select>
-                      <Option value={`0${separator}`}>Sin especificar</Option>
-                      {Array.from({length: 200}, (_, i) => (
-                        <Option key={`V${i+1}`} value={`V${i+1}`}>Malla {i+1}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="horizontal" label="Horizontal">
-                    <Select>
-                      <Option value={`0${separator}`}>Sin especificar</Option>
-                      <Option value={`HA${separator}`}>HA</Option>
-                      <Option value={`HB${separator}`}>HB</Option>
-                      <Option value={`HC${separator}`}>HC</Option>
-                      <Option value={`HD${separator}`}>HD</Option>
-                      <Option value={`HE${separator}`}>HE</Option>
-                      <Option value={`HF${separator}`}>HF</Option>
-                      <Option value={`HG${separator}`}>HG</Option>
-                      <Option value={`HH${separator}`}>HH</Option>
-                      <Option value={`HI${separator}`}>HI</Option>
-                      <Option value={`HJ${separator}`}>HJ</Option>
-                      <Option value={`HK${separator}`}>HK</Option>
-                      <Option value={`HL${separator}`}>HL</Option>
-                      <Option value={`HM${separator}`}>HM</Option>
-                      <Option value={`HN${separator}`}>HN</Option>
-                      <Option value={`HO${separator}`}>HO</Option>
-                      <Option value={`HP${separator}`}>HP</Option>
-                      <Option value={`HQ${separator}`}>HQ</Option>
-                      <Option value={`HR${separator}`}>HR</Option>
-                      <Option value={`HS${separator}`}>HS</Option>
-                      <Option value={`HT${separator}`}>HT</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="pared" label="Pared">
+                        <Select>
+                          <Option value={`0${separator}`}>Sin especificar</Option>
+                          <Option value={`PE${separator}`}>Pared Este</Option>
+                          <Option value={`PO${separator}`}>Pared Oeste</Option>
+                          <Option value={`PN${separator}`}>Pared Norte</Option>
+                          <Option value={`PS${separator}`}>Pared Sur</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="estante" label="Estante">
+                        <Select>
+                          {Array.from({length: 14}, (_, i) => (
+                            <Option key={`E${i+1}`} value={`E${i+1}`}>Estante {i+1}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="nivel" label="Nivel">
-                    <Select>
-                      <Option value={`0${separator}`}>Sin especificar</Option>
-                      {Array.from({length: 22}, (_, i) => (
-                        <Option key={`N${i+1}${separator}`} value={`N${i+1}${separator}`}>Nivel {i+1}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="piso" label="Piso">
-                    <Select>
-                      {Array.from({length: 21}, (_, i) => (
-                        <Option key={`P${i+1}${separator}`} value={`P${i+1}${separator}`}>Piso {i+1}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="malla" label="Malla">
+                        <Select>
+                          <Option value={`0${separator}`}>Sin especificar</Option>
+                          {Array.from({length: 200}, (_, i) => (
+                            <Option key={`V${i+1}`} value={`V${i+1}`}>Malla {i+1}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="horizontal" label="Horizontal">
+                        <Select>
+                          <Option value={`0${separator}`}>Sin especificar</Option>
+                          <Option value={`HA${separator}`}>HA</Option>
+                          <Option value={`HB${separator}`}>HB</Option>
+                          <Option value={`HC${separator}`}>HC</Option>
+                          <Option value={`HD${separator}`}>HD</Option>
+                          <Option value={`HE${separator}`}>HE</Option>
+                          <Option value={`HF${separator}`}>HF</Option>
+                          <Option value={`HG${separator}`}>HG</Option>
+                          <Option value={`HH${separator}`}>HH</Option>
+                          <Option value={`HI${separator}`}>HI</Option>
+                          <Option value={`HJ${separator}`}>HJ</Option>
+                          <Option value={`HK${separator}`}>HK</Option>
+                          <Option value={`HL${separator}`}>HL</Option>
+                          <Option value={`HM${separator}`}>HM</Option>
+                          <Option value={`HN${separator}`}>HN</Option>
+                          <Option value={`HO${separator}`}>HO</Option>
+                          <Option value={`HP${separator}`}>HP</Option>
+                          <Option value={`HQ${separator}`}>HQ</Option>
+                          <Option value={`HR${separator}`}>HR</Option>
+                          <Option value={`HS${separator}`}>HS</Option>
+                          <Option value={`HT${separator}`}>HT</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="plastica" label="Plástica (Opcional)">
-                    <Select allowClear>
-                      {Array.from({length: 52}, (_, i) => (
-                        <Option key={`CP${i+1}${separator}`} value={`CP${i+1}${separator}`}>CP {i+1}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="carton" label="Cartón (Opcional)">
-                    <Select allowClear>
-                      {Array.from({length: 52}, (_, i) => (
-                        <Option key={`MM${i+1}${separator}`} value={`MM${i+1}${separator}`}>MM {i+1}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="nivel" label="Nivel">
+                        <Select>
+                          <Option value={`0${separator}`}>Sin especificar</Option>
+                          {Array.from({length: 22}, (_, i) => (
+                            <Option key={`N${i+1}${separator}`} value={`N${i+1}${separator}`}>Nivel {i+1}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="piso" label="Piso">
+                        <Select>
+                          {Array.from({length: 21}, (_, i) => (
+                            <Option key={`P${i+1}${separator}`} value={`P${i+1}${separator}`}>Piso {i+1}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
-              <Form.Item name="posicion" label="Posición (Opcional)">
-                <Input placeholder="Posición específica" />
-              </Form.Item>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="plastica" label="Plástica (Opcional)">
+                        <Select allowClear>
+                          {Array.from({length: 52}, (_, i) => (
+                            <Option key={`CP${i+1}${separator}`} value={`CP${i+1}${separator}`}>CP {i+1}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="carton" label="Cartón (Opcional)">
+                        <Select allowClear>
+                          {Array.from({length: 52}, (_, i) => (
+                            <Option key={`MM${i+1}${separator}`} value={`MM${i+1}${separator}`}>MM {i+1}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Form.Item name="posicion" label="Posición (Opcional)">
+                    <Input placeholder="Posición específica" />
+                  </Form.Item>
+                </div>
+              ) : (
+                <div style={{ 
+                  padding: '16px', 
+                  border: '1px solid #d9d9d9', 
+                  borderRadius: '6px',
+                  backgroundColor: '#f5f5f5',
+                  textAlign: 'center',
+                  color: '#999'
+                }}>
+                  <InfoCircleOutlined style={{ marginRight: '8px' }} />
+                  La ubicación física no será registrada. El repuesto se guardará sin asignación de ubicación.
+                </div>
+              )}
             </Col>
           </Row>
           

@@ -199,7 +199,6 @@ const Reportes = () => {
         setVentasMensuales(Array.isArray(transaccionesAgrupadasPorMes) ? transaccionesAgrupadasPorMes : []);
       } catch (error) {
         console.error('Error al cargar ventas mensuales:', error);
-        message.warning('No se pudieron cargar los datos de ventas mensuales');
         setVentasMensuales([]);
       }
       
@@ -253,7 +252,7 @@ const Reportes = () => {
       
     } catch (error) {
       console.error('Error al cargar datos iniciales:', error);
-      message.error('Error al cargar los datos. Por favor, intente nuevamente.');
+      // message.error('Error al cargar los datos. Por favor, intente nuevamente.');
     } finally {
       setLoading({
         ventasMensuales: false,
@@ -374,10 +373,8 @@ const Reportes = () => {
   //       tasaConversion: estadisticas.tasaConversion || 0,
   //     });
       
-  //     message.success('Filtros aplicados correctamente');
   //   } catch (error) {
   //     console.error('Error al aplicar filtros:', error);
-  //     message.error('Error al aplicar los filtros. Por favor, intente nuevamente.');
   //   } finally {
   //     setLoading({
   //       ventasMensuales: false,
@@ -395,7 +392,6 @@ const Reportes = () => {
     
   //   // Recargar datos sin filtros
   //   await cargarDatosIniciales();
-  //   message.success('Filtros limpiados correctamente');
   // };
   
   const exportarReporte = async (formato) => {
@@ -453,10 +449,10 @@ const Reportes = () => {
       console.error('Error al exportar reporte:', error);
       console.error('Error completo:', error);
       
-      message.error({ 
-        content: `Error al generar el reporte ${formato.toUpperCase()}`, 
-        key: 'exportar' 
-      });
+      // message.error({ 
+      //   content: `Error al generar el reporte ${formato.toUpperCase()}`, 
+      //   key: 'exportar' 
+      // });
     }
   };
   
@@ -479,7 +475,6 @@ const Reportes = () => {
       
       console.log('Análisis financiero obtenido:', response.data);
       setAnalisisFinanciero(response.data);
-      message.success('Análisis financiero cargado correctamente');
       
       return response.data;
     } catch (error) {
@@ -488,7 +483,7 @@ const Reportes = () => {
       
       // Mensaje de error más específico
       if (error.response?.status === 404) {
-        message.warning('No se encontraron datos para el período seleccionado');
+        // message.warning('No se encontraron datos para el período seleccionado');
       } else if (error.response?.status === 500) {
         message.error('Error del servidor al obtener análisis financiero');
       } else {
@@ -692,7 +687,6 @@ const Reportes = () => {
                         setVentasMensuales(Array.isArray(transaccionesAgrupadasPorMes) ? transaccionesAgrupadasPorMes : []);
                       } catch (error) {
                         console.error(`Error al cargar ventas para el año ${value}:`, error);
-                        message.warning(`No se pudieron cargar los datos para el año ${value}`);
                         setVentasMensuales([]);
                       } finally {
                         setLoading(prev => ({ ...prev, ventasMensuales: false }));

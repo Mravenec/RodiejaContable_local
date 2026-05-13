@@ -282,7 +282,8 @@ const NuevaTransaccion = () => {
           const nombreTransferencia = {
             'SINPE': 'SINPE',
             'TARJETA': 'Tarjeta',
-            'EFECTIVO': 'Efectivo'
+            'EFECTIVO': 'Efectivo',
+            'TRANSFERENCIA': 'Transferencia bancaria'
           }[values.tipoTransferencia] || values.tipoTransferencia;
           
           // Concatenar a la descripción existente con salto de línea
@@ -307,7 +308,8 @@ const NuevaTransaccion = () => {
           const nombreTransferencia = {
             'SINPE': 'SINPE',
             'TARJETA': 'Tarjeta',
-            'EFECTIVO': 'Efectivo'
+            'EFECTIVO': 'Efectivo',
+            'TRANSFERENCIA': 'Transferencia bancaria'
           }[values.tipoTransferencia] || values.tipoTransferencia;
           
           // Concatenar a la descripción existente con salto de línea
@@ -494,6 +496,7 @@ const NuevaTransaccion = () => {
                       <Option value="SINPE">SINPE</Option>
                       <Option value="TARJETA">Tarjeta</Option>
                       <Option value="EFECTIVO">Efectivo</Option>
+                      <Option value="TRANSFERENCIA">Transferencia bancaria</Option>
                     </Select>
                   </Form.Item>
                   
@@ -871,6 +874,8 @@ const NuevaTransaccion = () => {
                       <Option value="SINPE">SINPE</Option>
                       <Option value="TARJETA">Tarjeta</Option>
                       <Option value="EFECTIVO">Efectivo</Option>
+                      <Option value="TRANSFERENCIA">Transferencia bancaria</Option>
+
                     </Select>
                   </Form.Item>
                   
