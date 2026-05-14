@@ -31,7 +31,7 @@ import { useGeneraciones } from '../../hooks/useGeneraciones';
 import { useVehiculos } from '../../hooks/useVehiculos';
 import api from '../../api/axios';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -48,6 +48,8 @@ const NuevoRepuesto = () => {
   const [loading, setLoading] = useState(false);
   const [tipoRepuesto, setTipoRepuesto] = useState('con_vehiculo');
   const [ubicacionFisicaHabilitada, setUbicacionFisicaHabilitada] = useState(false);
+  const [precioCostoTotal, setPrecioCostoTotal] = useState(0);
+  const [cantidad, setCantidad] = useState(1);
   
   // Determinar si el selector debe estar deshabilitado (modo lectura)
   const selectorDeshabilitado = !!vehiculoId;
@@ -71,6 +73,15 @@ const NuevoRepuesto = () => {
   const [nuevaGeneracionAnioInicio, setNuevaGeneracionAnioInicio] = useState('');
   const [nuevaGeneracionAnioFin, setNuevaGeneracionAnioFin] = useState('');
   const [creandoGeneracion, setCreandoGeneracion] = useState(false);
+
+  // Calcular costo unitario y precio de venta automáticamente
+  const costoUnitario = cantidad > 0 ? precioCostoTotal / cantidad : 0;
+  const precioVentaCalculado = costoUnitario * 1.5; // 50% de ganancia sobre el costo unitario
+
+  // Actualizar el campo precio_venta en el formulario cuando cambia el valor calculado
+  useEffect(() => {
+    form.setFieldsValue({ precio_venta: precioVentaCalculado });
+  }, [precioVentaCalculado, form]);
 
   // Función para crear nueva marca
   const handleNuevaMarca = async () => {
@@ -378,13 +389,17 @@ const NuevoRepuesto = () => {
           throw new Error('Debe seleccionar un vehículo de origen');
         }
 
+        // Calcular costo unitario y precio de venta
+        const cantidadRepuestos = values.cantidad || 1;
+        const costoUnitario = cantidadRepuestos > 0 ? (values.precio_costo || 0) / cantidadRepuestos : 0;
+        const precioVentaCalculado = costoUnitario * 1.5;
+
         const repuestoData = {
           vehiculoOrigenId: values.vehiculo_origen_id,
           parteVehiculo: values.parte_vehiculo,
           descripcion: values.descripcion,
-          precioCosto: values.precio_costo || 0,
-          precioVenta: values.precio_venta || 0,
-          precioMayoreo: values.precio_mayoreo || 0,
+          precioCosto: costoUnitario,
+          precioVenta: precioVentaCalculado,
           bodega: values.bodega || '0_',
           zona: values.zona || '0_',
           pared: values.pared || '0_',
@@ -396,7 +411,7 @@ const NuevoRepuesto = () => {
           plastica: values.plastica || null,
           carton: values.carton || null,
           posicion: values.posicion || null,
-          cantidad: values.cantidad || 1,
+          cantidad: cantidadRepuestos,
           estado: values.estado || 'STOCK',
           condicion: values.condicion || '_100_25_',
           imagenUrl: values.imagen_url || null
@@ -436,15 +451,17 @@ const NuevoRepuesto = () => {
 
         const marcaNombre = marcas.find(m => m.id === marcaSeleccionada)?.nombre || 'Generic';
         
-        // ✅ CRÍTICO: usar los nombres exactos que el Controller espera
+        // Calcular costo unitario y precio de venta
+        const costoUnitario = (values.precio_costo || 0) / 1; // Para repuestos genéricos, cantidad es siempre 1
+        const precioVentaCalculado = costoUnitario * 1.5;
+
         const procedureData = {
           generacionId: generacionSeleccionada,
           marcaNombre: marcaNombre,
           parteVehiculo: values.parte_vehiculo,
           descripcion: values.descripcion || '',
-          precioCosto: values.precio_costo || 0,
-          precioVenta: values.precio_venta || 0,
-          precioMayoreo: values.precio_mayoreo || 0,
+          precioCosto: costoUnitario,
+          precioVenta: precioVentaCalculado,
           bodega: values.bodega || '0-',
           zona: values.zona || '0-',
           pared: values.pared || '0-',
@@ -515,7 +532,6 @@ const NuevoRepuesto = () => {
             condicion: '100%-',
             precio_costo: 0,
             precio_venta: 0,
-            precio_mayoreo: 0,
             cantidad: 1,
             bodega: '0-',
             zona: '0-',
@@ -909,8 +925,8 @@ const NuevoRepuesto = () => {
                 <Col span={12}>
                   <Form.Item
                     name="precio_costo"
-                    label="Precio de Costo"
-                    rules={[{ required: true, message: 'Ingrese el precio de costo' }]}
+                    label="Costo Total (para todos los repuestos)"
+                    rules={[{ required: true, message: 'Ingrese el costo total' }]}
                   >
                     <InputNumber 
                       style={{ width: '100%' }} 
@@ -919,6 +935,7 @@ const NuevoRepuesto = () => {
                       precision={2}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={value => value.replace(/₡\s?|(,*)/g, '')}
+                      onChange={(value) => setPrecioCostoTotal(value || 0)}
                     />
                   </Form.Item>
                 </Col>
@@ -926,8 +943,7 @@ const NuevoRepuesto = () => {
                 <Col span={12}>
                   <Form.Item
                     name="precio_venta"
-                    label="Precio de Venta"
-                    rules={[{ required: true, message: 'Ingrese el precio de venta' }]}
+                    label="Precio de Venta (Calculado automáticamente)"
                   >
                     <InputNumber 
                       style={{ width: '100%' }} 
@@ -936,28 +952,29 @@ const NuevoRepuesto = () => {
                       precision={2}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={value => value.replace(/₡\s?|(,*)/g, '')}
+                      value={precioVentaCalculado}
+                      disabled
                     />
                   </Form.Item>
                 </Col>
               </Row>
               
-              <Form.Item name="precio_mayoreo" label="Precio de Mayoreo">
-                <InputNumber 
-                  style={{ width: '100%' }} 
-                  min={0} 
-                  step={1000} 
-                  precision={2}
-                  formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value.replace(/₡\s?|(,*)/g, '')}
-                />
-              </Form.Item>
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f0f8ff', borderRadius: '6px' }}>
+                <Text strong>Costo Unitario: ₡ {costoUnitario.toFixed(2)}</Text>
+                <br />
+                <Text type="secondary">Costo total / Cantidad = ₡ {precioCostoTotal.toFixed(2)} / {cantidad}</Text>
+              </div>
 
               <Divider orientation="left">Estado y Stock</Divider>
 
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="cantidad" label="Cantidad">
-                    <InputNumber style={{ width: '100%' }} min={1} />
+                    <InputNumber 
+                      style={{ width: '100%' }} 
+                      min={1} 
+                      onChange={(value) => setCantidad(value || 1)}
+                    />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
