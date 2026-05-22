@@ -400,18 +400,13 @@ const NuevoRepuesto = () => {
           descripcion: values.descripcion,
           precioCosto: costoUnitario,
           precioVenta: precioVentaCalculado,
-          bodega: values.bodega || '0_',
-          zona: values.zona || '0_',
-          pared: values.pared || '0_',
-          malla: values.malla || '0_',
-          horizontal: values.horizontal || '0_',
+          precioMayoreo: precioVentaCalculado * 0.85,
+          bodega: values.bodega || 'D_',
+          zona: values.zona || 'Z1_',
+          pared: values.pared || 'PE_',
+          malla: values.malla || 'V15',
           estante: values.estante || 'E1',
-          nivel: values.nivel || '0_',
           piso: values.piso || 'P1_',
-          plastica: values.plastica || null,
-          carton: values.carton || null,
-          posicion: values.posicion || null,
-          cantidad: cantidadRepuestos,
           estado: values.estado || 'STOCK',
           condicion: values.condicion || '_100_25_',
           imagenUrl: values.imagen_url || null
@@ -419,26 +414,8 @@ const NuevoRepuesto = () => {
 
         console.log('Datos a enviar (con vehículo):', repuestoData);
 
-        const response = await fetch('http://localhost:8080/api/inventario-repuestos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(repuestoData)
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error del servidor:', errorText);
-          let errorData = {};
-          try {
-            errorData = JSON.parse(errorText);
-          } catch (e) {
-            errorData = { message: errorText };
-          }
-          throw new Error(errorData.message || errorData.error || 'Error al crear el repuesto (ver consola)');
-        }
-
-        const responseData = await response.json();
-        console.log('Respuesta del servidor:', responseData);
+        const response = await api.post('/inventario-repuestos', repuestoData);
+        console.log('Respuesta del servidor:', response.data);
 
         message.success('Repuesto creado correctamente');
         navigate('/inventario');
@@ -462,12 +439,13 @@ const NuevoRepuesto = () => {
           descripcion: values.descripcion || '',
           precioCosto: costoUnitario,
           precioVenta: precioVentaCalculado,
-          bodega: values.bodega || '0-',
-          zona: values.zona || '0-',
-          pared: values.pared || '0-',
-          malla: values.malla || '0-',
-          estante: values.estante || 'E1',
-          piso: values.piso || 'P1-',
+          precioMayoreo: precioVentaCalculado * 0.85,
+          bodega: values.bodega || 'R-',
+          zona: values.zona || 'Z2-',
+          pared: values.pared || 'PN-',
+          malla: values.malla || 'V10',
+          estante: values.estante || 'E2',
+          piso: values.piso || 'P3-',
           estado: values.estado || 'STOCK',
           condicion: values.condicion || '100%-',
           imagenUrl: values.imagen_url || null
@@ -475,25 +453,8 @@ const NuevoRepuesto = () => {
 
         console.log('Datos a enviar (sin vehículo):', procedureData);
 
-        const response = await fetch('http://localhost:8080/api/inventario-repuestos/sin-vehiculo', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(procedureData)
-        });
-
-        console.log('Status de respuesta:', response.status);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error del servidor:', errorText);
-          throw new Error(errorText || 'Error al crear el repuesto sin vehículo origen');
-        }
-
-        const responseText = await response.text();
-        console.log('Respuesta del servidor:', responseText);
+        const response = await api.post('/inventario-repuestos/sin-vehiculo', procedureData);
+        console.log('Respuesta del servidor:', response.data);
 
         message.success('Repuesto genérico creado correctamente');
         navigate('/inventario');
@@ -501,7 +462,8 @@ const NuevoRepuesto = () => {
       
     } catch (error) {
       console.error('Error completo:', error);
-      message.error('Error al guardar el repuesto: ' + error.message);
+      const errorMsg = error.response?.data?.message || error.response?.data || error.message;
+      message.error('Error al guardar el repuesto: ' + errorMsg);
     } finally {
       setLoading(false);
     }
