@@ -142,6 +142,15 @@ public class VehiculosService {
             }
             existingVehiculo.setCilindraje(vehiculo.getCilindraje());
         }
+        if (vehiculo.getTraccion() != null) {
+            existingVehiculo.setTraccion(vehiculo.getTraccion());
+        }
+        if (vehiculo.getTransmision() != null) {
+            existingVehiculo.setTransmision(vehiculo.getTransmision());
+        }
+        if (vehiculo.getCombustible() != null) {
+            existingVehiculo.setCombustible(vehiculo.getCombustible());
+        }
         
         // Usar el Repository con la lógica correcta
         return vehiculosRepository.update(existingVehiculo);

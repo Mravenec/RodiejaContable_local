@@ -281,7 +281,10 @@ const EditarVehiculo = () => {
         activo: vehiculo.activo !== false,
         notas: vehiculo.notas,
         costoRecuperado: vehiculo.costoRecuperado || 0,
-        cilindraje: vehiculo.cilindraje || ''
+        cilindraje: vehiculo.cilindraje || '',
+        traccion: vehiculo.traccion || null,
+        transmision: vehiculo.transmision || null,
+        combustible: vehiculo.combustible || null
       });
       
       // Load transactions and repuestos for this vehicle
@@ -343,6 +346,9 @@ const EditarVehiculo = () => {
         fechaVenta: values.fechaVenta && values.fechaVenta.isValid() ? values.fechaVenta.format('YYYY-MM-DD') : null,
         estado: values.estado,
         notas: values.notas || '',
+        traccion: values.traccion || null,
+        transmision: values.transmision || null,
+        combustible: values.combustible || null,
         cilindraje: values.cilindraje || null
       };
       
