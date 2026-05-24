@@ -232,6 +232,11 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
      */
     public final TableField<InventarioRepuestosRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
+    /**
+     * The column <code>sistema_vehicular.inventario_repuestos.activo</code>.
+     */
+    public final TableField<InventarioRepuestosRecord, Byte> ACTIVO = createField(DSL.name("activo"), SQLDataType.TINYINT.defaultValue(DSL.field(DSL.raw("1"), SQLDataType.TINYINT)), this, "");
+
     private InventarioRepuestos(Name alias, Table<InventarioRepuestosRecord> aliased) {
         this(alias, aliased, null);
     }

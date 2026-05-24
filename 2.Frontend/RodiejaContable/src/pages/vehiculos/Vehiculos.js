@@ -14,10 +14,10 @@ const Vehiculos = () => {
   const navigate = useNavigate();
   const [filtros, setFiltros] = useState({});
   const { data, isLoading, isError, refetch } = useVehiculos(filtros);
-  
+
   // Asegurarse de que los datos sean un array
   const tableData = Array.isArray(data) ? data : [];
-  
+
   const handleSearch = (value) => {
     setFiltros(prev => ({
       ...prev,
@@ -35,7 +35,7 @@ const Vehiculos = () => {
   const handleRefresh = () => {
     refetch();
   };
-  
+
   const columns = [
     {
       title: 'Código',
@@ -87,14 +87,14 @@ const Vehiculos = () => {
       key: 'estado',
       width: 140,
       render: (estado) => (
-        <Tag 
+        <Tag
           color={
-            estado === 'DISPONIBLE' ? 'green' : 
-            estado === 'VENDIDO' ? 'red' : 
-            estado === 'REPARACION' ? 'orange' : 
-            estado === 'DESARMADO' ? 'warning' : 'default'
+            estado === 'DISPONIBLE' ? 'green' :
+              estado === 'VENDIDO' ? 'red' :
+                estado === 'REPARACION' ? 'orange' :
+                  estado === 'DESARMADO' ? 'warning' : 'default'
           }
-          style={{ 
+          style={{
             margin: 0,
             textTransform: 'capitalize',
             whiteSpace: 'nowrap',
@@ -115,8 +115,8 @@ const Vehiculos = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button 
-            type="link" 
+          <Button
+            type="link"
             onClick={() => navigate(`/vehiculos/${record.id}`)}
             style={{ padding: '4px 0' }}
           >
@@ -132,8 +132,8 @@ const Vehiculos = () => {
       <div className="vehiculos-container">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Title level={2} style={{ margin: 0 }}>Vehículos</Title>
-          <Button 
-            icon={<ReloadOutlined />} 
+          <Button
+            icon={<ReloadOutlined />}
             onClick={handleRefresh}
             loading={isLoading}
           >
@@ -155,27 +155,27 @@ const Vehiculos = () => {
         <Title level={3} style={{ marginBottom: '8px' }}>Gestión de Vehículos</Title>
         <Text type="secondary">Administra el inventario de vehículos disponibles</Text>
       </div>
-      
-      <Card 
+
+      <Card
         title={
-          <div style={{ 
-            display: 'flex', 
+          <div style={{
+            display: 'flex',
             flexWrap: 'wrap',
-            justifyContent: 'space-between', 
+            justifyContent: 'space-between',
             alignItems: 'center',
             gap: '16px',
           }}>
             <span style={{ whiteSpace: 'nowrap' }}>Lista de Vehículos</span>
             <Space>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<PlusOutlined />}
                 onClick={() => navigate('/vehiculos/nuevo')}
                 style={{ flexShrink: 0 }}
               >
                 Agregar Vehículo
               </Button>
-              <Button 
+              <Button
                 type="default"
                 icon={<ReloadOutlined />}
                 onClick={() => navigate('/vehiculos/jerarquia')}
@@ -213,8 +213,8 @@ const Vehiculos = () => {
               </Select>
             </Col>
             <Col xs={24} md={8} style={{ textAlign: { xs: 'left', md: 'right' } }}>
-              <Button 
-                icon={<ReloadOutlined />} 
+              <Button
+                icon={<ReloadOutlined />}
                 onClick={handleRefresh}
                 style={{ width: { xs: '100%', md: 'auto' } }}
               >
@@ -223,8 +223,8 @@ const Vehiculos = () => {
             </Col>
           </Row>
         </div>
-        
-        <div style={{ 
+
+        <div style={{
           width: '100%',
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch',
@@ -234,9 +234,9 @@ const Vehiculos = () => {
           marginTop: '16px'
         }}>
           <Spin spinning={isLoading}>
-            <Table 
-              columns={columns} 
-              dataSource={tableData} 
+            <Table
+              columns={columns}
+              dataSource={tableData}
               rowKey="id"
               scroll={{ x: 'max-content' }}
               pagination={{
@@ -247,7 +247,7 @@ const Vehiculos = () => {
                 total: data?.total || 0,
                 responsive: true,
                 size: 'small',
-                style: { 
+                style: {
                   margin: '16px 16px 0',
                   paddingBottom: '16px'
                 }
@@ -255,7 +255,7 @@ const Vehiculos = () => {
               locale={{
                 emptyText: null
               }}
-              style={{ 
+              style={{
                 minWidth: '800px',
                 border: 'none'
               }}

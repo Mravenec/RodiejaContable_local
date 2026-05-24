@@ -517,6 +517,21 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
         return (LocalDateTime) get(29);
     }
 
+    /**
+     * Setter for <code>sistema_vehicular.inventario_repuestos.activo</code>.
+     */
+    public InventarioRepuestosRecord setActivo(Byte value) {
+        set(30, value);
+        return this;
+    }
+
+    /**
+     * Getter for <code>sistema_vehicular.inventario_repuestos.activo</code>.
+     */
+    public Byte getActivo() {
+        return (Byte) get(30);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -540,7 +555,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
     /**
      * Create a detached, initialised InventarioRepuestosRecord
      */
-    public InventarioRepuestosRecord(Integer id, String codigoRepuesto, Integer vehiculoOrigenId, Short anioRegistro, Byte mesRegistro, String codigoUbicacion, String imagenUrl, InventarioRepuestosParteVehiculo parteVehiculo, String descripcion, BigDecimal precioCosto, BigDecimal precioVenta, BigDecimal precioMayoreo, BigDecimal formula_15, BigDecimal formula_30, InventarioRepuestosBodega bodega, InventarioRepuestosZona zona, InventarioRepuestosPared pared, InventarioRepuestosMalla malla, InventarioRepuestosHorizontal horizontal, InventarioRepuestosEstante estante, InventarioRepuestosNivel nivel, InventarioRepuestosPiso piso, InventarioRepuestosPlastica plastica, InventarioRepuestosCarton carton, String posicion, UInteger cantidad, InventarioRepuestosEstado estado, InventarioRepuestosCondicion condicion, LocalDateTime fechaCreacion, LocalDateTime fechaActualizacion) {
+    public InventarioRepuestosRecord(Integer id, String codigoRepuesto, Integer vehiculoOrigenId, Short anioRegistro, Byte mesRegistro, String codigoUbicacion, String imagenUrl, InventarioRepuestosParteVehiculo parteVehiculo, String descripcion, BigDecimal precioCosto, BigDecimal precioVenta, BigDecimal precioMayoreo, BigDecimal formula_15, BigDecimal formula_30, InventarioRepuestosBodega bodega, InventarioRepuestosZona zona, InventarioRepuestosPared pared, InventarioRepuestosMalla malla, InventarioRepuestosHorizontal horizontal, InventarioRepuestosEstante estante, InventarioRepuestosNivel nivel, InventarioRepuestosPiso piso, InventarioRepuestosPlastica plastica, InventarioRepuestosCarton carton, String posicion, UInteger cantidad, InventarioRepuestosEstado estado, InventarioRepuestosCondicion condicion, LocalDateTime fechaCreacion, LocalDateTime fechaActualizacion, Byte activo) {
         super(InventarioRepuestos.INVENTARIO_REPUESTOS);
 
         setId(id);
@@ -573,6 +588,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
         setCondicion(condicion);
         setFechaCreacion(fechaCreacion);
         setFechaActualizacion(fechaActualizacion);
+        setActivo(activo);
         resetChangedOnNotNull();
     }
 
@@ -613,6 +629,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
             setCondicion(value.getCondicion());
             setFechaCreacion(value.getFechaCreacion());
             setFechaActualizacion(value.getFechaActualizacion());
+            setActivo(value.getActivo());
             resetChangedOnNotNull();
         }
     }
