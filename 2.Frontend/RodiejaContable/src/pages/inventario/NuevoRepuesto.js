@@ -396,6 +396,16 @@ const NuevoRepuesto = () => {
         const costoUnitario = cantidadRepuestos > 0 ? (values.precio_costo || 0) / cantidadRepuestos : 0;
         const precioVentaCalculado = costoUnitario * 1.5;
 
+        // Mapear de formato BD a formato Enum Java (Jackson)
+        const mapEnum = (val) => {
+          if (!val) return null;
+          if (val === '0-' || val === '0_') return '_0_';
+          if (val === '100%-') return '_100_25_';
+          if (val === '50%-') return '_50_25_';
+          if (val === '0%-') return '_0_25_';
+          return val.replace('-', '_');
+        };
+
         const repuestoData = {
           vehiculoOrigenId: values.vehiculo_origen_id,
           parteVehiculo: values.parte_vehiculo,
@@ -403,19 +413,19 @@ const NuevoRepuesto = () => {
           precioCosto: costoUnitario,
           precioVenta: precioVentaCalculado,
           precioMayoreo: precioVentaCalculado * 0.85,
-          bodega: ubicacionFisicaHabilitada ? values.bodega : null,
-          zona: ubicacionFisicaHabilitada ? values.zona : null,
-          pared: ubicacionFisicaHabilitada ? values.pared : null,
+          bodega: ubicacionFisicaHabilitada ? mapEnum(values.bodega) : null,
+          zona: ubicacionFisicaHabilitada ? mapEnum(values.zona) : null,
+          pared: ubicacionFisicaHabilitada ? mapEnum(values.pared) : null,
           malla: ubicacionFisicaHabilitada ? values.malla : null,
-          horizontal: ubicacionFisicaHabilitada ? values.horizontal : null,
+          horizontal: ubicacionFisicaHabilitada ? mapEnum(values.horizontal) : null,
           estante: ubicacionFisicaHabilitada ? values.estante : null,
-          nivel: ubicacionFisicaHabilitada ? values.nivel : null,
-          piso: ubicacionFisicaHabilitada ? values.piso : null,
+          nivel: ubicacionFisicaHabilitada ? mapEnum(values.nivel) : null,
+          piso: ubicacionFisicaHabilitada ? mapEnum(values.piso) : null,
           plastica: ubicacionFisicaHabilitada ? values.plastica : null,
           carton: ubicacionFisicaHabilitada ? values.carton : null,
           posicion: ubicacionFisicaHabilitada ? values.posicion : null,
           estado: values.estado || 'STOCK',
-          condicion: values.condicion || '_100_25_',
+          condicion: mapEnum(values.condicion || '100%-'),
           imagenUrl: values.imagen_url || null
         };
 
@@ -476,7 +486,10 @@ const NuevoRepuesto = () => {
 
     } catch (error) {
       console.error('Error completo:', error);
-      const errorMsg = error.response?.data?.message || error.response?.data || error.message;
+      let errorMsg = error.response?.data?.message || error.response?.data || error.message;
+      if (typeof errorMsg === 'object') {
+        errorMsg = JSON.stringify(errorMsg);
+      }
       message.error('Error al guardar el repuesto: ' + errorMsg);
     } finally {
       setLoading(false);
