@@ -11,7 +11,18 @@ class InventarioService {
       throw error;
     }
   }
-  
+
+  // Delete spare part
+  async eliminarRepuesto(id) {
+    try {
+      await api.delete(`/inventario-repuestos/${id}`);
+      return true;
+    } catch (error) {
+      console.error(`Error deleting part ${id}:`, error);
+      throw error;
+    }
+  }
+
   // Get a spare part by ID
   async getRepuestoPorId(id) {
     try {

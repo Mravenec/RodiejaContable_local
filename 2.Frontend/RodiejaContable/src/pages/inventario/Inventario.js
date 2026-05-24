@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Table, 
-  Card, 
-  Button, 
-  Input, 
-  Select, 
-  Tag, 
-  Space, 
+import {
+  Table,
+  Card,
+  Button,
+  Input,
+  Select,
+  Tag,
+  Space,
   Typography,
   Row,
   Col,
@@ -14,11 +14,12 @@ import {
   Grid,
   message,
   Spin,
-  Image
+  Image,
+  Popconfirm
 } from 'antd';
-import { 
-  SearchOutlined, 
-  PlusOutlined, 
+import {
+  SearchOutlined,
+  PlusOutlined,
   FilterOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -60,7 +61,7 @@ const Inventario = () => {
       setLoading(true);
       const { current, pageSize } = pagination;
       const { estado, categoria, ubicacion } = filtros;
-      
+
       // Build query params
       const queryParams = {
         page: params.pagination?.current || current,
@@ -72,7 +73,7 @@ const Inventario = () => {
       };
 
       const data = await InventarioService.getRepuestos(queryParams);
-      
+
       setData(Array.isArray(data) ? data : []);
       setPagination({
         ...pagination,
@@ -126,7 +127,11 @@ const Inventario = () => {
       fetchData(); // Refresh data
     } catch (error) {
       console.error('Error deleting item:', error);
-      message.error('Error al eliminar el repuesto');
+      if (error.response && error.response.status === 500) {
+        message.warning('No se puede eliminar porque tiene dependencias financieras. Le sugerimos cambiar el estado a AGOTADO o DAÑADO.', 6);
+      } else {
+        message.error('Error al eliminar el repuesto');
+      }
     }
   };
 
@@ -278,9 +283,9 @@ const Inventario = () => {
           'DESARMADO': { color: 'warning', icon: <ToolOutlined />, label: 'Desarmado' },
           'REPARACION': { color: 'processing', icon: <SyncOutlined spin />, label: 'En Reparación' },
         };
-        
+
         const estadoInfo = estados[estado] || { color: 'default', icon: null, label: estado };
-        
+
         return (
           <Tag icon={estadoInfo.icon} color={estadoInfo.color}>
             {estadoInfo.label}
@@ -295,22 +300,30 @@ const Inventario = () => {
       width: 120,
       render: (_, record) => (
         <Space size="middle">
-          <Button 
-            type="text" 
-            icon={<EyeOutlined />} 
+          <Button
+            type="text"
+            icon={<EyeOutlined />}
             onClick={() => navigate(`/inventario/${record.id}`)}
           />
-          <Button 
-            type="text" 
-            icon={<EditOutlined />} 
+          <Button
+            type="text"
+            icon={<EditOutlined />}
             onClick={() => navigate(`/inventario/editar/${record.id}`)}
           />
-          <Button 
-            type="text" 
-            danger 
-            icon={<DeleteOutlined />} 
-            onClick={() => handleDelete(record.id)}
-          />
+          <Popconfirm
+            title="¿Eliminar permanentemente?"
+            description="Si tiene transacciones asociadas, la eliminación fallará."
+            onConfirm={() => handleDelete(record.id)}
+            okText="Sí, eliminar"
+            cancelText="Cancelar"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+            />
+          </Popconfirm>
         </Space>
       ),
     },
@@ -330,14 +343,14 @@ const Inventario = () => {
               style={{ width: 300 }}
               onSearch={handleSearch}
             />
-            <Button 
-              icon={<FilterOutlined />} 
+            <Button
+              icon={<FilterOutlined />}
               onClick={() => setFilterVisible(true)}
             >
               Filtros
             </Button>
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               icon={<PlusOutlined />}
               onClick={() => navigate('/inventario/nuevo')}
             >
@@ -388,7 +401,7 @@ const Inventario = () => {
               <Option value="reparacion">En reparación</Option>
             </Select>
           </div>
-          
+
           <div>
             <Text strong>Categoría</Text>
             <Select
@@ -404,7 +417,7 @@ const Inventario = () => {
               <Option value="electrico">Eléctrico</Option>
             </Select>
           </div>
-          
+
           <div>
             <Text strong>Ubicación</Text>
             <Input
@@ -414,10 +427,10 @@ const Inventario = () => {
               onChange={(e) => setFiltros({ ...filtros, ubicacion: e.target.value })}
             />
           </div>
-          
-          <Button 
-            type="primary" 
-            block 
+
+          <Button
+            type="primary"
+            block
             style={{ marginTop: 16 }}
             onClick={() => {
               fetchData();
@@ -426,9 +439,9 @@ const Inventario = () => {
           >
             Aplicar Filtros
           </Button>
-          
-          <Button 
-            block 
+
+          <Button
+            block
             style={{ marginTop: 8 }}
             onClick={() => {
               setFiltros({
