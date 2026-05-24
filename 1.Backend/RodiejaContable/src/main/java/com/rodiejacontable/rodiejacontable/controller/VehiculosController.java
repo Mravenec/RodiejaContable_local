@@ -76,6 +76,12 @@ public class VehiculosController {
         return new ResponseEntity<>(vehiculos, HttpStatus.OK);
     }
     
+    @GetMapping("/para-egreso")
+    public ResponseEntity<List<Vehiculos>> getVehiculosParaEgreso() {
+        List<Vehiculos> vehiculos = vehiculosService.findVehiculosParaEgreso();
+        return new ResponseEntity<>(vehiculos, HttpStatus.OK);
+    }
+    
     /**
      * Obtiene la estructura jerárquica completa de vehículos agrupados por marca > modelo > generación > vehículo
      * @return Estructura jerárquica de vehículos

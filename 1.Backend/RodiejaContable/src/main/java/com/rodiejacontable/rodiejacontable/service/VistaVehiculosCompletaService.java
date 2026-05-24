@@ -31,6 +31,14 @@ public class VistaVehiculosCompletaService {
         return repository.findById(id);
     }
 
+    public List<com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta> findActivos() {
+        return repository.findActivos();
+    }
+
+    public List<com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta> findVehiculosParaEgreso() {
+        return repository.findVehiculosParaEgreso();
+    }
+
     public List<com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta> findByEstado(
             VistaVehiculosCompletaEstado estado) {
         return repository.findByEstado(estado);

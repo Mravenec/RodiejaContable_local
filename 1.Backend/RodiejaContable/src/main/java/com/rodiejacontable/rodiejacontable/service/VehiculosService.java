@@ -51,6 +51,10 @@ public class VehiculosService {
         return vehiculosRepository.findActivos();
     }
     
+    public List<Vehiculos> findVehiculosParaEgreso() {
+        return vehiculosRepository.findVehiculosParaEgreso();
+    }
+    
     public Vehiculos findById(Integer id) {
         return vehiculosRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehículo no encontrado con ID: " + id));

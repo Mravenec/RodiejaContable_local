@@ -19,7 +19,6 @@ import {
   Tabs,
   Alert
 } from 'antd';
-import locale from 'antd/es/locale/es_ES';
 import { 
   SaveOutlined, 
   ArrowLeftOutlined,
@@ -32,7 +31,7 @@ import {
   EditOutlined
 } from '@ant-design/icons';
 import { useCreateTransaccion } from '../../hooks/useFinanzas';
-import { useTiposByCategoria, useVehiculosParaTransacciones, useEmpleados, useRepuestos } from '../../hooks';
+import { useTiposByCategoria, useVehiculosParaTransacciones, useVehiculosParaEgreso, useEmpleados, useRepuestos } from '../../hooks';
 import api from '../../api/axios';
 
 const { Title, Text } = Typography;
@@ -64,7 +63,12 @@ const NuevaTransaccion = () => {
   const { data: tiposIngreso, isLoading: loadingTiposIngreso } = useTiposByCategoria('INGRESO');
   const { data: tiposEgreso, isLoading: loadingTiposEgreso } = useTiposByCategoria('EGRESO');
   const { data: empleados = [], isLoading: loadingEmpleados } = useEmpleados();
-  const { vehiculos = [], loadingVehiculos, errorVehiculos } = useVehiculosParaTransacciones();
+  const { vehiculos: vehiculosIngreso = [], loadingVehiculos: loadingVehiculosIngreso, errorVehiculos: errorVehiculosIngreso } = useVehiculosParaTransacciones();
+  const { vehiculos: vehiculosEgreso = [], loadingVehiculos: loadingVehiculosEgreso, errorVehiculos: errorVehiculosEgreso } = useVehiculosParaEgreso();
+  
+  const vehiculos = tipoTransaccion === 'EGRESO' ? vehiculosEgreso : vehiculosIngreso;
+  const loadingVehiculos = tipoTransaccion === 'EGRESO' ? loadingVehiculosEgreso : loadingVehiculosIngreso;
+  const errorVehiculos = tipoTransaccion === 'EGRESO' ? errorVehiculosEgreso : errorVehiculosIngreso;
   const { data: repuestos = [], isLoading: loadingRepuestos } = useRepuestos({ estado: 'STOCK' });
   
   // Hook para crear transacción
@@ -457,7 +461,6 @@ const NuevaTransaccion = () => {
                       style={{ width: '100%' }} 
                       format="DD/MM/YYYY"
                       placeholder="Seleccione fecha"
-                      locale={locale.DatePicker}
                       defaultValue={dayjs()}
                     />
                   </Form.Item>
@@ -718,10 +721,21 @@ const NuevaTransaccion = () => {
                         const codigo = vehiculo.codigoVehiculo || 'SIN_CODIGO';
                         const anio = vehiculo.anio || 'Año N/A';
                         const estado = vehiculo.estado || 'SIN_ESTADO';
-                        //const placa = codigo; // Usamos el código del vehículo como placa
+                        const marca = vehiculo.marca || 'Marca N/A';
+                        const modelo = vehiculo.modelo || 'Modelo N/A';
                         
-                        // Crear el texto de visualización
-                        const displayText = `Vehículo ${codigo} (${anio}) - ${estado}`;
+                        // Formatear estado para que sea más amigable visualmente
+                        let estadoAmigable = estado;
+                        if (estado === 'DESARMADO') {
+                          estadoAmigable = 'Para repuestos';
+                        } else if (estado === 'REPARACION') {
+                          estadoAmigable = 'Para reparar';
+                        } else if (estado !== 'SIN_ESTADO') {
+                          estadoAmigable = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+                        }
+                            
+                        // Crear el texto de visualización: TOCO-001 — Toyota Corolla 2021 (Disponible)
+                        const displayText = `${codigo} — ${marca} ${modelo} ${anio} (${estadoAmigable})`;
                         
                         return (
                           <Option 
@@ -835,7 +849,6 @@ const NuevaTransaccion = () => {
                       style={{ width: '100%' }} 
                       format="DD/MM/YYYY"
                       placeholder="Seleccione fecha"
-                      locale={locale.DatePicker}
                       defaultValue={dayjs()}
                     />
                   </Form.Item>
@@ -950,9 +963,21 @@ const NuevaTransaccion = () => {
                         const codigo = vehiculo.codigoVehiculo || 'SIN_CODIGO';
                         const anio = vehiculo.anio || 'Año N/A';
                         const estado = vehiculo.estado || 'SIN_ESTADO';
+                        const marca = vehiculo.marca || 'Marca N/A';
+                        const modelo = vehiculo.modelo || 'Modelo N/A';
                         
-                        // Crear el texto de visualización
-                        const displayText = `Vehículo ${codigo} (${anio}) - ${estado}`;
+                        // Formatear estado para que sea más amigable visualmente
+                        let estadoAmigable = estado;
+                        if (estado === 'DESARMADO') {
+                          estadoAmigable = 'Para repuestos';
+                        } else if (estado === 'REPARACION') {
+                          estadoAmigable = 'Para reparar';
+                        } else if (estado !== 'SIN_ESTADO') {
+                          estadoAmigable = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+                        }
+                            
+                        // Crear el texto de visualización: TOCO-001 — Toyota Corolla 2021 (Disponible)
+                        const displayText = `${codigo} — ${marca} ${modelo} ${anio} (${estadoAmigable})`;
                         
                         return (
                           <Option 

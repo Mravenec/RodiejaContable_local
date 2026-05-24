@@ -59,6 +59,15 @@ public class VehiculosRepository {
                  .fetchInto(Vehiculos.class);
     }
     
+    public List<Vehiculos> findVehiculosParaEgreso() {
+        return dsl.selectFrom(VEHICULOS)
+                 .where(VEHICULOS.ACTIVO.eq((byte) 1))
+                 .and(VEHICULOS.ESTADO.eq(VehiculosEstado.REPARACION)
+                     .or(VEHICULOS.ESTADO.eq(VehiculosEstado.DISPONIBLE)))
+                 .orderBy(VEHICULOS.FECHA_INGRESO.desc())
+                 .fetchInto(Vehiculos.class);
+    }
+    
     public Optional<Vehiculos> findById(Integer id) {
         return dsl.selectFrom(VEHICULOS)
                  .where(VEHICULOS.ID.eq(id))

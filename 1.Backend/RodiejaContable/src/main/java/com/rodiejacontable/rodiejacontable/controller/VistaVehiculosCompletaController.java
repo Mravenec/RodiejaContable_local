@@ -39,6 +39,16 @@ public class VistaVehiculosCompletaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/activos")
+    public List<com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta> getActivos() {
+        return service.findActivos();
+    }
+
+    @GetMapping("/para-egreso")
+    public List<com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta> getVehiculosParaEgreso() {
+        return service.findVehiculosParaEgreso();
+    }
+
     @GetMapping("/estado/{estado}")
     public List<com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta> getByEstado(
             @PathVariable VistaVehiculosCompletaEstado estado) {

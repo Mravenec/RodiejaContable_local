@@ -484,11 +484,26 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
     }
 
     /**
+     * Setter for <code>sistema_vehicular.inventario_repuestos.activo</code>.
+     */
+    public InventarioRepuestosRecord setActivo(Byte value) {
+        set(28, value);
+        return this;
+    }
+
+    /**
+     * Getter for <code>sistema_vehicular.inventario_repuestos.activo</code>.
+     */
+    public Byte getActivo() {
+        return (Byte) get(28);
+    }
+
+    /**
      * Setter for
      * <code>sistema_vehicular.inventario_repuestos.fecha_creacion</code>.
      */
     public InventarioRepuestosRecord setFechaCreacion(LocalDateTime value) {
-        set(28, value);
+        set(29, value);
         return this;
     }
 
@@ -497,7 +512,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.fecha_creacion</code>.
      */
     public LocalDateTime getFechaCreacion() {
-        return (LocalDateTime) get(28);
+        return (LocalDateTime) get(29);
     }
 
     /**
@@ -505,7 +520,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.fecha_actualizacion</code>.
      */
     public InventarioRepuestosRecord setFechaActualizacion(LocalDateTime value) {
-        set(29, value);
+        set(30, value);
         return this;
     }
 
@@ -514,7 +529,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.fecha_actualizacion</code>.
      */
     public LocalDateTime getFechaActualizacion() {
-        return (LocalDateTime) get(29);
+        return (LocalDateTime) get(30);
     }
 
     // -------------------------------------------------------------------------
@@ -540,7 +555,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
     /**
      * Create a detached, initialised InventarioRepuestosRecord
      */
-    public InventarioRepuestosRecord(Integer id, String codigoRepuesto, Integer vehiculoOrigenId, Short anioRegistro, Byte mesRegistro, String codigoUbicacion, String imagenUrl, InventarioRepuestosParteVehiculo parteVehiculo, String descripcion, BigDecimal precioCosto, BigDecimal precioVenta, BigDecimal precioMayoreo, BigDecimal formula_15, BigDecimal formula_30, InventarioRepuestosBodega bodega, InventarioRepuestosZona zona, InventarioRepuestosPared pared, InventarioRepuestosMalla malla, InventarioRepuestosHorizontal horizontal, InventarioRepuestosEstante estante, InventarioRepuestosNivel nivel, InventarioRepuestosPiso piso, InventarioRepuestosPlastica plastica, InventarioRepuestosCarton carton, String posicion, UInteger cantidad, InventarioRepuestosEstado estado, InventarioRepuestosCondicion condicion, LocalDateTime fechaCreacion, LocalDateTime fechaActualizacion) {
+    public InventarioRepuestosRecord(Integer id, String codigoRepuesto, Integer vehiculoOrigenId, Short anioRegistro, Byte mesRegistro, String codigoUbicacion, String imagenUrl, InventarioRepuestosParteVehiculo parteVehiculo, String descripcion, BigDecimal precioCosto, BigDecimal precioVenta, BigDecimal precioMayoreo, BigDecimal formula_15, BigDecimal formula_30, InventarioRepuestosBodega bodega, InventarioRepuestosZona zona, InventarioRepuestosPared pared, InventarioRepuestosMalla malla, InventarioRepuestosHorizontal horizontal, InventarioRepuestosEstante estante, InventarioRepuestosNivel nivel, InventarioRepuestosPiso piso, InventarioRepuestosPlastica plastica, InventarioRepuestosCarton carton, String posicion, UInteger cantidad, InventarioRepuestosEstado estado, InventarioRepuestosCondicion condicion, Byte activo, LocalDateTime fechaCreacion, LocalDateTime fechaActualizacion) {
         super(InventarioRepuestos.INVENTARIO_REPUESTOS);
 
         setId(id);
@@ -571,6 +586,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
         setCantidad(cantidad);
         setEstado(estado);
         setCondicion(condicion);
+        setActivo(activo);
         setFechaCreacion(fechaCreacion);
         setFechaActualizacion(fechaActualizacion);
         resetChangedOnNotNull();
@@ -611,6 +627,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
             setCantidad(value.getCantidad());
             setEstado(value.getEstado());
             setCondicion(value.getCondicion());
+            setActivo(value.getActivo());
             setFechaCreacion(value.getFechaCreacion());
             setFechaActualizacion(value.getFechaActualizacion());
             resetChangedOnNotNull();

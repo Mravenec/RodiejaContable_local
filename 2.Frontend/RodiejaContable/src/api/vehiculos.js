@@ -21,11 +21,27 @@ class VehiculoService {
   async getVehiculosActivos() {
     try {
       this.log('Fetching active vehicles...');
-      const response = await api.get('/vehiculos/activos');
+      const response = await api.get('/v1/vehiculos/activos');
       this.log('Active vehicles response:', response.data);
       return response.data;
     } catch (error) {
       this.error('Error fetching active vehicles:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene la lista de vehículos para egreso
+   * @returns {Promise<Array>} Lista de vehículos para egreso
+   */
+  async getVehiculosParaEgreso() {
+    try {
+      this.log('Fetching vehicles for expense transactions...');
+      const response = await api.get('/v1/vehiculos/para-egreso');
+      this.log('Vehicles for expense response:', response.data);
+      return response.data;
+    } catch (error) {
+      this.error('Error fetching vehicles for expense:', error);
       throw error;
     }
   }

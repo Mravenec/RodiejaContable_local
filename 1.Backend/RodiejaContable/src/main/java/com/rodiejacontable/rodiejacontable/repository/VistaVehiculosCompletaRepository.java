@@ -34,6 +34,22 @@ public class VistaVehiculosCompletaRepository {
                 .fetchOptionalInto(com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta.class);
     }
 
+    public List<com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta> findActivos() {
+        return dsl.selectFrom(VISTA_VEHICULOS_COMPLETA)
+                .where(VISTA_VEHICULOS_COMPLETA.ACTIVO.eq((byte) 1))
+                .orderBy(VISTA_VEHICULOS_COMPLETA.FECHA_INGRESO.desc())
+                .fetchInto(com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta.class);
+    }
+
+    public List<com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta> findVehiculosParaEgreso() {
+        return dsl.selectFrom(VISTA_VEHICULOS_COMPLETA)
+                .where(VISTA_VEHICULOS_COMPLETA.ACTIVO.eq((byte) 1))
+                .and(VISTA_VEHICULOS_COMPLETA.ESTADO.eq(VistaVehiculosCompletaEstado.REPARACION)
+                    .or(VISTA_VEHICULOS_COMPLETA.ESTADO.eq(VistaVehiculosCompletaEstado.DISPONIBLE)))
+                .orderBy(VISTA_VEHICULOS_COMPLETA.FECHA_INGRESO.desc())
+                .fetchInto(com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta.class);
+    }
+
     public List<com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta> findByEstado(VistaVehiculosCompletaEstado estado) {
         return dsl.selectFrom(VISTA_VEHICULOS_COMPLETA)
                 .where(VISTA_VEHICULOS_COMPLETA.ESTADO.eq(estado))

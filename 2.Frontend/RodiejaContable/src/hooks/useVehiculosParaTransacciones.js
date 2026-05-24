@@ -28,6 +28,8 @@ const fetchVehiculosActivos = async () => {
       placa: vehiculo.codigoVehiculo || 'SIN_PLACA', // Usar codigoVehiculo como placa
       estado: vehiculo.estado || 'DESCONOCIDO',
       activo: vehiculo.activo !== false,
+      marca: vehiculo.marca || 'Marca N/A',
+      modelo: vehiculo.modelo || 'Modelo N/A',
       ...vehiculo
     }));
 
@@ -72,6 +74,74 @@ export const useVehiculosParaTransacciones = () => {
       },
       onSuccess: (data) => {
         console.log('Datos de vehículos cargados correctamente:', data);
+      }
+    }
+  );
+
+  return {
+    vehiculos: data || [],
+    loadingVehiculos: isLoading,
+    errorVehiculos: error || null
+  };
+};
+
+const fetchVehiculosParaEgreso = async () => {
+  try {
+    console.log('🔍 [API] Obteniendo vehículos para egreso...');
+    const vehiculos = await vehiculoService.getVehiculosParaEgreso();
+    
+    if (!vehiculos) {
+      console.error('❌ [ERROR] La respuesta de vehículos está vacía');
+      return [];
+    }
+    
+    const vehiculosData = Array.isArray(vehiculos) ? vehiculos : [vehiculos];
+    
+    if (vehiculosData.length === 0) {
+      console.warn('⚠️ [ADVERTENCIA] No se encontraron vehículos para egreso');
+      return [];
+    }
+    
+    // Mapear los datos
+    const vehiculosMapeados = vehiculosData.map(vehiculo => ({
+      id: vehiculo.id,
+      codigoVehiculo: vehiculo.codigoVehiculo || 'SIN_CODIGO',
+      generacionId: vehiculo.generacionId,
+      anio: vehiculo.anio || 'N/A',
+      placa: vehiculo.codigoVehiculo || 'SIN_PLACA',
+      estado: vehiculo.estado || 'DESCONOCIDO',
+      activo: vehiculo.activo !== false,
+      marca: vehiculo.marca || 'Marca N/A',
+      modelo: vehiculo.modelo || 'Modelo N/A',
+      ...vehiculo
+    }));
+    
+    console.log(`✅ [API] ${vehiculosMapeados.length} vehículos para egreso cargados:`, 
+      vehiculosMapeados.map(v => `${v.id}: ${v.codigoVehiculo} (${v.anio}) - ${v.estado}`).join(', ')
+    );
+    
+    return vehiculosMapeados;
+    
+  } catch (error) {
+    console.error('Error al obtener vehículos para egreso:', error);
+    message.error('No se pudieron cargar los vehículos. Por favor, intente de nuevo.');
+    return [];
+  }
+};
+
+export const useVehiculosParaEgreso = () => {
+  const { data, isLoading, error } = useQuery(
+    'vehiculosParaEgreso',
+    fetchVehiculosParaEgreso,
+    {
+      staleTime: 1000 * 60 * 5, // 5 minutos
+      retry: 1,
+      refetchOnWindowFocus: false,
+      onError: (error) => {
+        console.error('Error en la consulta de vehículos para egreso:', error);
+      },
+      onSuccess: (data) => {
+        console.log('Datos de vehículos para egreso cargados correctamente:', data);
       }
     }
   );

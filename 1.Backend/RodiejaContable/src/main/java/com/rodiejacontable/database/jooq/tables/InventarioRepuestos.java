@@ -221,6 +221,11 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
     public final TableField<InventarioRepuestosRecord, InventarioRepuestosCondicion> CONDICION = createField(DSL.name("condicion"), SQLDataType.VARCHAR(5).defaultValue(DSL.field(DSL.raw("'100%-'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.InventarioRepuestosCondicion.class), this, "");
 
     /**
+     * The column <code>sistema_vehicular.inventario_repuestos.activo</code>.
+     */
+    public final TableField<InventarioRepuestosRecord, Byte> ACTIVO = createField(DSL.name("activo"), SQLDataType.TINYINT.defaultValue(DSL.field(DSL.raw("1"), SQLDataType.TINYINT)), this, "");
+
+    /**
      * The column
      * <code>sistema_vehicular.inventario_repuestos.fecha_creacion</code>.
      */
@@ -275,7 +280,7 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.INVENTARIO_REPUESTOS_IDX_ESTADO, Indexes.INVENTARIO_REPUESTOS_IDX_FECHA_REGISTRO, Indexes.INVENTARIO_REPUESTOS_IDX_PARTE_VEHICULO, Indexes.INVENTARIO_REPUESTOS_IDX_VEHICULO_ORIGEN);
+        return Arrays.asList(Indexes.INVENTARIO_REPUESTOS_IDX_ACTIVO, Indexes.INVENTARIO_REPUESTOS_IDX_ESTADO, Indexes.INVENTARIO_REPUESTOS_IDX_FECHA_REGISTRO, Indexes.INVENTARIO_REPUESTOS_IDX_PARTE_VEHICULO, Indexes.INVENTARIO_REPUESTOS_IDX_VEHICULO_ORIGEN);
     }
 
     @Override
