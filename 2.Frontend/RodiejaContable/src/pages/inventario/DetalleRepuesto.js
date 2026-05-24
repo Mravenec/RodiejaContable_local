@@ -11,10 +11,8 @@ import {
   Row, 
   Col, 
   Statistic,
-  Badge,
   Image,
-  message,
-  Space
+  message
 } from 'antd';
 import { 
   ArrowLeftOutlined, 

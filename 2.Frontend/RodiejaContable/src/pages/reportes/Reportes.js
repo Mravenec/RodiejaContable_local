@@ -12,7 +12,6 @@ import {
   Button, 
   Table, 
   Typography, 
-  Space,
   Statistic,
   Progress,
   Divider
@@ -37,8 +36,6 @@ import {
   DollarOutlined, 
   CarOutlined, 
   ShoppingCartOutlined,
-  DownloadOutlined,
-
   UserOutlined,
   ToolOutlined
 } from '@ant-design/icons';
@@ -394,67 +391,7 @@ const Reportes = () => {
   //   await cargarDatosIniciales();
   // };
   
-  const exportarReporte = async (formato) => {
-    try {
-      console.log(`=== INICIANDO EXPORTACIÓN DE REPORTE EN FORMATO ${formato.toUpperCase()} ===`);
-      
-      // Preparar filtros para la exportación
-      // const filtros = {
-      //   formato,
-      //   fechaInicio: rangoFechas?.[0] ? format(rangoFechas[0], 'yyyy-MM-dd') : null,
-      //   fechaFin: rangoFechas?.[1] ? format(rangoFechas[1], 'yyyy-MM-dd') : null,
-      //   tipo: filtroTipo !== 'todos' ? filtroTipo : null,
-      //   estado: filtroEstado !== 'todos' ? filtroEstado : null
-      // };
-      
-    //  console.log('Filtros para exportación:', filtros);
-      
-      // Mostrar mensaje de carga
-      message.loading({ 
-        content: `Generando reporte en formato ${formato.toUpperCase()}...`, 
-        key: 'exportar',
-        duration: 0 
-      });
-      
-      // Llamar al servicio de exportación
-      const blob = await VentasEmpleadosService.exportarReporte(formato);
-      
-      console.log('Reporte generado exitosamente, blob recibido:', blob);
-      
-      // Crear URL para el blob y descargar el archivo
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
-      // Generar nombre de archivo con fecha
-      const fechaActual = new Date().toISOString().split('T')[0];
-      link.download = `reporte_${formato}_${fechaActual}.${formato}`;
-      
-      // Simular clic para descargar
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Limpiar URL
-      window.URL.revokeObjectURL(url);
-      
-      message.success({ 
-        content: `Reporte ${formato.toUpperCase()} generado y descargado exitosamente`, 
-        key: 'exportar' 
-      });
-      
-      console.log(`=== REPORTE ${formato.toUpperCase()} EXPORTADO EXITOSAMENTE ===`);
-      
-    } catch (error) {
-      console.error('Error al exportar reporte:', error);
-      console.error('Error completo:', error);
-      
-      // message.error({ 
-      //   content: `Error al generar el reporte ${formato.toUpperCase()}`, 
-      //   key: 'exportar' 
-      // });
-    }
-  };
+  // const exportarReporte = async (formato) => { ... };
   
   // Función para obtener análisis financiero por año y mes
   const fetchAnalisisFinanciero = async (anio, mes) => {

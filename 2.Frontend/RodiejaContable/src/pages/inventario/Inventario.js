@@ -8,8 +8,6 @@ import {
   Tag,
   Space,
   Typography,
-  Row,
-  Col,
   Drawer,
   Grid,
   message,
@@ -91,6 +89,7 @@ const Inventario = () => {
   // Initial data load
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle table change (pagination, filters, sorter)
@@ -252,10 +251,6 @@ const Inventario = () => {
       title: 'Precio Mayoreo',
       dataIndex: 'precioMayoreo',
       key: 'precioMayoreo',
-      render: (precio) => `₡${precio.toLocaleString('es-CR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      })}`,
       render: (precio) => formatCurrency(precio),
       sorter: (a, b) => a.precioMayoreo - b.precioMayoreo,
       width: 150,

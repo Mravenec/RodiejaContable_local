@@ -2,6 +2,7 @@ package com.rodiejacontable.rodiejacontable.repository;
 
 import com.rodiejacontable.database.jooq.routines.SpInsertarRepuestoConGeneracionSinVehiculo;
 import com.rodiejacontable.database.jooq.tables.pojos.InventarioRepuestos;
+import com.rodiejacontable.database.jooq.enums.*;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -23,6 +24,19 @@ public class InventarioRepuestosRepository {
     }
 
     public InventarioRepuestos save(InventarioRepuestos repuesto) {
+        // Establecer valores predeterminados de ubicación si vienen null
+        if (repuesto.getBodega() == null) repuesto.setBodega(InventarioRepuestosBodega._0_);
+        if (repuesto.getZona() == null) repuesto.setZona(InventarioRepuestosZona._0_);
+        if (repuesto.getPared() == null) repuesto.setPared(InventarioRepuestosPared._0_);
+        if (repuesto.getMalla() == null) repuesto.setMalla(InventarioRepuestosMalla._0_);
+        if (repuesto.getHorizontal() == null) repuesto.setHorizontal(InventarioRepuestosHorizontal._0_);
+        if (repuesto.getEstante() == null) repuesto.setEstante(InventarioRepuestosEstante.E1);
+        if (repuesto.getNivel() == null) repuesto.setNivel(InventarioRepuestosNivel._0_);
+        if (repuesto.getPiso() == null) repuesto.setPiso(InventarioRepuestosPiso.P1_);
+        
+        // Plastica, Carton y Posicion pueden quedar como null en la DB, pero si requerimos 
+        // el default de la BD que sea vacío o nulo, no hacemos nada.
+        
         var record = dsl.newRecord(INVENTARIO_REPUESTOS, repuesto);
         dsl.attach(record);
         
@@ -105,12 +119,15 @@ public class InventarioRepuestosRepository {
         sp.setPPrecioCosto(precioCosto);
         sp.setPPrecioVenta(precioVenta);
         sp.setPPrecioMayoreo(precioMayoreo);
-        sp.setPBodega(bodega);
-        sp.setPZona(zona);
-        sp.setPPared(pared);
-        sp.setPMalla(malla);
-        sp.setPEstante(estante);
-        sp.setPPiso(piso);
+        
+        // Valores por defecto para ubicación física si vienen nulos
+        sp.setPBodega(bodega != null ? bodega : InventarioRepuestosBodega._0_.getLiteral());
+        sp.setPZona(zona != null ? zona : InventarioRepuestosZona._0_.getLiteral());
+        sp.setPPared(pared != null ? pared : InventarioRepuestosPared._0_.getLiteral());
+        sp.setPMalla(malla != null ? malla : InventarioRepuestosMalla._0_.getLiteral());
+        sp.setPEstante(estante != null ? estante : InventarioRepuestosEstante.E1.getLiteral());
+        sp.setPPiso(piso != null ? piso : InventarioRepuestosPiso.P1_.getLiteral());
+        
         sp.setPEstado(estado);
         sp.setPCondicion(condicion);
         sp.setPImagenUrl(imagenUrl); // ✅ Nuevo parámetro

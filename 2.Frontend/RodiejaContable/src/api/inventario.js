@@ -91,16 +91,7 @@ class InventarioService {
     }
   }
 
-  // Delete part
-  async eliminarRepuesto(id) {
-    try {
-      await api.delete(`/inventario-repuestos/${id}`);
-      return true;
-    } catch (error) {
-      console.error(`Error deleting part ${id}:`, error);
-      throw error;
-    }
-  }
+
 
   // Map API response to frontend format
   _mapRepuesto(item) {
@@ -186,4 +177,5 @@ class InventarioService {
   }
 }
 
-export default new InventarioService();
+const inventarioServiceInstance = new InventarioService();
+export default inventarioServiceInstance;

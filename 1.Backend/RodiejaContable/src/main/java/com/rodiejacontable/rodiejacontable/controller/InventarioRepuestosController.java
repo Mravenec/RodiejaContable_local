@@ -56,9 +56,10 @@ public class InventarioRepuestosController {
                     (String) payload.get("piso"),
                     (String) payload.get("estado"),
                     (String) payload.get("condicion"),
-                    (String) payload.get("imagenUrl") // ✅ Nuevo campo
+                    (String) payload.get("imagenUrl"), // ✅ Nuevo campo
+                    payload.get("cantidad") != null ? Integer.parseInt(payload.get("cantidad").toString()) : 1 // ✅ Nueva cantidad
             );
-            return new ResponseEntity<>("Repuesto creado exitosamente", HttpStatus.CREATED);
+            return new ResponseEntity<>("Repuesto(s) genérico(s) creado(s) exitosamente", HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>("Error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

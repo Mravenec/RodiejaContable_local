@@ -21,7 +21,6 @@ import {
   ArrowLeftOutlined,
   EditOutlined
 } from '@ant-design/icons';
-import api from '../../api/axios';
 import InventarioService from '../../api/inventario';
 import vehiculoService from '../../api/vehiculos';
 

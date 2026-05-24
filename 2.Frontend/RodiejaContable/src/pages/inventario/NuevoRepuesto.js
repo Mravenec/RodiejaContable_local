@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from 'react-query';
-import { 
-  Form, 
-  Input, 
-  Button, 
-  Card, 
-  Typography, 
-  Select, 
+import {
+  Form,
+  Input,
+  Button,
+  Card,
+  Typography,
+  Select,
   InputNumber,
   message,
   Row,
@@ -16,8 +16,8 @@ import {
   Radio,
   Checkbox
 } from 'antd';
-import { 
-  SaveOutlined, 
+import {
+  SaveOutlined,
   ArrowLeftOutlined,
   ShoppingCartOutlined,
   InfoCircleOutlined,
@@ -40,20 +40,20 @@ const NuevoRepuesto = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  
+
   // Obtener vehiculoId de los query parameters
   const queryParams = new URLSearchParams(location.search);
   const vehiculoId = queryParams.get('vehiculoId');
-  
+
   const [loading, setLoading] = useState(false);
   const [tipoRepuesto, setTipoRepuesto] = useState('con_vehiculo');
   const [ubicacionFisicaHabilitada, setUbicacionFisicaHabilitada] = useState(false);
   const [precioCostoTotal, setPrecioCostoTotal] = useState(0);
   const [cantidad, setCantidad] = useState(1);
-  
+
   // Determinar si el selector debe estar deshabilitado (modo lectura)
   const selectorDeshabilitado = !!vehiculoId;
-  
+
   // Estados para la cadena de selección (solo para repuestos SIN vehículo)
   const [marcaSeleccionada, setMarcaSeleccionada] = useState(null);
   const [modeloSeleccionado, setModeloSeleccionado] = useState(null);
@@ -97,16 +97,16 @@ const NuevoRepuesto = () => {
       const response = await api.post('/marcas', {
         nombre: nuevaMarcaNombre.trim()
       });
-      
+
       console.log('Marca creada:', response.data);
       message.success('Marca creada exitosamente');
-      
+
       setNuevaMarcaModal(false);
       setNuevaMarcaNombre('');
-      
+
       // Refrescar la lista de marcas
       queryClient.invalidateQueries('marcas');
-      
+
     } catch (error) {
       console.error('Error al crear marca:', error);
       message.error('Error al crear marca: ' + (error.response?.data?.message || error.message));
@@ -128,16 +128,16 @@ const NuevoRepuesto = () => {
         nombre: nuevoModeloNombre.trim(),
         marcaId: marcaSeleccionada
       });
-      
+
       console.log('Modelo creado:', response.data);
       message.success('Modelo creado exitosamente');
-      
+
       setNuevoModeloModal(false);
       setNuevoModeloNombre('');
-      
+
       // Refrescar la lista de modelos
       queryClient.invalidateQueries('modelos');
-      
+
     } catch (error) {
       console.error('Error al crear modelo:', error);
       message.error('Error al crear modelo: ' + (error.response?.data?.message || error.message));
@@ -165,18 +165,18 @@ const NuevoRepuesto = () => {
         anioFin: parseInt(nuevaGeneracionAnioFin),
         modeloId: modeloSeleccionado
       });
-      
+
       console.log('Generación creada:', response.data);
       message.success('Generación creada exitosamente');
-      
+
       setNuevaGeneracionModal(false);
       setNuevaGeneracionNombre('');
       setNuevaGeneracionAnioInicio('');
       setNuevaGeneracionAnioFin('');
-      
+
       // Refrescar la lista de generaciones
       queryClient.invalidateQueries('generaciones');
-      
+
     } catch (error) {
       console.error('Error al crear generación:', error);
       message.error('Error al crear generación: ' + (error.response?.data?.message || error.message));
@@ -188,14 +188,14 @@ const NuevoRepuesto = () => {
   // Hooks para cargar datos
   const { data: marcas = [], isLoading: loadingMarcas } = useMarcas();
   const { data: modelos = [], isLoading: loadingModelos } = useModelos(
-    marcaSeleccionada, 
+    marcaSeleccionada,
     tipoRepuesto === 'sin_vehiculo' && !!marcaSeleccionada
   );
   const { data: generaciones = [], isLoading: loadingGeneraciones } = useGeneraciones(
-    modeloSeleccionado, 
+    modeloSeleccionado,
     tipoRepuesto === 'sin_vehiculo' && !!modeloSeleccionado
   );
-  
+
   // Para repuestos CON vehículo: cargar vehículos solo cuando sea necesario
   const { data: todosVehiculos = [], isLoading: loadingVehiculos } = useVehiculos(
     {},
@@ -205,7 +205,7 @@ const NuevoRepuesto = () => {
   // Filtrar solo vehículos DESARMADOS
   const vehiculosDesarmados = React.useMemo(() => {
     if (tipoRepuesto !== 'con_vehiculo') return [];
-    return todosVehiculos.filter(v => 
+    return todosVehiculos.filter(v =>
       v.estado && v.estado.toUpperCase() === 'DESARMADO'
     );
   }, [todosVehiculos, tipoRepuesto]);
@@ -214,11 +214,11 @@ const NuevoRepuesto = () => {
   const getVehiculoDisplayText = (vehiculo) => {
     const codigo = vehiculo.codigoVehiculo || vehiculo.codigo_vehiculo || 'Sin código';
     const anio = vehiculo.anio || '';
-    
+
     let marca = '';
     let modelo = '';
     let generacion = '';
-    
+
     if (vehiculo.generacion) {
       if (typeof vehiculo.generacion === 'object') {
         marca = vehiculo.generacion.marca || '';
@@ -226,7 +226,7 @@ const NuevoRepuesto = () => {
         generacion = vehiculo.generacion.nombre || '';
       }
     }
-    
+
     const partes = [codigo, anio, marca, modelo, generacion].filter(p => p);
     return partes.join(' ');
   };
@@ -312,11 +312,11 @@ const NuevoRepuesto = () => {
   useEffect(() => {
     console.log('🔍 useEffect ejecutado. vehiculoId:', vehiculoId);
     console.log('🔍 Vehículos desarmados disponibles:', vehiculosDesarmados.map(v => ({ id: v.id, codigo: v.codigoVehiculo, estado: v.estado })));
-    
+
     if (vehiculoId && vehiculosDesarmados.length > 0) {
       const vehiculoExiste = vehiculosDesarmados.find(v => v.id === parseInt(vehiculoId));
       console.log('🚗 Vehículo encontrado:', vehiculoExiste);
-      
+
       if (vehiculoExiste) {
         form.setFieldsValue({
           vehiculo_origen_id: parseInt(vehiculoId)
@@ -354,12 +354,12 @@ const NuevoRepuesto = () => {
   const onTipoRepuestoChange = (e) => {
     const nuevoTipo = e.target.value;
     setTipoRepuesto(nuevoTipo);
-    
+
     // Resetear todos los campos relevantes
     setMarcaSeleccionada(null);
     setModeloSeleccionado(null);
     setGeneracionSeleccionada(null);
-    
+
     form.setFieldsValue({
       marca_id: undefined,
       modelo_id: undefined,
@@ -403,12 +403,17 @@ const NuevoRepuesto = () => {
           precioCosto: costoUnitario,
           precioVenta: precioVentaCalculado,
           precioMayoreo: precioVentaCalculado * 0.85,
-          bodega: values.bodega || 'D_',
-          zona: values.zona || 'Z1_',
-          pared: values.pared || 'PE_',
-          malla: values.malla || 'V15',
-          estante: values.estante || 'E1',
-          piso: values.piso || 'P1_',
+          bodega: ubicacionFisicaHabilitada ? values.bodega : null,
+          zona: ubicacionFisicaHabilitada ? values.zona : null,
+          pared: ubicacionFisicaHabilitada ? values.pared : null,
+          malla: ubicacionFisicaHabilitada ? values.malla : null,
+          horizontal: ubicacionFisicaHabilitada ? values.horizontal : null,
+          estante: ubicacionFisicaHabilitada ? values.estante : null,
+          nivel: ubicacionFisicaHabilitada ? values.nivel : null,
+          piso: ubicacionFisicaHabilitada ? values.piso : null,
+          plastica: ubicacionFisicaHabilitada ? values.plastica : null,
+          carton: ubicacionFisicaHabilitada ? values.carton : null,
+          posicion: ubicacionFisicaHabilitada ? values.posicion : null,
           estado: values.estado || 'STOCK',
           condicion: values.condicion || '_100_25_',
           imagenUrl: values.imagen_url || null
@@ -429,9 +434,10 @@ const NuevoRepuesto = () => {
         }
 
         const marcaNombre = marcas.find(m => m.id === marcaSeleccionada)?.nombre || 'Generic';
-        
+
         // Calcular costo unitario y precio de venta
-        const costoUnitario = (values.precio_costo || 0) / 1; // Para repuestos genéricos, cantidad es siempre 1
+        const cantidadRepuestos = values.cantidad || 1;
+        const costoUnitario = cantidadRepuestos > 0 ? (values.precio_costo || 0) / cantidadRepuestos : 0;
         const precioVentaCalculado = costoUnitario * 1.5;
 
         const procedureData = {
@@ -442,15 +448,21 @@ const NuevoRepuesto = () => {
           precioCosto: costoUnitario,
           precioVenta: precioVentaCalculado,
           precioMayoreo: precioVentaCalculado * 0.85,
-          bodega: values.bodega || 'R-',
-          zona: values.zona || 'Z2-',
-          pared: values.pared || 'PN-',
-          malla: values.malla || 'V10',
-          estante: values.estante || 'E2',
-          piso: values.piso || 'P3-',
+          bodega: ubicacionFisicaHabilitada ? values.bodega : null,
+          zona: ubicacionFisicaHabilitada ? values.zona : null,
+          pared: ubicacionFisicaHabilitada ? values.pared : null,
+          malla: ubicacionFisicaHabilitada ? values.malla : null,
+          horizontal: ubicacionFisicaHabilitada ? values.horizontal : null,
+          estante: ubicacionFisicaHabilitada ? values.estante : null,
+          nivel: ubicacionFisicaHabilitada ? values.nivel : null,
+          piso: ubicacionFisicaHabilitada ? values.piso : null,
+          plastica: ubicacionFisicaHabilitada ? values.plastica : null,
+          carton: ubicacionFisicaHabilitada ? values.carton : null,
+          posicion: ubicacionFisicaHabilitada ? values.posicion : null,
           estado: values.estado || 'STOCK',
           condicion: values.condicion || '100%-',
-          imagenUrl: values.imagen_url || null
+          imagenUrl: values.imagen_url || null,
+          cantidad: cantidadRepuestos // ✅ Nueva cantidad a enviar
         };
 
         console.log('Datos a enviar (sin vehículo):', procedureData);
@@ -461,7 +473,7 @@ const NuevoRepuesto = () => {
         message.success('Repuesto genérico creado correctamente');
         navigate('/inventario');
       }
-      
+
     } catch (error) {
       console.error('Error completo:', error);
       const errorMsg = error.response?.data?.message || error.response?.data || error.message;
@@ -473,19 +485,19 @@ const NuevoRepuesto = () => {
 
   return (
     <div>
-      <Button 
-        type="text" 
-        icon={<ArrowLeftOutlined />} 
+      <Button
+        type="text"
+        icon={<ArrowLeftOutlined />}
         onClick={() => navigate(-1)}
         style={{ marginBottom: 16 }}
       >
         Volver
       </Button>
-      
+
       <Title level={2}>
         <ShoppingCartOutlined /> Nuevo Repuesto
       </Title>
-      
+
       <Card>
         <Form
           form={form}
@@ -520,7 +532,7 @@ const NuevoRepuesto = () => {
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Divider orientation="left">Información del Repuesto</Divider>
-              
+
               <Form.Item
                 name="parte_vehiculo"
                 label="Parte del Vehículo"
@@ -534,7 +546,7 @@ const NuevoRepuesto = () => {
                   ))}
                 </Select>
               </Form.Item>
-              
+
               <Form.Item
                 name="descripcion"
                 label="Descripción"
@@ -558,7 +570,7 @@ const NuevoRepuesto = () => {
                       </span>
                     )}
                   </h4>
-                  
+
                   {loadingVehiculos ? (
                     <p>Cargando vehículos...</p>
                   ) : vehiculosDesarmados.length === 0 ? (
@@ -569,7 +581,7 @@ const NuevoRepuesto = () => {
                       label="Vehículo Origen (Solo vehículos desarmados)"
                       rules={[{ required: true, message: 'Seleccione el vehículo de origen' }]}
                     >
-                      <Select 
+                      <Select
                         placeholder="Buscar por código, marca, modelo o generación"
                         showSearch
                         disabled={selectorDeshabilitado}
@@ -585,7 +597,7 @@ const NuevoRepuesto = () => {
                           let marca = '';
                           let modelo = '';
                           let generacion = '';
-                          
+
                           if (vehiculo.generacion) {
                             if (typeof vehiculo.generacion === 'object') {
                               marca = vehiculo.generacion.marca || '';
@@ -593,12 +605,12 @@ const NuevoRepuesto = () => {
                               generacion = vehiculo.generacion.nombre || '';
                             }
                           }
-                          
+
                           const label = `${codigo} - ${anio}${marca ? ` ${marca}` : ''}${modelo ? ` ${modelo}` : ''}${generacion ? ` ${generacion}` : ''}`;
-                          
+
                           return (
-                            <Option 
-                              key={vehiculo.id} 
+                            <Option
+                              key={vehiculo.id}
                               value={vehiculo.id}
                               label={label}
                               vehiculo={vehiculo}
@@ -619,13 +631,13 @@ const NuevoRepuesto = () => {
               ) : (
                 <div style={{ backgroundColor: '#f6ffed', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
                   <h4 style={{ color: '#52c41a', marginBottom: '12px' }}>Clasificar Repuesto Genérico</h4>
-                  
+
                   <Form.Item
                     name="marca_id"
                     label="Marca"
                     rules={[{ required: true, message: 'Seleccione una marca' }]}
                   >
-                    <Select 
+                    <Select
                       placeholder="Seleccione una marca"
                       loading={loadingMarcas}
                       onChange={onMarcaChange}
@@ -672,9 +684,9 @@ const NuevoRepuesto = () => {
                               />
                             </div>
                           ) : (
-                            <div 
-                              style={{ 
-                                padding: '4px 8px', 
+                            <div
+                              style={{
+                                padding: '4px 8px',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -705,7 +717,7 @@ const NuevoRepuesto = () => {
                     label="Modelo"
                     rules={[{ required: true, message: 'Seleccione un modelo' }]}
                   >
-                    <Select 
+                    <Select
                       placeholder="Seleccione un modelo"
                       loading={loadingModelos}
                       disabled={!marcaSeleccionada}
@@ -753,9 +765,9 @@ const NuevoRepuesto = () => {
                               />
                             </div>
                           ) : (
-                            <div 
-                              style={{ 
-                                padding: '4px 8px', 
+                            <div
+                              style={{
+                                padding: '4px 8px',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -786,7 +798,7 @@ const NuevoRepuesto = () => {
                     label="Generación"
                     rules={[{ required: true, message: 'Seleccione una generación' }]}
                   >
-                    <Select 
+                    <Select
                       placeholder="Seleccione una generación"
                       loading={loadingGeneraciones}
                       disabled={!modeloSeleccionado}
@@ -847,9 +859,9 @@ const NuevoRepuesto = () => {
                               </div>
                             </div>
                           ) : (
-                            <div 
-                              style={{ 
-                                padding: '4px 8px', 
+                            <div
+                              style={{
+                                padding: '4px 8px',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -881,10 +893,10 @@ const NuevoRepuesto = () => {
                 </div>
               )}
             </Col>
-            
+
             <Col xs={24} md={12}>
               <Divider orientation="left">Precios</Divider>
-              
+
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
@@ -892,10 +904,10 @@ const NuevoRepuesto = () => {
                     label="Costo Total (para todos los repuestos)"
                     rules={[{ required: true, message: 'Ingrese el costo total' }]}
                   >
-                    <InputNumber 
-                      style={{ width: '100%' }} 
-                      min={0} 
-                      step={1000} 
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      min={0}
+                      step={1000}
                       precision={2}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={value => value.replace(/₡\s?|(,*)/g, '')}
@@ -903,16 +915,16 @@ const NuevoRepuesto = () => {
                     />
                   </Form.Item>
                 </Col>
-                
+
                 <Col span={12}>
                   <Form.Item
                     name="precio_venta"
                     label="Precio de Venta (Calculado automáticamente)"
                   >
-                    <InputNumber 
-                      style={{ width: '100%' }} 
-                      min={0} 
-                      step={1000} 
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      min={0}
+                      step={1000}
                       precision={2}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={value => value.replace(/₡\s?|(,*)/g, '')}
@@ -922,12 +934,12 @@ const NuevoRepuesto = () => {
                   </Form.Item>
                 </Col>
               </Row>
-              
+
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item label="Fórmula 15% (Lectura)">
-                    <InputNumber 
-                      style={{ width: '100%' }} 
+                    <InputNumber
+                      style={{ width: '100%' }}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       value={formula15Calculada}
                       disabled
@@ -936,8 +948,8 @@ const NuevoRepuesto = () => {
                 </Col>
                 <Col span={12}>
                   <Form.Item label="Fórmula 30% (Lectura)">
-                    <InputNumber 
-                      style={{ width: '100%' }} 
+                    <InputNumber
+                      style={{ width: '100%' }}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       value={formula30Calculada}
                       disabled
@@ -957,9 +969,9 @@ const NuevoRepuesto = () => {
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="cantidad" label="Cantidad">
-                    <InputNumber 
-                      style={{ width: '100%' }} 
-                      min={1} 
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      min={1}
                       onChange={(value) => setCantidad(value || 1)}
                     />
                   </Form.Item>
@@ -987,7 +999,7 @@ const NuevoRepuesto = () => {
               </Form.Item>
 
               <Divider orientation="left">Ubicación Física</Divider>
-              
+
               <div style={{ marginBottom: '16px' }}>
                 <Checkbox
                   checked={ubicacionFisicaHabilitada}
@@ -998,9 +1010,9 @@ const NuevoRepuesto = () => {
               </div>
 
               {ubicacionFisicaHabilitada ? (
-                <div style={{ 
-                  padding: '16px', 
-                  border: '1px solid #d9d9d9', 
+                <div style={{
+                  padding: '16px',
+                  border: '1px solid #d9d9d9',
                   borderRadius: '6px',
                   backgroundColor: '#fafafa'
                 }}>
@@ -1019,8 +1031,8 @@ const NuevoRepuesto = () => {
                       <Form.Item name="zona" label="Zona">
                         <Select>
                           <Option value={`0${separator}`}>Sin especificar</Option>
-                          {Array.from({length: 22}, (_, i) => (
-                            <Option key={`Z${i+1}${separator}`} value={`Z${i+1}${separator}`}>Zona {i+1}</Option>
+                          {Array.from({ length: 22 }, (_, i) => (
+                            <Option key={`Z${i + 1}${separator}`} value={`Z${i + 1}${separator}`}>Zona {i + 1}</Option>
                           ))}
                         </Select>
                       </Form.Item>
@@ -1042,8 +1054,8 @@ const NuevoRepuesto = () => {
                     <Col span={12}>
                       <Form.Item name="estante" label="Estante">
                         <Select>
-                          {Array.from({length: 14}, (_, i) => (
-                            <Option key={`E${i+1}`} value={`E${i+1}`}>Estante {i+1}</Option>
+                          {Array.from({ length: 14 }, (_, i) => (
+                            <Option key={`E${i + 1}`} value={`E${i + 1}`}>Estante {i + 1}</Option>
                           ))}
                         </Select>
                       </Form.Item>
@@ -1055,8 +1067,8 @@ const NuevoRepuesto = () => {
                       <Form.Item name="malla" label="Malla">
                         <Select>
                           <Option value={`0${separator}`}>Sin especificar</Option>
-                          {Array.from({length: 200}, (_, i) => (
-                            <Option key={`V${i+1}`} value={`V${i+1}`}>Malla {i+1}</Option>
+                          {Array.from({ length: 200 }, (_, i) => (
+                            <Option key={`V${i + 1}`} value={`V${i + 1}`}>Malla {i + 1}</Option>
                           ))}
                         </Select>
                       </Form.Item>
@@ -1095,8 +1107,8 @@ const NuevoRepuesto = () => {
                       <Form.Item name="nivel" label="Nivel">
                         <Select>
                           <Option value={`0${separator}`}>Sin especificar</Option>
-                          {Array.from({length: 22}, (_, i) => (
-                            <Option key={`N${i+1}${separator}`} value={`N${i+1}${separator}`}>Nivel {i+1}</Option>
+                          {Array.from({ length: 22 }, (_, i) => (
+                            <Option key={`N${i + 1}${separator}`} value={`N${i + 1}${separator}`}>Nivel {i + 1}</Option>
                           ))}
                         </Select>
                       </Form.Item>
@@ -1104,8 +1116,8 @@ const NuevoRepuesto = () => {
                     <Col span={12}>
                       <Form.Item name="piso" label="Piso">
                         <Select>
-                          {Array.from({length: 21}, (_, i) => (
-                            <Option key={`P${i+1}${separator}`} value={`P${i+1}${separator}`}>Piso {i+1}</Option>
+                          {Array.from({ length: 21 }, (_, i) => (
+                            <Option key={`P${i + 1}${separator}`} value={`P${i + 1}${separator}`}>Piso {i + 1}</Option>
                           ))}
                         </Select>
                       </Form.Item>
@@ -1116,8 +1128,8 @@ const NuevoRepuesto = () => {
                     <Col span={12}>
                       <Form.Item name="plastica" label="Plástica (Opcional)">
                         <Select allowClear>
-                          {Array.from({length: 52}, (_, i) => (
-                            <Option key={`CP${i+1}${separator}`} value={`CP${i+1}${separator}`}>CP {i+1}</Option>
+                          {Array.from({ length: 52 }, (_, i) => (
+                            <Option key={`CP${i + 1}${separator}`} value={`CP${i + 1}${separator}`}>CP {i + 1}</Option>
                           ))}
                         </Select>
                       </Form.Item>
@@ -1125,8 +1137,8 @@ const NuevoRepuesto = () => {
                     <Col span={12}>
                       <Form.Item name="carton" label="Cartón (Opcional)">
                         <Select allowClear>
-                          {Array.from({length: 52}, (_, i) => (
-                            <Option key={`MM${i+1}${separator}`} value={`MM${i+1}${separator}`}>MM {i+1}</Option>
+                          {Array.from({ length: 52 }, (_, i) => (
+                            <Option key={`MM${i + 1}${separator}`} value={`MM${i + 1}${separator}`}>MM {i + 1}</Option>
                           ))}
                         </Select>
                       </Form.Item>
@@ -1138,9 +1150,9 @@ const NuevoRepuesto = () => {
                   </Form.Item>
                 </div>
               ) : (
-                <div style={{ 
-                  padding: '16px', 
-                  border: '1px solid #d9d9d9', 
+                <div style={{
+                  padding: '16px',
+                  border: '1px solid #d9d9d9',
                   borderRadius: '6px',
                   backgroundColor: '#f5f5f5',
                   textAlign: 'center',
@@ -1152,20 +1164,20 @@ const NuevoRepuesto = () => {
               )}
             </Col>
           </Row>
-          
+
           <Divider />
-          
+
           <Form.Item>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
+            <Button
+              type="primary"
+              htmlType="submit"
               icon={<SaveOutlined />}
               loading={loading}
             >
               Guardar Repuesto
             </Button>
-            
-            <Button 
+
+            <Button
               style={{ marginLeft: 8 }}
               onClick={() => navigate(-1)}
             >

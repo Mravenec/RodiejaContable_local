@@ -238,16 +238,7 @@ const Configuracion = () => {
     }
   };
 
-  const handleSaveConfig = async () => {
-    try {
-      await form.validateFields();
-      const values = form.getFieldsValue();
-      await updateConfigMutation.mutate(values);
-    } catch (error) {
-      console.error('Error al guardar la configuración:', error);
-      message.error('Error al guardar la configuración');
-    }
-  };
+
   
   // Efecto para establecer valores iniciales del formulario cuando se cargan los datos
   useEffect(() => {

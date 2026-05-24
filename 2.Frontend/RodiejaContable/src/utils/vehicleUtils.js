@@ -1,6 +1,5 @@
 import { Tag, Typography, Row, Col, Card, Statistic } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
-import { formatCurrency } from './formatters';
 
 const { Text } = Typography;
 

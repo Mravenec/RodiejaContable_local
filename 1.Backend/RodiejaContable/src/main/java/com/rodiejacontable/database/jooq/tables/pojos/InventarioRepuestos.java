@@ -61,7 +61,6 @@ public class InventarioRepuestos implements Serializable {
     private UInteger cantidad;
     private InventarioRepuestosEstado estado;
     private InventarioRepuestosCondicion condicion;
-    private Byte activo;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
 
@@ -96,7 +95,6 @@ public class InventarioRepuestos implements Serializable {
         this.cantidad = value.cantidad;
         this.estado = value.estado;
         this.condicion = value.condicion;
-        this.activo = value.activo;
         this.fechaCreacion = value.fechaCreacion;
         this.fechaActualizacion = value.fechaActualizacion;
     }
@@ -130,7 +128,6 @@ public class InventarioRepuestos implements Serializable {
         UInteger cantidad,
         InventarioRepuestosEstado estado,
         InventarioRepuestosCondicion condicion,
-        Byte activo,
         LocalDateTime fechaCreacion,
         LocalDateTime fechaActualizacion
     ) {
@@ -162,7 +159,6 @@ public class InventarioRepuestos implements Serializable {
         this.cantidad = cantidad;
         this.estado = estado;
         this.condicion = condicion;
-        this.activo = activo;
         this.fechaCreacion = fechaCreacion;
         this.fechaActualizacion = fechaActualizacion;
     }
@@ -616,21 +612,6 @@ public class InventarioRepuestos implements Serializable {
     }
 
     /**
-     * Getter for <code>sistema_vehicular.inventario_repuestos.activo</code>.
-     */
-    public Byte getActivo() {
-        return this.activo;
-    }
-
-    /**
-     * Setter for <code>sistema_vehicular.inventario_repuestos.activo</code>.
-     */
-    public InventarioRepuestos setActivo(Byte activo) {
-        this.activo = activo;
-        return this;
-    }
-
-    /**
      * Getter for
      * <code>sistema_vehicular.inventario_repuestos.fecha_creacion</code>.
      */
@@ -841,12 +822,6 @@ public class InventarioRepuestos implements Serializable {
         }
         else if (!this.condicion.equals(other.condicion))
             return false;
-        if (this.activo == null) {
-            if (other.activo != null)
-                return false;
-        }
-        else if (!this.activo.equals(other.activo))
-            return false;
         if (this.fechaCreacion == null) {
             if (other.fechaCreacion != null)
                 return false;
@@ -894,7 +869,6 @@ public class InventarioRepuestos implements Serializable {
         result = prime * result + ((this.cantidad == null) ? 0 : this.cantidad.hashCode());
         result = prime * result + ((this.estado == null) ? 0 : this.estado.hashCode());
         result = prime * result + ((this.condicion == null) ? 0 : this.condicion.hashCode());
-        result = prime * result + ((this.activo == null) ? 0 : this.activo.hashCode());
         result = prime * result + ((this.fechaCreacion == null) ? 0 : this.fechaCreacion.hashCode());
         result = prime * result + ((this.fechaActualizacion == null) ? 0 : this.fechaActualizacion.hashCode());
         return result;
@@ -932,7 +906,6 @@ public class InventarioRepuestos implements Serializable {
         sb.append(", ").append(cantidad);
         sb.append(", ").append(estado);
         sb.append(", ").append(condicion);
-        sb.append(", ").append(activo);
         sb.append(", ").append(fechaCreacion);
         sb.append(", ").append(fechaActualizacion);
 

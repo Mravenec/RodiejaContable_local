@@ -4,7 +4,10 @@
 package com.rodiejacontable.database.jooq.tables.pojos;
 
 
+import com.rodiejacontable.database.jooq.enums.VistaVehiculosCompletaCombustible;
 import com.rodiejacontable.database.jooq.enums.VistaVehiculosCompletaEstado;
+import com.rodiejacontable.database.jooq.enums.VistaVehiculosCompletaTraccion;
+import com.rodiejacontable.database.jooq.enums.VistaVehiculosCompletaTransmision;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -32,6 +35,10 @@ public class VistaVehiculosCompleta implements Serializable {
     private VistaVehiculosCompletaEstado estado;
     private Byte activo;
     private String notas;
+    private VistaVehiculosCompletaTraccion traccion;
+    private VistaVehiculosCompletaTransmision transmision;
+    private VistaVehiculosCompletaCombustible combustible;
+    private String cilindraje;
     private String marca;
     private String modelo;
     private String generacion;
@@ -59,6 +66,10 @@ public class VistaVehiculosCompleta implements Serializable {
         this.estado = value.estado;
         this.activo = value.activo;
         this.notas = value.notas;
+        this.traccion = value.traccion;
+        this.transmision = value.transmision;
+        this.combustible = value.combustible;
+        this.cilindraje = value.cilindraje;
         this.marca = value.marca;
         this.modelo = value.modelo;
         this.generacion = value.generacion;
@@ -85,6 +96,10 @@ public class VistaVehiculosCompleta implements Serializable {
         VistaVehiculosCompletaEstado estado,
         Byte activo,
         String notas,
+        VistaVehiculosCompletaTraccion traccion,
+        VistaVehiculosCompletaTransmision transmision,
+        VistaVehiculosCompletaCombustible combustible,
+        String cilindraje,
         String marca,
         String modelo,
         String generacion,
@@ -109,6 +124,10 @@ public class VistaVehiculosCompleta implements Serializable {
         this.estado = estado;
         this.activo = activo;
         this.notas = notas;
+        this.traccion = traccion;
+        this.transmision = transmision;
+        this.combustible = combustible;
+        this.cilindraje = cilindraje;
         this.marca = marca;
         this.modelo = modelo;
         this.generacion = generacion;
@@ -333,6 +352,74 @@ public class VistaVehiculosCompleta implements Serializable {
      */
     public VistaVehiculosCompleta setNotas(String notas) {
         this.notas = notas;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_vehiculos_completa.traccion</code>.
+     */
+    public VistaVehiculosCompletaTraccion getTraccion() {
+        return this.traccion;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_vehiculos_completa.traccion</code>.
+     */
+    public VistaVehiculosCompleta setTraccion(VistaVehiculosCompletaTraccion traccion) {
+        this.traccion = traccion;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_vehiculos_completa.transmision</code>.
+     */
+    public VistaVehiculosCompletaTransmision getTransmision() {
+        return this.transmision;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_vehiculos_completa.transmision</code>.
+     */
+    public VistaVehiculosCompleta setTransmision(VistaVehiculosCompletaTransmision transmision) {
+        this.transmision = transmision;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_vehiculos_completa.combustible</code>.
+     */
+    public VistaVehiculosCompletaCombustible getCombustible() {
+        return this.combustible;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_vehiculos_completa.combustible</code>.
+     */
+    public VistaVehiculosCompleta setCombustible(VistaVehiculosCompletaCombustible combustible) {
+        this.combustible = combustible;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_vehiculos_completa.cilindraje</code>.
+     */
+    public String getCilindraje() {
+        return this.cilindraje;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_vehiculos_completa.cilindraje</code>.
+     */
+    public VistaVehiculosCompleta setCilindraje(String cilindraje) {
+        this.cilindraje = cilindraje;
         return this;
     }
 
@@ -591,6 +678,30 @@ public class VistaVehiculosCompleta implements Serializable {
         }
         else if (!this.notas.equals(other.notas))
             return false;
+        if (this.traccion == null) {
+            if (other.traccion != null)
+                return false;
+        }
+        else if (!this.traccion.equals(other.traccion))
+            return false;
+        if (this.transmision == null) {
+            if (other.transmision != null)
+                return false;
+        }
+        else if (!this.transmision.equals(other.transmision))
+            return false;
+        if (this.combustible == null) {
+            if (other.combustible != null)
+                return false;
+        }
+        else if (!this.combustible.equals(other.combustible))
+            return false;
+        if (this.cilindraje == null) {
+            if (other.cilindraje != null)
+                return false;
+        }
+        else if (!this.cilindraje.equals(other.cilindraje))
+            return false;
         if (this.marca == null) {
             if (other.marca != null)
                 return false;
@@ -671,6 +782,10 @@ public class VistaVehiculosCompleta implements Serializable {
         result = prime * result + ((this.estado == null) ? 0 : this.estado.hashCode());
         result = prime * result + ((this.activo == null) ? 0 : this.activo.hashCode());
         result = prime * result + ((this.notas == null) ? 0 : this.notas.hashCode());
+        result = prime * result + ((this.traccion == null) ? 0 : this.traccion.hashCode());
+        result = prime * result + ((this.transmision == null) ? 0 : this.transmision.hashCode());
+        result = prime * result + ((this.combustible == null) ? 0 : this.combustible.hashCode());
+        result = prime * result + ((this.cilindraje == null) ? 0 : this.cilindraje.hashCode());
         result = prime * result + ((this.marca == null) ? 0 : this.marca.hashCode());
         result = prime * result + ((this.modelo == null) ? 0 : this.modelo.hashCode());
         result = prime * result + ((this.generacion == null) ? 0 : this.generacion.hashCode());
@@ -701,6 +816,10 @@ public class VistaVehiculosCompleta implements Serializable {
         sb.append(", ").append(estado);
         sb.append(", ").append(activo);
         sb.append(", ").append(notas);
+        sb.append(", ").append(traccion);
+        sb.append(", ").append(transmision);
+        sb.append(", ").append(combustible);
+        sb.append(", ").append(cilindraje);
         sb.append(", ").append(marca);
         sb.append(", ").append(modelo);
         sb.append(", ").append(generacion);
