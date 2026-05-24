@@ -23,6 +23,7 @@ import {
   SyncOutlined
 } from '@ant-design/icons';
 import InventarioService from '../../api/inventario';
+import vehiculoService from '../../api/vehiculos';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -32,6 +33,7 @@ const DetalleRepuesto = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [repuesto, setRepuesto] = useState(null);
+  const [vehiculoOrigen, setVehiculoOrigen] = useState(null);
 
   useEffect(() => {
     const fetchRepuesto = async () => {
@@ -39,6 +41,15 @@ const DetalleRepuesto = () => {
         setLoading(true);
         const data = await InventarioService.getRepuestoPorId(id);
         setRepuesto(data);
+        
+        if (data.vehiculoOrigenId) {
+          try {
+            const vData = await vehiculoService.getVehiculoCompletoPorId(data.vehiculoOrigenId);
+            setVehiculoOrigen(vData);
+          } catch (vErr) {
+            console.error('Error fetching vehiculo:', vErr);
+          }
+        }
       } catch (error) {
         console.error('Error al cargar el repuesto:', error);
         message.error('Error al cargar los datos del repuesto');
@@ -87,7 +98,16 @@ const DetalleRepuesto = () => {
         >
           Volver
         </Button>
-        <Title level={2} style={{ margin: 0 }}>Detalle del Repuesto</Title>
+        <Title level={2} style={{ margin: 0, marginRight: 16 }}>Detalle del Repuesto</Title>
+        {repuesto.vehiculoOrigenId ? (
+          <Tag color="purple" style={{ fontSize: '14px', padding: '4px 8px' }}>
+            Vehículo Desarmado: {vehiculoOrigen ? `${vehiculoOrigen.marcaNombre || ''} ${vehiculoOrigen.modelo || ''} ${vehiculoOrigen.anio || ''}` : ''} (ID: {repuesto.vehiculoOrigenId})
+          </Tag>
+        ) : (
+          <Tag color="geekblue" style={{ fontSize: '14px', padding: '4px 8px' }}>
+            Repuesto Genérico / Comprado
+          </Tag>
+        )}
       </div>
       
       <Card>

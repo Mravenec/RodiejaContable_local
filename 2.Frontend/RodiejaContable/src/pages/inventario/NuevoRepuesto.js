@@ -77,6 +77,8 @@ const NuevoRepuesto = () => {
   // Calcular costo unitario y precio de venta automáticamente
   const costoUnitario = cantidad > 0 ? precioCostoTotal / cantidad : 0;
   const precioVentaCalculado = costoUnitario * 1.5; // 50% de ganancia sobre el costo unitario
+  const formula15Calculada = costoUnitario * 1.15;
+  const formula30Calculada = costoUnitario * 1.30;
 
   // Actualizar el campo precio_venta en el formulario cuando cambia el valor calculado
   useEffect(() => {
@@ -921,6 +923,29 @@ const NuevoRepuesto = () => {
                 </Col>
               </Row>
               
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Fórmula 15% (Lectura)">
+                    <InputNumber 
+                      style={{ width: '100%' }} 
+                      formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      value={formula15Calculada}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Fórmula 30% (Lectura)">
+                    <InputNumber 
+                      style={{ width: '100%' }} 
+                      formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      value={formula30Calculada}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
               <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f0f8ff', borderRadius: '6px' }}>
                 <Text strong>Costo Unitario: ₡ {costoUnitario.toFixed(2)}</Text>
                 <br />

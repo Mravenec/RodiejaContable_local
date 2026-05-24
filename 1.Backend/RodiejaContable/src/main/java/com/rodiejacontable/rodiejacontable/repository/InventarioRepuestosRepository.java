@@ -24,9 +24,28 @@ public class InventarioRepuestosRepository {
 
     public InventarioRepuestos save(InventarioRepuestos repuesto) {
         var record = dsl.newRecord(INVENTARIO_REPUESTOS, repuesto);
-        record.store();
+        dsl.attach(record);
+        
+        // Excluir campos generados por BD para que no se envíen en el INSERT/UPDATE
+        record.changed(INVENTARIO_REPUESTOS.CODIGO_REPUESTO, false);
+        record.changed(INVENTARIO_REPUESTOS.CODIGO_UBICACION, false);
+        record.changed(INVENTARIO_REPUESTOS.FORMULA_15, false);
+        record.changed(INVENTARIO_REPUESTOS.FORMULA_30, false);
+        record.changed(INVENTARIO_REPUESTOS.ANIO_REGISTRO, false);
+        record.changed(INVENTARIO_REPUESTOS.MES_REGISTRO, false);
+        
+        if (repuesto.getId() == null) {
+            record.insert();
+        } else {
+            record.update();
+        }
+        
+        // Refrescar el record para cargar los valores generados por los triggers en la BD
+        record.refresh();
+        
         return record.into(InventarioRepuestos.class);
     }
+
 
     public Optional<InventarioRepuestos> findById(Integer id) {
         return dsl.selectFrom(INVENTARIO_REPUESTOS)

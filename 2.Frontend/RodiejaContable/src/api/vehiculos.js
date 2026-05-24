@@ -292,6 +292,27 @@ class VehiculoService {
       throw error;
     }
   }
+
+  // Obtener un vehículo por su ID desde la vista completa
+  async getVehiculoCompletoPorId(id) {
+    try {
+      const response = await api.get(`/v1/vehiculos/${id}`);
+      const vehiculo = response.data;
+      
+      return {
+        id: vehiculo.id,
+        codigoVehiculo: vehiculo.codigoVehiculo,
+        anio: vehiculo.anio,
+        estado: vehiculo.estado,
+        marcaNombre: vehiculo.marca,
+        modelo: vehiculo.modelo,
+        generacionNombre: vehiculo.generacion
+      };
+    } catch (error) {
+      console.error('Error al obtener el vehículo completo:', error);
+      throw error;
+    }
+  }
   
   // Crear un nuevo vehículo
   async crearVehiculo(vehiculoData) {
