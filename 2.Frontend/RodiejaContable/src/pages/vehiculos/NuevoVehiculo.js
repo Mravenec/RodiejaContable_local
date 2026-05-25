@@ -555,7 +555,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
 
   const createVehiculo = useCreateVehiculo({
     onSuccess: () => {
-      message.success('Vehículo guardado exitosamente');
+      // message.success('Vehículo guardado exitosamente');
       // Use a slightly longer timeout and ensure navigation happens after state updates
       setTimeout(() => {
         navigate('/vehiculos', {
@@ -579,7 +579,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
 
   const updateVehiculo = useUpdateVehiculo({
     onSuccess: () => {
-      message.success('Vehículo actualizado exitosamente');
+      // message.success('Vehículo actualizado exitosamente');
       // Usar window.location para asegurar la recarga completa de la página
       window.location.href = '/vehiculos';
     },

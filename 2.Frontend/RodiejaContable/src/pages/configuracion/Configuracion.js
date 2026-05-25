@@ -80,7 +80,7 @@ const Configuracion = () => {
       console.log('Actualizando perfil:', values);
       return new Promise((resolve) => {
         setTimeout(() => {
-          message.success('Perfil actualizado correctamente');
+          // message.success('Perfil actualizado correctamente');
           resolve();
         }, 1000);
       });
@@ -93,7 +93,7 @@ const Configuracion = () => {
       console.log('Actualizando contraseña:', values);
       return new Promise((resolve) => {
         setTimeout(() => {
-          message.success('Contraseña actualizada correctamente');
+          // message.success('Contraseña actualizada correctamente');
           setIsChangePasswordModalVisible(false);
           passwordForm.resetFields();
           resolve();
@@ -108,7 +108,7 @@ const Configuracion = () => {
       console.log('Actualizando configuración:', values);
       return new Promise((resolve) => {
         setTimeout(() => {
-          message.success('Configuración actualizada correctamente');
+          // message.success('Configuración actualizada correctamente');
           resolve();
         }, 1000);
       });
@@ -171,14 +171,14 @@ const Configuracion = () => {
   // Función para manejar la actualización del perfil
   const handleUpdateProfile = (values) => {
     console.log('Actualizar perfil con:', values);
-    message.success('Perfil actualizado correctamente');
+    // message.success('Perfil actualizado correctamente');
     setIsEditing(false);
   };
   
   // Función para manejar el cambio de contraseña
   const handleChangePassword = (values) => {
     console.log('Cambiar contraseña con:', values);
-    message.success('Contraseña actualizada correctamente');
+    // message.success('Contraseña actualizada correctamente');
     setIsChangePasswordModalVisible(false);
     passwordForm.resetFields();
   };
@@ -186,7 +186,7 @@ const Configuracion = () => {
   // Función para actualizar la configuración
   const handleUpdateConfig = (values) => {
     console.log('Actualizar configuración con:', values);
-    message.success('Configuración actualizada correctamente');
+    // message.success('Configuración actualizada correctamente');
     
     // Aplicar cambios de tema si es necesario
     if (values.tema) {

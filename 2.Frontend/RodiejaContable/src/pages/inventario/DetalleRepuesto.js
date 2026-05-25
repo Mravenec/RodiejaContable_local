@@ -162,9 +162,6 @@ const DetalleRepuesto = () => {
                   <Descriptions.Item label="Precio de Costo">
                     {repuesto.precioCostoFormatted || '₡0'}
                   </Descriptions.Item>
-                  <Descriptions.Item label="Precio de Mayoreo">
-                    {repuesto.precioMayoreoFormatted || 'No definido'}
-                  </Descriptions.Item>
                   <Descriptions.Item label="Condición">
                     <Tag color={repuesto.condicion === 'NUEVO' ? 'green' : 'orange'}>
                       {repuesto.condicion || 'No especificada'}

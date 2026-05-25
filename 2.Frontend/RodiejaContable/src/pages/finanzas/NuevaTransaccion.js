@@ -47,6 +47,7 @@ const NuevaTransaccion = () => {
   const [monto, setMonto] = useState(0);
   const [comision, setComision] = useState(0);
   const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState(null);
+  const [esReembolso, setEsReembolso] = useState(false);
   
   // Estados para manejar nuevo empleado inline
   const [nuevoEmpleadoModal, setNuevoEmpleadoModal] = useState(false);
@@ -69,12 +70,13 @@ const NuevaTransaccion = () => {
   const vehiculos = tipoTransaccion === 'EGRESO' ? vehiculosEgreso : vehiculosIngreso;
   const loadingVehiculos = tipoTransaccion === 'EGRESO' ? loadingVehiculosEgreso : loadingVehiculosIngreso;
   const errorVehiculos = tipoTransaccion === 'EGRESO' ? errorVehiculosEgreso : errorVehiculosIngreso;
-  const { data: repuestos = [], isLoading: loadingRepuestos } = useRepuestos({ estado: 'STOCK' });
+  const estadoRepuestos = esReembolso ? 'VENDIDO' : 'STOCK';
+  const { data: repuestos = [], isLoading: loadingRepuestos } = useRepuestos({ estado: estadoRepuestos });
   
   // Hook para crear transacción
   const { mutate: crearTransaccion, isLoading: isCreating } = useCreateTransaccion({
     onSuccess: () => {
-      message.success('Transacción creada exitosamente');
+      // message.success('Transacción creada exitosamente');
       form.resetFields();
       setMonto(0);
       setComision(0);
@@ -115,7 +117,7 @@ const NuevaTransaccion = () => {
       });
       
       console.log('Empleado creado:', response.data);
-      message.success('Empleado creado exitosamente');
+      // message.success('Empleado creado exitosamente');
       
       // Limpiar formulario
       setNuevoEmpleadoModal(false);
@@ -147,7 +149,7 @@ const NuevaTransaccion = () => {
       });
       
       console.log('Empleado actualizado:', response.data);
-      message.success('Empleado actualizado exitosamente');
+      // message.success('Empleado actualizado exitosamente');
       
       // Limpiar formulario
       setEditandoEmpleadoModal(false);
@@ -219,19 +221,21 @@ const NuevaTransaccion = () => {
         .find(t => t.id === tipoActualId);
       
       if (tipoSeleccionado) {
-        const esCostoGrua = tipoSeleccionado.nombre.toLowerCase().includes('grúa') || 
-                           tipoSeleccionado.nombre.toLowerCase().includes('grua') ||
-                           tipoSeleccionado.nombre.toLowerCase().includes('costo grua') ||
-                           tipoSeleccionado.nombre.toLowerCase().includes('costo de grua');
+        const nombreTipo = tipoSeleccionado.nombre.toLowerCase();
+        const esCostoGrua = nombreTipo.includes('grúa') || nombreTipo.includes('grua');
+        const esVentaVehiculo = nombreTipo.includes('venta') && nombreTipo.includes('veh');
+        const esCompraVehiculo = nombreTipo.includes('compra') && nombreTipo.includes('veh');
         
-        if (esCostoGrua) {
-          const vehiculo = vehiculos.find(v => v.id === vehiculoId);
-          if (vehiculo && vehiculo.costoGrua) {
-            const montoGrua = parseFloat(vehiculo.costoGrua) || 0;
-            if (montoGrua > 0) {
-              form.setFieldsValue({ monto: montoGrua });
-              setMonto(montoGrua);
-            }
+        const vehiculo = vehiculos.find(v => v.id === vehiculoId);
+        if (vehiculo) {
+          let nuevoMonto = 0;
+          if (esCostoGrua && vehiculo.costoGrua) nuevoMonto = parseFloat(vehiculo.costoGrua);
+          else if (esVentaVehiculo && vehiculo.precioVenta) nuevoMonto = parseFloat(vehiculo.precioVenta);
+          else if (esCompraVehiculo && vehiculo.precioCompra) nuevoMonto = parseFloat(vehiculo.precioCompra);
+          
+          if (nuevoMonto > 0) {
+            form.setFieldsValue({ monto: nuevoMonto });
+            setMonto(nuevoMonto);
           }
         }
       }
@@ -347,23 +351,28 @@ const NuevaTransaccion = () => {
       
     if (tipoSeleccionado) {
       setTipoTransaccion(tipoSeleccionado.categoria);
+      setEsReembolso(tipoSeleccionado.nombre === 'Reembolso Repuesto');
       
       // Generar referencia automáticamente
       generarReferencia(tipoSeleccionado);
       
-      // Auto-popular monto si es "Costo de Grúa" y hay un vehículo seleccionado
-      const esCostoGrua = tipoSeleccionado.nombre.toLowerCase().includes('grúa') || 
-                         tipoSeleccionado.nombre.toLowerCase().includes('grua') ||
-                         tipoSeleccionado.nombre.toLowerCase().includes('costo grua') ||
-                         tipoSeleccionado.nombre.toLowerCase().includes('costo de grua');
+      // Auto-popular monto si es relacionado a vehículo y hay uno seleccionado
+      const nombreTipo = tipoSeleccionado.nombre.toLowerCase();
+      const esCostoGrua = nombreTipo.includes('grúa') || nombreTipo.includes('grua');
+      const esVentaVehiculo = nombreTipo.includes('venta') && nombreTipo.includes('veh');
+      const esCompraVehiculo = nombreTipo.includes('compra') && nombreTipo.includes('veh');
       
-      if (esCostoGrua && vehiculoSeleccionado) {
+      if (vehiculoSeleccionado) {
         const vehiculo = vehiculos.find(v => v.id === vehiculoSeleccionado);
-        if (vehiculo && vehiculo.costoGrua) {
-          const montoGrua = parseFloat(vehiculo.costoGrua) || 0;
-          if (montoGrua > 0) {
-            form.setFieldsValue({ monto: montoGrua });
-            setMonto(montoGrua);
+        if (vehiculo) {
+          let nuevoMonto = 0;
+          if (esCostoGrua && vehiculo.costoGrua) nuevoMonto = parseFloat(vehiculo.costoGrua);
+          else if (esVentaVehiculo && vehiculo.precioVenta) nuevoMonto = parseFloat(vehiculo.precioVenta);
+          else if (esCompraVehiculo && vehiculo.precioCompra) nuevoMonto = parseFloat(vehiculo.precioCompra);
+          
+          if (nuevoMonto > 0) {
+            form.setFieldsValue({ monto: nuevoMonto });
+            setMonto(nuevoMonto);
           }
         }
       }
@@ -382,6 +391,23 @@ const NuevaTransaccion = () => {
           repuesto_id: undefined,
           comision: 0
         });
+      }
+    }
+  };
+
+  // Función para manejar la selección de un repuesto
+  const handleRepuestoChange = (value) => {
+    const repuesto = repuestos.find(r => r.id === value);
+    if (repuesto) {
+      if (esReembolso) {
+        form.setFieldsValue({ monto: repuesto.precioVenta });
+        setMonto(repuesto.precioVenta || 0);
+      } else if (tipoTransaccion === 'EGRESO') {
+        form.setFieldsValue({ monto: repuesto.precioCosto });
+        setMonto(repuesto.precioCosto || 0);
+      } else if (tipoTransaccion === 'INGRESO') {
+        form.setFieldsValue({ monto: repuesto.precioVenta });
+        setMonto(repuesto.precioVenta || 0);
       }
     }
   };
@@ -469,6 +495,7 @@ const NuevaTransaccion = () => {
                     name="tipo"
                     label="Tipo de Transacción"
                     rules={[{ required: true, message: 'Seleccione el tipo de transacción' }]}
+                    extra={esReembolso && <Text type="warning">Seleccione el repuesto vendido que está siendo devuelto. Volverá automáticamente al inventario (STOCK) al guardar.</Text>}
                   >
                     <Select 
                       placeholder={loadingTiposIngreso ? 'Cargando...' : 'Seleccione el tipo'}
@@ -773,6 +800,7 @@ const NuevaTransaccion = () => {
                           (vehiculoSeleccionado ? 'No hay repuestos para este vehículo' : 'No hay repuestos disponibles') :
                           'Seleccione el repuesto'
                       }
+                      onChange={handleRepuestoChange}
                       loading={loadingRepuestos}
                       showSearch
                       optionFilterProp="children"
@@ -857,6 +885,7 @@ const NuevaTransaccion = () => {
                     name="tipo"
                     label="Tipo de Egreso"
                     rules={[{ required: true, message: 'Seleccione el tipo de egreso' }]}
+                    extra={esReembolso && <Text type="warning">Seleccione el repuesto vendido que está siendo devuelto. Volverá automáticamente al inventario (STOCK) al guardar.</Text>}
                   >
                     <Select 
                       placeholder={loadingTiposEgreso ? 'Cargando...' : 'Seleccione el tipo'}
@@ -1015,6 +1044,7 @@ const NuevaTransaccion = () => {
                           (vehiculoSeleccionado ? 'No hay repuestos para este vehículo' : 'No hay repuestos disponibles') :
                           'Seleccione el repuesto'
                       }
+                      onChange={handleRepuestoChange}
                       loading={loadingRepuestos}
                       showSearch
                       optionFilterProp="children"

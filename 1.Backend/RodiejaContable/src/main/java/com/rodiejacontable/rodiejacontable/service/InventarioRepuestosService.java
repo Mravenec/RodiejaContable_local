@@ -68,17 +68,12 @@ public class InventarioRepuestosService {
             String imagenUrl,
             Integer cantidad) {
         
-        // Determinar cuántos registros insertar
-        int repeticiones = (cantidad != null && cantidad > 0) ? cantidad : 1;
-        
-        for (int i = 0; i < repeticiones; i++) {
-            inventarioRepuestosRepository.insertarRepuestoConGeneracionSinVehiculo(
-                    generacionId, marcaNombre, parteVehiculo, descripcion,
-                    precioCosto, precioVenta, precioMayoreo,
-                    bodega, zona, pared, malla, estante, piso,
-                    estado, condicion, imagenUrl
-            );
-        }
+        inventarioRepuestosRepository.insertarRepuestoConGeneracionSinVehiculo(
+                generacionId, marcaNombre, parteVehiculo, descripcion,
+                precioCosto, precioVenta, precioMayoreo,
+                bodega, zona, pared, malla, estante, piso,
+                estado, condicion, imagenUrl, cantidad
+        );
     }
     
     @Transactional

@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import org.jooq.Configuration;
+import org.jooq.types.UInteger;
 
 
 /**
@@ -111,6 +112,7 @@ public class Routines {
         , String pEstado
         , String pCondicion
         , String pImagenUrl
+        , UInteger pCantidad
     ) {
         SpInsertarRepuestoConGeneracionSinVehiculo p = new SpInsertarRepuestoConGeneracionSinVehiculo();
         p.setPGeneracionId(pGeneracionId);
@@ -129,6 +131,7 @@ public class Routines {
         p.setPEstado(pEstado);
         p.setPCondicion(pCondicion);
         p.setPImagenUrl(pImagenUrl);
+        p.setPCantidad(pCantidad);
 
         p.execute(configuration);
     }

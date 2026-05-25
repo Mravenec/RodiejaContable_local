@@ -14,7 +14,9 @@ import {
   Col, 
   Statistic, 
   message,
-  Alert
+  Alert,
+  DatePicker,
+  Collapse
 } from 'antd';
 import { 
   SearchOutlined, 
@@ -42,8 +44,8 @@ const Finanzas = () => {
   const [filtros, setFiltros] = useState({
     tipo: null,
     estado: null,
-    mes: new Date().getMonth() + 1,
-    anio: new Date().getFullYear(),
+    rangoFechas: null,
+    vehiculo: '',
     busqueda: '',
     searchFields: ['descripcion', 'referencia', 'codigoTransaccion'],
     categoria: null
@@ -68,31 +70,21 @@ const Finanzas = () => {
       setLoading(prev => ({ ...prev, transacciones: true }));
       setError(null);
       
-      const { estado, mes, anio, busqueda, searchFields, categoria } = { ...filtros, ...filtrosAplicados };
+      const { tipo, estado, rangoFechas, vehiculo, busqueda, categoria } = { ...filtros, ...filtrosAplicados };
       
       let data;
-      if (mes && anio) {
-        // Calcular rango de fechas para el mes seleccionado
-        const primerDia = moment([anio, mes - 1, 1]).format('YYYY-MM-DD');
-        const ultimoDia = moment([anio, mes - 1, 1]).endOf('month').format('YYYY-MM-DD');
+      if (rangoFechas && rangoFechas.length === 2) {
+        const primerDia = rangoFechas[0].format('YYYY-MM-DD');
+        const ultimoDia = rangoFechas[1].format('YYYY-MM-DD');
         data = await transaccionesCompletasService.getTransaccionesPorRangoFechas(primerDia, ultimoDia);
-      } else if (categoria) {
-        data = await transaccionesCompletasService.getTransaccionesPorCategoria(categoria);
-      } else if (estado) {
-        data = await transaccionesCompletasService.getTransaccionesPorEstado(estado);
-      } else if (busqueda) {
-        data = await transaccionesCompletasService.buscarTransacciones({ 
-          search: busqueda, 
-          fields: searchFields 
-        });
       } else {
         data = await transaccionesCompletasService.getTransacciones();
       }
       
-      const transaccionesMapeadas = Array.isArray(data) ? data.map(transaccion => {
-        const categoria = String(transaccion?.categoria || '').toUpperCase();
-        const esIngreso = categoria === 'INGRESO';
-        const tipo = esIngreso ? 'INGRESO' : 'EGRESO';
+      let transaccionesMapeadas = Array.isArray(data) ? data.map(transaccion => {
+        const cat = String(transaccion?.categoria || '').toUpperCase();
+        const esIngreso = cat === 'INGRESO';
+        const tipoTrans = esIngreso ? 'INGRESO' : 'EGRESO';
         let fechaFormateada = 'Fecha no disponible';
         
         if (Array.isArray(transaccion?.fecha) && transaccion.fecha.length >= 3) {
@@ -107,18 +99,42 @@ const Finanzas = () => {
         return {
           ...transaccion,
           key: transaccion?.codigoTransaccion || transaccion?.id?.toString() || Math.random().toString(),
-          fecha: transaccion.fecha || [2023, 1, 1], // Default date if not provided
-          tipo,
-          tipoTransaccion: tipo, // Asegurarnos de que tipoTransaccion esté definido
+          fecha: transaccion.fecha || [2023, 1, 1],
+          tipo: tipoTrans,
+          tipoTransaccion: tipoTrans,
           monto: Math.abs(monto),
           esIngreso,
           fechaFormateada
         };
       }) : [];
 
+      if (tipo) {
+        transaccionesMapeadas = transaccionesMapeadas.filter(t => t.tipoTransaccion === tipo);
+      }
+      if (estado) {
+        transaccionesMapeadas = transaccionesMapeadas.filter(t => t.estado === estado);
+      }
+      if (categoria && categoria.trim() !== '') {
+        const catLower = categoria.toLowerCase();
+        transaccionesMapeadas = transaccionesMapeadas.filter(t => t.categoria && t.categoria.toLowerCase().includes(catLower));
+      }
+      if (vehiculo && vehiculo.trim() !== '') {
+        const v = vehiculo.toLowerCase();
+        transaccionesMapeadas = transaccionesMapeadas.filter(t => 
+          t.codigoVehiculo && t.codigoVehiculo.toLowerCase().includes(v)
+        );
+      }
+      if (busqueda && busqueda.trim() !== '') {
+        const b = busqueda.toLowerCase();
+        transaccionesMapeadas = transaccionesMapeadas.filter(t => 
+          (t.descripcion && t.descripcion.toLowerCase().includes(b)) ||
+          (t.referencia && t.referencia.toLowerCase().includes(b)) ||
+          (t.codigoTransaccion && t.codigoTransaccion.toLowerCase().includes(b))
+        );
+      }
+
       setTransacciones(transaccionesMapeadas);
       
-      // Calcular estadísticas
       const ingresos = transaccionesMapeadas
         .filter(t => t.esIngreso)
         .reduce((sum, t) => sum + t.monto, 0);
@@ -243,15 +259,43 @@ const Finanzas = () => {
       sorter: (a, b) => a.monto - b.monto,
     },
     {
+      title: 'Vehículo / Repuesto',
+      key: 'asociacion',
+      width: 200,
+      render: (_, record) => {
+        if (record.codigoVehiculo) {
+          return (
+            <div>
+              <Tag color="blue">Vehículo</Tag>
+              <div style={{ fontSize: '12px', marginTop: 4 }}>
+                {record.marca} {record.modelo} {record.generacion}
+              </div>
+            </div>
+          );
+        } else if (record.codigoRepuesto) {
+          return (
+            <div>
+              <Tag color="orange">Repuesto</Tag>
+              <div style={{ fontSize: '12px', marginTop: 4 }}>
+                {record.codigoRepuesto}
+                {record.marca ? ` (${record.marca} ${record.modelo})` : ''}
+              </div>
+            </div>
+          );
+        }
+        return <Text type="secondary">N/A</Text>;
+      },
+    },
+    {
       title: 'Estado',
       dataIndex: 'estado',
       key: 'estado',
       width: 120,
       render: (estado) => {
         let color = 'default';
-        if (estado === 'PAGADO') color = 'green';
+        if (estado === 'PAGADO' || estado === 'COMPLETADA') color = 'green';
         else if (estado === 'PENDIENTE') color = 'orange';
-        else if (estado === 'ANULADO') color = 'red';
+        else if (estado === 'ANULADO' || estado === 'CANCELADA') color = 'red';
         
         return (
           <Tag color={color} key={estado}>
@@ -308,7 +352,7 @@ const Finanzas = () => {
               <p><strong>Descripción:</strong> {transaccion.descripcion || 'N/A'}</p>
               <p><strong>Referencia:</strong> {transaccion.referencia || 'N/A'}</p>
               <p><strong>Tipo:</strong> 
-                <Tag color={transaccion.tipo === 'ingreso' ? 'green' : 'red'} style={{ marginLeft: 8 }}>
+                <Tag color={transaccion.tipoTransaccion === 'INGRESO' ? 'green' : 'red'} style={{ marginLeft: 8 }}>
                   {transaccion.tipoTransaccion || 'N/A'}
                 </Tag>
               </p>
@@ -318,10 +362,10 @@ const Finanzas = () => {
               <p>
                 <strong>Monto:</strong> 
                 <span style={{ 
-                  color: transaccion.tipo === 'ingreso' ? '#52c41a' : '#f5222d',
+                  color: transaccion.tipoTransaccion === 'INGRESO' ? '#52c41a' : '#f5222d',
                   marginLeft: 8
                 }}>
-                  {transaccion.tipo === 'ingreso' ? '+' : '-'} ₡{transaccion.monto?.toLocaleString('es-CR', {
+                  {transaccion.tipoTransaccion === 'INGRESO' ? '+' : '-'} ₡{transaccion.monto?.toLocaleString('es-CR', {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 0
                   })}
@@ -330,7 +374,7 @@ const Finanzas = () => {
               <p><strong>Estado:</strong> 
                 <Tag 
                   color={
-                    transaccion.estado === 'PAGADO' ? 'green' : 
+                    (transaccion.estado === 'PAGADO' || transaccion.estado === 'COMPLETADA') ? 'green' : 
                     transaccion.estado === 'PENDIENTE' ? 'orange' : 'red'
                   } 
                   style={{ marginLeft: 8 }}
@@ -339,7 +383,10 @@ const Finanzas = () => {
                 </Tag>
               </p>
               {transaccion.codigoVehiculo && (
-                <p><strong>Vehículo:</strong> {transaccion.codigoVehiculo}</p>
+                <p><strong>Vehículo:</strong> {transaccion.marca} {transaccion.modelo} {transaccion.generacion}</p>
+              )}
+              {transaccion.codigoRepuesto && (
+                <p><strong>Repuesto:</strong> {transaccion.codigoRepuesto} {transaccion.marca ? `(${transaccion.marca} ${transaccion.modelo})` : ''}</p>
               )}
             </Col>
           </Row>
@@ -395,8 +442,8 @@ const Finanzas = () => {
     const filtrosIniciales = {
       tipo: null,
       estado: null,
-      mes: null,
-      anio: null,
+      rangoFechas: null,
+      vehiculo: '',
       busqueda: '',
       categoria: null
     };
@@ -500,50 +547,15 @@ const Finanzas = () => {
         >
           <Row gutter={16}>
             <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
-              <div style={{ marginBottom: 8 }}><strong>Mes</strong></div>
-              <Select
-                style={{ width: '100%' }}
-                placeholder="Seleccionar mes"
+              <div style={{ marginBottom: 8 }}><strong>Buscar</strong></div>
+              <Input.Search
+                placeholder="Buscar descripción o ref..."
                 allowClear
-                value={filtros.mes}
-                onChange={(value) => {
-                  const newFiltros = { ...filtros, mes: value };
-                  setFiltros(newFiltros);
-                  handleFiltrar(newFiltros);
-                }}
-              >
-                <Option value={1}>Enero</Option>
-                <Option value={2}>Febrero</Option>
-                <Option value={3}>Marzo</Option>
-                <Option value={4}>Abril</Option>
-                <Option value={5}>Mayo</Option>
-                <Option value={6}>Junio</Option>
-                <Option value={7}>Julio</Option>
-                <Option value={8}>Agosto</Option>
-                <Option value={9}>Septiembre</Option>
-                <Option value={10}>Octubre</Option>
-                <Option value={11}>Noviembre</Option>
-                <Option value={12}>Diciembre</Option>
-              </Select>
-            </Col>
-            <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
-              <div style={{ marginBottom: 8 }}><strong>Año</strong></div>
-              <Select
-                style={{ width: '100%' }}
-                placeholder="Seleccionar año"
-                allowClear
-                value={filtros.anio}
-                onChange={(value) => {
-                  const newFiltros = { ...filtros, anio: value };
-                  setFiltros(newFiltros);
-                  handleFiltrar(newFiltros);
-                }}
-              >
-                {[...Array(10).keys()].map(i => {
-                  const year = new Date().getFullYear() - 5 + i;
-                  return <Option key={year} value={year}>{year}</Option>;
-                })}
-              </Select>
+                enterButton={<SearchOutlined />}
+                value={filtros.busqueda}
+                onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
+                onSearch={handleBuscar}
+              />
             </Col>
             <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
               <div style={{ marginBottom: 8 }}><strong>Tipo de Transacción</strong></div>
@@ -563,35 +575,69 @@ const Finanzas = () => {
               </Select>
             </Col>
             <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
-              <div style={{ marginBottom: 8 }}><strong>Estado</strong></div>
-              <Select
+              <div style={{ marginBottom: 8 }}><strong>Fechas</strong></div>
+              <DatePicker.RangePicker
                 style={{ width: '100%' }}
-                placeholder="Seleccionar estado"
-                allowClear
-                value={filtros.estado}
-                onChange={(value) => {
-                  const newFiltros = { ...filtros, estado: value };
+                value={filtros.rangoFechas}
+                onChange={(dates) => {
+                  const newFiltros = { ...filtros, rangoFechas: dates };
                   setFiltros(newFiltros);
                   handleFiltrar(newFiltros);
                 }}
-              >
-                <Option value="PAGADO">Pagado</Option>
-                <Option value="PENDIENTE">Pendiente</Option>
-                <Option value="ANULADO">Anulado</Option>
-              </Select>
+              />
             </Col>
             <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
-              <div style={{ marginBottom: 8 }}><strong>Buscar</strong></div>
-              <Input.Search
-                placeholder="Buscar transacciones..."
+              <div style={{ marginBottom: 8 }}><strong>Vehículo</strong></div>
+              <Input
+                placeholder="Código o Placa"
                 allowClear
-                enterButton={<SearchOutlined />}
-                value={filtros.busqueda}
-                onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
-                onSearch={handleBuscar}
+                value={filtros.vehiculo}
+                onChange={(e) => {
+                  const newFiltros = { ...filtros, vehiculo: e.target.value };
+                  setFiltros(newFiltros);
+                }}
+                onPressEnter={() => handleFiltrar(filtros)}
               />
             </Col>
           </Row>
+          
+          <Collapse ghost>
+            <Collapse.Panel header="Filtros avanzados" key="1">
+              <Row gutter={16}>
+                <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
+                  <div style={{ marginBottom: 8 }}><strong>Estado</strong></div>
+                  <Select
+                    style={{ width: '100%' }}
+                    placeholder="Seleccionar estado"
+                    allowClear
+                    value={filtros.estado}
+                    onChange={(value) => {
+                      const newFiltros = { ...filtros, estado: value };
+                      setFiltros(newFiltros);
+                      handleFiltrar(newFiltros);
+                    }}
+                  >
+                    <Option value="PAGADO">Pagado</Option>
+                    <Option value="PENDIENTE">Pendiente</Option>
+                    <Option value="ANULADO">Anulado</Option>
+                  </Select>
+                </Col>
+                <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
+                  <div style={{ marginBottom: 8 }}><strong>Categoría</strong></div>
+                  <Input
+                    placeholder="Ej. Mantenimiento"
+                    allowClear
+                    value={filtros.categoria}
+                    onChange={(e) => {
+                      const newFiltros = { ...filtros, categoria: e.target.value };
+                      setFiltros(newFiltros);
+                    }}
+                    onPressEnter={() => handleFiltrar(filtros)}
+                  />
+                </Col>
+              </Row>
+            </Collapse.Panel>
+          </Collapse>
         </Card>
       )}
 

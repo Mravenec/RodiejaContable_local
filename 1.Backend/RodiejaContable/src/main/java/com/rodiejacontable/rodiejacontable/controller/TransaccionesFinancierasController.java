@@ -127,4 +127,11 @@ public class TransaccionesFinancierasController {
         BigDecimal total = transaccionesService.getTotalMensualByTipoTransaccion(tipoTransaccionId, year, month);
         return new ResponseEntity<>(total, HttpStatus.OK);
     }
+    
+    @PostMapping("/reembolso/{transaccionId}")
+    public ResponseEntity<TransaccionesFinancieras> reembolsarVentaRepuesto(
+            @PathVariable Integer transaccionId) {
+        TransaccionesFinancieras reembolso = transaccionesService.reembolsarVentaRepuesto(transaccionId);
+        return new ResponseEntity<>(reembolso, HttpStatus.CREATED);
+    }
 }

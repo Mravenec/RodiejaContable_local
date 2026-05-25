@@ -1,6 +1,8 @@
 package com.rodiejacontable.rodiejacontable.service;
 
 import com.rodiejacontable.database.jooq.enums.TransaccionesFinancierasEstado;
+import com.rodiejacontable.database.jooq.enums.TiposTransaccionesCategoria;
+import com.rodiejacontable.database.jooq.tables.pojos.TiposTransacciones;
 import com.rodiejacontable.database.jooq.tables.pojos.TransaccionesFinancieras;
 import com.rodiejacontable.rodiejacontable.exception.ResourceAlreadyExistsException;
 import com.rodiejacontable.rodiejacontable.exception.ResourceNotFoundException;
@@ -181,5 +183,51 @@ public class TransaccionesFinancierasService {
         LocalDate endDate = yearMonth.atEndOfMonth();
         
         return getTotalMontoByTipoTransaccionAndPeriodo(tipoTransaccionId, startDate, endDate);
+    }
+    
+    @Transactional
+    public TransaccionesFinancieras reembolsarVentaRepuesto(Integer transaccionId) {
+        TransaccionesFinancieras original = findById(transaccionId);
+        
+        if (original.getEstado() != TransaccionesFinancierasEstado.COMPLETADA) {
+            throw new IllegalArgumentException("Solo se pueden reembolsar transacciones completadas.");
+        }
+        
+        TiposTransacciones tipoVenta = tiposTransaccionesRepository.findById(original.getTipoTransaccionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Tipo de transacción original no encontrado."));
+        if (!"Venta Repuesto".equals(tipoVenta.getNombre())) {
+            throw new IllegalArgumentException("Solo se pueden reembolsar ventas de repuestos.");
+        }
+        
+        TiposTransacciones tipoReembolso = tiposTransaccionesRepository.findByNombre("Reembolso Repuesto")
+                .orElseGet(() -> {
+                    TiposTransacciones nuevoTipo = new TiposTransacciones();
+                    nuevoTipo.setNombre("Reembolso Repuesto");
+                    nuevoTipo.setDescripcion("Egreso por reembolso de repuesto devuelto a stock");
+                    nuevoTipo.setCategoria(TiposTransaccionesCategoria.EGRESO);
+                    nuevoTipo.setActivo((byte) 1);
+                    return tiposTransaccionesRepository.save(nuevoTipo);
+                });
+        
+        TransaccionesFinancieras reembolso = new TransaccionesFinancieras();
+        reembolso.setCodigoTransaccion("REF-" + original.getCodigoTransaccion());
+        reembolso.setFecha(LocalDate.now());
+        reembolso.setTipoTransaccionId(tipoReembolso.getId());
+        reembolso.setEmpleadoId(original.getEmpleadoId());
+        reembolso.setVehiculoId(original.getVehiculoId());
+        reembolso.setRepuestoId(original.getRepuestoId());
+        reembolso.setGeneracionId(original.getGeneracionId());
+        reembolso.setMonto(original.getMonto());
+        reembolso.setComisionEmpleado(original.getComisionEmpleado() != null ? original.getComisionEmpleado().negate() : BigDecimal.ZERO);
+        reembolso.setDescripcion("Reembolso de repuesto: " + (original.getDescripcion() != null ? original.getDescripcion() : ""));
+        reembolso.setReferencia("Reembolso TR-" + original.getId());
+        reembolso.setEstado(TransaccionesFinancierasEstado.COMPLETADA);
+        reembolso.setActivo((byte) 1);
+        
+        LocalDateTime now = LocalDateTime.now();
+        reembolso.setFechaCreacion(now);
+        reembolso.setFechaActualizacion(now);
+        
+        return transaccionesRepository.save(reembolso);
     }
 }

@@ -122,6 +122,7 @@ public class PagosComisionesService {
         // Agrupar por empleado y calcular totales
         return transacciones.stream()
                 .filter(tf -> tf.getComisionEmpleado() != null && tf.getComisionEmpleado().compareTo(BigDecimal.ZERO) > 0)
+                .filter(tf -> tf.getEmpleadoId() != null)
                 .collect(java.util.stream.Collectors.groupingBy(
                         TransaccionesFinancierasRecord::getEmpleadoId,
                         java.util.stream.Collectors.collectingAndThen(

@@ -91,7 +91,7 @@ public class InventarioRepuestosRepository {
     }
 
     /**
-     * Llama al stored procedure actualizado con imagen_url
+     * Llama al stored procedure actualizado con imagen_url y cantidad
      */
     public void insertarRepuestoConGeneracionSinVehiculo(
             Integer generacionId,
@@ -109,7 +109,8 @@ public class InventarioRepuestosRepository {
             String piso,
             String estado,
             String condicion,
-            String imagenUrl) {
+            String imagenUrl,
+            Integer cantidad) {
         
         SpInsertarRepuestoConGeneracionSinVehiculo sp = new SpInsertarRepuestoConGeneracionSinVehiculo();
         sp.setPGeneracionId(generacionId);
@@ -130,7 +131,8 @@ public class InventarioRepuestosRepository {
         
         sp.setPEstado(estado);
         sp.setPCondicion(condicion);
-        sp.setPImagenUrl(imagenUrl); // ✅ Nuevo parámetro
+        sp.setPImagenUrl(imagenUrl);
+        sp.setPCantidad(org.jooq.types.UInteger.valueOf(cantidad != null ? cantidad : 1));
         
         sp.execute(dsl.configuration());
     }

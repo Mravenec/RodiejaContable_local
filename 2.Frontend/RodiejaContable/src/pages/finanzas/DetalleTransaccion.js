@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, Typography, Descriptions, Button, Spin, message, Tag } from 'antd';
+import { Card, Typography, Descriptions, Button, Spin, message, Tag, Modal } from 'antd';
 import { ArrowLeftOutlined, CarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import finanzaService from '../../api/finanzas';
@@ -14,6 +14,8 @@ const DetalleTransaccion = () => {
   const [transaccion, setTransaccion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isReembolsoModalVisible, setIsReembolsoModalVisible] = useState(false);
+  const [isReembolsando, setIsReembolsando] = useState(false);
 
   useEffect(() => {
     const fetchTransaccion = async () => {
@@ -49,6 +51,33 @@ const DetalleTransaccion = () => {
       fetchTransaccion();
     }
   }, [id]);
+
+  const handleReembolso = async () => {
+    try {
+      setIsReembolsando(true);
+      const response = await fetch(`/api/transacciones-financieras/reembolso/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al procesar el reembolso');
+      }
+      
+      message.success('Reembolso procesado exitosamente');
+      setIsReembolsoModalVisible(false);
+      
+      // Regresar a la lista y refrescar (o simplemente refrescar el detalle)
+      navigate('/finanzas');
+    } catch (err) {
+      console.error(err);
+      message.error(err.message || 'Error al procesar el reembolso');
+    } finally {
+      setIsReembolsando(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -119,6 +148,10 @@ const DetalleTransaccion = () => {
     }
   };
 
+  const isVentaRepuestoCompletada = 
+    transaccion?.estado === 'COMPLETADA' && 
+    (transaccion?.tipo_transaccion?.nombre === 'Venta Repuesto' || transaccion?.tipo === 'Venta Repuesto');
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
@@ -132,6 +165,18 @@ const DetalleTransaccion = () => {
         </Button>
         <Title level={2} style={{ margin: 0 }}>Detalle de la Transacción</Title>
       </div>
+      
+      {isVentaRepuestoCompletada && (
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button 
+            type="primary" 
+            danger 
+            onClick={() => setIsReembolsoModalVisible(true)}
+          >
+            Reembolso
+          </Button>
+        </div>
+      )}
       
       <Card>
         <Descriptions bordered column={1}>
@@ -180,8 +225,32 @@ const DetalleTransaccion = () => {
           {transaccion.codigoTransaccion && (
             <Descriptions.Item label="Código Transacción">{transaccion.codigoTransaccion}</Descriptions.Item>
           )}
+          <Descriptions.Item label="Estado">
+            <Tag color={
+              transaccion.estado === 'COMPLETADA' ? 'green' :
+              transaccion.estado === 'PENDIENTE' ? 'orange' :
+              transaccion.estado === 'CANCELADA' ? 'red' : 'default'
+            }>
+              {transaccion.estado}
+            </Tag>
+          </Descriptions.Item>
         </Descriptions>
       </Card>
+
+      <Modal
+        title="Confirmar Reembolso"
+        visible={isReembolsoModalVisible}
+        onOk={handleReembolso}
+        onCancel={() => setIsReembolsoModalVisible(false)}
+        okText="Confirmar Reembolso"
+        cancelText="Cancelar"
+        okButtonProps={{ danger: true, loading: isReembolsando }}
+      >
+        <p>
+          Al confirmar este reembolso, se generará una transacción de egreso y el repuesto asociado volverá a estado <strong>STOCK</strong> en el inventario.
+        </p>
+        <p>¿Deseas proceder?</p>
+      </Modal>
     </div>
   );
 };

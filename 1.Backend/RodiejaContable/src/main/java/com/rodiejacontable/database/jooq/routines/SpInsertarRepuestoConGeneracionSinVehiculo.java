@@ -12,6 +12,7 @@ import org.jooq.Parameter;
 import org.jooq.impl.AbstractRoutine;
 import org.jooq.impl.Internal;
 import org.jooq.impl.SQLDataType;
+import org.jooq.types.UInteger;
 
 
 /**
@@ -119,6 +120,12 @@ public class SpInsertarRepuestoConGeneracionSinVehiculo extends AbstractRoutine<
     public static final Parameter<String> P_IMAGEN_URL = Internal.createParameter("p_imagen_url", SQLDataType.CLOB, false, false);
 
     /**
+     * The parameter
+     * <code>sistema_vehicular.sp_insertar_repuesto_con_generacion_sin_vehiculo.p_cantidad</code>.
+     */
+    public static final Parameter<UInteger> P_CANTIDAD = Internal.createParameter("p_cantidad", SQLDataType.INTEGERUNSIGNED, false, false);
+
+    /**
      * Create a new routine call instance
      */
     public SpInsertarRepuestoConGeneracionSinVehiculo() {
@@ -140,6 +147,7 @@ public class SpInsertarRepuestoConGeneracionSinVehiculo extends AbstractRoutine<
         addInParameter(P_ESTADO);
         addInParameter(P_CONDICION);
         addInParameter(P_IMAGEN_URL);
+        addInParameter(P_CANTIDAD);
     }
 
     /**
@@ -252,5 +260,12 @@ public class SpInsertarRepuestoConGeneracionSinVehiculo extends AbstractRoutine<
      */
     public void setPImagenUrl(String value) {
         setValue(P_IMAGEN_URL, value);
+    }
+
+    /**
+     * Set the <code>p_cantidad</code> parameter IN value to the routine
+     */
+    public void setPCantidad(UInteger value) {
+        setValue(P_CANTIDAD, value);
     }
 }

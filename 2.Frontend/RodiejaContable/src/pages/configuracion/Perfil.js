@@ -14,7 +14,7 @@ const Perfil = () => {
 
   const onFinish = (values) => {
     console.log('Actualizar perfil:', values);
-    message.success('Perfil actualizado correctamente');
+    // message.success('Perfil actualizado correctamente');
     setUsuario({ ...usuario, ...values });
   };
 

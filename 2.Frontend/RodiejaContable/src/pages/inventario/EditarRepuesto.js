@@ -39,7 +39,7 @@ const EditarRepuesto = () => {
   const [vehiculoOrigen, setVehiculoOrigen] = useState(null);
   const [ubicacionFisicaHabilitada, setUbicacionFisicaHabilitada] = useState(false);
   
-  const [precioCostoTotal, setPrecioCostoTotal] = useState(0);
+  const [precioCostoUnitario, setPrecioCostoUnitario] = useState(0);
   const [cantidad, setCantidad] = useState(1);
 
   // Opciones base
@@ -72,15 +72,15 @@ const EditarRepuesto = () => {
   const getCondicionOptions = (esGenerico) => {
     if (!esGenerico) {
       return [
-        { value: '_100_25_', label: '100% - Excelente' },
-        { value: '_50_25_', label: '50% - Regular' },
-        { value: '_0_25_', label: '0% - Malo' }
+        { value: '_100_25_', label: 'Nuevo' },
+        { value: '_50_25_', label: 'Usado' },
+        { value: '_0_25_', label: 'Con detalles' }
       ];
     } else {
       return [
-        { value: '100%-', label: '100% - Excelente' },
-        { value: '50%-', label: '50% - Regular' },
-        { value: '0%-', label: '0% - Malo' }
+        { value: '100%-', label: 'Nuevo' },
+        { value: '50%-', label: 'Usado' },
+        { value: '0%-', label: 'Con detalles' }
       ];
     }
   };
@@ -106,11 +106,11 @@ const EditarRepuesto = () => {
         
         // El costo unitario es lo que guarda la bd.
         // Si hay una cantidad > 1, calculamos el costo total multiplicando
-        const cant = data.cantidad || 1;
+        const cant = data.cantidad !== undefined && data.cantidad !== null ? data.cantidad : 1;
         const pCosto = parseFloat(data.precioCosto || 0);
         
         setCantidad(cant);
-        setPrecioCostoTotal(pCosto * cant);
+        setPrecioCostoUnitario(pCosto);
 
         // Formatear los guiones bajos según si es genérico o no, ya que el API a veces lo mezcla
         let condicionFormat = data.condicion;
@@ -129,7 +129,7 @@ const EditarRepuesto = () => {
           parte_vehiculo: data.parteVehiculo,
           descripcion: data.descripcion,
           imagen_url: data.imagenUrl,
-          precio_costo: pCosto * cant,
+          precio_costo: pCosto,
           cantidad: cant,
           estado: data.estado || 'STOCK',
           condicion: condicionFormat,
@@ -157,10 +157,10 @@ const EditarRepuesto = () => {
   }, [id, form, navigate]);
 
   // Cálculos dinámicos
-  const costoUnitario = cantidad > 0 ? precioCostoTotal / cantidad : 0;
-  const precioVentaCalculado = costoUnitario * 1.5;
-  const formula15Calculada = costoUnitario * 1.15;
-  const formula30Calculada = costoUnitario * 1.30;
+  const costoTotalCalculado = precioCostoUnitario * cantidad;
+  const precioVentaCalculado = precioCostoUnitario * 1.5;
+  const formula15Calculada = precioCostoUnitario * 1.15;
+  const formula30Calculada = precioCostoUnitario * 1.30;
 
   useEffect(() => {
     form.setFieldsValue({ precio_venta: precioVentaCalculado });
@@ -169,8 +169,8 @@ const EditarRepuesto = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const cant = values.cantidad || 1;
-      const costoUni = cant > 0 ? (values.precio_costo || 0) / cant : 0;
+      const cant = values.cantidad !== undefined && values.cantidad !== null ? values.cantidad : 1;
+      const costoUni = values.precio_costo || 0;
       const pVenta = costoUni * 1.5;
 
       const payload = {
@@ -178,7 +178,7 @@ const EditarRepuesto = () => {
         descripcion: values.descripcion,
         precioCosto: costoUni,
         precioVenta: pVenta,
-        precioMayoreo: pVenta * 0.85,
+
         cantidad: cant,
         estado: values.estado,
         condicion: values.condicion,
@@ -197,7 +197,6 @@ const EditarRepuesto = () => {
       };
 
       await InventarioService.actualizarRepuesto(id, payload);
-      message.success('Repuesto actualizado correctamente');
       navigate(`/inventario/${id}`);
     } catch (error) {
       console.error('Error al actualizar:', error);
@@ -288,8 +287,8 @@ const EditarRepuesto = () => {
                 <Col span={12}>
                   <Form.Item
                     name="precio_costo"
-                    label="Costo Total (Múltiples repuestos)"
-                    rules={[{ required: true, message: 'Ingrese el costo total' }]}
+                    label="Costo Unitario"
+                    rules={[{ required: true, message: 'Ingrese el costo unitario' }]}
                   >
                     <InputNumber 
                       style={{ width: '100%' }} 
@@ -298,15 +297,30 @@ const EditarRepuesto = () => {
                       precision={2}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={value => value.replace(/₡\s?|(,*)/g, '')}
-                      onChange={(value) => setPrecioCostoTotal(value || 0)}
+                      onChange={(value) => setPrecioCostoUnitario(value || 0)}
                     />
                   </Form.Item>
                 </Col>
                 
                 <Col span={12}>
                   <Form.Item
+                    label="Costo Total (Calculado)"
+                  >
+                    <InputNumber 
+                      style={{ width: '100%' }} 
+                      formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      value={costoTotalCalculado}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
                     name="precio_venta"
-                    label="Precio de Venta (Calculado)"
+                    label="Precio de Venta Unitario (Calculado)"
                   >
                     <InputNumber 
                       style={{ width: '100%' }} 
@@ -342,7 +356,7 @@ const EditarRepuesto = () => {
               </Row>
               
               <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f0f8ff', borderRadius: '6px' }}>
-                <Text strong>Costo Unitario: ₡ {costoUnitario.toFixed(2)}</Text>
+                <Text strong>Costo Unitario: ₡ {precioCostoUnitario.toFixed(2)}</Text>
               </div>
 
               <Row gutter={16}>
@@ -357,13 +371,13 @@ const EditarRepuesto = () => {
                 </Col>
                 <Col span={12}>
                   <Form.Item name="estado" label="Estado" rules={[{ required: true }]}>
-                    <Select>
+                    <Select disabled={repuestoActual?.estado === 'VENDIDO' || repuestoActual?.estado === 'AGOTADO'}>
                       <Option value="STOCK">En Stock</Option>
-                      <Option value="VENDIDO">Vendido</Option>
                       <Option value="PROCESO">En Proceso</Option>
-                      <Option value="AGOTADO">Agotado</Option>
                       <Option value="DAÑADO">Dañado</Option>
                       <Option value="USADO_INTERNO">Usado Interno</Option>
+                      <Option value="VENDIDO" disabled={repuestoActual?.estado !== 'VENDIDO'}>Vendido</Option>
+                      <Option value="AGOTADO" disabled={repuestoActual?.estado !== 'AGOTADO'}>Agotado</Option>
                     </Select>
                   </Form.Item>
                 </Col>

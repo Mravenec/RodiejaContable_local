@@ -248,14 +248,6 @@ const Inventario = () => {
       width: 150,
     },
     {
-      title: 'Precio Mayoreo',
-      dataIndex: 'precioMayoreo',
-      key: 'precioMayoreo',
-      render: (precio) => formatCurrency(precio),
-      sorter: (a, b) => a.precioMayoreo - b.precioMayoreo,
-      width: 150,
-    },
-    {
       title: 'Estado',
       dataIndex: 'estado',
       key: 'estado',

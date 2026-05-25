@@ -321,7 +321,8 @@ CALL sp_insertar_repuesto_con_generacion_sin_vehiculo(
     70000.00, 110000.00, 95000.00,      -- p_precio_costo, p_precio_venta, p_precio_mayoreo
     'R-', 'Z2-', 'PN-', 'V10', 'E2', 'P3-', -- p_bodega, p_zona, p_pared, p_malla, p_estante, p_piso
     'STOCK', '100%-',                   -- p_estado, p_condicion
-    'https://tu-cdn.com/repuestos/bomba_corolla.jpg' -- p_imagen_url  ✅
+    'https://tu-cdn.com/repuestos/bomba_corolla.jpg', -- p_imagen_url
+    1                                   -- p_cantidad
 );
 -- Crea:
 --   • inventario_repuestos (ej. id = 2)
@@ -369,7 +370,8 @@ CALL sp_insertar_repuesto_con_generacion_sin_vehiculo(
     'P3-',            -- piso
     'STOCK',          -- estado inicial del repuesto
     '100%-',          -- condición del repuesto
-    'https://tu-cdn.com/repuestos/embrague_civic.jpg' -- p_imagen_url  ✅
+    'https://tu-cdn.com/repuestos/embrague_civic.jpg', -- p_imagen_url
+    1                 -- p_cantidad
 );
 
 -- Crea repuesto id = 3

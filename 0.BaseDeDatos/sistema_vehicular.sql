@@ -230,7 +230,7 @@ CREATE TABLE inventario_repuestos (
     -- Timestamps
     fecha_creacion     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
+    activo BOOLEAN DEFAULT TRUE,
     -- Relaciones e índices
     FOREIGN KEY (vehiculo_origen_id) REFERENCES vehiculos(id),
     INDEX idx_vehiculo_origen (vehiculo_origen_id),
@@ -459,10 +459,10 @@ BEGIN
     WHERE nombre = 'Venta Repuesto'
     LIMIT 1;
 
-    -- Si es venta de repuesto, actualiza el estado
+    -- Si es venta de repuesto, actualiza el estado y la cantidad
     IF NEW.tipo_transaccion_id = tipo_venta_repuesto_id AND NEW.repuesto_id IS NOT NULL THEN
         UPDATE inventario_repuestos
-        SET estado = 'VENDIDO',
+        SET estado = IF(cantidad - 1 <= 0, 'VENDIDO', 'STOCK'),
             cantidad = GREATEST(cantidad - 1, 0)
         WHERE id = NEW.repuesto_id;
     END IF;
@@ -477,10 +477,10 @@ FOR EACH ROW
 BEGIN
     DECLARE tipo_reembolso_id INT;
 
-    -- Obtener ID del tipo 'Reembolso Repuesto'
+    -- Obtener ID del tipo 'Reembolso'
     SELECT id INTO tipo_reembolso_id
     FROM tipos_transacciones
-    WHERE nombre = 'Reembolso Repuesto'
+    WHERE nombre = 'Reembolso'
     LIMIT 1;
 
     -- Si es un reembolso de repuesto, revertir estado y cantidad
@@ -615,7 +615,8 @@ CREATE PROCEDURE sp_insertar_repuesto_con_generacion_sin_vehiculo(
     IN p_piso            VARCHAR(10),
     IN p_estado          VARCHAR(20),
     IN p_condicion       VARCHAR(10),
-    IN p_imagen_url      TEXT     -- ✅ NUEVO
+    IN p_imagen_url      TEXT,
+    IN p_cantidad        INT UNSIGNED
 )
 BEGIN
     DECLARE gen_inicio INT;
@@ -624,6 +625,7 @@ BEGIN
     DECLARE codigo_generado VARCHAR(100);
     DECLARE v_repuesto_id   INT;
     DECLARE v_tipo_compra_id INT;
+    DECLARE v_monto_total DECIMAL(12,2);
 
     /*-----------------------------------
       1. Datos de la generación
@@ -655,12 +657,12 @@ BEGIN
         codigo_repuesto, parte_vehiculo, descripcion,
         precio_costo,   precio_venta,   precio_mayoreo,
         bodega, zona, pared, malla, estante, piso,
-        estado, condicion, imagen_url, fecha_creacion   -- ✅ se añadió imagen_url
+        estado, condicion, imagen_url, cantidad, fecha_creacion
     ) VALUES (
         codigo_generado, p_parte_vehiculo, p_descripcion,
         p_precio_costo,  p_precio_venta,  p_precio_mayoreo,
         p_bodega, p_zona, p_pared, p_malla, p_estante, p_piso,
-        p_estado, p_condicion, p_imagen_url, NOW()
+        p_estado, p_condicion, p_imagen_url, p_cantidad, NOW()
     );
 
     SET v_repuesto_id = LAST_INSERT_ID();
@@ -673,6 +675,8 @@ BEGIN
     WHERE nombre = 'Compra Repuesto'
     LIMIT 1;
 
+    SET v_monto_total = p_precio_costo * p_cantidad;
+
     INSERT INTO transacciones_financieras (
         fecha, tipo_transaccion_id,
         repuesto_id, generacion_id,
@@ -681,8 +685,8 @@ BEGIN
         CURDATE(),
         v_tipo_compra_id,
         v_repuesto_id, p_generacion_id,
-        p_precio_costo,
-        CONCAT('Compra automática de repuesto ', codigo_generado),
+        v_monto_total,
+        CONCAT('Compra automática de repuesto ', codigo_generado, ' (Cant: ', p_cantidad, ')'),
         CONCAT('AUTO-COMP-REP-', LPAD(v_repuesto_id, 6, '0'))
     );
 END$$
@@ -2019,6 +2023,7 @@ INSERT INTO tipos_transacciones (nombre, descripcion, categoria) VALUES
 ('Combustible', 'Egreso por combustible', 'EGRESO'),
 ('Servicios Públicos', 'Egreso por electricidad, agua, teléfono', 'EGRESO'),
 ('Impuestos', 'Egreso por impuestos y patentes', 'EGRESO'),
+('Reembolso', 'Reembolso', 'EGRESO'),
 ('Salarios', 'Egreso por planillas y cargas sociales', 'EGRESO'),
 ('Otros Ingresos', 'Otros ingresos diversos', 'INGRESO'),
 ('Otros Egresos', 'Otros egresos diversos', 'EGRESO');
@@ -2278,7 +2283,8 @@ CALL sp_insertar_repuesto_con_generacion_sin_vehiculo(
     70000.00, 110000.00, 95000.00,      -- p_precio_costo, p_precio_venta, p_precio_mayoreo
     'R-', 'Z2-', 'PN-', 'V10', 'E2', 'P3-', -- p_bodega, p_zona, p_pared, p_malla, p_estante, p_piso
     'STOCK', '100%-',                   -- p_estado, p_condicion
-    'https://tu-cdn.com/repuestos/bomba_corolla.jpg' -- p_imagen_url  ✅
+    'https://tu-cdn.com/repuestos/bomba_corolla.jpg', -- p_imagen_url  ✅
+    4
 );
 -- Crea:
 --   • inventario_repuestos (ej. id = 2)
@@ -2326,7 +2332,8 @@ CALL sp_insertar_repuesto_con_generacion_sin_vehiculo(
     'P3-',            -- piso
     'STOCK',          -- estado inicial del repuesto
     '100%-',          -- condición del repuesto
-    'https://tu-cdn.com/repuestos/embrague_civic.jpg' -- p_imagen_url  ✅
+    'https://tu-cdn.com/repuestos/embrague_civic.jpg', -- p_imagen_url 
+    1
 );
 
 -- Crea repuesto id = 3

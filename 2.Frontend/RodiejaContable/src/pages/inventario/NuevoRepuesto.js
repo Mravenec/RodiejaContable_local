@@ -48,7 +48,7 @@ const NuevoRepuesto = () => {
   const [loading, setLoading] = useState(false);
   const [tipoRepuesto, setTipoRepuesto] = useState('con_vehiculo');
   const [ubicacionFisicaHabilitada, setUbicacionFisicaHabilitada] = useState(false);
-  const [precioCostoTotal, setPrecioCostoTotal] = useState(0);
+  const [precioCostoUnitario, setPrecioCostoUnitario] = useState(0);
   const [cantidad, setCantidad] = useState(1);
 
   // Determinar si el selector debe estar deshabilitado (modo lectura)
@@ -74,11 +74,11 @@ const NuevoRepuesto = () => {
   const [nuevaGeneracionAnioFin, setNuevaGeneracionAnioFin] = useState('');
   const [creandoGeneracion, setCreandoGeneracion] = useState(false);
 
-  // Calcular costo unitario y precio de venta automáticamente
-  const costoUnitario = cantidad > 0 ? precioCostoTotal / cantidad : 0;
-  const precioVentaCalculado = costoUnitario * 1.5; // 50% de ganancia sobre el costo unitario
-  const formula15Calculada = costoUnitario * 1.15;
-  const formula30Calculada = costoUnitario * 1.30;
+  // Cálculos dinámicos
+  const costoTotalCalculado = precioCostoUnitario * (cantidad > 0 ? cantidad : 1);
+  const precioVentaCalculado = precioCostoUnitario * 1.5;
+  const formula15Calculada = precioCostoUnitario * 1.15;
+  const formula30Calculada = precioCostoUnitario * 1.30;
 
   // Actualizar el campo precio_venta en el formulario cuando cambia el valor calculado
   useEffect(() => {
@@ -292,15 +292,15 @@ const NuevoRepuesto = () => {
   const getCondicionOptions = () => {
     if (tipoRepuesto === 'con_vehiculo') {
       return [
-        { value: '_100_25_', label: '100% - Excelente' },
-        { value: '_50_25_', label: '50% - Regular' },
-        { value: '_0_25_', label: '0% - Malo' }
+        { value: '_100_25_', label: 'Nuevo' },
+        { value: '_50_25_', label: 'Usado' },
+        { value: '_0_25_', label: 'Con detalles' }
       ];
     } else {
       return [
-        { value: '100%-', label: '100% - Excelente' },
-        { value: '50%-', label: '50% - Regular' },
-        { value: '0%-', label: '0% - Malo' }
+        { value: '100%-', label: 'Nuevo' },
+        { value: '50%-', label: 'Usado' },
+        { value: '0%-', label: 'Con detalles' }
       ];
     }
   };
@@ -391,9 +391,10 @@ const NuevoRepuesto = () => {
           throw new Error('Debe seleccionar un vehículo de origen');
         }
 
+        const descripcionModificada = values.originalidad ? `[${values.originalidad}] ${values.descripcion || ''}` : (values.descripcion || '');
+
         // Calcular costo unitario y precio de venta
-        const cantidadRepuestos = values.cantidad || 1;
-        const costoUnitario = cantidadRepuestos > 0 ? (values.precio_costo || 0) / cantidadRepuestos : 0;
+        const costoUnitario = values.precio_costo || 0;
         const precioVentaCalculado = costoUnitario * 1.5;
 
         // Mapear de formato BD a formato Enum Java (Jackson)
@@ -409,10 +410,10 @@ const NuevoRepuesto = () => {
         const repuestoData = {
           vehiculoOrigenId: values.vehiculo_origen_id,
           parteVehiculo: values.parte_vehiculo,
-          descripcion: values.descripcion,
+          descripcion: descripcionModificada,
           precioCosto: costoUnitario,
           precioVenta: precioVentaCalculado,
-          precioMayoreo: precioVentaCalculado * 0.85,
+
           bodega: ubicacionFisicaHabilitada ? mapEnum(values.bodega) : null,
           zona: ubicacionFisicaHabilitada ? mapEnum(values.zona) : null,
           pared: ubicacionFisicaHabilitada ? mapEnum(values.pared) : null,
@@ -426,7 +427,8 @@ const NuevoRepuesto = () => {
           posicion: ubicacionFisicaHabilitada ? values.posicion : null,
           estado: values.estado || 'STOCK',
           condicion: mapEnum(values.condicion || '100%-'),
-          imagenUrl: values.imagen_url || null
+          imagenUrl: values.imagen_url || null,
+          cantidad: values.cantidad || 1
         };
 
         console.log('Datos a enviar (con vehículo):', repuestoData);
@@ -434,7 +436,7 @@ const NuevoRepuesto = () => {
         const response = await api.post('/inventario-repuestos', repuestoData);
         console.log('Respuesta del servidor:', response.data);
 
-        message.success('Repuesto creado correctamente');
+        // message.success('Repuesto creado correctamente');
         navigate('/inventario');
 
       } else {
@@ -443,21 +445,22 @@ const NuevoRepuesto = () => {
           throw new Error('Debe seleccionar una generación para el repuesto genérico');
         }
 
+        const descripcionModificada = values.originalidad ? `[${values.originalidad}] ${values.descripcion || ''}` : (values.descripcion || '');
+
         const marcaNombre = marcas.find(m => m.id === marcaSeleccionada)?.nombre || 'Generic';
 
         // Calcular costo unitario y precio de venta
-        const cantidadRepuestos = values.cantidad || 1;
-        const costoUnitario = cantidadRepuestos > 0 ? (values.precio_costo || 0) / cantidadRepuestos : 0;
+        const costoUnitario = values.precio_costo || 0;
         const precioVentaCalculado = costoUnitario * 1.5;
 
         const procedureData = {
           generacionId: generacionSeleccionada,
           marcaNombre: marcaNombre,
           parteVehiculo: values.parte_vehiculo,
-          descripcion: values.descripcion || '',
+          descripcion: descripcionModificada,
           precioCosto: costoUnitario,
           precioVenta: precioVentaCalculado,
-          precioMayoreo: precioVentaCalculado * 0.85,
+
           bodega: ubicacionFisicaHabilitada ? values.bodega : null,
           zona: ubicacionFisicaHabilitada ? values.zona : null,
           pared: ubicacionFisicaHabilitada ? values.pared : null,
@@ -472,7 +475,7 @@ const NuevoRepuesto = () => {
           estado: values.estado || 'STOCK',
           condicion: values.condicion || '100%-',
           imagenUrl: values.imagen_url || null,
-          cantidad: cantidadRepuestos // ✅ Nueva cantidad a enviar
+          cantidad: values.cantidad || 1
         };
 
         console.log('Datos a enviar (sin vehículo):', procedureData);
@@ -480,7 +483,7 @@ const NuevoRepuesto = () => {
         const response = await api.post('/inventario-repuestos/sin-vehiculo', procedureData);
         console.log('Respuesta del servidor:', response.data);
 
-        message.success('Repuesto genérico creado correctamente');
+        // message.success('Repuesto genérico creado correctamente');
         navigate('/inventario');
       }
 
@@ -519,6 +522,7 @@ const NuevoRepuesto = () => {
           initialValues={{
             estado: 'STOCK',
             condicion: '100%-',
+            originalidad: 'Original',
             precio_costo: 0,
             precio_venta: 0,
             cantidad: 1,
@@ -558,6 +562,17 @@ const NuevoRepuesto = () => {
                     </Option>
                   ))}
                 </Select>
+              </Form.Item>
+
+              <Form.Item
+                name="originalidad"
+                label="Tipo de Repuesto (Originalidad)"
+                rules={[{ required: true, message: 'Seleccione si es Original o Genérico' }]}
+              >
+                <Radio.Group>
+                  <Radio value="Original">Original</Radio>
+                  <Radio value="Genérico">Genérico</Radio>
+                </Radio.Group>
               </Form.Item>
 
               <Form.Item
@@ -914,8 +929,8 @@ const NuevoRepuesto = () => {
                 <Col span={12}>
                   <Form.Item
                     name="precio_costo"
-                    label="Costo Total (para todos los repuestos)"
-                    rules={[{ required: true, message: 'Ingrese el costo total' }]}
+                    label="Costo Unitario"
+                    rules={[{ required: true, message: 'Ingrese el costo unitario' }]}
                   >
                     <InputNumber
                       style={{ width: '100%' }}
@@ -924,15 +939,30 @@ const NuevoRepuesto = () => {
                       precision={2}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={value => value.replace(/₡\s?|(,*)/g, '')}
-                      onChange={(value) => setPrecioCostoTotal(value || 0)}
+                      onChange={(value) => setPrecioCostoUnitario(value || 0)}
                     />
                   </Form.Item>
                 </Col>
 
                 <Col span={12}>
                   <Form.Item
+                    label="Costo Total (Calculado)"
+                  >
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      value={costoTotalCalculado}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
                     name="precio_venta"
-                    label="Precio de Venta (Calculado automáticamente)"
+                    label="Precio de Venta Unitario (Calculado)"
                   >
                     <InputNumber
                       style={{ width: '100%' }}
@@ -946,9 +976,6 @@ const NuevoRepuesto = () => {
                     />
                   </Form.Item>
                 </Col>
-              </Row>
-
-              <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item label="Fórmula 15% (Lectura)">
                     <InputNumber
@@ -972,9 +999,9 @@ const NuevoRepuesto = () => {
               </Row>
 
               <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f0f8ff', borderRadius: '6px' }}>
-                <Text strong>Costo Unitario: ₡ {costoUnitario.toFixed(2)}</Text>
+                <Text strong>Costo Unitario: ₡ {precioCostoUnitario.toFixed(2)}</Text>
                 <br />
-                <Text type="secondary">Costo total / Cantidad = ₡ {precioCostoTotal.toFixed(2)} / {cantidad}</Text>
+                <Text type="secondary">Costo unitario * Cantidad = ₡ {precioCostoUnitario.toFixed(2)} * {cantidad} = ₡ {costoTotalCalculado.toFixed(2)}</Text>
               </div>
 
               <Divider orientation="left">Estado y Stock</Divider>

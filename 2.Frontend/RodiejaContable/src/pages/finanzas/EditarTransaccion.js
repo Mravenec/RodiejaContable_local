@@ -19,7 +19,7 @@ const EditarTransaccion = () => {
       const response = await fetch(`http://localhost:8080/api/transacciones-financieras/${id}`);
       if (response.ok) {
         const data = await response.json();
-        
+
         // Manejar la fecha que viene como array [año, mes, dia] desde el backend
         let fechaFormateada = null;
         if (data.fecha && Array.isArray(data.fecha) && data.fecha.length >= 3) {
@@ -27,7 +27,7 @@ const EditarTransaccion = () => {
           // Formatear como string para el DatePicker
           fechaFormateada = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }
-        
+
         form.setFieldsValue({
           ...data,
           fecha: fechaFormateada,
@@ -95,11 +95,11 @@ const EditarTransaccion = () => {
         ...values,
         fecha: values.fecha || null
       };
-      
+
       console.log('Datos enviados al backend:', dataToSend);
       console.log('Fecha enviada:', values.fecha);
       console.log('Tipo de dato de fecha:', typeof values.fecha);
-      
+
       const response = await fetch(`http://localhost:8080/api/transacciones-financieras/${id}`, {
         method: 'PUT',
         headers: {
@@ -109,7 +109,7 @@ const EditarTransaccion = () => {
       });
 
       if (response.ok) {
-        message.success('Transacción actualizada correctamente');
+        // message.success('Transacción actualizada correctamente');
         navigate('/finanzas');
       } else {
         const errorData = await response.json();
@@ -151,9 +151,9 @@ const EditarTransaccion = () => {
                 name="fecha"
                 rules={[{ required: true, message: 'La fecha es requerida' }]}
               >
-                <Input 
+                <Input
                   type="date"
-                  style={{ width: '100%' }} 
+                  style={{ width: '100%' }}
                   placeholder="YYYY-MM-DD"
                 />
               </Form.Item>
@@ -167,7 +167,7 @@ const EditarTransaccion = () => {
                 name="tipoTransaccionId"
                 rules={[{ required: true, message: 'Este campo es requerido' }]}
               >
-                <Select placeholder="Seleccionar tipo">
+                <Select placeholder="Seleccionar tipo" disabled>
                   {tiposTransacciones.map(tipo => (
                     <Option key={tipo.id} value={tipo.id}>
                       {tipo.nombre}

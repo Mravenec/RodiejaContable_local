@@ -137,7 +137,7 @@ class InventarioService {
       descripcion: item.descripcion,
       precioCosto: item.precioCosto || item.precio_costo,
       precioVenta: item.precioVenta || item.precio_venta,
-      precioMayoreo: item.precioMayoreo || item.precio_mayoreo,
+
       formula15: item.formula_15,
       formula30: item.formula_30,
       bodega: item.bodega,
@@ -166,10 +166,6 @@ class InventarioService {
         maximumFractionDigits: 0
       })}`,
       precioCostoFormatted: `₡${(item.precioCosto || item.precio_costo || 0).toLocaleString('es-CR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      })}`,
-      precioMayoreoFormatted: `₡${(item.precioMayoreo || item.precio_mayoreo || 0).toLocaleString('es-CR', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
       })}`
