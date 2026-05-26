@@ -158,6 +158,7 @@ class InventarioService {
       imagenUrl: item.imagenUrl || item.imagen_url,
       fechaCreacion: formatDate(item.fechaCreacion) || item.fecha_creacion,
       fechaActualizacion: formatDate(item.fechaActualizacion) || item.fecha_actualizacion,
+      activo: item.activo !== false,
       ubicacion: ubicacion,
       esVendido: (item.estado === 'VENDIDO' || item.estado === 'AGOTADO'),
       tieneStock: (item.cantidad > 0),

@@ -71,11 +71,12 @@ const Inventario = () => {
       };
 
       const data = await InventarioService.getRepuestos(queryParams);
+      const activeData = Array.isArray(data) ? data.filter(item => item.activo) : [];
 
-      setData(Array.isArray(data) ? data : []);
+      setData(activeData);
       setPagination({
         ...pagination,
-        total: data.length || 0,
+        total: activeData.length,
         current: pagination.current,
       });
     } catch (error) {
@@ -107,7 +108,7 @@ const Inventario = () => {
     if (value) {
       InventarioService.buscarPorCodigo(value)
         .then((results) => {
-          setData(results);
+          setData(Array.isArray(results) ? results.filter(item => item.activo) : []);
         })
         .catch((error) => {
           console.error('Error searching:', error);
@@ -126,11 +127,7 @@ const Inventario = () => {
       fetchData(); // Refresh data
     } catch (error) {
       console.error('Error deleting item:', error);
-      if (error.response && error.response.status === 500) {
-        message.warning('No se puede eliminar porque tiene dependencias financieras. Le sugerimos cambiar el estado a AGOTADO o DAÑADO.', 6);
-      } else {
-        message.error('Error al eliminar el repuesto');
-      }
+      message.error('Error al eliminar el repuesto');
     }
   };
 

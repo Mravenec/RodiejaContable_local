@@ -81,11 +81,13 @@ public class InventarioRepuestosRepository {
 
     public List<InventarioRepuestos> findAll() {
         return dsl.selectFrom(INVENTARIO_REPUESTOS)
+                .where(INVENTARIO_REPUESTOS.ACTIVO.eq((byte) 1))
                 .fetchInto(InventarioRepuestos.class);
     }
 
     public void delete(Integer id) {
-        dsl.deleteFrom(INVENTARIO_REPUESTOS)
+        dsl.update(INVENTARIO_REPUESTOS)
+                .set(INVENTARIO_REPUESTOS.ACTIVO, (byte) 0)
                 .where(INVENTARIO_REPUESTOS.ID.eq(id))
                 .execute();
     }
