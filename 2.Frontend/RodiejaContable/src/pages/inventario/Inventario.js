@@ -28,7 +28,6 @@ import {
   ToolOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { formatCurrency } from '../../utils/formatters';
 import InventarioService from '../../api/inventario';
 
 const { Title, Text } = Typography;
@@ -314,10 +313,30 @@ const Inventario = () => {
   ];
 
   return (
-    <div className="inventario-page">
-      <Card>
-        <div className="inventario-header" style={{ marginBottom: 16 }}>
-          <Title level={4} style={{ marginBottom: 0 }}>Gestión de Inventario</Title>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* ── Header de navegación ─────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <Title level={3} style={{ margin: 0, fontWeight: 600 }}>Gestión de Inventario</Title>
+          <Text type="secondary">Administra los repuestos disponibles, en reparación o agotados.</Text>
+        </div>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => navigate('/inventario/nuevo')}
+          size="large"
+          style={{ borderRadius: '6px' }}
+        >
+          Nuevo Repuesto
+        </Button>
+      </div>
+
+      <Card
+        bordered={false}
+        style={{ borderRadius: '12px', border: '1px solid #f0f0f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
+        bodyStyle={{ padding: '24px' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: '12px' }}>
           <Space>
             <Search
               placeholder="Buscar por código..."
@@ -332,13 +351,6 @@ const Inventario = () => {
               onClick={() => setFilterVisible(true)}
             >
               Filtros
-            </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => navigate('/inventario/nuevo')}
-            >
-              Nuevo Repuesto
             </Button>
           </Space>
         </div>

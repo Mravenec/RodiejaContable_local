@@ -1,0 +1,41 @@
+
+/home/kimberly/Escritorio/personal/RodiejaContable/2.Frontend/RodiejaContable/src/components/finanzas/ComisionesPendientes.js
+  11:3  warning  'Select' is defined but never used      no-unused-vars
+  12:3  warning  'DatePicker' is defined but never used  no-unused-vars
+  13:3  warning  'Typography' is defined but never used  no-unused-vars
+
+/home/kimberly/Escritorio/personal/RodiejaContable/2.Frontend/RodiejaContable/src/components/vehiculos/HistorialVehiculo.js
+   7:3  warning  'FileTextOutlined' is defined but never used                                                                        no-unused-vars
+  11:9  warning  'Title' is assigned a value but never used                                                                          no-unused-vars
+  21:6  warning  React Hook useEffect has a missing dependency: 'cargarHistorial'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/kimberly/Escritorio/personal/RodiejaContable/2.Frontend/RodiejaContable/src/layouts/MainLayout.js
+   6:42  warning  'Button' is defined but never used             no-unused-vars
+  26:9   warning  'navigate' is assigned a value but never used  no-unused-vars
+
+/home/kimberly/Escritorio/personal/RodiejaContable/2.Frontend/RodiejaContable/src/pages/auth/ResetPassword.js
+  93:11  warning  The href attribute is required for an anchor to be keyboard accessible. Provide a valid, navigable address as the href value. If you cannot provide an href, but still need the element to resemble a link, use a button and change it with appropriate styles. Learn more: https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/anchor-is-valid.md  jsx-a11y/anchor-is-valid
+
+/home/kimberly/Escritorio/personal/RodiejaContable/2.Frontend/RodiejaContable/src/pages/configuracion/Configuracion.js
+   19:3   warning  'Spin' is defined but never used                                                                                                                                                 no-unused-vars
+   22:3   warning  'InputNumber' is defined but never used                                                                                                                                          no-unused-vars
+   37:3   warning  'BellOutlined' is defined but never used                                                                                                                                         no-unused-vars
+   43:3   warning  'SafetyOutlined' is defined but never used                                                                                                                                       no-unused-vars
+   44:3   warning  'NotificationOutlined' is defined but never used                                                                                                                                 no-unused-vars
+   45:3   warning  'GlobalOutlined' is defined but never used                                                                                                                                       no-unused-vars
+   53:10  warning  'useQuery' is defined but never used                                                                                                                                             no-unused-vars
+   53:20  warning  'useMutation' is defined but never used                                                                                                                                          no-unused-vars
+   55:3   warning  'authService' is defined but never used                                                                                                                                          no-unused-vars
+   73:10  warning  'avatarFile' is assigned a value but never used                                                                                                                                  no-unused-vars
+  146:9   warning  The 'usuario' object makes the dependencies of useEffect Hook (at line 255) change on every render. To fix this, wrap the initialization of 'usuario' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  172:9   warning  'handleUpdateProfile' is assigned a value but never used                                                                                                                         no-unused-vars
+  203:9   warning  'handleAvatarChange' is assigned a value but never used                                                                                                                          no-unused-vars
+
+/home/kimberly/Escritorio/personal/RodiejaContable/2.Frontend/RodiejaContable/src/pages/configuracion/Perfil.js
+  2:49  warning  'message' is defined but never used  no-unused-vars
+
+/home/kimberly/Escritorio/personal/RodiejaContable/2.Frontend/RodiejaContable/src/pages/reportes/VentasReportes.js
+  12:3  warning  'DatePicker' is defined but never used  no-unused-vars
+
+✖ 24 problems (0 errors, 24 warnings)
+

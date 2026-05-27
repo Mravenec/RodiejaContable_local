@@ -1,4 +1,4 @@
-  // src/components/VehiculosJerarquicos.jsx
+// src/components/VehiculosJerarquicos.jsx
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Card,
@@ -61,25 +61,25 @@ const transaccionesService = {
   async getTransaccionesPorVehiculo(vehiculoId) {
     try {
       console.log('Fetching transactions for vehicle ID:', vehiculoId);
-      
+
       let allTransacciones, tiposTransaccion;
-      
+
       try {
         // Use Promise.all to fetch transactions and transaction types in parallel
         [allTransacciones, tiposTransaccion] = await Promise.all([
           finanzaService.getTransacciones(),
           getTiposTransacciones()
         ]);
-        
+
         console.log('All transactions from API:', allTransacciones);
         console.log('Transaction types from API:', tiposTransaccion);
-        
+
         // Ensure we have arrays to work with
         if (!Array.isArray(allTransacciones)) {
           console.error('Unexpected transactions format:', allTransacciones);
           allTransacciones = [];
         }
-        
+
         if (!Array.isArray(tiposTransaccion)) {
           console.error('Unexpected transaction types format:', tiposTransaccion);
           tiposTransaccion = [];
@@ -91,15 +91,15 @@ const transaccionesService = {
         });
         throw fetchError;
       }
-      
+
       // Create a map of tipos for quick lookup
       const tiposMap = tiposTransaccion.reduce((acc, tipo) => {
         acc[tipo.id] = tipo;
         return acc;
       }, {});
-      
+
       console.log('Tipos map:', tiposMap);
-      
+
       // First, get all repuestos for this vehicle to find their IDs
       let repuestos = [];
       try {
@@ -109,9 +109,9 @@ const transaccionesService = {
       } catch (repuestoError) {
         console.error('Error fetching repuestos:', repuestoError);
       }
-      
+
       const repuestoIds = repuestos.map(r => r.id);
-      
+
       // Filter transactions for the specific vehicle or its repuestos
       console.log('All transaction vehicle/repuesto IDs:', allTransacciones.map(t => ({
         id: t.id,
@@ -120,17 +120,17 @@ const transaccionesService = {
         isRepuestoTransaction: repuestoIds.includes(t.repuestoId),
         matchesVehicle: t.vehiculoId === vehiculoId || t.vehiculoId === parseInt(vehiculoId)
       })));
-      
+
       const filteredTransacciones = allTransacciones.filter(transaccion => {
         // Check if transaction is directly for this vehicle
-        const matchesVehicle = transaccion.vehiculoId != null && 
-                             (transaccion.vehiculoId === vehiculoId || 
-                              transaccion.vehiculoId === parseInt(vehiculoId));
-        
+        const matchesVehicle = transaccion.vehiculoId != null &&
+          (transaccion.vehiculoId === vehiculoId ||
+            transaccion.vehiculoId === parseInt(vehiculoId));
+
         // Check if transaction is for a repuesto that belongs to this vehicle
-        const matchesRepuesto = transaccion.repuestoId != null && 
-                               repuestoIds.includes(transaccion.repuestoId);
-        
+        const matchesRepuesto = transaccion.repuestoId != null &&
+          repuestoIds.includes(transaccion.repuestoId);
+
         console.log(`Transaction ${transaccion.id}:`, {
           transVehiculoId: transaccion.vehiculoId,
           transRepuestoId: transaccion.repuestoId,
@@ -139,12 +139,12 @@ const transaccionesService = {
           matchesRepuesto,
           matches: matchesVehicle || matchesRepuesto
         });
-        
+
         return matchesVehicle || matchesRepuesto;
       });
-      
+
       console.log('Filtered transactions:', filteredTransacciones);
-      
+
       // Map transactions with their type information
       const vehiculoTransacciones = filteredTransacciones
         .map(transaccion => {
@@ -152,18 +152,18 @@ const transaccionesService = {
             nombre: 'Tipo desconocido',
             categoria: transaccion.monto > 0 ? 'INGRESO' : 'EGRESO'
           };
-          
+
           return {
             ...transaccion,
             tipo_transaccion: tipo,
             // Ensure we have a proper date string for sorting
-            fecha: Array.isArray(transaccion.fecha) 
+            fecha: Array.isArray(transaccion.fecha)
               ? new Date(transaccion.fecha[0], transaccion.fecha[1] - 1, transaccion.fecha[2])
               : new Date(transaccion.fecha)
           };
         })
         .sort((a, b) => b.fecha - a.fecha); // Sort by date descending
-      
+
       console.log('Processed transactions:', vehiculoTransacciones);
       return vehiculoTransacciones;
     } catch (error) {
@@ -330,8 +330,8 @@ const normalizarEOrdenar = (
 
     const totalInversion = !isNullish(fromApi?.totalInversion) ? fromApi.totalInversion : (g.total_inversion ?? g.totalInversion);
     const totalIngresos = !isNullish(fromApi?.totalIngresos) ? fromApi.totalIngresos : (g.total_ingresos ?? g.totalIngresos);
-    const totalEgresos  = !isNullish(fromApi?.totalEgresos)  ? fromApi.totalEgresos  : (g.total_egresos  ?? g.totalEgresos);
-    const balanceNeto   = !isNullish(fromApi?.balanceNeto)   ? fromApi.balanceNeto   : (g.balance_neto   ?? g.balanceNeto);
+    const totalEgresos = !isNullish(fromApi?.totalEgresos) ? fromApi.totalEgresos : (g.total_egresos ?? g.totalEgresos);
+    const balanceNeto = !isNullish(fromApi?.balanceNeto) ? fromApi.balanceNeto : (g.balance_neto ?? g.balanceNeto);
 
     return {
       id: isNullish(idGen) ? fromApi?.id : idGen,
@@ -387,7 +387,7 @@ const VehiculosJerarquicos = () => {
   const [loadingRepuestos, setLoadingRepuestos] = useState({});
   const [showRawData, setShowRawData] = useState(false);
   const [rawData, setRawData] = useState(null);
-  
+
   // State for search and expanded sections
   const [searchQuery, setSearchQuery] = useState('');
   const [activeBrandKeys, setActiveBrandKeys] = useState([]);
@@ -518,9 +518,9 @@ const VehiculosJerarquicos = () => {
   // Find a vehicle by its code in the hierarchy
   const findVehiclePath = useCallback((codigo, marcasList) => {
     if (!codigo) return null;
-    
+
     const normalizedQuery = codigo.trim().toLowerCase();
-    
+
     for (const marca of marcasList) {
       for (const modelo of (marca.modelos || [])) {
         for (const generacion of (modelo.generaciones || [])) {
@@ -540,7 +540,7 @@ const VehiculosJerarquicos = () => {
   const handleSearch = useCallback((value) => {
     console.log('Search called with value:', value);
     console.log('Current marcas:', marcas);
-    
+
     const query = value.trim().toLowerCase();
     setSearchQuery(query);
 
@@ -560,7 +560,7 @@ const VehiculosJerarquicos = () => {
       if (match) {
         const { marca, modelo, generacion, vehiculo } = match;
         console.log('Found vehicle:', match);
-        
+
         // Set active brand and expand the hierarchy
         setActiveBrandKeys([`marca-${marca.id}`]);
         setExpandedModelsByMarca(prev => ({
@@ -571,12 +571,12 @@ const VehiculosJerarquicos = () => {
           ...prev,
           [modelo.id]: [...(prev[modelo.id] || []), generacion.id]
         }));
-        
+
         // Expand the vehicle and scroll to it
         setTimeout(() => {
           setExpandedKeys(prev => ({ ...prev, [vehiculo.id]: true }));
           setVehiculoMatchId(vehiculo.id);
-          
+
           // Scroll to the matched vehicle
           if (vehiculoRefs.current[vehiculo.id]) {
             vehiculoRefs.current[vehiculo.id].scrollIntoView({
@@ -584,11 +584,11 @@ const VehiculosJerarquicos = () => {
               block: 'center'
             });
           }
-          
+
           // Remove highlight after 3 seconds
           setTimeout(() => setVehiculoMatchId(null), 3000);
         }, 100);
-        
+
         // Set filtered to only show the matching brand
         setFilteredMarcas([marca]);
       } else {
@@ -601,8 +601,8 @@ const VehiculosJerarquicos = () => {
       // Filter by all fields: brand, model, generation, and vehicle code
       const filtered = marcas.filter(marca => {
         const brandMatch = marca.nombre.toLowerCase().includes(query);
-        
-        const modelMatch = (marca.modelos || []).some(modelo => 
+
+        const modelMatch = (marca.modelos || []).some(modelo =>
           modelo.nombre.toLowerCase().includes(query) ||
           (modelo.generaciones || []).some(generacion =>
             generacion.nombre.toLowerCase().includes(query) ||
@@ -611,13 +611,13 @@ const VehiculosJerarquicos = () => {
             )
           )
         );
-        
+
         return brandMatch || modelMatch;
       });
-      
+
       console.log('Filtered results:', filtered);
       setFilteredMarcas(filtered);
-      
+
       // Auto-expand matching brands
       if (filtered.length > 0 && filtered.length <= 5) {
         setActiveBrandKeys(filtered.map(m => `marca-${m.id}`));
@@ -652,6 +652,7 @@ const VehiculosJerarquicos = () => {
 
   useEffect(() => {
     cargarDatos(); // ✅ aquí es donde cambiamos el estado con la data fusionada
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array since this should only run once on mount
 
   // Cargar tipos de transacciones al montar el componente
@@ -660,23 +661,23 @@ const VehiculosJerarquicos = () => {
       try {
         setLoadingTipos(true);
         const tipos = await getTiposTransacciones();
-        
+
         // Actualizar los mapeos de tipos de transacción
         const nuevoCategoriaPorTipoId = {};
-        
+
         tipos.forEach(tipo => {
           if (tipo.activo) {
             nuevoCategoriaPorTipoId[tipo.id] = tipo.categoria;
           }
         });
-        
+
         categoriaPorTipoId = nuevoCategoriaPorTipoId;
         setTiposTransaccionesCargados(true);
-        
+
       } catch (error) {
         console.error('Error al cargar tipos de transacciones:', error);
         message.error('Error al cargar los tipos de transacciones');
-        
+
         // En caso de error, marcar como cargado para evitar bloqueo infinito
         setTiposTransaccionesCargados(true);
       } finally {
@@ -704,10 +705,10 @@ const VehiculosJerarquicos = () => {
 
     try {
       setLoadingTransacciones(prev => ({ ...prev, [vehiculoId]: true }));
-      
+
       // ✅ CORREGIDO: Usar el servicio correcto (copiado de VehiculoDetalle)
       const transaccionesData = await transaccionesService.getTransaccionesPorVehiculo(vehiculoId);
-      
+
       // Asegurarse de que tenemos un array, incluso si la respuesta es null/undefined
       const transaccionesNormalizadas = Array.isArray(transaccionesData) ? transaccionesData : [];
 
@@ -729,7 +730,7 @@ const VehiculosJerarquicos = () => {
     } catch (error) {
       console.error(`Error al cargar transacciones del vehículo ${vehiculoId}:`, error);
       message.error(`Error al cargar transacciones: ${error.message || 'Error desconocido'}`);
-      
+
       // Establecer array vacío en caso de error
       setTransacciones(prev => ({
         ...prev,
@@ -749,7 +750,7 @@ const VehiculosJerarquicos = () => {
     try {
       setLoadingRepuestos(prev => ({ ...prev, [vehiculoId]: true }));
       const repuestosData = await repuestosService.getRepuestosPorVehiculo(vehiculoId);
-      
+
       setRepuestos(prev => ({
         ...prev,
         [vehiculoId]: Array.isArray(repuestosData) ? repuestosData : []
@@ -757,7 +758,7 @@ const VehiculosJerarquicos = () => {
     } catch (error) {
       console.error(`Error al cargar repuestos del vehículo ${vehiculoId}:`, error);
       message.warning(`No se pudieron cargar los repuestos: ${error.message || 'Error desconocido'}`);
-      
+
       // Establecer array vacío en caso de error
       setRepuestos(prev => ({
         ...prev,
@@ -788,7 +789,7 @@ const VehiculosJerarquicos = () => {
         const descripcion = text || record.concepto || record.detalle || '-';
         const fechaTransaccion = record.fecha || record.fecha_transaccion || record.fechaTransaccion;
         const ingreso = esIngreso(record);
-        
+
         return (
           <div>
             <div style={{ marginBottom: 4 }}>{toStr(descripcion, '-')}</div>
@@ -813,7 +814,7 @@ const VehiculosJerarquicos = () => {
         const ingreso = esIngreso(record);
         const monto = getMontoTransaccion(record);
         const signo = ingreso ? '+' : '-';
-        
+
         return (
           <Text strong style={{ color: ingreso ? 'green' : 'red' }}>
             {signo} {formatMonto(monto).replace('₡', '')}
@@ -831,7 +832,7 @@ const VehiculosJerarquicos = () => {
       RESERVADO: { color: 'warning', text: 'Reservado' },
       DAÑADO: { color: 'error', text: 'Dañado' }
     };
-    
+
     const estadoInfo = estados[estado] || { color: 'default', text: estado || 'Desconocido' };
     return <Tag color={estadoInfo.color}>{estadoInfo.text}</Tag>;
   };
@@ -854,10 +855,10 @@ const VehiculosJerarquicos = () => {
             onClick={(e) => {
               e.stopPropagation();
               const nuevoEstado = !expandedKeys[vehiculo.id];
-              
+
               // Actualizar estado de expansión
               setExpandedKeys(prev => ({ ...prev, [vehiculo.id]: nuevoEstado }));
-              
+
               // Cargar transacciones y repuestos si se está expandiendo
               if (nuevoEstado) {
                 handleExpand(vehiculo.id, true);
@@ -885,17 +886,17 @@ const VehiculosJerarquicos = () => {
                       height={40}
                       src={vehiculo.imagen_url}
                       alt={`Vehículo ${vehiculo.codigo_vehiculo}`}
-                      style={{ 
+                      style={{
                         objectFit: 'cover',
                         borderRadius: 4,
                         border: '1px solid #d9d9d9'
                       }}
                       placeholder={
-                        <div style={{ 
-                          width: 40, 
-                          height: 40, 
-                          display: 'flex', 
-                          alignItems: 'center', 
+                        <div style={{
+                          width: 40,
+                          height: 40,
+                          display: 'flex',
+                          alignItems: 'center',
                           justifyContent: 'center',
                           backgroundColor: '#f5f5f5',
                           borderRadius: 4,
@@ -907,11 +908,11 @@ const VehiculosJerarquicos = () => {
                       preview={true}
                     />
                   ) : (
-                    <div style={{ 
-                      width: 40, 
-                      height: 40, 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                    <div style={{
+                      width: 40,
+                      height: 40,
+                      display: 'flex',
+                      alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: '#f5f5f5',
                       borderRadius: 4,
@@ -932,8 +933,8 @@ const VehiculosJerarquicos = () => {
                 <Col flex="none">
                   <Space wrap size={[8, 8]} style={{ justifyContent: 'flex-end' }}>
                     {vehiculo.estado === 'REPARACION' && (
-                      <Button 
-                        type="primary" 
+                      <Button
+                        type="primary"
                         size="small"
                         icon={<CheckOutlined />}
                         style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
@@ -1007,12 +1008,12 @@ const VehiculosJerarquicos = () => {
                         const porcentajeBase = Math.min(100, porcentajeAbsoluto);
                         const porcentajeExcedente = Math.max(0, porcentajeAbsoluto - 100);
                         const esNegativo = porcentaje < 0;
-                        
+
                         return (
-                          <div> 
-                            <div style={{ 
-                              width: '100%', 
-                              backgroundColor: '#f0f0f0', 
+                          <div>
+                            <div style={{
+                              width: '100%',
+                              backgroundColor: '#f0f0f0',
                               borderRadius: 4,
                               marginTop: 4,
                               height: 6,
@@ -1021,7 +1022,7 @@ const VehiculosJerarquicos = () => {
                             }}>
                               {/* Barra base (hasta 100%) */}
                               {porcentajeAbsoluto > 0 && (
-                                <div 
+                                <div
                                   style={{
                                     width: '100%',
                                     height: '100%',
@@ -1034,10 +1035,10 @@ const VehiculosJerarquicos = () => {
                                   }}
                                 />
                               )}
-                              
+
                               {/* Barra de excedente (más del 100%) */}
                               {porcentajeExcedente > 0 && (
-                                <div 
+                                <div
                                   style={{
                                     width: `${porcentajeExcedente}%`,
                                     height: '100%',
@@ -1052,9 +1053,9 @@ const VehiculosJerarquicos = () => {
                                 />
                               )}
                             </div>
-                            
-                            <div style={{ 
-                              fontSize: 12, 
+
+                            <div style={{
+                              fontSize: 12,
                               color: '#666',
                               marginTop: 4,
                               display: 'flex',
@@ -1062,23 +1063,23 @@ const VehiculosJerarquicos = () => {
                               alignItems: 'center'
                             }}>
                               <span>
-                                {porcentaje.toLocaleString('es-CR', { 
-                                  minimumFractionDigits: 2, 
-                                  maximumFractionDigits: 2 
+                                {porcentaje.toLocaleString('es-CR', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2
                                 })}% de la inversión
                               </span>
                               {porcentajeExcedente > 0 && (
-                                <span style={{ 
+                                <span style={{
                                   color: '#d48806', // Color de texto para el excedente
                                   fontWeight: 500,
                                   marginLeft: 8,
                                   display: 'inline-flex',
                                   alignItems: 'center'
                                 }}>
-                                  <span style={{ 
+                                  <span style={{
                                     display: 'inline-block',
-                                    width: 8, 
-                                    height: 8, 
+                                    width: 8,
+                                    height: 8,
                                     borderRadius: '50%',
                                     backgroundColor: '#faad14',
                                     marginRight: 4
@@ -1095,10 +1096,11 @@ const VehiculosJerarquicos = () => {
                   <Col xs={12} sm={6} md={4}>
                     <div>
                       <Text type="secondary" style={{ fontSize: '0.85em' }}>Monto pendiente</Text>
-                      <div style={{ marginTop: 2, color: 
-                        vehiculo.costo_pendiente > 0 ? '#f5222d' : // Rojo para deuda
-                        vehiculo.costo_pendiente < 0 ? '#d48806' : // Dorado para ganancia (mismo que el texto de ganancia)
-                        '#52c41a' // Verde para saldo cero
+                      <div style={{
+                        marginTop: 2, color:
+                          vehiculo.costo_pendiente > 0 ? '#f5222d' : // Rojo para deuda
+                            vehiculo.costo_pendiente < 0 ? '#d48806' : // Dorado para ganancia (mismo que el texto de ganancia)
+                              '#52c41a' // Verde para saldo cero
                       }}>
                         {vehiculo.costo_pendiente < 0 ? '+' : ''}{formatMonto(Math.abs(vehiculo.costo_pendiente))}
                       </div>
@@ -1108,9 +1110,9 @@ const VehiculosJerarquicos = () => {
                 {!isNullish(vehiculo.notas) && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed #f0f0f0' }}>
                     <Text type="secondary" style={{ fontSize: '0.85em' }}>Notas</Text>
-                    <div 
-                      style={{ 
-                        marginTop: 4, 
+                    <div
+                      style={{
+                        marginTop: 4,
                         whiteSpace: 'pre-line',
                         lineHeight: 1.6,
                         padding: '4px 0'
@@ -1238,10 +1240,10 @@ const VehiculosJerarquicos = () => {
   // Render a single vehicle card
   const renderVehiculoCard = (vehiculo, generacion, modelo, marca) => {
     const esVehiculoDestacado = vehiculoMatchId === vehiculo.id;
-    
+
     return (
-      <div 
-        key={`veh-${vehiculo.id}`} 
+      <div
+        key={`veh-${vehiculo.id}`}
         ref={el => (vehiculoRefs.current[vehiculo.id] = el)}
         style={{
           marginBottom: 16,
@@ -1260,18 +1262,18 @@ const VehiculosJerarquicos = () => {
   // Render a generation with its vehicles (MOSTRAR solamente, sin cálculos)
   const renderGeneracion = (generacion, modelo, marca) => {
     const isExpanded = expandedGensByModelo[modelo.id]?.includes(generacion.id);
-  
+
     const totalInversion = generacion.total_inversion || 0;
     const totalVentas = generacion.total_ingresos || 0;
     const totalEgresos = generacion.total_egresos || 0;
     const balanceNeto = generacion.balance_neto || 0;
-  
+
     const balanceColor = balanceNeto > 0 ? '#52c41a' : balanceNeto < 0 ? '#f5222d' : 'inherit';
-  
+
     const genName = generacion.nombre || 'Sin nombre';
     const years = `${generacion.anio_inicio || '?'}-${isNullish(generacion.anio_fin) ? 'Actual' : generacion.anio_fin}`;
     const descripcion = generacion.descripcion || '';
-  
+
     return (
       <div key={`gen-${generacion.id}`} style={{ marginBottom: 16 }}>
         <div
@@ -1306,7 +1308,7 @@ const VehiculosJerarquicos = () => {
               <Text type="secondary" style={{ fontSize: '0.9em' }}>{descripcion}</Text>
             </div>
           )}
-  
+
           {/* Resumen financiero: SOLO mostrar lo del endpoint */}
           <div style={{
             display: 'flex',
@@ -1334,7 +1336,7 @@ const VehiculosJerarquicos = () => {
             </div>
           </div>
         </div>
-  
+
         {isExpanded && generacion.vehiculos?.length > 0 && (
           <div style={{ marginLeft: 16 }}>
             {generacion.vehiculos.map(vehiculo =>
@@ -1349,10 +1351,10 @@ const VehiculosJerarquicos = () => {
   // Render a model with its generations
   const renderModelo = (modelo, marca) => {
     const isExpanded = expandedModelsByMarca[marca.id]?.includes(modelo.id);
-    
+
     return (
       <div key={`mod-${modelo.id}`} style={{ marginBottom: 16 }}>
-        <div 
+        <div
           onClick={() => toggleModel(marca.id, modelo.id)}
           style={{
             display: 'flex',
@@ -1374,10 +1376,10 @@ const VehiculosJerarquicos = () => {
             {isExpanded ? <UpOutlined style={{ marginLeft: 8 }} /> : <DownOutlined style={{ marginLeft: 8 }} />}
           </div>
         </div>
-        
+
         {isExpanded && modelo.generaciones?.length > 0 && (
           <div style={{ marginLeft: 16 }}>
-            {modelo.generaciones.map(generacion => 
+            {modelo.generaciones.map(generacion =>
               renderGeneracion(generacion, modelo, marca)
             )}
           </div>
@@ -1391,9 +1393,9 @@ const VehiculosJerarquicos = () => {
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '300px', padding: '40px 20px', textAlign: 'center' }}>
         <Spin size="large" />
         <div style={{ marginTop: '16px', fontSize: '16px', color: '#666' }}>
-          {loading ? 'Cargando vehículos...' : 
-           loadingTipos ? 'Cargando tipos de transacciones...' : 
-           'Inicializando...'}
+          {loading ? 'Cargando vehículos...' :
+            loadingTipos ? 'Cargando tipos de transacciones...' :
+              'Inicializando...'}
         </div>
       </div>
     );
@@ -1424,7 +1426,7 @@ const VehiculosJerarquicos = () => {
             )}
           </div>
         </div>
-        
+
         {showRawData && (
           <div style={{ marginTop: 16, padding: 16, background: '#f5f5f5', borderRadius: 4, maxHeight: 400, overflow: 'auto' }}>
             <pre style={{ margin: 0 }}>{JSON.stringify(rawData, null, 2)}</pre>
@@ -1433,7 +1435,7 @@ const VehiculosJerarquicos = () => {
       </div>
 
       {filteredMarcas.length > 0 ? (
-        <Collapse 
+        <Collapse
           activeKey={activeBrandKeys}
           onChange={(keys) => setActiveBrandKeys(keys)}
           expandIcon={({ isActive }) => isActive ? <UpOutlined /> : <DownOutlined />}
@@ -1441,7 +1443,7 @@ const VehiculosJerarquicos = () => {
           className="marcas-collapse"
         >
           {filteredMarcas.map((marca) => (
-            <Panel 
+            <Panel
               key={`marca-${marca.id}`}
               header={
                 <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
@@ -1466,9 +1468,9 @@ const VehiculosJerarquicos = () => {
                   {marca.modelos.map(modelo => renderModelo(modelo, marca))}
                 </div>
               ) : (
-                <Empty 
-                  description="No hay modelos para esta marca" 
-                  image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                <Empty
+                  description="No hay modelos para esta marca"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
                   style={{ margin: '16px 0' }}
                 />
               )}
@@ -1477,14 +1479,14 @@ const VehiculosJerarquicos = () => {
         </Collapse>
       ) : (
         <Card>
-          <Empty 
+          <Empty
             description={
               <span>
                 <InfoCircleOutlined style={{ marginRight: 4 }} />
                 No se encontraron vehículos que coincidan con la búsqueda
               </span>
-            } 
-            image={Empty.PRESENTED_IMAGE_SIMPLE} 
+            }
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         </Card>
       )}

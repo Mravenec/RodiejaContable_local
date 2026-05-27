@@ -1,5 +1,5 @@
-import React from 'react';
-import { Layout, Menu } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Layout, Menu, Typography } from 'antd';
 import { 
   HomeOutlined, 
   CarOutlined, 
@@ -13,11 +13,23 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const { Sider } = Layout;
+const { Text } = Typography;
 
 const Sidebar = ({ collapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  
+  // Para manejar responsividad interna si es necesario
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const items = [
     { key: '/', icon: <HomeOutlined />, label: 'Inicio' },
@@ -56,6 +68,7 @@ const Sidebar = ({ collapsed }) => {
       children: [
         { key: '/reportes', label: 'General' },
         { key: '/reportes/ventas', label: 'Ventas' },
+        { key: '/reportes/vehiculos', label: 'Vehículos' },
         { key: '/reportes/repuestos', label: 'Repuestos' }
       ]
     },
@@ -84,6 +97,9 @@ const Sidebar = ({ collapsed }) => {
       trigger={null} 
       collapsible 
       collapsed={collapsed}
+      breakpoint="lg"
+      collapsedWidth={isMobile ? 0 : 80}
+      width={220}
       style={{
         overflow: 'auto',
         height: '100vh',
@@ -91,37 +107,53 @@ const Sidebar = ({ collapsed }) => {
         left: 0,
         top: 0,
         bottom: 0,
+        zIndex: 1001, // Asegurar que esté por encima del contenido en móviles
+        boxShadow: '2px 0 8px 0 rgba(29,35,41,.05)',
+        backgroundColor: '#001529' // Manteniendo el color oscuro clásico
       }}
     >
       <div style={{ 
-        height: collapsed ? 32 : 'auto',
-        minHeight: 32,
-        margin: 16, 
+        height: collapsed ? 40 : 'auto',
+        minHeight: 40,
+        margin: '16px', 
         padding: collapsed ? 0 : '12px 16px',
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        color: 'white',
-        fontSize: collapsed ? '16px' : '18px',
-        fontWeight: 700,
-        background: 'rgba(255, 255, 255, 0.25)',
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
         borderRadius: '8px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
         textAlign: 'center',
-        lineHeight: '1.4',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         transition: 'all 0.3s ease',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis'
-      }}>
-        {collapsed ? 'RC' : 'Rodieja Contable'}
+        cursor: 'pointer',
+        overflow: 'hidden'
+      }} onClick={() => navigate('/')}>
+        <Text style={{ 
+          color: 'white',
+          fontSize: collapsed ? '16px' : '16px',
+          fontWeight: 600,
+          whiteSpace: 'nowrap',
+          margin: 0,
+          background: 'linear-gradient(to right, #ffffff, #e6f7ff)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>
+          {collapsed ? 'RC' : 'Rodieja Contable'}
+        </Text>
       </div>
+      
       <Menu
         theme="dark"
         mode="inline"
         selectedKeys={[location.pathname]}
+        defaultOpenKeys={[location.pathname.split('/')[1] || '']}
         items={items}
         onClick={({ key }) => key !== 'cerrar-sesion' && navigate(key)}
+        style={{
+          borderRight: 0,
+          padding: '0 8px'
+        }}
       />
     </Sider>
   );

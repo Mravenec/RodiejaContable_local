@@ -28,7 +28,7 @@ import {
   PlusOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
-  DollarOutlined,
+  MoneyCollectOutlined,
   UndoOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
@@ -498,71 +498,78 @@ const Finanzas = () => {
   };
 
   return (
-    <div className="finanzas-container">
-      <div className="page-header">
-        <Typography.Title level={2}>Gestión Financiera</Typography.Title>
+    <div className="finanzas-container" style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* ── Header de navegación ─────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
+          <Typography.Title level={3} style={{ margin: 0, fontWeight: 600 }}>Gestión Financiera</Typography.Title>
+          <Typography.Text type="secondary" style={{ display: 'block' }}>Administra los ingresos y egresos de la empresa</Typography.Text>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <Button 
+            icon={<FilterOutlined />} 
+            onClick={toggleFiltros}
+            size="large"
+          >
+            {filtrosVisibles ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+          </Button>
           <Button 
             type="primary" 
             icon={<PlusOutlined />} 
             onClick={handleNuevaTransaccion}
-            style={{ marginRight: 8 }}
+            size="large"
+            style={{ borderRadius: '6px' }}
           >
             Nueva Transacción
-          </Button>
-          <Button 
-            icon={<FilterOutlined />} 
-            onClick={toggleFiltros}
-          >
-            {filtrosVisibles ? 'Ocultar Filtros' : 'Mostrar Filtros'}
           </Button>
         </div>
       </div>
 
       {/* Estadísticas */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
             <Statistic
-              title="Ingresos"
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
               value={estadisticas.ingresos}
               precision={2}
-              valueStyle={{ color: '#52c41a' }}
-              prefix={<><ArrowUpOutlined /> ₡</>}
-              suffix=""
+              valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
+              prefix={<ArrowUpOutlined style={{ fontSize: '20px' }} />}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
             />
           </Card>
         </Col>
-        <Col span={6}>
-          <Card>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
             <Statistic
-              title="Egresos"
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Egresos Totales</span>}
               value={estadisticas.egresos}
               precision={2}
-              valueStyle={{ color: '#f5222d' }}
-              prefix={<><ArrowDownOutlined /> ₡</>}
-              suffix=""
+              valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: '24px' }}
+              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
             />
           </Card>
         </Col>
-        <Col span={6}>
-          <Card>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
             <Statistic
-              title="Balance"
-              value={estadisticas.balance}
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Balance Neto</span>}
+              value={Math.abs(estadisticas.balance)}
               precision={2}
-              valueStyle={{ color: estadisticas.balance >= 0 ? '#52c41a' : '#f5222d' }}
-              prefix={<>{estadisticas.balance >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} ₡</>}
-              suffix=""
+              valueStyle={{ color: estadisticas.balance >= 0 ? '#52c41a' : '#f5222d', fontWeight: 600, fontSize: '24px' }}
+              prefix={estadisticas.balance >= 0 ? <ArrowUpOutlined style={{ fontSize: '20px' }} /> : <ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              formatter={(value) => `${estadisticas.balance < 0 ? '-' : ''}₡${value.toLocaleString('es-CR')}`}
             />
           </Card>
         </Col>
-        <Col span={6}>
-          <Card>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
             <Statistic
-              title="Total Transacciones"
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Total Transacciones</span>}
               value={estadisticas.totalTransacciones}
-              prefix={<DollarOutlined />}
+              valueStyle={{ color: '#1890ff', fontWeight: 600, fontSize: '24px' }}
+              prefix={<MoneyCollectOutlined style={{ fontSize: '20px' }} />}
             />
           </Card>
         </Col>
@@ -571,8 +578,10 @@ const Finanzas = () => {
       {/* Filtros */}
       {filtrosVisibles && (
         <Card 
-          title="Filtros" 
-          style={{ marginBottom: 24 }}
+          title={<span style={{ fontWeight: 600, fontSize: '16px' }}>Filtros de Búsqueda</span>} 
+          style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
+          bordered={false}
+          headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '56px' }}
           extra={
             <Button 
               type="link" 
@@ -683,16 +692,21 @@ const Finanzas = () => {
       <Card
         title={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Transacciones</span>
+            <span style={{ fontWeight: 600, fontSize: '16px' }}>Historial de Transacciones</span>
             <Button 
               icon={<ReloadOutlined />} 
               onClick={() => obtenerTransacciones()}
               loading={loading.transacciones}
+              type="text"
             >
               Actualizar
             </Button>
           </div>
         }
+        bordered={false}
+        style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}
+        headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
+        bodyStyle={{ padding: '0' }}
       >
         {error && (
           <div style={{ marginBottom: 16 }}>
@@ -700,22 +714,23 @@ const Finanzas = () => {
           </div>
         )}
         
-        <Table
-          columns={columns}
-          dataSource={transacciones}
-          rowKey="codigoTransaccion"
-          loading={loading.transacciones}
-          pagination={{
-            ...pagination,
-            showSizeChanger: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} transacciones`,
-            pageSizeOptions: ['10', '20', '50', '100'],
-            showQuickJumper: true,
-          }}
-          onChange={handleTableChange}
-          scroll={{ x: 'max-content' }}
-          bordered
-        />
+        <div style={{ padding: '24px' }}>
+          <Table
+            columns={columns}
+            dataSource={transacciones}
+            rowKey="codigoTransaccion"
+            loading={loading.transacciones}
+            pagination={{
+              ...pagination,
+              showSizeChanger: true,
+              showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} transacciones`,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showQuickJumper: true,
+            }}
+            onChange={handleTableChange}
+            scroll={{ x: 'max-content' }}
+          />
+        </div>
       </Card>
     </div>
   );

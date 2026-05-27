@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Table, Button, Space, Typography, Input, Select, Tag, Spin, Row, Col } from 'antd';
-import { SearchOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { SearchOutlined, PlusOutlined, ReloadOutlined, CarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useVehiculos } from '../../hooks/useVehiculos';
 import { formatCurrency } from '../../utils/formatters';
@@ -144,43 +144,36 @@ const Vehiculos = () => {
 
 
   return (
-    <div className="vehiculos-container" style={{ padding: '16px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <Title level={3} style={{ marginBottom: '8px' }}>Gestión de Vehículos</Title>
-        <Text type="secondary">Administra el inventario de vehículos disponibles</Text>
+    <div className="vehiculos-container" style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* ── Header de navegación ─────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <Title level={3} style={{ margin: 0, fontWeight: 600 }}>Gestión de Vehículos</Title>
+          <Text type="secondary" style={{ display: 'block' }}>Administra el inventario de vehículos disponibles</Text>
+        </div>
+        <Space>
+          <Button
+            icon={<CarOutlined />}
+            onClick={() => navigate('/vehiculos/jerarquia')}
+          >
+            Ver por Generaciones
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate('/vehiculos/nuevo')}
+            size="large"
+            style={{ borderRadius: '6px' }}
+          >
+            Agregar Vehículo
+          </Button>
+        </Space>
       </div>
 
       <Card
-        title={
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '16px',
-          }}>
-            <span style={{ whiteSpace: 'nowrap' }}>Lista de Vehículos</span>
-            <Space>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate('/vehiculos/nuevo')}
-                style={{ flexShrink: 0 }}
-              >
-                Agregar Vehículo
-              </Button>
-              <Button
-                type="default"
-                icon={<ReloadOutlined />}
-                onClick={() => navigate('/vehiculos/jerarquia')}
-              >
-                Ver por Generaciones
-              </Button>
-            </Space>
-          </div>
-        }
-        style={{ marginBottom: '24px', overflow: 'hidden' }}
-        bodyStyle={{ padding: '16px' }}
+        bordered={false}
+        style={{ borderRadius: '12px', border: '1px solid #f0f0f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', marginBottom: '24px' }}
+        bodyStyle={{ padding: '24px' }}
       >
         <div style={{ marginBottom: '16px' }}>
           <Row gutter={[16, 16]} align="middle">

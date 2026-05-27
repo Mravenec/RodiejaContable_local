@@ -22,7 +22,6 @@ import {
 import { 
   SaveOutlined, 
   ArrowLeftOutlined,
-  TransactionOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
   PlusOutlined,
@@ -449,21 +448,28 @@ const NuevaTransaccion = () => {
   };
 
   return (
-    <div>
-      <Button 
-        type="text" 
-        icon={<ArrowLeftOutlined />} 
-        onClick={() => navigate(-1)}
-        style={{ marginBottom: 16 }}
+    <div style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* ── Header de navegación ─────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '8px' }}>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate(-1)}
+          style={{ color: '#595959', fontWeight: 500 }}
+        >
+          Volver
+        </Button>
+        <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+          Nueva Transacción
+        </Title>
+        <div style={{ width: '100px' }}></div> {/* Spacer */}
+      </div>
+
+      <Card
+        bordered={false}
+        style={{ borderRadius: '12px', border: '1px solid #f0f0f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
+        bodyStyle={{ padding: '32px' }}
       >
-        Volver
-      </Button>
-      
-      <Title level={2}>
-        <TransactionOutlined /> Nueva Transacción
-      </Title>
-      
-      <Card>
         <Tabs 
           defaultActiveKey={tipoTransaccion.toLowerCase()}
           onChange={(key) => setTipoTransaccion(key.toUpperCase())}
@@ -837,26 +843,28 @@ const NuevaTransaccion = () => {
                 </Col>
               </Row>
               
-              <Divider />
+              <Divider style={{ margin: '32px 0 24px' }} />
               
-              <Form.Item>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <Button 
+                  size="large"
+                  onClick={() => navigate(-1)}
+                  style={{ borderRadius: '6px' }}
+                >
+                  Cancelar
+                </Button>
                 <Button 
                   type="primary" 
                   htmlType="submit" 
                   icon={<SaveOutlined />}
                   loading={isCreating}
                   disabled={isCreating}
+                  size="large"
+                  style={{ borderRadius: '6px', padding: '0 32px' }}
                 >
                   {isCreating ? 'Guardando...' : 'Guardar Transacción'}
                 </Button>
-                
-                <Button 
-                  style={{ marginLeft: 8 }}
-                  onClick={() => navigate(-1)}
-                >
-                  Cancelar
-                </Button>
-              </Form.Item>
+              </div>
             </Form>
           </TabPane>
           
@@ -1070,25 +1078,27 @@ const NuevaTransaccion = () => {
                 </Col>
               </Row>
               
-              <Divider />
+              <Divider style={{ margin: '32px 0 24px' }} />
               
-              <Form.Item>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <Button 
+                  size="large"
+                  onClick={() => navigate(-1)}
+                  style={{ borderRadius: '6px' }}
+                >
+                  Cancelar
+                </Button>
                 <Button 
                   type="primary" 
                   htmlType="submit" 
                   icon={<SaveOutlined />}
                   loading={isCreating}
+                  size="large"
+                  style={{ borderRadius: '6px', padding: '0 32px' }}
                 >
                   Registrar Egreso
                 </Button>
-                
-                <Button 
-                  style={{ marginLeft: 8 }}
-                  onClick={() => navigate(-1)}
-                >
-                  Cancelar
-                </Button>
-              </Form.Item>
+              </div>
             </Form>
           </TabPane>
         </Tabs>

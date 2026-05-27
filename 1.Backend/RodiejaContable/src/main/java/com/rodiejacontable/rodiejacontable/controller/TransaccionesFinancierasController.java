@@ -145,4 +145,14 @@ public class TransaccionesFinancierasController {
         List<Map<String, Object>> reportes = transaccionesService.getReporteVentasRepuestosMensual(fechaInicio, fechaFin, generacionId);
         return new ResponseEntity<>(reportes, HttpStatus.OK);
     }
+
+    @GetMapping("/reporte-vehiculos")
+    public ResponseEntity<List<Map<String, Object>>> getReporteVentasVehiculosMensual(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(required = false) Integer generacionId) {
+        
+        List<Map<String, Object>> reportes = transaccionesService.getReporteVentasVehiculosMensual(fechaInicio, fechaFin, generacionId);
+        return new ResponseEntity<>(reportes, HttpStatus.OK);
+    }
 }

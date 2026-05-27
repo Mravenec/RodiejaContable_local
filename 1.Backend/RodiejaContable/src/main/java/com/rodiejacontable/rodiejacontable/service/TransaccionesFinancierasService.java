@@ -265,6 +265,40 @@ public class TransaccionesFinancierasService {
         
         return transaccionesRepository.save(reembolso);
     }
+    public List<Map<String, Object>> getReporteVentasVehiculosMensual(LocalDate fechaInicio, LocalDate fechaFin, Integer generacionId) {
+        List<Map<String, Object>> reportes = transaccionesRepository.getReporteVentasVehiculosMensual(fechaInicio, fechaFin, generacionId);
+        
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        
+        for (Map<String, Object> roReporte : reportes) {
+            Map<String, Object> reporte = new HashMap<>(roReporte);
+            
+            Object mesObj = reporte.get("mes");
+            if (mesObj instanceof Number) {
+                int mes = ((Number) mesObj).intValue();
+                String nombreMes = java.time.Month.of(mes)
+                    .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "ES"));
+                // Capitalize first letter
+                nombreMes = nombreMes.substring(0, 1).toUpperCase() + nombreMes.substring(1);
+                reporte.put("nombreMes", nombreMes);
+            }
+            
+            Number totalVentas = (Number) reporte.get("totalVentas");
+            Number totalInversion = (Number) reporte.get("totalInversion");
+            Number totalComisiones = (Number) reporte.get("totalComisiones");
+            
+            double ventas = totalVentas != null ? totalVentas.doubleValue() : 0.0;
+            double inversion = totalInversion != null ? totalInversion.doubleValue() : 0.0;
+            double comisiones = totalComisiones != null ? totalComisiones.doubleValue() : 0.0;
+            
+            double gananciaNeta = ventas - inversion - comisiones;
+            reporte.put("gananciaNeta", gananciaNeta);
+            
+            result.add(reporte);
+        }
+        
+        return result;
+    }
     
     public List<Map<String, Object>> getReporteVentasRepuestosMensual(LocalDate fechaInicio, LocalDate fechaFin, Integer generacionId) {
         List<Map<String, Object>> reportes = transaccionesRepository.getReporteVentasRepuestosMensual(fechaInicio, fechaFin, generacionId);

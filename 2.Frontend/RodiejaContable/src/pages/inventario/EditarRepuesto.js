@@ -18,8 +18,7 @@ import {
 } from 'antd';
 import { 
   SaveOutlined, 
-  ArrowLeftOutlined,
-  EditOutlined
+  ArrowLeftOutlined
 } from '@ant-design/icons';
 import InventarioService from '../../api/inventario';
 import vehiculoService from '../../api/vehiculos';
@@ -214,21 +213,29 @@ const EditarRepuesto = () => {
   const esGenerico = repuestoActual?.vehiculoOrigenId == null;
 
   return (
-    <div>
-      <Button 
-        type="text" 
-        icon={<ArrowLeftOutlined />} 
-        onClick={() => navigate(-1)}
-        style={{ marginBottom: 16 }}
+    <div style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* ── Header de navegación ─────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '8px' }}>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate(-1)}
+          style={{ color: '#595959', fontWeight: 500 }}
+          disabled={loading}
+        >
+          Volver
+        </Button>
+        <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+          Editar Repuesto {repuestoActual?.codigo}
+        </Title>
+        <div style={{ width: '100px' }}></div> {/* Spacer */}
+      </div>
+
+      <Card
+        bordered={false}
+        style={{ borderRadius: '12px', border: '1px solid #f0f0f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
+        bodyStyle={{ padding: '32px' }}
       >
-        Volver
-      </Button>
-      
-      <Title level={2}>
-        <EditOutlined /> Editar Repuesto {repuestoActual?.codigo}
-      </Title>
-      
-      <Card>
         <div style={{ marginBottom: 24, padding: 16, backgroundColor: esGenerico ? '#f6ffed' : '#f0f8ff', borderRadius: 8 }}>
           <Text strong style={{ fontSize: 16 }}>Origen del Repuesto: </Text>
           {esGenerico ? (
@@ -250,7 +257,9 @@ const EditarRepuesto = () => {
         >
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Divider orientation="left">Información del Repuesto</Divider>
+              <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '16px' }}>
+                Información del Repuesto
+              </Text>
               
               <Form.Item
                 name="parte_vehiculo"
@@ -281,7 +290,9 @@ const EditarRepuesto = () => {
             </Col>
             
             <Col xs={24} md={12}>
-              <Divider orientation="left">Precios y Estado</Divider>
+              <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '16px' }}>
+                Precios y Estado
+              </Text>
               
               <Row gutter={16}>
                 <Col span={12}>
@@ -395,7 +406,9 @@ const EditarRepuesto = () => {
             </Col>
           </Row>
 
-          <Divider orientation="left">Ubicación Física</Divider>
+          <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', margin: '32px 0 16px' }}>
+            Ubicación Física
+          </Text>
           
           <div style={{ marginBottom: '16px' }}>
             <Checkbox
@@ -508,25 +521,27 @@ const EditarRepuesto = () => {
             </div>
           )}
           
-          <Divider />
+          <Divider style={{ margin: '32px 0 24px' }} />
           
-          <Form.Item>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button 
+              size="large"
+              onClick={() => navigate(-1)}
+              style={{ borderRadius: '6px' }}
+            >
+              Cancelar
+            </Button>
             <Button 
               type="primary" 
               htmlType="submit" 
               icon={<SaveOutlined />}
               loading={loading}
+              size="large"
+              style={{ borderRadius: '6px', padding: '0 32px' }}
             >
               Guardar Cambios
             </Button>
-            
-            <Button 
-              style={{ marginLeft: 8 }}
-              onClick={() => navigate(-1)}
-            >
-              Cancelar
-            </Button>
-          </Form.Item>
+          </div>
         </Form>
       </Card>
     </div>

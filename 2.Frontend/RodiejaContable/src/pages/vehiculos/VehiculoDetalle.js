@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Descriptions, Typography, Tabs, Image, Tag, Spin, message } from 'antd';
+import { Card, Button, Typography, Tabs, Image, Tag, Spin, message, Row, Col, Divider } from 'antd';
 import { 
   ArrowLeftOutlined, 
   EditOutlined, 
   CheckOutlined,
   ToolOutlined, 
   FileTextOutlined,
-  DollarOutlined,
+  MoneyCollectOutlined,
   ReloadOutlined,
   HistoryOutlined
 } from '@ant-design/icons';
@@ -462,7 +462,7 @@ const VehiculoDetalle = () => {
         Volver a la lista
       </Button>
 
-      <Card>
+      <Card bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '24px' }}>
             <div style={{ flex: '0 0 300px', marginRight: '24px', marginBottom: '16px' }}>
@@ -523,7 +523,7 @@ const VehiculoDetalle = () => {
                     {vehiculo.estado !== 'VENDIDO' && (
                       <Button 
                         type="primary" 
-                        icon={<DollarOutlined />}
+                        icon={<MoneyCollectOutlined />}
                         onClick={() => navigate(`/finanzas/venta-vehiculo/${vehiculo.id}`)}
                       >
                         Registrar Venta
@@ -536,211 +536,151 @@ const VehiculoDetalle = () => {
           </div>
 
           <Tabs defaultActiveKey="1" style={{ marginTop: '16px', width: '100%' }}>
-            <TabPane tab={
-              <span><FileTextOutlined /> Información General</span>
-            } key="1">
-              <div>
-                {/* Información Básica del Vehículo */}
-                <Card 
-                  size="small" 
-                  title={<><Text strong>📋 Información Básica</Text></>}
-                  style={{ marginBottom: '16px' }}
-                >
-                  <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-                    <Descriptions.Item label="Año" labelStyle={{ fontWeight: 'bold' }}>
-                      <Text style={{ fontSize: '15px' }}>{vehiculo.anio || 'No especificado'}</Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Código" labelStyle={{ fontWeight: 'bold' }}>
-                      <Text code>{vehiculo.codigoVehiculo || 'Sin código'}</Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Fecha de Ingreso" labelStyle={{ fontWeight: 'bold' }}>
-                      {formatDate(vehiculo.fechaIngreso)}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Estado" labelStyle={{ fontWeight: 'bold' }}>
-                      {getEstadoTag(vehiculo.estado)}
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Card>
+            <TabPane tab={<span><FileTextOutlined /> Información General</span>} key="1">
+              {/* ── Identificación ── */}
+              <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                Identificación
+              </Text>
+              <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+              <Row gutter={[24, 16]}>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Año</Text>
+                  <Text strong style={{ fontSize: '15px' }}>{vehiculo.anio || '—'}</Text>
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Código</Text>
+                  <Text code>{vehiculo.codigoVehiculo || 'Sin código'}</Text>
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Estado</Text>
+                  {getEstadoTag(vehiculo.estado)}
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Generación</Text>
+                  <Text strong>{vehiculo.generacion?.nombre || '—'}</Text>
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Fecha de Ingreso</Text>
+                  <Text>{formatDate(vehiculo.fechaIngreso)}</Text>
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Vehículo Activo</Text>
+                  <Tag color={vehiculo.activo !== false ? 'success' : 'default'}>
+                    {vehiculo.activo !== false ? 'Activo' : 'Inactivo'}
+                  </Tag>
+                </Col>
+              </Row>
 
-                {/* Especificaciones Técnicas */}
-                <Card 
-                  size="small" 
-                  title={<><Text strong>⚙️ Especificaciones Técnicas</Text></>}
-                  style={{ marginBottom: '16px' }}
-                >
-                  <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-                    <Descriptions.Item label="Transmisión" labelStyle={{ fontWeight: 'bold' }}>
-                      <Tag color="blue">{vehiculo.transmision || 'No especificado'}</Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Tracción" labelStyle={{ fontWeight: 'bold' }}>
-                      <Tag color="green">{vehiculo.traccion || 'No especificado'}</Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Combustible" labelStyle={{ fontWeight: 'bold' }}>
-                      <Tag color="orange">{vehiculo.combustible || 'No especificado'}</Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Cilindraje" labelStyle={{ fontWeight: 'bold' }}>
-                      <Tag color="purple">{vehiculo.cilindraje || 'No especificado'}</Tag>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Card>
+              {/* ── Especificaciones Técnicas ── */}
+              <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginTop: '24px' }}>
+                Especificaciones Técnicas
+              </Text>
+              <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+              <Row gutter={[24, 16]}>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Transmisión</Text>
+                  <Tag color="blue">{vehiculo.transmision || 'N/E'}</Tag>
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Tracción</Text>
+                  <Tag color="green">{vehiculo.traccion || 'N/E'}</Tag>
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Combustible</Text>
+                  <Tag color="orange">{vehiculo.combustible || 'N/E'}</Tag>
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Cilindraje</Text>
+                  <Tag color="purple">{vehiculo.cilindraje || 'N/E'}</Tag>
+                </Col>
+              </Row>
 
-                {/* Información Financiera */}
-                <Card 
-                  size="small" 
-                  title={<><Text strong>💰 Información Financiera</Text></>}
-                  style={{ marginBottom: '16px' }}
-                >
-                  <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-                    <Descriptions.Item label="Precio de Compra" labelStyle={{ fontWeight: 'bold' }}>
-                      <Text style={{ color: '#1890ff', fontSize: '16px' }}>
-                        {formatCurrency(vehiculo.precioCompra || 0)}
-                      </Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Costo de Grúa" labelStyle={{ fontWeight: 'bold' }}>
-                      {formatCurrency(vehiculo.costoGrua || 0)}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Comisiones" labelStyle={{ fontWeight: 'bold' }}>
-                      {formatCurrency(vehiculo.comisiones || 0)}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Inversión Total" labelStyle={{ fontWeight: 'bold' }}>
-                      <Text strong style={{ color: '#52c41a', fontSize: '17px' }}>
-                        {formatCurrency(vehiculo.inversionTotal || 0)}
-                      </Text>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Card>
+              {/* ── Información Financiera ── */}
+              <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginTop: '24px' }}>
+                Información Financiera
+              </Text>
+              <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+              <Row gutter={[24, 16]}>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Precio de Compra</Text>
+                  <Text strong style={{ color: '#1890ff', fontSize: '15px' }}>{formatCurrency(vehiculo.precioCompra || 0)}</Text>
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Costo de Grúa</Text>
+                  <Text>{formatCurrency(vehiculo.costoGrua || 0)}</Text>
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Comisiones</Text>
+                  <Text>{formatCurrency(vehiculo.comisiones || 0)}</Text>
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Inversión Total</Text>
+                  <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>{formatCurrency(vehiculo.inversionTotal || 0)}</Text>
+                </Col>
+                {vehiculo.precioVenta && (
+                  <Col xs={12} sm={8} md={6}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Precio de Venta</Text>
+                    <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>{formatCurrency(vehiculo.precioVenta)}</Text>
+                  </Col>
+                )}
+                {vehiculo.fechaVenta && (
+                  <Col xs={12} sm={8} md={6}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Fecha de Venta</Text>
+                    <Text>{formatDate(vehiculo.fechaVenta)}</Text>
+                  </Col>
+                )}
+              </Row>
 
-                {/* Información Adicional */}
-                <Card 
-                  size="small" 
-                  title={<><Text strong>📊 Estado Financiero Detallado</Text></>}
-                  style={{ marginBottom: '16px' }}
-                >
-                  <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-                    <Descriptions.Item label="Monto Recuperado" labelStyle={{ fontWeight: 'bold' }}>
-                      <div>
-                        <div style={{ 
-                          color: vehiculo.costoRecuperado < 0 ? '#722ed1' : '#52c41a', 
-                          fontWeight: 500,
-                          marginBottom: 4
-                        }}>
+              {/* ── Estado Financiero (barra de progreso) ── */}
+              {vehiculo.inversionTotal > 0 && (() => {
+                const porcentaje = ((vehiculo.costoRecuperado || 0) / vehiculo.inversionTotal) * 100;
+                const porcentajeAbsoluto = Math.abs(porcentaje);
+                const porcentajeBase = Math.min(100, porcentajeAbsoluto);
+                const porcentajeExcedente = Math.max(0, porcentajeAbsoluto - 100);
+                const esNegativo = porcentaje < 0;
+                return (
+                  <>
+                    <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginTop: '24px' }}>
+                      Estado de Recuperación
+                    </Text>
+                    <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+                    <Row gutter={[24, 16]}>
+                      <Col xs={24} sm={12}>
+                        <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Monto Recuperado</Text>
+                        <Text strong style={{ color: esNegativo ? '#722ed1' : '#52c41a', fontSize: '15px' }}>
                           {formatCurrency(vehiculo.costoRecuperado || 0)}
+                        </Text>
+                        <div style={{ width: '100%', backgroundColor: '#f0f0f0', borderRadius: 6, marginTop: 8, height: 8, position: 'relative', overflow: 'hidden' }}>
+                          <div style={{ width: `${Math.min(100, porcentajeBase)}%`, height: '100%', backgroundColor: esNegativo ? '#722ed1' : '#52c41a', position: 'absolute', left: 0, top: 0, transition: 'width 0.4s', borderRadius: 6 }} />
+                          {porcentajeExcedente > 0 && (
+                            <div style={{ width: `${porcentajeExcedente}%`, height: '100%', backgroundColor: '#faad14', position: 'absolute', right: 0, top: 0, borderTopRightRadius: 6, borderBottomRightRadius: 6 }} />
+                          )}
                         </div>
-                        {vehiculo.inversionTotal > 0 && (() => {
-                          const porcentaje = ((vehiculo.costoRecuperado || 0) / vehiculo.inversionTotal) * 100;
-                          const porcentajeAbsoluto = Math.abs(porcentaje);
-                          const porcentajeBase = Math.min(100, porcentajeAbsoluto);
-                          const porcentajeExcedente = Math.max(0, porcentajeAbsoluto - 100);
-                          const esNegativo = porcentaje < 0;
-                          
-                          return (
-                            <div> 
-                              <div style={{ 
-                                width: '100%', 
-                                backgroundColor: '#f0f0f0', 
-                                borderRadius: 4,
-                                marginTop: 4,
-                                height: 6,
-                                position: 'relative',
-                                overflow: 'hidden'
-                              }}>
-                                {porcentajeAbsoluto > 0 && (
-                                  <div 
-                                    style={{
-                                      width: '100%',
-                                      height: '100%',
-                                      backgroundColor: esNegativo ? '#722ed1' : '#52c41a',
-                                      position: 'absolute',
-                                      left: 0,
-                                      top: 0,
-                                      transition: 'width 0.3s',
-                                      maxWidth: `${Math.min(100, porcentajeBase)}%`
-                                    }}
-                                  />
-                                )}
-                                
-                                {porcentajeExcedente > 0 && (
-                                  <div 
-                                    style={{
-                                      width: `${porcentajeExcedente}%`,
-                                      height: '100%',
-                                      backgroundColor: esNegativo ? '#722ed1' : '#faad14',
-                                      position: 'absolute',
-                                      right: 0,
-                                      top: 0,
-                                      transition: 'width 0.3s',
-                                      borderTopRightRadius: 4,
-                                      borderBottomRightRadius: 4
-                                    }}
-                                  />
-                                )}
-                              </div>
-                              
-                              <div style={{ 
-                                fontSize: 12, 
-                                color: '#666',
-                                marginTop: 4,
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                              }}>
-                                <span>
-                                  {porcentaje.toLocaleString('es-CR', { 
-                                    minimumFractionDigits: 2, 
-                                    maximumFractionDigits: 2 
-                                  })}% de la inversión
-                                </span>
-                                {porcentajeExcedente > 0 && (
-                                  <span style={{ 
-                                    color: esNegativo ? '#722ed1' : '#d48806',
-                                    fontWeight: 500,
-                                    marginLeft: 8,
-                                    display: 'inline-flex',
-                                    alignItems: 'center'
-                                  }}>
-                                    <span style={{ 
-                                      display: 'inline-block',
-                                      width: 8, 
-                                      height: 8, 
-                                      borderRadius: '50%',
-                                      backgroundColor: esNegativo ? '#722ed1' : '#faad14',
-                                      marginRight: 4
-                                    }} />
-                                    +{porcentajeExcedente.toFixed(2)}% de {esNegativo ? 'pérdida' : 'ganancia'}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Monto Pendiente" labelStyle={{ fontWeight: 'bold' }}>
-                      <div style={{
-                        color: (vehiculo.costoPendiente || 0) < 0 ? '#52c41a' : '#f5222d',
-                        fontWeight: 500
-                      }}>
-                        {vehiculo.costoPendiente < 0 ? '+' : ''}{formatCurrency(Math.abs(vehiculo.costoPendiente || 0))}
-                      </div>
-                    </Descriptions.Item>
-                    {vehiculo.precioVenta && (
-                      <Descriptions.Item label="Precio de Venta" labelStyle={{ fontWeight: 'bold' }}>
-                        <strong style={{ color: '#52c41a', fontSize: '16px' }}>
-                          {formatCurrency(vehiculo.precioVenta)}
-                        </strong>
-                      </Descriptions.Item>
-                    )}
-                    {vehiculo.fechaVenta && (
-                      <Descriptions.Item label="Fecha de Venta" labelStyle={{ fontWeight: 'bold' }}>
-                        {formatDate(vehiculo.fechaVenta)}
-                      </Descriptions.Item>
-                    )}
-                    <Descriptions.Item label="Notas" span={2} labelStyle={{ fontWeight: 'bold' }}>
-                      <Text italic>{vehiculo.notas || 'Sin notas adicionales.'}</Text>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Card>
-              </div>
+                        <Text type="secondary" style={{ fontSize: '12px', marginTop: 4, display: 'block' }}>
+                          {porcentaje.toLocaleString('es-CR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% de la inversión recuperado
+                        </Text>
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Monto Pendiente</Text>
+                        <Text strong style={{ color: (vehiculo.costoPendiente || 0) < 0 ? '#52c41a' : '#f5222d', fontSize: '15px' }}>
+                          {vehiculo.costoPendiente < 0 ? '+' : ''}{formatCurrency(Math.abs(vehiculo.costoPendiente || 0))}
+                        </Text>
+                      </Col>
+                    </Row>
+                  </>
+                );
+              })()}
+
+              {/* ── Notas ── */}
+              {vehiculo.notas && (
+                <>
+                  <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginTop: '24px' }}>
+                    Notas
+                  </Text>
+                  <Divider style={{ marginTop: '8px', marginBottom: '12px' }} />
+                  <Text italic type="secondary">{vehiculo.notas}</Text>
+                </>
+              )}
             </TabPane>
             
             <TabPane tab={
@@ -836,7 +776,7 @@ const VehiculoDetalle = () => {
             </TabPane>
             
             <TabPane tab={
-              <span><DollarOutlined /> Transacciones</span>
+              <span><MoneyCollectOutlined /> Transacciones</span>
             } key="3">
               <div style={{ marginTop: '16px' }}>
                 <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -894,7 +834,7 @@ const VehiculoDetalle = () => {
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '24px' }}>
-                    <DollarOutlined style={{ fontSize: '32px', color: '#1890ff', marginBottom: '16px' }} />
+                    <MoneyCollectOutlined style={{ fontSize: '32px', color: '#1890ff', marginBottom: '16px' }} />
                     <p>No hay transacciones registradas para este vehículo.</p>
                     <Button 
                       type="primary" 

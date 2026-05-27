@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { Layout } from 'antd';
-import { HomeOutlined, CarOutlined, ToolOutlined, DollarOutlined, BarChartOutlined } from '@ant-design/icons';
+import { CarOutlined, ToolOutlined, DollarOutlined, BarChartOutlined } from '@ant-design/icons';
 
 // Componentes de autenticación
 import Login from './pages/auth/Login';
@@ -36,6 +36,7 @@ import DetalleTransaccion from './pages/finanzas/DetalleTransaccion';
 import Reportes from './pages/reportes/Reportes';
 import VentasReportes from './pages/reportes/VentasReportes';
 import ReporteRepuestos from './pages/reportes/ReporteRepuestos';
+import ReporteVehiculos from './pages/reportes/ReporteVehiculos';
 
 // Componentes de configuración
 import Perfil from './pages/configuracion/Perfil';
@@ -51,7 +52,7 @@ import Header from './components/layout/Header';
 
 // Componente para rutas privadas
 const PrivateRoute = ({ children, roles = [] }) => {
-  const { isAuthenticated, loading, hasRole, user } = useAuth();
+  const { isAuthenticated, loading, hasRole } = useAuth();
   const location = useLocation();
   const [initialized, setInitialized] = useState(false);
 
@@ -445,6 +446,13 @@ function App() {
           </PrivateRoute>
         }
       />
+      <Route path="/reportes/vehiculos" element={
+          <PrivateRoute roles={['admin', 'gerente']}>
+            <MainLayout>
+              <ReporteVehiculos />
+            </MainLayout>
+          </PrivateRoute>
+        } />
 
       {/* Rutas de configuración */}
       <Route

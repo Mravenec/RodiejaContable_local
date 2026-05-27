@@ -14,7 +14,6 @@ import {
   Steps,
   Row,
   Col,
-  Alert,
   Divider,
   Tag
 } from 'antd';
@@ -112,8 +111,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
   const [anioFin, setAnioFin] = useState(new Date().getFullYear());
   const [creandoGeneracion, setCreandoGeneracion] = useState(false);
 
-  // DEBUG: Estado para mostrar información
-  const [debugInfo, setDebugInfo] = useState('');
+
 
   // Hooks para cargar datos
   const {
@@ -167,32 +165,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
     setAniosDisponibles(anios.sort((a, b) => b - a)); // Orden descendente
   }, [selectedGeneracionId, generaciones]);
 
-  // DEBUG: Efecto para mostrar información de estado - ACTUALIZADO
-  useEffect(() => {
-    const formValues = form.getFieldsValue();
-    const info = `
-      📊 Estado del formulario:
-      - MarcaId: ${marcaId}
-      - ModeloId: ${modeloId}
-      - SelectedGeneracionId: ${selectedGeneracionId}
-      - Generaciones disponibles: ${generaciones.length}
-      - Cargando generaciones: ${isLoadingGeneraciones}
-      - Error generaciones: ${errorGeneraciones ? 'SÍ' : 'NO'}
-      - Año en formulario: ${formValues.anio} (${typeof formValues.anio})
-      - Año en estado: ${anioValue} (${typeof anioValue})
-      - Precio en formulario: ${formValues.precioCompra} (${typeof formValues.precioCompra})
-      - Precio en estado: ${precioCompraValue} (${typeof precioCompraValue})
-      - Costo grúa en formulario: ${formValues.costoGrua} (${typeof formValues.costoGrua})
-      - Costo grúa en estado: ${costoGruaValue} (${typeof costoGruaValue})
-      - Comisiones en formulario: ${formValues.comisiones} (${typeof formValues.comisiones})
-      - Comisiones en estado: ${comisionesValue} (${typeof comisionesValue})
-      - Estado en formulario: ${formValues.estado}
-      - Estado en estado: ${estadoValue}
-      - Fecha en formulario: ${formValues.fechaIngreso ? 'SÍ' : 'NO'}
-      - Notas en estado: ${notasValue ? 'SÍ' : 'NO'}
-    `;
-    setDebugInfo(info);
-  }, [marcaId, modeloId, selectedGeneracionId, generaciones, isLoadingGeneraciones, errorGeneraciones, form, anioValue, estadoValue, notasValue, precioCompraValue, costoGruaValue, comisionesValue]);
+
 
   // Mostrar errores si los hay
   useEffect(() => {
@@ -1662,35 +1635,30 @@ const NuevoVehiculo = ({ editMode = false }) => {
   }
 
   return (
-    <div>
-      <Card
-        title={
-          <Title level={4} style={{ margin: 0 }}>
-            {editMode ? 'Editar Vehículo' : 'Nuevo Vehículo'}
-          </Title>
-        }
-        extra={
-          <Button
-            type="text"
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/vehiculos')}
-            disabled={isSubmitting}
-          >
-            Volver al listado
-          </Button>
-        }
-      >
-        {/* Panel de debug */}
-        <Alert
-          message="Información de Debug"
-          description={<pre style={{ fontSize: '12px', margin: 0 }}>{debugInfo}</pre>}
-          type="info"
-          showIcon
-          style={{ marginBottom: '16px' }}
-          closable
-        />
+    <div style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* ── Header de navegación ─────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '8px' }}>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate('/vehiculos')}
+          style={{ color: '#595959', fontWeight: 500 }}
+          disabled={isSubmitting}
+        >
+          Volver al listado
+        </Button>
+        <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+          {editMode ? 'Editar Vehículo' : 'Registrar Nuevo Vehículo'}
+        </Title>
+        <div style={{ width: '136px' }}></div> {/* Spacer para centrar el título */}
+      </div>
 
-        <Steps current={currentStep} style={{ marginBottom: '24px' }}>
+      <Card
+        bordered={false}
+        style={{ borderRadius: '12px', border: '1px solid #f0f0f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
+        bodyStyle={{ padding: '32px' }}
+      >
+        <Steps current={currentStep} style={{ marginBottom: '32px', maxWidth: '800px', margin: '0 auto 32px' }}>
           {steps.map(item => (
             <Step key={item.title} title={item.title} />
           ))}
@@ -1706,118 +1674,81 @@ const NuevoVehiculo = ({ editMode = false }) => {
           <div style={{ minHeight: '300px' }}>
             {/* Resumen Detallado del Vehículo */}
             {currentStep === 3 && (
-              <Card 
-                size="small" 
-                title={<><Text strong>📋 Resumen del Vehículo</Text></>}
-                style={{ marginBottom: '16px', background: '#f0f8ff', border: '1px solid #1890ff' }}
-              >
-                <Row gutter={[16, 8]}>
-                  <Col xs={24} sm={12} md={8}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Marca</Text>
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>
-                        {marcas.find(m => m.id === parseInt(marcaId || 0))?.nombre || 'No seleccionada'}
-                      </div>
-                    </div>
+              <Card bordered={false} style={{ borderRadius: '10px', border: '1px solid #f0f0f0', marginBottom: '24px' }}>
+                {/* ── Identificación ── */}
+                <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                  Identificación
+                </Text>
+                <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+                <Row gutter={[24, 16]}>
+                  <Col xs={12} sm={8} md={6}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Marca</Text>
+                    <Text strong style={{ fontSize: '15px' }}>{marcas.find(m => m.id === parseInt(marcaId || 0))?.nombre || '—'}</Text>
                   </Col>
-                  <Col xs={24} sm={12} md={8}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Modelo</Text>
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>
-                        {modelos.find(m => m.id === parseInt(modeloId || 0))?.nombre || 'No seleccionado'}
-                      </div>
-                    </div>
+                  <Col xs={12} sm={8} md={6}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Modelo</Text>
+                    <Text strong style={{ fontSize: '15px' }}>{modelos.find(m => m.id === parseInt(modeloId || 0))?.nombre || '—'}</Text>
                   </Col>
-                  <Col xs={24} sm={12} md={8}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Generación</Text>
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>
-                        {generaciones.find(g => g.id === parseInt(selectedGeneracionId || 0))?.nombre || 'No seleccionada'}
-                      </div>
-                    </div>
+                  <Col xs={12} sm={8} md={6}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Generación</Text>
+                    <Text strong>{generaciones.find(g => g.id === parseInt(selectedGeneracionId || 0))?.nombre || '—'}</Text>
                   </Col>
-                  <Col xs={24} sm={12} md={8}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Año</Text>
-                      <div style={{ fontSize: '18px', fontWeight: 'bold', marginTop: '4px', color: '#1890ff' }}>
-                        {anioValue || new Date().getFullYear()}
-                      </div>
-                    </div>
+                  <Col xs={12} sm={8} md={6}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Año</Text>
+                    <Text strong style={{ color: '#1890ff', fontSize: '15px' }}>{anioValue || new Date().getFullYear()}</Text>
                   </Col>
                 </Row>
 
-                {/* Especificaciones Técnicas */}
-                <Divider style={{ margin: '16px 0' }}>Especificaciones Técnicas</Divider>
-                <Row gutter={[16, 8]}>
-                  <Col xs={24} sm={12} md={6}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Transmisión</Text>
-                      <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
-                        <Tag color="blue">{transmisionValue || 'No seleccionada'}</Tag>
-                      </div>
-                    </div>
+                {/* ── Especificaciones Técnicas ── */}
+                <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginTop: '24px' }}>
+                  Especificaciones Técnicas
+                </Text>
+                <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+                <Row gutter={[24, 16]}>
+                  <Col xs={12} sm={8} md={6}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Transmisión</Text>
+                    <Tag color="blue">{transmisionValue || 'N/E'}</Tag>
                   </Col>
-                  <Col xs={24} sm={12} md={6}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Tracción</Text>
-                      <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
-                        <Tag color="green">{traccionValue || 'No seleccionada'}</Tag>
-                      </div>
-                    </div>
+                  <Col xs={12} sm={8} md={6}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Tracción</Text>
+                    <Tag color="green">{traccionValue || 'N/E'}</Tag>
                   </Col>
-                  <Col xs={24} sm={12} md={6}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Combustible</Text>
-                      <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
-                        <Tag color="orange">{combustibleValue || 'No seleccionado'}</Tag>
-                      </div>
-                    </div>
+                  <Col xs={12} sm={8} md={6}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Combustible</Text>
+                    <Tag color="orange">{combustibleValue || 'N/E'}</Tag>
                   </Col>
-                  <Col xs={24} sm={12} md={6}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Cilindraje</Text>
-                      <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
-                        <Tag color="purple">{cilindrajeValue || 'No especificado'}</Tag>
-                      </div>
-                    </div>
+                  <Col xs={12} sm={8} md={6}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Cilindraje</Text>
+                    <Tag color="purple">{cilindrajeValue || 'N/E'}</Tag>
                   </Col>
                 </Row>
 
-                {/* Información Financiera */}
-                <Divider style={{ margin: '16px 0' }}>Información Financiera</Divider>
-                <Row gutter={[16, 8]}>
-                  <Col xs={24} sm={12} md={8}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Precio Compra</Text>
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px', color: '#52c41a' }}>
-                        {precioCompraValue ? `₡ ${parseFloat(precioCompraValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}
-                      </div>
-                    </div>
-                  </Col>
-                  <Col xs={24} sm={12} md={8}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Costo Grúa</Text>
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>
-                        {costoGruaValue ? `₡ ${parseFloat(costoGruaValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}
-                      </div>
-                    </div>
-                  </Col>
-                  <Col xs={24} sm={12} md={8}>
-                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                      <Text type="secondary">Comisiones</Text>
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>
-                        {comisionesValue ? `₡ ${parseFloat(comisionesValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}
-                      </div>
-                    </div>
-                  </Col>
-                </Row>
-
-                <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                  <Text type="secondary">
-                    <Text strong>Inversión Total Estimada: </Text>
-                    <Text style={{ fontSize: '18px', fontWeight: 'bold', color: '#1890ff' }}>
-                      ₡ {parseFloat((precioCompraValue || 0) + (costoGruaValue || 0) + (comisionesValue || 0)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                {/* ── Información Financiera ── */}
+                <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginTop: '24px' }}>
+                  Información Financiera
+                </Text>
+                <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+                <Row gutter={[24, 16]}>
+                  <Col xs={12} sm={8} md={8}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Precio de Compra</Text>
+                    <Text strong style={{ color: '#52c41a', fontSize: '15px' }}>
+                      {precioCompraValue ? `₡ ${parseFloat(precioCompraValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}
                     </Text>
+                  </Col>
+                  <Col xs={12} sm={8} md={8}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Costo de Grúa</Text>
+                    <Text>{costoGruaValue ? `₡ ${parseFloat(costoGruaValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}</Text>
+                  </Col>
+                  <Col xs={12} sm={8} md={8}>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Comisiones</Text>
+                    <Text>{comisionesValue ? `₡ ${parseFloat(comisionesValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}</Text>
+                  </Col>
+                </Row>
+                
+                <div style={{ marginTop: '24px', padding: '16px', background: '#fafafa', borderRadius: '8px', border: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text type="secondary" strong>Inversión Total Estimada</Text>
+                  <Text strong style={{ color: '#1890ff', fontSize: '20px' }}>
+                    ₡ {parseFloat((precioCompraValue || 0) + (costoGruaValue || 0) + (comisionesValue || 0)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}
                   </Text>
                 </div>
               </Card>

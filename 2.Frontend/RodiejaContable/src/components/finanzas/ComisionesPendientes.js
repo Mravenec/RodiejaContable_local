@@ -15,18 +15,14 @@ import {
   Descriptions
 } from 'antd';
 import {
-  DollarOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CalendarOutlined
+  MoneyCollectOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import usePagosComisiones from '../../hooks/usePagosComisiones';
 import pagosComisionesService from '../../api/pagosComisiones';
 
-const { Title } = Typography;
-const { Option } = Select;
-const { MonthPicker } = DatePicker;
+
 
 const ComisionesPendientes = ({ mesFiltro, anioFiltro }) => {
   const anio = anioFiltro || moment().year();
@@ -42,7 +38,6 @@ const ComisionesPendientes = ({ mesFiltro, anioFiltro }) => {
     loadingPagos,
     pagoModalVisible,
     empleadoSeleccionado,
-    mostrarDialogoPago,
     cancelarPago
   } = usePagosComisiones(empleados);
 
@@ -78,10 +73,12 @@ const ComisionesPendientes = ({ mesFiltro, anioFiltro }) => {
 
   useEffect(() => {
     cargarComisionesPendientes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anio, mes]);
 
   useEffect(() => {
     cargarEmpleados();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comisionesPendientes]);
 
   // Manejar pago
@@ -158,7 +155,7 @@ const ComisionesPendientes = ({ mesFiltro, anioFiltro }) => {
         <Space>
           <Button
             type="primary"
-            icon={<DollarOutlined />}
+            icon={<MoneyCollectOutlined />}
             onClick={() => handlePagar({
               empleado: record.nombreEmpleado,
               empleadoId: record.empleadoId,

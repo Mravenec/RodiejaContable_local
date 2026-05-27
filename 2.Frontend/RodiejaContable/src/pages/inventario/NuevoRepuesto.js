@@ -19,7 +19,6 @@ import {
 import {
   SaveOutlined,
   ArrowLeftOutlined,
-  ShoppingCartOutlined,
   InfoCircleOutlined,
   PlusOutlined,
   CheckOutlined,
@@ -500,21 +499,29 @@ const NuevoRepuesto = () => {
   };
 
   return (
-    <div>
-      <Button
-        type="text"
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate(-1)}
-        style={{ marginBottom: 16 }}
+    <div style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* ── Header de navegación ─────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '8px' }}>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate(-1)}
+          style={{ color: '#595959', fontWeight: 500 }}
+          disabled={loading}
+        >
+          Volver
+        </Button>
+        <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+          Registrar Nuevo Repuesto
+        </Title>
+        <div style={{ width: '100px' }}></div> {/* Spacer */}
+      </div>
+
+      <Card
+        bordered={false}
+        style={{ borderRadius: '12px', border: '1px solid #f0f0f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
+        bodyStyle={{ padding: '32px' }}
       >
-        Volver
-      </Button>
-
-      <Title level={2}>
-        <ShoppingCartOutlined /> Nuevo Repuesto
-      </Title>
-
-      <Card>
         <Form
           form={form}
           layout="vertical"
@@ -539,16 +546,25 @@ const NuevoRepuesto = () => {
           }}
         >
           {/* Selector del tipo de repuesto */}
-          <Form.Item label="Tipo de Repuesto">
-            <Radio.Group value={tipoRepuesto} onChange={onTipoRepuestoChange}>
-              <Radio.Button value="con_vehiculo">Repuesto de Vehículo Específico</Radio.Button>
-              <Radio.Button value="sin_vehiculo">Repuesto Genérico/Comprado</Radio.Button>
-            </Radio.Group>
-          </Form.Item>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <Form.Item name="tipo_repuesto_radio" style={{ marginBottom: 0 }}>
+              <Radio.Group 
+                value={tipoRepuesto} 
+                onChange={onTipoRepuestoChange}
+                buttonStyle="solid"
+                size="large"
+              >
+                <Radio.Button value="con_vehiculo" style={{ padding: '0 32px' }}>Repuesto de Vehículo Específico</Radio.Button>
+                <Radio.Button value="sin_vehiculo" style={{ padding: '0 32px' }}>Repuesto Genérico/Comprado</Radio.Button>
+              </Radio.Group>
+            </Form.Item>
+          </div>
 
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Divider orientation="left">Información del Repuesto</Divider>
+              <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '16px' }}>
+                Información del Repuesto
+              </Text>
 
               <Form.Item
                 name="parte_vehiculo"
@@ -923,7 +939,9 @@ const NuevoRepuesto = () => {
             </Col>
 
             <Col xs={24} md={12}>
-              <Divider orientation="left">Precios</Divider>
+              <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '16px' }}>
+                Precios y Costos
+              </Text>
 
               <Row gutter={16}>
                 <Col span={12}>
@@ -1004,7 +1022,9 @@ const NuevoRepuesto = () => {
                 <Text type="secondary">Costo unitario * Cantidad = ₡ {precioCostoUnitario.toFixed(2)} * {cantidad} = ₡ {costoTotalCalculado.toFixed(2)}</Text>
               </div>
 
-              <Divider orientation="left">Estado y Stock</Divider>
+              <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', margin: '32px 0 16px' }}>
+                Estado y Stock
+              </Text>
 
               <Row gutter={16}>
                 <Col span={12}>
@@ -1038,7 +1058,9 @@ const NuevoRepuesto = () => {
                 </Select>
               </Form.Item>
 
-              <Divider orientation="left">Ubicación Física</Divider>
+              <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', margin: '32px 0 16px' }}>
+                Ubicación Física
+              </Text>
 
               <div style={{ marginBottom: '16px' }}>
                 <Checkbox
@@ -1205,25 +1227,27 @@ const NuevoRepuesto = () => {
             </Col>
           </Row>
 
-          <Divider />
+          <Divider style={{ margin: '32px 0 24px' }} />
 
-          <Form.Item>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button
+              size="large"
+              onClick={() => navigate(-1)}
+              style={{ borderRadius: '6px' }}
+            >
+              Cancelar
+            </Button>
             <Button
               type="primary"
               htmlType="submit"
               icon={<SaveOutlined />}
               loading={loading}
+              size="large"
+              style={{ borderRadius: '6px', padding: '0 32px' }}
             >
               Guardar Repuesto
             </Button>
-
-            <Button
-              style={{ marginLeft: 8 }}
-              onClick={() => navigate(-1)}
-            >
-              Cancelar
-            </Button>
-          </Form.Item>
+          </div>
         </Form>
       </Card>
     </div>

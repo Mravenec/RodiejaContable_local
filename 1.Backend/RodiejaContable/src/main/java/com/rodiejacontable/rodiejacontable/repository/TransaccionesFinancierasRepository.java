@@ -3,6 +3,7 @@ package com.rodiejacontable.rodiejacontable.repository;
 import static com.rodiejacontable.database.jooq.Tables.TRANSACCIONES_FINANCIERAS;
 import static com.rodiejacontable.database.jooq.Tables.TIPOS_TRANSACCIONES;
 import static com.rodiejacontable.database.jooq.Tables.INVENTARIO_REPUESTOS;
+import static com.rodiejacontable.database.jooq.Tables.VEHICULOS;
 
 import com.rodiejacontable.database.jooq.enums.TransaccionesFinancierasEstado;
 import com.rodiejacontable.database.jooq.tables.pojos.TransaccionesFinancieras;
@@ -209,6 +210,35 @@ public class TransaccionesFinancierasRepository {
             .from(TRANSACCIONES_FINANCIERAS)
             .join(TIPOS_TRANSACCIONES).on(TRANSACCIONES_FINANCIERAS.TIPO_TRANSACCION_ID.eq(TIPOS_TRANSACCIONES.ID))
             .join(INVENTARIO_REPUESTOS).on(TRANSACCIONES_FINANCIERAS.REPUESTO_ID.eq(INVENTARIO_REPUESTOS.ID))
+            .where(conditions)
+            .groupBy(TRANSACCIONES_FINANCIERAS.ANIO, TRANSACCIONES_FINANCIERAS.MES)
+            .orderBy(TRANSACCIONES_FINANCIERAS.ANIO.desc(), TRANSACCIONES_FINANCIERAS.MES.desc())
+            .fetchMaps();
+    }
+    
+    public List<Map<String, Object>> getReporteVentasVehiculosMensual(LocalDate fechaInicio, LocalDate fechaFin, Integer generacionId) {
+        Condition conditions = TIPOS_TRANSACCIONES.NOMBRE.eq("Venta Vehículo")
+                .and(TRANSACCIONES_FINANCIERAS.ACTIVO.eq((byte) 1));
+                
+        if (fechaInicio != null && fechaFin != null) {
+            conditions = conditions.and(TRANSACCIONES_FINANCIERAS.FECHA.between(fechaInicio, fechaFin));
+        }
+        
+        if (generacionId != null) {
+            conditions = conditions.and(TRANSACCIONES_FINANCIERAS.GENERACION_ID.eq(generacionId));
+        }
+        
+        return dsl.select(
+                TRANSACCIONES_FINANCIERAS.ANIO.as("anio"),
+                TRANSACCIONES_FINANCIERAS.MES.as("mes"),
+                DSL.countDistinct(VEHICULOS.ID).as("cantidadVehiculos"),
+                DSL.sum(TRANSACCIONES_FINANCIERAS.MONTO).as("totalVentas"),
+                DSL.sum(VEHICULOS.INVERSION_TOTAL).as("totalInversion"),
+                DSL.sum(TRANSACCIONES_FINANCIERAS.COMISION_EMPLEADO).as("totalComisiones")
+            )
+            .from(TRANSACCIONES_FINANCIERAS)
+            .join(TIPOS_TRANSACCIONES).on(TRANSACCIONES_FINANCIERAS.TIPO_TRANSACCION_ID.eq(TIPOS_TRANSACCIONES.ID))
+            .join(VEHICULOS).on(TRANSACCIONES_FINANCIERAS.VEHICULO_ID.eq(VEHICULOS.ID))
             .where(conditions)
             .groupBy(TRANSACCIONES_FINANCIERAS.ANIO, TRANSACCIONES_FINANCIERAS.MES)
             .orderBy(TRANSACCIONES_FINANCIERAS.ANIO.desc(), TRANSACCIONES_FINANCIERAS.MES.desc())

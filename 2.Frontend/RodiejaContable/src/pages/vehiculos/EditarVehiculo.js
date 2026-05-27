@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Card, 
-  Button, 
-  Typography, 
-  Tabs, 
-  Image, 
-  Tag, 
-  Spin, 
+import {
+  Card,
+  Button,
+  Typography,
+  Tabs,
+  Image,
+  Tag,
+  Spin,
   message,
   Form,
   Input,
@@ -15,14 +15,16 @@ import {
   DatePicker,
   Select,
   Switch,
-  Descriptions,
-  Space
+  Space,
+  Row,
+  Col,
+  Divider,
 } from 'antd';
-import { 
-  ArrowLeftOutlined, 
+import {
+  ArrowLeftOutlined,
   SaveOutlined,
-  DollarOutlined,
-  ToolOutlined, 
+  MoneyCollectOutlined,
+  ToolOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
 import { useUpdateVehiculo } from '../../hooks/useVehiculos';
@@ -30,12 +32,11 @@ import vehiculoService from '../../api/vehiculos';
 import finanzaService from '../../api/finanzas';
 import inventarioService from '../../api/inventario';
 import { getTiposTransacciones } from '../../api/transacciones';
+import { generacionesAPI } from '../../api/generaciones';
 import { formatCurrency } from '../../utils/formatters';
 import api from '../../api/axios';
 import moment from 'moment';
 
-const { Option } = Select;
-const { TextArea } = Input;
 
 // Servicio para repuestos
 const repuestosService = {
@@ -55,44 +56,44 @@ const transaccionesService = {
   async getTransaccionesPorVehiculo(vehiculoId) {
     try {
       let allTransacciones, tiposTransaccion;
-      
+
       try {
         [allTransacciones, tiposTransaccion] = await Promise.all([
           finanzaService.getTransacciones(),
           getTiposTransacciones()
         ]);
-        
+
         if (!Array.isArray(allTransacciones)) allTransacciones = [];
         if (!Array.isArray(tiposTransaccion)) tiposTransaccion = [];
       } catch (fetchError) {
         throw fetchError;
       }
-      
+
       const tiposMap = tiposTransaccion.reduce((acc, tipo) => {
         acc[tipo.id] = tipo;
         return acc;
       }, {});
-      
+
       let repuestos = [];
       try {
         repuestos = await repuestosService.getRepuestosPorVehiculo(vehiculoId);
       } catch (repuestoError) {
         console.error('Error fetching repuestos:', repuestoError);
       }
-      
+
       const repuestoIds = repuestos.map(r => r.id);
-      
+
       const filteredTransacciones = allTransacciones.filter(transaccion => {
-        const matchesVehicle = transaccion.vehiculoId != null && 
-                             (transaccion.vehiculoId === vehiculoId || 
-                              transaccion.vehiculoId === parseInt(vehiculoId));
-        
-        const matchesRepuesto = transaccion.repuestoId != null && 
-                               repuestoIds.includes(transaccion.repuestoId);
-        
+        const matchesVehicle = transaccion.vehiculoId != null &&
+          (transaccion.vehiculoId === vehiculoId ||
+            transaccion.vehiculoId === parseInt(vehiculoId));
+
+        const matchesRepuesto = transaccion.repuestoId != null &&
+          repuestoIds.includes(transaccion.repuestoId);
+
         return matchesVehicle || matchesRepuesto;
       });
-      
+
       return filteredTransacciones
         .map(transaccion => ({
           ...transaccion,
@@ -100,7 +101,7 @@ const transaccionesService = {
             nombre: 'Tipo desconocido',
             categoria: transaccion.monto > 0 ? 'INGRESO' : 'EGRESO'
           },
-          fecha: Array.isArray(transaccion.fecha) 
+          fecha: Array.isArray(transaccion.fecha)
             ? new Date(transaccion.fecha[0], transaccion.fecha[1] - 1, transaccion.fecha[2])
             : new Date(transaccion.fecha)
         }))
@@ -112,21 +113,21 @@ const transaccionesService = {
   }
 };
 
-const { Title, Text } = Typography;
-const { TabPane } = Tabs;
+
 
 const EditarVehiculo = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  
+
   // Estados
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [vehiculo, setVehiculo] = useState(null);
   const [transacciones, setTransacciones] = useState([]);
   const [repuestos, setRepuestos] = useState([]);
-  const [generaciones] = useState([]);
+  const [generaciones, setGeneraciones] = useState([]);
+  const [loadingGeneraciones, setLoadingGeneraciones] = useState(false);
   const [loadingTransacciones, setLoadingTransacciones] = useState(false);
   const [loadingRepuestos, setLoadingRepuestos] = useState(false);
 
@@ -144,11 +145,11 @@ const EditarVehiculo = () => {
   const loadVehicleData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Get vehicle by ID from the flat list (same approach as VehiculoDetalle)
       const vehiculosResponse = await vehiculoService.getVehiculos();
       const vehiculoEncontrado = vehiculosResponse.find(v => v.id === parseInt(id));
-      
+
       if (!vehiculoEncontrado) {
         throw new Error('Vehículo no encontrado');
       }
@@ -216,14 +217,14 @@ const EditarVehiculo = () => {
   useEffect(() => {
     if (vehiculo) {
       console.log('Vehicle data loaded, updating form:', vehiculo);
-      
+
       // Handle both imagenUrl and imagen_url field names
       const imagenUrl = vehiculo.imagenUrl || vehiculo.imagen_url || '';
-      
+
       // Handle date parsing more robustly
       let fechaIngresoMoment = null;
       let fechaVentaMoment = null;
-      
+
       if (vehiculo.fechaIngreso) {
         try {
           fechaIngresoMoment = moment(vehiculo.fechaIngreso);
@@ -235,7 +236,7 @@ const EditarVehiculo = () => {
           console.error('Error parsing fechaIngreso:', error, 'Raw value:', vehiculo.fechaIngreso);
         }
       }
-      
+
       if (vehiculo.fechaVenta) {
         try {
           fechaVentaMoment = moment(vehiculo.fechaVenta);
@@ -247,7 +248,7 @@ const EditarVehiculo = () => {
           console.error('Error parsing fechaVenta:', error, 'Raw value:', vehiculo.fechaVenta);
         }
       }
-      
+
       console.log('Setting form values:', {
         codigoVehiculo: vehiculo.codigoVehiculo,
         generacionId: vehiculo.generacionId,
@@ -264,7 +265,7 @@ const EditarVehiculo = () => {
         activo: vehiculo.activo !== false,
         notas: vehiculo.notas
       });
-      
+
       form.setFieldsValue({
         codigoVehiculo: vehiculo.codigoVehiculo,
         generacionId: vehiculo.generacionId,
@@ -286,11 +287,21 @@ const EditarVehiculo = () => {
         transmision: vehiculo.transmision || null,
         combustible: vehiculo.combustible || null
       });
-      
-      // Load transactions and repuestos for this vehicle
+
+      // Load transactions, repuestos and generaciones for this vehicle
       if (vehiculo.id) {
         loadTransactions(vehiculo.id);
         loadRepuestos(vehiculo.id);
+      }
+
+      // Load generaciones based on the vehicle's modeloId
+      const modeloId = vehiculo.generacion?.modeloId || vehiculo.modeloId;
+      if (modeloId) {
+        setLoadingGeneraciones(true);
+        generacionesAPI.getByModeloId(modeloId)
+          .then(response => setGeneraciones(response.data || []))
+          .catch(err => console.error('Error cargando generaciones:', err))
+          .finally(() => setLoadingGeneraciones(false));
       }
     }
   }, [vehiculo, form]);
@@ -333,7 +344,7 @@ const EditarVehiculo = () => {
   const onFinish = async (values) => {
     try {
       setSaving(true);
-      
+
       const formattedValues = {
         generacionId: values.generacionId ? parseInt(values.generacionId) : null,
         anio: values.anio ? parseInt(values.anio) : null,
@@ -351,21 +362,21 @@ const EditarVehiculo = () => {
         combustible: values.combustible || null,
         cilindraje: values.cilindraje || null
       };
-      
+
       // Remove calculated fields from payload as they're handled in backend
       delete formattedValues.inversionTotal;
       delete formattedValues.costoRecuperado;
       delete formattedValues.costoPendiente;
-      
+
       // Remove codigoVehiculo as it shouldn't be updated
       delete formattedValues.codigoVehiculo;
-      
+
       // Debug: Log the data being sent
       console.log('Sending to API:', JSON.stringify(formattedValues, null, 2));
-      
+
       // Use the hook to update the vehicle
       updateVehiculo.mutate({ id, ...formattedValues });
-      
+
     } catch (error) {
       console.error('Error actualizando vehículo:', error);
       message.error('Error al actualizar el vehículo');
@@ -382,7 +393,7 @@ const EditarVehiculo = () => {
       DESARMADO: { color: 'warning', text: 'Desarmado' },
       REPARACION: { color: 'processing', text: 'En Reparación' }
     };
-    
+
     const estadoInfo = estados[estado] || { color: 'default', text: 'Desconocido' };
     return <Tag color={estadoInfo.color}>{estadoInfo.text}</Tag>;
   };
@@ -394,7 +405,7 @@ const EditarVehiculo = () => {
       RESERVADO: { color: 'warning', text: 'Reservado' },
       DAÑADO: { color: 'error', text: 'Dañado' }
     };
-    
+
     const estadoInfo = estados[estado] || { color: 'default', text: estado || 'Desconocido' };
     return <Tag color={estadoInfo.color}>{estadoInfo.text}</Tag>;
   };
@@ -403,11 +414,11 @@ const EditarVehiculo = () => {
     if (!tipo) {
       return <Tag color="default">No especificado</Tag>;
     }
-    
+
     const isIngreso = tipo.categoria === 'INGRESO';
     const color = isIngreso ? 'green' : 'red';
     const nombre = tipo.nombre || 'Desconocido';
-    
+
     return <Tag color={color}>{nombre}</Tag>;
   };
 
@@ -417,7 +428,7 @@ const EditarVehiculo = () => {
       currency: 'CRC',
       minimumFractionDigits: 0
     }).format(amount);
-    
+
     if (tipo !== undefined) {
       const isIngreso = tipo === 'INGRESO';
       return (
@@ -426,19 +437,19 @@ const EditarVehiculo = () => {
         </span>
       );
     }
-    
+
     return formattedAmount;
   };
 
   const formatDate = (dateValue) => {
     if (!dateValue) return 'No especificada';
-    
+
     try {
       if (Array.isArray(dateValue)) {
         const [year, month, day] = dateValue;
         return new Date(year, month - 1, day).toLocaleDateString();
       }
-      
+
       const date = new Date(dateValue);
       return isNaN(date.getTime()) ? 'Fecha inválida' : date.toLocaleDateString();
     } catch (error) {
@@ -468,511 +479,349 @@ const EditarVehiculo = () => {
   }
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Button 
-        type="link" 
-        icon={<ArrowLeftOutlined />} 
-        onClick={() => navigate(`/vehiculos/${id}`)}
-        style={{ marginBottom: '16px' }}
-      >
-        Volver al detalle
-      </Button>
+    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+      {/* ── Header de navegación ─────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '8px' }}>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate(`/vehiculos/${id}`)}
+          style={{ color: '#595959', fontWeight: 500 }}
+        >
+          Volver al detalle
+        </Button>
+        <Space>
+          <Button onClick={() => navigate(`/vehiculos/${id}`)}>Cancelar</Button>
+          <Button
+            type="primary"
+            htmlType="submit"
+            form="editar-vehiculo-form"
+            loading={loading || saving}
+            icon={<SaveOutlined />}
+            style={{ borderRadius: '6px' }}
+          >
+            Guardar Cambios
+          </Button>
+        </Space>
+      </div>
 
       <Form
+        id="editar-vehiculo-form"
         form={form}
         layout="vertical"
         onFinish={onFinish}
       >
-        <Card>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '24px' }}>
-              <div style={{ flex: '0 0 300px', marginRight: '24px', marginBottom: '16px' }}>
-                <Image
-                  src={form.getFieldValue('imagenUrl') || vehiculo?.imagenUrl || vehiculo?.imagen_url || 'https://via.placeholder.com/300x200?text=Sin+imagen'}
-                  alt={`${marca} ${modelo}`}
-                  style={{ width: '100%', borderRadius: '8px' }}
-                  fallback="https://via.placeholder.com/300x200?text=Imagen+no+disponible"
-                />
-              </div>
-              
-              <div style={{ flex: 1, minWidth: '300px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                  <div style={{ marginBottom: '16px' }}>
-                    <Title level={2} style={{ marginBottom: '8px' }}>
-                      {marca} {modelo} {vehiculo?.anio || 'Sin año'}{' '}
-                      <Form.Item
-                        name="anio"
-                        style={{ display: 'inline-block', margin: '0 8px', width: '80px' }}
-                        rules={[{ required: true, message: 'El año es requerido' }]}
-                      >
-                        <InputNumber 
-                          placeholder="Año"
-                          min={1900}
-                          max={new Date().getFullYear() + 1}
-                        />
-                      </Form.Item>
-                    </Title>
-                    
-                    {getEstadoTag(form.getFieldValue('estado') || vehiculo?.estado)}
-                    
-                    <Text type="secondary" style={{ display: 'block', marginTop: '8px' }}>
-                      {vehiculo?.generacion?.nombre || 'Generación no especificada'}
-                    </Text>
-                    
-                    <Text style={{ display: 'block', marginTop: '8px' }}>
-                      <strong>Código:</strong>{' '}
-                      <Form.Item
-                        name="codigoVehiculo"
-                        style={{ display: 'inline-block', margin: '0 8px', width: '120px' }}
-                        rules={[{ required: true, message: 'El código es requerido' }]}
-                      >
-                        <Input placeholder="Ej: TOCO-001" />
-                      </Form.Item>
-                    </Text>
-                  </div>
-                  
-                  <div style={{ textAlign: 'right' }}>
-                    <Title level={3} style={{ color: '#1890ff', marginBottom: '4px' }}>
-                      {formatCurrency(form.getFieldValue('precioVenta') || vehiculo?.precioCompra || 0)}
-                    </Title>
-                    <Text type="secondary">
-                      Inversión: {formatCurrency(
-                        (form.getFieldValue('precioCompra') || vehiculo?.precioCompra || 0) + 
-                        (form.getFieldValue('costoGrua') || vehiculo?.costoGrua || 0) + 
-                        (form.getFieldValue('comisiones') || vehiculo?.comisiones || 0)
-                      )}
-                    </Text>
-                    
-                    {(form.getFieldValue('fechaVenta') || vehiculo?.fechaVenta) && (
-                      <div style={{ marginTop: '4px' }}>
-                        <Text type="secondary">
-                          Vendido el: {formatDate(form.getFieldValue('fechaVenta') || vehiculo?.fechaVenta)}
-                        </Text>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+        {/* ── Hero Card: imagen + datos principales ─── */}
+        <Card
+          bordered={false}
+          style={{ borderRadius: '10px', border: '1px solid #f0f0f0', marginBottom: '16px', overflow: 'hidden' }}
+          bodyStyle={{ padding: 0 }}
+        >
+          <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+            {/* Imagen */}
+            <div style={{ flex: '0 0 220px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '180px' }}>
+              <Image
+                src={vehiculo?.imagenUrl || vehiculo?.imagen_url || 'https://via.placeholder.com/220x160?text=Sin+imagen'}
+                alt={`${marca} ${modelo}`}
+                style={{ width: '220px', height: '160px', objectFit: 'cover' }}
+                fallback="https://via.placeholder.com/220x160?text=Sin+imagen"
+                preview={false}
+              />
             </div>
 
-            <Tabs defaultActiveKey="1" style={{ marginTop: '16px', width: '100%' }}>
-              <TabPane tab={<span><FileTextOutlined /> Información General</span>} key="1">
-                <div style={{ background: '#fafafa', padding: '16px', borderRadius: '8px' }}>
-                  <Descriptions 
-                    bordered 
-                    column={{ xs: 1, sm: 2 }} 
-                    size="small" 
-                    style={{ width: '100%', background: 'white' }}
-                    labelStyle={{ width: '120px', fontWeight: 'bold' }}
-                    contentStyle={{ padding: '12px 16px' }}
-                  >
-                    {/* Información Básica */}
-                    <Descriptions.Item label="Año">
-                      <Form.Item
-                        name="anio"
-                        style={{ margin: 0, marginBottom: 0 }}
-                        rules={[{ required: true, message: 'El año es requerido' }]}
-                      >
-                        <InputNumber 
-                          style={{ width: '100%' }}
-                          placeholder="Año"
-                          min={1900}
-                          max={new Date().getFullYear() + 1}
-                        />
-                      </Form.Item>
-                    </Descriptions.Item>
-                    
-                    <Descriptions.Item label="Código">
-                      <Form.Item
-                        name="codigoVehiculo"
-                        style={{ margin: 0, marginBottom: 0 }}
-                        rules={[{ required: true, message: 'El código es requerido' }]}
-                      >
-                        <Input placeholder="Ej: TOCO-001" />
-                      </Form.Item>
-                    </Descriptions.Item>
-                    
-                    <Descriptions.Item label="Fecha Ingreso">
-                      <Form.Item
-                        name="fechaIngreso"
-                        style={{ margin: 0, marginBottom: 0 }}
-                        rules={[{ required: true, message: 'La fecha de ingreso es requerida' }]}
-                      >
-                        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Selecciona fecha" />
-                      </Form.Item>
-                    </Descriptions.Item>
-                    
-                    <Descriptions.Item label="Estado">
-                      <Form.Item
-                        name="estado"
-                        style={{ margin: 0, marginBottom: 0 }}
-                        rules={[{ required: true, message: 'El estado es requerido' }]}
-                      >
-                        <Select placeholder="Selecciona estado">
-                          <Option value="DISPONIBLE">Disponible</Option>
-                          <Option value="VENDIDO">Vendido</Option>
-                          <Option value="DESARMADO">Desarmado</Option>
-                          <Option value="REPARACION">En Reparación</Option>
-                        </Select>
-                      </Form.Item>
-                    </Descriptions.Item>
-
-                    {/* Especificaciones Técnicas */}
-                    <Descriptions.Item label="Transmisión">
-                      <Form.Item
-                        name="transmision"
-                        style={{ margin: 0, marginBottom: 0 }}
-                      >
-                        <Select placeholder="Selecciona transmisión">
-                          <Option value="Automatico">Automático</Option>
-                          <Option value="Manual">Manual</Option>
-                        </Select>
-                      </Form.Item>
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label="Tracción">
-                      <Form.Item
-                        name="traccion"
-                        style={{ margin: 0, marginBottom: 0 }}
-                      >
-                        <Select placeholder="Selecciona tracción">
-                          <Option value="4x2">4x2</Option>
-                          <Option value="4x4">4x4</Option>
-                        </Select>
-                      </Form.Item>
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label="Combustible">
-                      <Form.Item
-                        name="combustible"
-                        style={{ margin: 0, marginBottom: 0 }}
-                      >
-                        <Select placeholder="Selecciona combustible">
-                          <Option value="Gasolina">Gasolina</Option>
-                          <Option value="Diesel">Diésel</Option>
-                          <Option value="Eléctrico">Eléctrico</Option>
-                        </Select>
-                      </Form.Item>
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label="Cilindraje">
-                      <Form.Item
-                        name="cilindraje"
-                        style={{ margin: 0, marginBottom: 0 }}
-                        rules={[{ max: 200, message: 'El cilindraje no puede exceder 200 caracteres' }]}
-                      >
-                        <Input placeholder="Ej: 1.8L, 1600cc, V6 3.5L" maxLength={200} />
-                      </Form.Item>
-                    </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Precio de Compra">
-                    <Form.Item
-                      name="precioCompra"
-                      style={{ margin: 0 }}
-                      rules={[{ required: true, message: 'El precio de compra es requerido' }]}
-                    >
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                        parser={value => value.replace(/₡\s?|(,*)/g, '')}
-                        min={0}
-                        precision={2}
-                      />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Costo de Grúa">
-                    <Form.Item
-                      name="costoGrua"
-                      style={{ margin: 0 }}
-                    >
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                        parser={value => value.replace(/₡\s?|(,*)/g, '')}
-                        min={0}
-                        precision={2}
-                      />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Comisiones">
-                    <Form.Item
-                      name="comisiones"
-                      style={{ margin: 0 }}
-                    >
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                        parser={value => value.replace(/₡\s?|(,*)/g, '')}
-                        min={0}
-                        precision={2}
-                      />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Inversión Total">
-                    <Form.Item
-                      name="inversionTotal"
-                      style={{ margin: 0 }}
-                    >
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                        parser={value => value.replace(/₡\s?|(,*)/g, '')}
-                        min={0}
-                        precision={2}
-                      />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Precio de Venta">
-                    <Form.Item
-                      name="precioVenta"
-                      style={{ margin: 0 }}
-                    >
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                        parser={value => value.replace(/₡\s?|(,*)/g, '')}
-                        min={0}
-                        precision={2}
-                      />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Fecha de Venta">
-                    <Form.Item
-                      name="fechaVenta"
-                      style={{ margin: 0 }}
-                    >
-                      <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="URL de Imagen">
-                    <Form.Item
-                      name="imagenUrl"
-                      style={{ margin: 0 }}
-                    >
-                      <Input placeholder="https://ejemplo.com/imagen.jpg" />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Activo">
-                    <Form.Item
-                      name="activo"
-                      style={{ margin: 0 }}
-                      valuePropName="checked"
-                    >
-                      <Switch checkedChildren="Sí" unCheckedChildren="No" />
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Generación">
-                    <Form.Item
-                      name="generacionId"
-                      style={{ margin: 0 }}
-                      rules={[{ required: true, message: 'La generación es requerida' }]}
-                    >
-                      <Select
-                        placeholder="Seleccionar generación"
-                        showSearch
-                        filterOption={(input, option) =>
-                          option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                        }
-                      >
-                        {generaciones.map(generacion => (
-                          <Option key={generacion.id} value={generacion.id}>
-                            {generacion.nombre} ({generacion.anioInicio}-{generacion.anioFin})
-                          </Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Descriptions.Item>
-                  
-                  <Descriptions.Item label="Notas" span={2}>
-                    <Form.Item
-                      name="notas"
-                      style={{ margin: 0 }}
-                    >
-                      <TextArea 
-                        rows={4} 
-                        placeholder="Notas adicionales sobre el vehículo..."
-                      />
-                    </Form.Item>
-                  </Descriptions.Item>
-                </Descriptions>
+            {/* Info principal */}
+            <div style={{ flex: 1, padding: '20px 24px', minWidth: '260px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <Typography.Text type="secondary" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {vehiculo?.generacion?.nombre || 'Generación'}
+                  </Typography.Text>
+                  <Typography.Title level={3} style={{ margin: '4px 0 8px' }}>
+                    {marca} {modelo}
+                  </Typography.Title>
+                  {getEstadoTag(vehiculo?.estado)}
+                  <Typography.Text type="secondary" style={{ display: 'block', marginTop: '6px', fontSize: '13px' }}>
+                    Código: <strong>{vehiculo?.codigoVehiculo || '—'}</strong>
+                  </Typography.Text>
                 </div>
-              </TabPane>
-              
-              <TabPane tab={<span><ToolOutlined /> Repuestos</span>} key="2">
-                <div style={{ marginTop: '16px' }}>
-                  <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text strong>Repuestos extraídos de este vehículo</Text>
-                    <Button 
-                      type="primary" 
-                      size="small"
-                      onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}
-                    >
-                      Agregar Repuesto
-                    </Button>
-                  </div>
-
-                  {loadingRepuestos ? (
-                    <div style={{ textAlign: 'center', padding: '24px' }}>
-                      <Spin />
-                    </div>
-                  ) : repuestos && repuestos.length > 0 ? (
-                    <div style={{ overflowX: 'auto' }}>
-                      <table className="ant-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr>
-                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Código</th>
-                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Parte</th>
-                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Descripción</th>
-                            <th style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #f0f0f0' }}>Precio Venta</th>
-                            <th style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>Estado</th>
-                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Ubicación</th>
-                            <th style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {repuestos.map((repuesto) => (
-                            <tr key={repuesto.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                              <td style={{ padding: '8px' }}>
-                                <Button
-                                  type="link"
-                                  style={{ padding: 0, height: 'auto' }}
-                                  onClick={() => navigate(`/inventario/${repuesto.id}`)}
-                                >
-                                  {repuesto.codigoRepuesto || 'Sin código'}
-                                </Button>
-                              </td>
-                              <td style={{ padding: '8px' }}>
-                                <Tag color="blue">{repuesto.parteVehiculo || 'N/A'}</Tag>
-                              </td>
-                              <td style={{ padding: '8px' }}>{repuesto.descripcion || 'Sin descripción'}</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>
-                                {formatCurrency(repuesto.precioVenta || 0)}
-                              </td>
-                              <td style={{ padding: '8px', textAlign: 'center' }}>
-                                {getEstadoRepuestoTag(repuesto.estado)}
-                              </td>
-                              <td style={{ padding: '8px', fontSize: '0.85em' }}>
-                                {repuesto.codigoUbicacion || 'Sin ubicación'}
-                              </td>
-                              <td style={{ padding: '8px', textAlign: 'center' }}>
-                                <Button 
-                                  type="link" 
-                                  size="small"
-                                  onClick={() => navigate(`/inventario/${repuesto.id}`)}
-                                >
-                                  Ver
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '24px' }}>
-                      <ToolOutlined style={{ fontSize: '32px', color: '#1890ff', marginBottom: '16px' }} />
-                      <p>No hay repuestos registrados para este vehículo.</p>
-                      <Button 
-                        type="primary" 
-                        style={{ marginTop: '16px' }}
-                        onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}
-                      >
-                        Agregar Repuesto
-                      </Button>
-                    </div>
-                  )}
+                <div style={{ textAlign: 'right' }}>
+                  <Typography.Text type="secondary" style={{ fontSize: '12px' }}>Precio de venta</Typography.Text>
+                  <Typography.Title level={3} style={{ margin: '2px 0', color: '#1890ff' }}>
+                    {formatCurrency(vehiculo?.precioVenta || vehiculo?.precioCompra || 0)}
+                  </Typography.Title>
+                  <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                    Inversión: {formatCurrency(vehiculo?.inversionTotal || 0)}
+                  </Typography.Text>
                 </div>
-              </TabPane>
-              
-              <TabPane tab={<span><DollarOutlined /> Transacciones</span>} key="3">
-                <div style={{ marginTop: '16px' }}>
-                  <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text strong>Historial de transacciones del vehículo</Text>
-                    <Button 
-                      type="primary" 
-                      size="small"
-                      onClick={() => navigate(`/finanzas/transaccion/nueva?vehiculoId=${vehiculo.id}`)}
-                    >
-                      Nueva Transacción
-                    </Button>
-                  </div>
-                  
-                  {loadingTransacciones ? (
-                    <div style={{ textAlign: 'center', padding: '24px' }}>
-                      <Spin />
-                    </div>
-                  ) : transacciones && transacciones.length > 0 ? (
-                    <div style={{ overflowX: 'auto' }}>
-                      <table className="ant-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr>
-                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Fecha</th>
-                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Tipo</th>
-                            <th style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #f0f0f0' }}>Monto</th>
-                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Descripción</th>
-                            <th style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {transacciones.map((transaccion) => {
-                            return (
-                              <tr key={transaccion.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                <td style={{ padding: '8px' }}>{formatDate(transaccion.fecha)}</td>
-                                <td style={{ padding: '8px' }}>{renderTipoTransaccion(transaccion.tipo_transaccion)}</td>
-                                <td style={{ padding: '8px', textAlign: 'right' }}>
-                                  {formatCurrencyWithColor(transaccion.monto, transaccion.tipo_transaccion?.categoria)}
-                                </td>
-                                <td style={{ padding: '8px' }}>{transaccion.descripcion || 'Sin descripción'}</td>
-                                <td style={{ padding: '8px', textAlign: 'center' }}>
-                                  <Button 
-                                    type="link" 
-                                    size="small"
-                                    onClick={() => navigate(`/finanzas/${transaccion.id}`)}
-                                  >
-                                    Ver
-                                  </Button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '24px' }}>
-                      <DollarOutlined style={{ fontSize: '32px', color: '#1890ff', marginBottom: '16px' }} />
-                      <p>No hay transacciones registradas para este vehículo.</p>
-                    </div>
-                  )}
-                </div>
-              </TabPane>
-            </Tabs>
-
-            <div style={{ marginTop: '24px', textAlign: 'center' }}>
-              <Space>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                >
-                  <Spin spinning={loading || saving}>
-                  </Spin>
-                  <SaveOutlined />
-                  Guardar Cambios
-                </Button>
-                <Button onClick={() => navigate(`/vehiculos/${id}`)} size="large">
-                  Cancelar
-                </Button>
-              </Space>
+              </div>
             </div>
           </div>
+        </Card>
+
+        {/* ── Pestañas de edición ──────────────────────── */}
+        <Card bordered={false} style={{ borderRadius: '10px', border: '1px solid #f0f0f0' }}>
+          <Tabs defaultActiveKey="1">
+            {/* ─── TAB 1: Información General ─── */}
+            <Tabs.TabPane tab={<span><FileTextOutlined /> Información General</span>} key="1">
+
+              {/* Sección: Identificación */}
+              <Typography.Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                Identificación
+              </Typography.Text>
+              <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+              <Row gutter={[16, 0]}>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Año" name="anio" rules={[{ required: true, message: 'Requerido' }]}>
+                    <InputNumber style={{ width: '100%' }} placeholder="Ej: 2020" min={1900} max={new Date().getFullYear() + 1} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Código" name="codigoVehiculo" rules={[{ required: true, message: 'Requerido' }]}>
+                    <Input placeholder="Ej: TOCO-001" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Estado" name="estado" rules={[{ required: true, message: 'Requerido' }]}>
+                    <Select placeholder="Selecciona estado">
+                      <Select.Option value="DISPONIBLE">Disponible</Select.Option>
+                      <Select.Option value="VENDIDO">Vendido</Select.Option>
+                      <Select.Option value="DESARMADO">Desarmado</Select.Option>
+                      <Select.Option value="REPARACION">En Reparación</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Generación" name="generacionId" rules={[{ required: true, message: 'Requerido' }]}>
+                    <Select
+                      placeholder="Seleccionar generación"
+                      loading={loadingGeneraciones}
+                      showSearch
+                      filterOption={(input, option) =>
+                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      }
+                    >
+                      {generaciones.map(g => (
+                        <Select.Option key={g.id} value={g.id}>
+                          {g.nombre} ({g.anioInicio}–{g.anioFin})
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Fecha de Ingreso" name="fechaIngreso" rules={[{ required: true, message: 'Requerido' }]}>
+                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Selecciona fecha" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="URL de Imagen" name="imagenUrl">
+                    <Input placeholder="https://ejemplo.com/imagen.jpg" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              {/* Sección: Especificaciones Técnicas */}
+              <Typography.Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                Especificaciones Técnicas
+              </Typography.Text>
+              <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+              <Row gutter={[16, 0]}>
+                <Col xs={24} sm={12} md={6}>
+                  <Form.Item label="Transmisión" name="transmision">
+                    <Select placeholder="Selecciona">
+                      <Select.Option value="Automatico">Automático</Select.Option>
+                      <Select.Option value="Manual">Manual</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Form.Item label="Tracción" name="traccion">
+                    <Select placeholder="Selecciona">
+                      <Select.Option value="4x2">4x2</Select.Option>
+                      <Select.Option value="4x4">4x4</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Form.Item label="Combustible" name="combustible">
+                    <Select placeholder="Selecciona">
+                      <Select.Option value="Gasolina">Gasolina</Select.Option>
+                      <Select.Option value="Diesel">Diésel</Select.Option>
+                      <Select.Option value="Eléctrico">Eléctrico</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Form.Item label="Cilindraje" name="cilindraje" rules={[{ max: 200 }]}>
+                    <Input placeholder="Ej: 1.8L, 1600cc" maxLength={200} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              {/* Sección: Información Financiera */}
+              <Typography.Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                Información Financiera
+              </Typography.Text>
+              <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+              <Row gutter={[16, 0]}>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Precio de Compra" name="precioCompra" rules={[{ required: true, message: 'Requerido' }]}>
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      formatter={v => `₡ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={v => v.replace(/₡\s?|(,*)/g, '')}
+                      min={0} precision={2}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Costo de Grúa" name="costoGrua">
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      formatter={v => `₡ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={v => v.replace(/₡\s?|(,*)/g, '')}
+                      min={0} precision={2}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Comisiones" name="comisiones">
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      formatter={v => `₡ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={v => v.replace(/₡\s?|(,*)/g, '')}
+                      min={0} precision={2}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Precio de Venta" name="precioVenta">
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      formatter={v => `₡ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={v => v.replace(/₡\s?|(,*)/g, '')}
+                      min={0} precision={2}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Fecha de Venta" name="fechaVenta">
+                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Vehículo Activo" name="activo" valuePropName="checked">
+                    <Switch checkedChildren="Activo" unCheckedChildren="Inactivo" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              {/* Notas */}
+              <Row gutter={[16, 0]}>
+                <Col span={24}>
+                  <Form.Item label="Notas" name="notas">
+                    <Input.TextArea rows={3} placeholder="Notas adicionales sobre el vehículo..." />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Tabs.TabPane>
+
+            {/* ─── TAB 2: Repuestos ─── */}
+            <Tabs.TabPane tab={<span><ToolOutlined /> Repuestos</span>} key="2">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <Typography.Text strong>Repuestos extraídos de este vehículo</Typography.Text>
+                <Button type="primary" size="small" onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}>
+                  + Agregar Repuesto
+                </Button>
+              </div>
+              {loadingRepuestos ? (
+                <div style={{ textAlign: 'center', padding: '40px' }}><Spin /></div>
+              ) : repuestos && repuestos.length > 0 ? (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                    <thead>
+                      <tr style={{ background: '#fafafa' }}>
+                        {['Código', 'Parte', 'Descripción', 'Precio Venta', 'Estado', 'Ubicación', ''].map(h => (
+                          <th key={h} style={{ padding: '10px 12px', textAlign: h === 'Precio Venta' ? 'right' : 'left', fontWeight: 600, color: '#595959', borderBottom: '2px solid #f0f0f0', whiteSpace: 'nowrap' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {repuestos.map((r) => (
+                        <tr key={r.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                          <td style={{ padding: '10px 12px' }}>
+                            <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/inventario/${r.id}`)}>{r.codigoRepuesto || '—'}</Button>
+                          </td>
+                          <td style={{ padding: '10px 12px' }}><Tag color="blue">{r.parteVehiculo || 'N/A'}</Tag></td>
+                          <td style={{ padding: '10px 12px', color: '#595959' }}>{r.descripcion || '—'}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 500 }}>{formatCurrency(r.precioVenta || 0)}</td>
+                          <td style={{ padding: '10px 12px' }}>{getEstadoRepuestoTag(r.estado)}</td>
+                          <td style={{ padding: '10px 12px', color: '#8c8c8c', fontSize: '12px' }}>{r.codigoUbicacion || '—'}</td>
+                          <td style={{ padding: '10px 12px' }}>
+                            <Button type="link" size="small" onClick={() => navigate(`/inventario/${r.id}`)}>Ver</Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '48px', color: '#bfbfbf' }}>
+                  <ToolOutlined style={{ fontSize: '36px', marginBottom: '12px', display: 'block' }} />
+                  <Typography.Text type="secondary">No hay repuestos registrados para este vehículo.</Typography.Text>
+                  <br />
+                  <Button type="primary" style={{ marginTop: '16px' }} onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}>
+                    Agregar Repuesto
+                  </Button>
+                </div>
+              )}
+            </Tabs.TabPane>
+
+            {/* ─── TAB 3: Transacciones ─── */}
+            <Tabs.TabPane tab={<span><MoneyCollectOutlined /> Transacciones</span>} key="3">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <Typography.Text strong>Historial de transacciones del vehículo</Typography.Text>
+                <Button type="primary" size="small" onClick={() => navigate(`/finanzas/transaccion/nueva?vehiculoId=${vehiculo.id}`)}>
+                  + Nueva Transacción
+                </Button>
+              </div>
+              {loadingTransacciones ? (
+                <div style={{ textAlign: 'center', padding: '40px' }}><Spin /></div>
+              ) : transacciones && transacciones.length > 0 ? (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                    <thead>
+                      <tr style={{ background: '#fafafa' }}>
+                        {['Fecha', 'Tipo', 'Monto', 'Descripción', ''].map(h => (
+                          <th key={h} style={{ padding: '10px 12px', textAlign: h === 'Monto' ? 'right' : 'left', fontWeight: 600, color: '#595959', borderBottom: '2px solid #f0f0f0', whiteSpace: 'nowrap' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transacciones.map((t) => (
+                        <tr key={t.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                          <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', color: '#595959' }}>{formatDate(t.fecha)}</td>
+                          <td style={{ padding: '10px 12px' }}>{renderTipoTransaccion(t.tipo_transaccion)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>
+                            {formatCurrencyWithColor(t.monto, t.tipo_transaccion?.categoria)}
+                          </td>
+                          <td style={{ padding: '10px 12px', color: '#595959' }}>{t.descripcion || '—'}</td>
+                          <td style={{ padding: '10px 12px' }}>
+                            <Button type="link" size="small" onClick={() => navigate(`/finanzas/${t.id}`)}>Ver</Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '48px', color: '#bfbfbf' }}>
+                  <MoneyCollectOutlined style={{ fontSize: '36px', marginBottom: '12px', display: 'block' }} />
+                  <Typography.Text type="secondary">No hay transacciones registradas para este vehículo.</Typography.Text>
+                </div>
+              )}
+            </Tabs.TabPane>
+          </Tabs>
         </Card>
       </Form>
     </div>
@@ -980,3 +829,4 @@ const EditarVehiculo = () => {
 };
 
 export default EditarVehiculo;
+

@@ -8,7 +8,7 @@ import {
   DashboardOutlined,
   CarOutlined,
   ToolOutlined,
-  DollarOutlined,
+  MoneyCollectOutlined,
   BarChartOutlined,
   SettingOutlined,
   UserOutlined,
@@ -94,7 +94,7 @@ const MainLayout = () => {
             </Menu.Item>
           </Menu.SubMenu>
           
-          <Menu.Item key="finanzas" icon={<DollarOutlined />}>
+          <Menu.Item key="finanzas" icon={<MoneyCollectOutlined />}>
             <Link to="/finanzas">Finanzas</Link>
           </Menu.Item>
           

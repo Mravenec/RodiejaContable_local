@@ -40,7 +40,6 @@ import ComisionesPendientes from '../../components/finanzas/ComisionesPendientes
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { RangePicker } = DatePicker;
 const { Search } = Input;
 const { Panel } = Collapse;
 
@@ -274,6 +273,7 @@ const VentasReportes = () => {
     } finally {
       setLoading(prev => ({ ...prev, ventas: false }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros]);
 
   // Función para cargar estadísticas
@@ -799,19 +799,20 @@ const VentasReportes = () => {
   ];
 
   return (
-    <div className="ventas-reportes">
+    <div className="ventas-reportes" style={{ padding: '24px' }}>
       {/* Encabezado */}
-      <div className="page-header">
-        <Title level={3}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <Title level={2} style={{ margin: 0, fontSize: '24px' }}>
           <BarChartOutlined style={{ marginRight: 8 }} />
           Reportes de Ventas
         </Title>
-        <Space>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <Button
             icon={<DownloadOutlined />}
             onClick={() => exportarReporte('excel')}
             loading={loading.exportando}
             disabled={loading.ventas}
+            size="middle"
           >
             Exportar a Excel
           </Button>
@@ -821,22 +822,26 @@ const VentasReportes = () => {
             onClick={() => exportarReporte('pdf')}
             loading={loading.exportando}
             disabled={loading.ventas}
+            size="middle"
+            style={{ backgroundColor: '#1890ff', borderColor: '#1890ff', boxShadow: '0 2px 4px rgba(24,144,255,0.2)' }}
           >
             Imprimir Reporte
           </Button>
-        </Space>
+        </div>
       </div>
 
       {/* Filtros */}
       <Card
         className="filtros-card"
         title={
-          <Space>
-            <FilterOutlined />
-            <span>Filtros de Búsqueda</span>
-          </Space>
+          <span style={{ fontWeight: 600, fontSize: '16px' }}>
+            <FilterOutlined style={{ marginRight: 8 }} />
+            Filtros de Búsqueda
+          </span>
         }
-        style={{ marginBottom: 24 }}
+        bordered={false}
+        headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '56px' }}
+        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
       >
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} md={6}>
@@ -973,26 +978,26 @@ const VentasReportes = () => {
       <Spin spinning={loading.estadisticas}>
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} sm={12} lg={6}>
-            <Card>
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
-                title="Ventas Totales"
+                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Totales</span>}
                 value={totalVentasCount}
-                prefix={<ShoppingCartOutlined style={{ color: '#1890ff', marginRight: 8 }} />}
+                prefix={<ShoppingCartOutlined style={{ fontSize: '20px' }} />}
                 suffix={totalVentasCount === 1 ? 'venta' : 'ventas'}
-                valueStyle={{ color: '#1890ff', fontSize: '1.5rem' }}
+                valueStyle={{ color: '#1890ff', fontWeight: 600, fontSize: '24px' }}
                 loading={loading.estadisticas}
                 formatter={value => new Intl.NumberFormat('es-CR').format(value)}
               />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card>
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
-                title="Ingresos Totales"
+                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
                 value={totalIngresos}
                 precision={2}
                 prefix="₡"
-                valueStyle={{ color: '#52c41a', fontSize: '1.5rem' }}
+                valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
                 loading={loading.estadisticas}
                 formatter={value => new Intl.NumberFormat('es-CR', {
                   style: 'decimal',
@@ -1003,25 +1008,25 @@ const VentasReportes = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card>
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
-                title="Ventas Completadas"
+                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Completadas</span>}
                 value={ventasCompletadas}
-                prefix={<CheckCircleOutlined style={{ color: '#722ed1', marginRight: 8 }} />}
-                valueStyle={{ color: '#722ed1', fontSize: '1.5rem' }}
+                prefix={<CheckCircleOutlined style={{ fontSize: '20px' }} />}
+                valueStyle={{ color: '#722ed1', fontWeight: 600, fontSize: '24px' }}
                 loading={loading.estadisticas}
                 formatter={value => new Intl.NumberFormat('es-CR').format(value)}
               />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card>
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
-                title="Tasa de Conversión"
+                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Tasa de Conversión</span>}
                 value={tasaConversion}
                 precision={2}
                 suffix="%"
-                valueStyle={{ color: '#fa8c16', fontSize: '1.5rem' }}
+                valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: '24px' }}
                 loading={loading.estadisticas}
                 formatter={value => new Intl.NumberFormat('es-CR', {
                   minimumFractionDigits: 2,
@@ -1033,57 +1038,60 @@ const VentasReportes = () => {
         </Row>
       </Spin>
       {/* Sección Vista Excel de Ventas Mensuales */}
+      {/* Sección Vista Excel de Ventas Mensuales */}
       <Card
         title={
-          <Space>
-            <BarChartOutlined />
-            <span>Vista Excel de Ventas Mensuales</span>
-          </Space>
+          <span style={{ fontWeight: 600, fontSize: '18px' }}>
+            <BarChartOutlined style={{ marginRight: 8 }} />
+            Vista Excel de Ventas Mensuales
+          </span>
         }
         extra={
-          <Space>
-            <Button
-              icon={<FileExcelOutlined />}
-              onClick={exportarAExcelCompleto}
-              loading={exportandoExcel}
-              type="primary"
-              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-            >
-              Exportar a Excel
-            </Button>
-          </Space>
+          <Button
+            icon={<FileExcelOutlined />}
+            onClick={exportarAExcelCompleto}
+            loading={exportandoExcel}
+            type="primary"
+            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 2px 4px rgba(82,196,26,0.2)' }}
+          >
+            Exportar a Excel
+          </Button>
         }
-        style={{ marginTop: 24 }}
+        bordered={false}
+        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
+        headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
+        bodyStyle={{ padding: '0' }}
       >
-        <Table
-          columns={columnsVistaExcel}
-          dataSource={vistaExcelEspecifico || vistaExcelActual || []}
-          rowKey="id"
-          loading={loadingVistaExcelActual || loadingVistaExcelEspecifico}
-          scroll={{ x: 1200 }}
-          bordered
-          size="middle"
-          pagination={{
-            showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50', '100'],
-            showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} registros`
-          }}
-          locale={{
-            emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <span>
-                    <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
-                    {!filtros.mes && !filtros.anio
-                      ? 'Selecciona un mes y año específicos en el filtro superior'
-                      : 'No hay datos para el período seleccionado'}
-                  </span>
-                }
-              />
-            )
-          }}
-        />
+        <div style={{ padding: '24px' }}>
+          <Table
+            columns={columnsVistaExcel}
+            dataSource={vistaExcelEspecifico || vistaExcelActual || []}
+            rowKey="id"
+            loading={loadingVistaExcelActual || loadingVistaExcelEspecifico}
+            scroll={{ x: 1200 }}
+            size="middle"
+            pagination={{
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} registros`
+            }}
+            locale={{
+              emptyText: (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    <span>
+                      <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
+                      {!filtros.mes && !filtros.anio
+                        ? 'Selecciona un mes y año específicos en el filtro superior'
+                        : 'No hay datos para el período seleccionado'}
+                    </span>
+                  }
+                />
+              )
+            }}
+          />
+        </div>
       </Card>
 
 
@@ -1091,10 +1099,12 @@ const VentasReportes = () => {
       <Card
         title={
           <Space>
-            <TeamOutlined />
-            <span>Ventas por Empleado</span>
+            <span style={{ fontWeight: 600, fontSize: '18px' }}>
+              <TeamOutlined style={{ marginRight: 8 }} />
+              Ventas por Empleado
+            </span>
             {filtros.vendedor && (
-              <Tag color="blue">
+              <Tag color="blue" style={{ marginLeft: 8 }}>
                 Filtrado por: {empleados.find(e => e.id === filtros.vendedor)?.nombreCompleto || 'Vendedor'}
               </Tag>
             )}
@@ -1120,44 +1130,50 @@ const VentasReportes = () => {
               icon={<ReloadOutlined />}
               onClick={cargarDatosIniciales}
               loading={loading.ventas}
+              type="text"
             >
               Actualizar
             </Button>
           </Space>
         }
+        bordered={false}
+        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
+        headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
+        bodyStyle={{ padding: '0' }}
       >
-        <Table
-          columns={columnsTransacciones}
-          dataSource={ventas}
-          rowKey="id"
-          pagination={{
-            ...pagination,
-            showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50', '100'],
-            showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} registros`
-          }}
-          onChange={handleTableChange}
-          loading={loading.ventas}
-          scroll={{ x: 1000 }}
-          bordered
-          size="middle"
-          locale={{
-            emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <span>
-                    <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
-                    No hay datos de ventas por empleado
-                  </span>
-                }
-              />
-            )
-          }}
-        />
+        <div style={{ padding: '24px' }}>
+          <Table
+            columns={columnsTransacciones}
+            dataSource={ventas}
+            rowKey="id"
+            pagination={{
+              ...pagination,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} registros`
+            }}
+            onChange={handleTableChange}
+            loading={loading.ventas}
+            scroll={{ x: 1000 }}
+            size="middle"
+            locale={{
+              emptyText: (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    <span>
+                      <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
+                      No hay datos de ventas por empleado
+                    </span>
+                  }
+                />
+              )
+            }}
+          />
+        </div>
       </Card>
 
-      {/* Sección de Comisiones Pendientes */}
+      {/* Modal de Detalle */}
       <ComisionesPendientes
         mesFiltro={filtros.mes}
         anioFiltro={filtros.anio}
