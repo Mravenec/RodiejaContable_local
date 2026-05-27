@@ -58,7 +58,7 @@ const EditarTransaccion = () => {
 
   const cargarVehiculos = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/vehiculos');
+      const response = await fetch('http://localhost:8080/api/v1/vehiculos');
       if (response.ok) {
         const data = await response.json();
         setVehiculos(data);
@@ -195,12 +195,43 @@ const EditarTransaccion = () => {
                 label="Vehículo"
                 name="vehiculoId"
               >
-                <Select placeholder="Seleccionar vehículo" allowClear>
-                  {vehiculos.map(vehiculo => (
-                    <Option key={vehiculo.id} value={vehiculo.id}>
-                      {vehiculo.codigoVehiculo} - {vehiculo.anio}
-                    </Option>
-                  ))}
+                <Select 
+                  placeholder="Seleccionar vehículo" 
+                  allowClear
+                  showSearch
+                  optionFilterProp="children"
+                  filterOption={(input, option) =>
+                    option?.children?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                  }
+                >
+                  {vehiculos.map(vehiculo => {
+                    const codigo = vehiculo.codigoVehiculo || 'SIN_CODIGO';
+                    const anio = vehiculo.anio || 'Año N/A';
+                    const estado = vehiculo.estado || 'SIN_ESTADO';
+                    const marca = vehiculo.marca || 'Marca N/A';
+                    const modelo = vehiculo.modelo || 'Modelo N/A';
+                    
+                    let estadoAmigable = estado;
+                    if (estado === 'DESARMADO') {
+                      estadoAmigable = 'Para repuestos';
+                    } else if (estado === 'REPARACION') {
+                      estadoAmigable = 'Para reparar';
+                    } else if (estado !== 'SIN_ESTADO') {
+                      estadoAmigable = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+                    }
+                        
+                    const displayText = `${codigo} — ${marca} ${modelo} ${anio} (${estadoAmigable})`;
+                    
+                    return (
+                      <Option 
+                        key={vehiculo.id} 
+                        value={vehiculo.id}
+                        title={displayText}
+                      >
+                        {displayText}
+                      </Option>
+                    );
+                  })}
                 </Select>
               </Form.Item>
             </Col>

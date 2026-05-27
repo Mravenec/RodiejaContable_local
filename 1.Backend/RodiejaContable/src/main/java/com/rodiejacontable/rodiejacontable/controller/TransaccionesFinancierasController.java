@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/transacciones-financieras")
@@ -129,9 +130,19 @@ public class TransaccionesFinancierasController {
     }
     
     @PostMapping("/reembolso/{transaccionId}")
-    public ResponseEntity<TransaccionesFinancieras> reembolsarVentaRepuesto(
+    public ResponseEntity<TransaccionesFinancieras> reembolsarTransaccion(
             @PathVariable Integer transaccionId) {
-        TransaccionesFinancieras reembolso = transaccionesService.reembolsarVentaRepuesto(transaccionId);
+        TransaccionesFinancieras reembolso = transaccionesService.reembolsarTransaccion(transaccionId);
         return new ResponseEntity<>(reembolso, HttpStatus.CREATED);
+    }
+    
+    @GetMapping("/reporte-repuestos")
+    public ResponseEntity<List<Map<String, Object>>> getReporteVentasRepuestosMensual(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(required = false) Integer generacionId) {
+        
+        List<Map<String, Object>> reportes = transaccionesService.getReporteVentasRepuestosMensual(fechaInicio, fechaFin, generacionId);
+        return new ResponseEntity<>(reportes, HttpStatus.OK);
     }
 }

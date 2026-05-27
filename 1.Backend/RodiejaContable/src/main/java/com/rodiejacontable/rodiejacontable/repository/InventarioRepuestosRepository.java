@@ -81,7 +81,7 @@ public class InventarioRepuestosRepository {
 
     public List<InventarioRepuestos> findAll() {
         return dsl.selectFrom(INVENTARIO_REPUESTOS)
-                .where(INVENTARIO_REPUESTOS.ACTIVO.eq((byte) 1))
+                .where(INVENTARIO_REPUESTOS.ACTIVO.eq((byte) 1).or(INVENTARIO_REPUESTOS.ACTIVO.isNull()))
                 .fetchInto(InventarioRepuestos.class);
     }
 

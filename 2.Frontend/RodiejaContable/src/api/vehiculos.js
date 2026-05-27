@@ -45,6 +45,23 @@ class VehiculoService {
       throw error;
     }
   }
+
+  /**
+   * Obtiene vehículos completos filtrados por estado
+   * @param {string} estado - El estado del vehículo (ej: 'DESARMADO')
+   * @returns {Promise<Array>} Lista de vehículos
+   */
+  async getVehiculosPorEstado(estado) {
+    try {
+      this.log(`Fetching vehicles with status: ${estado}`);
+      const response = await api.get(`/v1/vehiculos/estado/${estado}`);
+      return response.data;
+    } catch (error) {
+      this.error(`Error fetching vehicles with status ${estado}:`, error);
+      throw error;
+    }
+  }
+
   /**
    * Obtiene los vehículos agrupados jerárquicamente por marca, modelo y generación
    * @returns {Promise<Object>} Objeto con la estructura jerárquica de vehículos
@@ -223,7 +240,25 @@ class VehiculoService {
       }
       
       this.log(`Successfully processed ${vehiculosConRelaciones.length} vehicles`);
-      return vehiculosConRelaciones;
+      
+      let resultados = vehiculosConRelaciones;
+      
+      // Filtrar localmente por búsqueda si se proporciona
+      if (params.busqueda) {
+        const searchStr = params.busqueda.toLowerCase();
+        resultados = resultados.filter(v => {
+          const searchSpace = [
+            v.codigoVehiculo,
+            v.anio?.toString(),
+            v.estado,
+            v.generacion?.nombre,
+            v.notas
+          ].filter(Boolean).join(' ').toLowerCase();
+          return searchSpace.includes(searchStr);
+        });
+      }
+      
+      return resultados;
     } catch (error) {
       this.error('Error getting vehicles:', {
         message: error.message,
@@ -252,6 +287,17 @@ class VehiculoService {
       return response.data || {};
     } catch (error) {
       this.error(`Error getting statistics for generation ${generacionId}:`, error);
+      throw error;
+    }
+  }
+  
+  // Obtener todas las generaciones
+  async getGeneraciones() {
+    try {
+      const response = await api.get('/generaciones');
+      return response.data;
+    } catch (error) {
+      this.error('Error al obtener generaciones:', error);
       throw error;
     }
   }

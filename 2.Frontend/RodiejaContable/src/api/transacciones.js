@@ -98,3 +98,16 @@ export const getTransaccionesPorEmpleado = async (empleado, filtros = {}) => {
 export const getTransaccionesIngresos = async (filtros = {}) => {
   return getTransaccionesPorCategoria('INGRESO', filtros);
 };
+
+export const buscarTransacciones = async (filtros = {}) => {
+  try {
+    const response = await axios.get(`${TRANSACCIONES_URL}/buscar`, { params: filtros });
+    return response.data;
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return { transacciones: [], total: 0 };
+    }
+    console.error('Error al buscar transacciones:', error);
+    throw error;
+  }
+};

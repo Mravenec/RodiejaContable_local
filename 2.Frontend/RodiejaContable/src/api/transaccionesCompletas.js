@@ -114,6 +114,26 @@ export const transaccionesCompletasService = {
     } catch (error) {
       throw error.response?.data || error.message;
     }
+  },
+
+  // Eliminar transacción
+  eliminarTransaccion: async (id) => {
+    try {
+      const response = await api.delete(`transacciones-financieras/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Reembolsar transacción
+  reembolsarTransaccion: async (id) => {
+    try {
+      const response = await api.post(`transacciones-financieras/reembolso/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
   }
 };
 

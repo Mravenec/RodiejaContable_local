@@ -33,6 +33,11 @@ const reportesService = {
     return response.data;
   },
 
+  getReporteRepuestosMensual: async (params = {}) => {
+    const response = await api.get('/transacciones-financieras/reporte-repuestos', { params });
+    return response.data;
+  },
+
   descargarArchivo: (blob, filename) => {
     const url = window.URL.createObjectURL(new Blob([blob]));
     const link = document.createElement('a');

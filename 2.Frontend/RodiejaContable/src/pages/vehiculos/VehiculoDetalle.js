@@ -747,8 +747,17 @@ const VehiculoDetalle = () => {
               <span><ToolOutlined /> Repuestos</span>
             } key="2">
               <div style={{ marginTop: '16px' }}>
-                <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text strong>Repuestos extraídos de este vehículo</Text>
+                  <Button 
+                    type="primary" 
+                    size="small"
+                    disabled={vehiculo.estado !== 'DESARMADO'}
+                    title={vehiculo.estado !== 'DESARMADO' ? 'El vehículo debe estar en estado DESARMADO para agregar repuestos' : ''}
+                    onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}
+                  >
+                    Agregar Repuesto
+                  </Button>
                 </div>
 
                 {loadingRepuestos ? (
@@ -815,6 +824,8 @@ const VehiculoDetalle = () => {
                     <Button 
                       type="primary" 
                       style={{ marginTop: '16px' }}
+                      disabled={vehiculo.estado !== 'DESARMADO'}
+                      title={vehiculo.estado !== 'DESARMADO' ? 'El vehículo debe estar en estado DESARMADO para agregar repuestos' : ''}
                       onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}
                     >
                       Agregar Repuesto

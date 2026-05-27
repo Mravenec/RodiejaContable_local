@@ -28,9 +28,10 @@ const { Title } = Typography;
 const { Option } = Select;
 const { MonthPicker } = DatePicker;
 
-const ComisionesPendientes = () => {
-  const [anio, setAnio] = useState(moment().year());
-  const [mes, setMes] = useState(moment().month() + 1);
+const ComisionesPendientes = ({ mesFiltro, anioFiltro }) => {
+  const anio = anioFiltro || moment().year();
+  const mes = mesFiltro || moment().month() + 1;
+  
   const [loading, setLoading] = useState(false);
   const [comisionesPendientes, setComisionesPendientes] = useState([]);
   const [empleados, setEmpleados] = useState([]);
@@ -174,30 +175,6 @@ const ComisionesPendientes = () => {
     }
   ];
 
-  // Generar años disponibles (últimos 5 años y próximos 2)
-  const añoActual = moment().year();
-  const añosDisponibles = [];
-  for (let i = 5; i >= 0; i--) {
-    añosDisponibles.push(añoActual - i);
-  }
-  añosDisponibles.push(añoActual + 1, añoActual + 2);
-
-  // Generar meses disponibles
-  const mesesDisponibles = [
-    { value: 1, label: 'Enero' },
-    { value: 2, label: 'Febrero' },
-    { value: 3, label: 'Marzo' },
-    { value: 4, label: 'Abril' },
-    { value: 5, label: 'Mayo' },
-    { value: 6, label: 'Junio' },
-    { value: 7, label: 'Julio' },
-    { value: 8, label: 'Agosto' },
-    { value: 9, label: 'Septiembre' },
-    { value: 10, label: 'Octubre' },
-    { value: 11, label: 'Noviembre' },
-    { value: 12, label: 'Diciembre' }
-  ];
-
   return (
     <div className="comisiones-pendientes">
       <Card
@@ -205,32 +182,6 @@ const ComisionesPendientes = () => {
           <Space>
             <ClockCircleOutlined />
             <span>Comisiones Pendientes de Pago</span>
-          </Space>
-        }
-        extra={
-          <Space>
-            <Select
-              value={anio}
-              onChange={setAnio}
-              style={{ width: 100 }}
-              placeholder="Año"
-            >
-              {añosDisponibles.map(año => (
-                <Option key={año} value={año}>{año}</Option>
-              ))}
-            </Select>
-            <Select
-              value={mes}
-              onChange={setMes}
-              style={{ width: 120 }}
-              placeholder="Mes"
-            >
-              {mesesDisponibles.map(mes => (
-                <Option key={mes.value} value={mes.value}>
-                  {mes.label}
-                </Option>
-              ))}
-            </Select>
           </Space>
         }
       >

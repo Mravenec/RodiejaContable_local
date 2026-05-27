@@ -2,10 +2,33 @@ import api from './axios';
 
 class InventarioService {
   // Get all spare parts
-  async getRepuestos() {
+  async getRepuestos(params = {}) {
     try {
       const response = await api.get('/inventario-repuestos');
-      return response.data.map(item => this._mapRepuesto(item));
+      let data = response.data.map(item => this._mapRepuesto(item));
+      
+      // Filtrado local para soportar los filtros del Drawer
+      if (params.estado) {
+        data = data.filter(item => item.estado?.toLowerCase() === params.estado.toLowerCase());
+      }
+      if (params.categoria) {
+        const parteVehiculoMap = {
+          'motor': 'MOTOR',
+          'frenos': 'SISTEMA_DE_FRENOS',
+          'suspension': 'SUSPENSION_Y_AMORTIGUAMIENTO',
+          'electrico': 'SISTEMA_ELECTRICO'
+        };
+        const mappedCategoria = parteVehiculoMap[params.categoria.toLowerCase()];
+        if (mappedCategoria) {
+          data = data.filter(item => item.parteVehiculo === mappedCategoria);
+        }
+      }
+      if (params.ubicacion) {
+        const searchUbicacion = params.ubicacion.toLowerCase().replace(/\s+/g, '');
+        data = data.filter(item => item.ubicacion?.toLowerCase().replace(/\s+/g, '').includes(searchUbicacion));
+      }
+      
+      return data;
     } catch (error) {
       console.error('Error fetching spare parts:', error);
       throw error;

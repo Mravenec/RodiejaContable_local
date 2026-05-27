@@ -46,6 +46,16 @@ const Vehiculos = () => {
       render: (text) => <span style={{ whiteSpace: 'nowrap' }}>{text || '-'}</span>,
     },
     {
+      title: 'Vehículo',
+      key: 'vehiculo',
+      width: 200,
+      render: (_, record) => (
+        <span style={{ fontWeight: 500 }}>
+          {record.generacion?.nombre || '-'}
+        </span>
+      ),
+    },
+    {
       title: 'Año',
       dataIndex: 'anio',
       key: 'anio',
@@ -64,22 +74,6 @@ const Vehiculos = () => {
           {record.precioVenta && <div>Venta: {formatCurrency(record.precioVenta)}</div>}
         </div>
       ),
-    },
-    {
-      title: 'Año',
-      dataIndex: 'anio',
-      key: 'anio',
-      width: 100,
-      align: 'center',
-      render: (text) => text || '-',
-    },
-    {
-      title: 'Precio de Compra',
-      dataIndex: 'precio_compra',
-      key: 'precio_compra',
-      width: 150,
-      align: 'right',
-      render: (precio) => precio ? `$${precio.toLocaleString()}` : '-',
     },
     {
       title: 'Estado',

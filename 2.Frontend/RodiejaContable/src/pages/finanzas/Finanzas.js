@@ -28,7 +28,8 @@ import {
   PlusOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
-  DollarOutlined
+  DollarOutlined,
+  UndoOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
@@ -101,7 +102,8 @@ const Finanzas = () => {
           key: transaccion?.codigoTransaccion || transaccion?.id?.toString() || Math.random().toString(),
           fecha: transaccion.fecha || [2023, 1, 1],
           tipo: tipoTrans,
-          tipoTransaccion: tipoTrans,
+          tipoTransaccion: tipoTrans, // Guardamos para la UI
+          tipoTransaccionOriginal: transaccion.tipoTransaccion, // Conservamos el nombre original para lógica
           monto: Math.abs(monto),
           esIngreso,
           fechaFormateada
@@ -313,9 +315,18 @@ const Finanzas = () => {
     {
       title: 'Acciones',
       key: 'acciones',
-      width: 120,
+      width: 150,
       render: (_, record) => (
         <Space size="middle">
+          {record.estado === 'COMPLETADA' && record.esIngreso && (
+            <Button 
+              type="text" 
+              danger
+              icon={<UndoOutlined />} 
+              onClick={() => confirmarReembolso(record)}
+              title="Reembolsar Ingreso"
+            />
+          )}
           <Button 
             type="text" 
             icon={<EyeOutlined />} 
@@ -414,8 +425,35 @@ const Finanzas = () => {
       okText: 'Sí, eliminar',
       okType: 'danger',
       cancelText: 'Cancelar',
-      onOk: () => eliminarTransaccion(transaccion.codigoTransaccion),
+      onOk: () => eliminarTransaccion(transaccion.id),
     });
+  };
+
+  const confirmarReembolso = (transaccion) => {
+    Modal.confirm({
+      title: 'Confirmar Reembolso',
+      content: (
+        <div>
+          <p>¿Está seguro que desea reembolsar la transacción <strong>#{transaccion.codigoTransaccion}</strong>?</p>
+          <p>Esta acción generará un registro de Egreso de <strong>₡{transaccion.monto?.toLocaleString('es-CR')}</strong> balanceando este ingreso.</p>
+        </div>
+      ),
+      okText: 'Sí, Reembolsar',
+      okType: 'danger',
+      cancelText: 'Cancelar',
+      onOk: () => procesarReembolso(transaccion.id),
+    });
+  };
+
+  const procesarReembolso = async (id) => {
+    try {
+      await transaccionesCompletasService.reembolsarTransaccion(id);
+      message.success('Reembolso procesado exitosamente');
+      obtenerTransacciones(); // Recargar la lista
+    } catch (error) {
+      console.error('Error al procesar el reembolso:', error);
+      message.error(error.message || 'Error al procesar el reembolso');
+    }
   };
 
   const eliminarTransaccion = async (id) => {

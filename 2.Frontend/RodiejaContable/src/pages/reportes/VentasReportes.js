@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Table, 
-  Typography, 
-  Button, 
+import {
+  Card,
+  Row,
+  Col,
+  Table,
+  Typography,
+  Button,
   Space,
   Statistic,
   Select,
@@ -16,9 +16,10 @@ import {
   Empty,
   Modal,
   Form,
-  Input
+  Input,
+  Collapse
 } from 'antd';
-import { 
+import {
   ShoppingCartOutlined,
   DownloadOutlined,
   FilterOutlined,
@@ -32,6 +33,7 @@ import {
 } from '@ant-design/icons';
 import moment from 'moment';
 import ventasEmpleadosService from '../../api/ventasEmpleados';
+import { buscarTransacciones } from '../../api/transacciones';
 import { useVistaExcelMesActual, useVistaExcelMesEspecifico, useGenerarReporteVentasExcel } from '../../hooks/useReportes';
 import * as XLSX from 'xlsx';
 import ComisionesPendientes from '../../components/finanzas/ComisionesPendientes';
@@ -40,6 +42,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Search } = Input;
+const { Panel } = Collapse;
 
 const VentasReportes = () => {
   // Estados para datos y carga
@@ -47,8 +50,6 @@ const VentasReportes = () => {
   const [estadisticas, setEstadisticas] = useState({});
   const [empleados, setEmpleados] = useState([]);
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
-  const [vistaExcelMes, setVistaExcelMes] = useState(new Date().getMonth() + 1); // Mes actual (1-12)
-  const [vistaExcelAnio, setVistaExcelAnio] = useState(new Date().getFullYear()); // Año actual
   const [loading, setLoading] = useState({
     ventas: false,
     estadisticas: false,
@@ -57,8 +58,8 @@ const VentasReportes = () => {
     exportandoExcel: false
   });
   const [filtros, setFiltros] = useState({
-    fechaInicio: null,
-    fechaFin: null,
+    mes: null,
+    anio: null,
     estado: 'todos',
     vendedor: null,
     busqueda: '',
@@ -83,98 +84,102 @@ const VentasReportes = () => {
     { value: 'cancelado', label: 'Cancelado', color: 'error' },
     { value: 'reembolsado', label: 'Reembolsado', color: 'warning' }
   ];
-  
-  // Columnas para la tabla de ventas por empleado
-  const columnsVentasEmpleados = [
+
+  // Columnas para la tabla de transacciones de ventas
+  const columnsTransacciones = [
+    {
+      title: 'Fecha',
+      dataIndex: 'fecha',
+      key: 'fecha',
+      render: (fecha) => moment(fecha).format('DD/MM/YYYY'),
+      width: 120,
+      sorter: (a, b) => moment(a.fecha) - moment(b.fecha)
+    },
+    {
+      title: 'Código',
+      dataIndex: 'codigoTransaccion',
+      key: 'codigoTransaccion',
+      width: 150,
+      sorter: (a, b) => a.codigoTransaccion.localeCompare(b.codigoTransaccion)
+    },
+    {
+      title: 'Tipo',
+      dataIndex: 'tipoTransaccion',
+      key: 'tipoTransaccion',
+      width: 150,
+      sorter: (a, b) => a.tipoTransaccion.localeCompare(b.tipoTransaccion)
+    },
+    {
+      title: 'Vehículo/Repuesto',
+      key: 'vehiculoRepuesto',
+      render: (record) => {
+        if (record.codigoVehiculo) {
+          return `${record.marca || ''} ${record.modelo || ''} ${record.generacion || ''}`.trim();
+        } else if (record.codigoRepuesto) {
+          return record.codigoRepuesto;
+        }
+        return 'N/A';
+      },
+      width: 250
+    },
     {
       title: 'Empleado',
       dataIndex: 'empleado',
       key: 'empleado',
       render: (text) => <Text strong>{text}</Text>,
       width: 150,
-      fixed: 'left',
-      sorter: (a, b) => a.empleado.localeCompare(b.empleado)
+      sorter: (a, b) => (a.empleado || '').localeCompare(b.empleado || '')
     },
     {
-      title: 'Total Transacciones',
-      dataIndex: 'totalTransacciones',
-      key: 'totalTransacciones',
-      align: 'center',
-      sorter: (a, b) => a.totalTransacciones - b.totalTransacciones,
-      width: 120
-    },
-    {
-      title: 'Ventas',
-      dataIndex: 'transaccionesVenta',
-      key: 'transaccionesVenta',
-      align: 'center',
-      sorter: (a, b) => a.transaccionesVenta - b.transaccionesVenta,
-      width: 100
-    },
-    {
-      title: 'Total Ventas',
-      dataIndex: 'totalVentas',
-      key: 'totalVentas',
+      title: 'Monto',
+      dataIndex: 'monto',
+      key: 'monto',
       render: (value) => (
         <Text strong>
-          {value !== null && value !== undefined 
+          {value !== null && value !== undefined
             ? `₡${new Intl.NumberFormat('es-CR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              }).format(value)}`
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }).format(value)}`
             : '₡0.00'}
         </Text>
       ),
       align: 'right',
-      sorter: (a, b) => a.totalVentas - b.totalVentas,
+      sorter: (a, b) => (a.monto || 0) - (b.monto || 0),
       width: 150
     },
     {
-      title: 'Comisiones',
-      dataIndex: 'totalComisiones',
-      key: 'totalComisiones',
+      title: 'Comisión',
+      dataIndex: 'comisionEmpleado',
+      key: 'comisionEmpleado',
       render: (value) => (
         <Text type={value > 0 ? 'success' : 'default'}>
-          {value !== null && value !== undefined 
+          {value !== null && value !== undefined
             ? `₡${new Intl.NumberFormat('es-CR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              }).format(value)}` 
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }).format(value)}`
             : 'N/A'}
         </Text>
       ),
       align: 'right',
-      sorter: (a, b) => (a.totalComisiones || 0) - (b.totalComisiones || 0),
+      sorter: (a, b) => (a.comisionEmpleado || 0) - (b.comisionEmpleado || 0),
       width: 150
     },
     {
-      title: 'Promedio Venta',
-      dataIndex: 'promedioVenta',
-      key: 'promedioVenta',
-      render: (value) => (
-        <Text>
-          {value !== null && value !== undefined 
-            ? `₡${new Intl.NumberFormat('es-CR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              }).format(value)}`
-            : '₡0.00'}
-        </Text>
-      ),
-      align: 'right',
-      sorter: (a, b) => (a.promedioVenta || 0) - (b.promedioVenta || 0),
-      width: 150
-    },
-    {
-      title: '% Comisión',
-      dataIndex: 'porcentajeComision',
-      key: 'porcentajeComision',
-      render: (value) => (
-        <Text>{value !== null && value !== undefined ? `${Number(value).toFixed(2)}%` : 'N/A'}</Text>
-      ),
-      align: 'right',
-      sorter: (a, b) => (a.porcentajeComision || 0) - (b.porcentajeComision || 0),
-      width: 120
+      title: 'Estado',
+      dataIndex: 'estado',
+      key: 'estado',
+      render: (text) => {
+        const estadoInfo = estadosVenta.find(e => e.value.toUpperCase() === (text || '').toUpperCase());
+        return (
+          <Tag color={estadoInfo ? estadoInfo.color : 'default'}>
+            {(text || '').toUpperCase()}
+          </Tag>
+        );
+      },
+      width: 120,
+      sorter: (a, b) => (a.estado || '').localeCompare(b.estado || '')
     }
   ];
 
@@ -198,13 +203,15 @@ const VentasReportes = () => {
   const cargarVentas = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, ventas: true }));
-      
+
       const params = {};
 
-      // Si hay fechas, las formateamos
-      if (filtros.fechaInicio && filtros.fechaFin) {
-        params.fechaInicio = filtros.fechaInicio.format('YYYY-MM-DD');
-        params.fechaFin = filtros.fechaFin.format('YYYY-MM-DD');
+      // Si hay mes y año seleccionados, extraemos inicio y fin
+      if (filtros.mes && filtros.anio) {
+        // moment usa meses indexados en 0 (enero = 0), por lo que restamos 1 al mes
+        const fechaBase = moment().year(filtros.anio).month(filtros.mes - 1);
+        params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+        params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
       }
 
       // Agregar parámetro de búsqueda si existe
@@ -216,36 +223,48 @@ const VentasReportes = () => {
       if (filtros.vendedor) {
         params.vendedorId = filtros.vendedor;
       }
-      
+
       if (filtros.estado && filtros.estado !== 'todos') {
         params.estado = filtros.estado;
       }
-      
+
       if (filtros.tipoProducto) {
         params.tipoProducto = filtros.tipoProducto;
       }
 
-      // Cargar datos de ventas por empleado con rango de fechas si aplica
-      let response;
-      if (filtros.fechaInicio && filtros.fechaFin) {
-        response = await ventasEmpleadosService.getVentasPorRangoFechas(
-          params.fechaInicio, 
-          params.fechaFin, 
-          params.vendedorId || null,
-          params.busqueda || null
-        );
-      } else {
-        response = await ventasEmpleadosService.getVentasPorEmpleado(params);
+      // Buscar transacciones usando la nueva API
+      // Pasamos categoria INGRESO para traer solo ventas
+      let queryParams = { categoria: 'INGRESO' };
+
+      if (params.fechaInicio) queryParams.fechaInicio = params.fechaInicio;
+      if (params.fechaFin) queryParams.fechaFin = params.fechaFin;
+      if (params.estado) queryParams.estado = params.estado;
+
+      const response = await buscarTransacciones(queryParams);
+
+      let datosTransacciones = response.transacciones || response || [];
+
+      // Filtrar localmente por vendedor/empleado y búsqueda (si la API no soporta texto libre en /buscar)
+      if (params.vendedorId) {
+        const empleadoSeleccionado = empleados.find(e => e.id === params.vendedorId);
+        if (empleadoSeleccionado) {
+          datosTransacciones = datosTransacciones.filter(t => t.empleado === empleadoSeleccionado.nombreCompleto);
+        }
       }
-      
-      // Filtrar empleados sin ventas si es necesario
-      const datosFiltrados = response.filter(emp => emp.totalTransacciones > 0);
-      
-      setVentas(datosFiltrados);
-      setPagination(prev => ({
-        ...prev,
-        total: datosFiltrados.length
-      }));
+
+      if (params.busqueda) {
+        const lowerSearch = params.busqueda.toLowerCase();
+        datosTransacciones = datosTransacciones.filter(t =>
+          (t.codigoTransaccion && t.codigoTransaccion.toLowerCase().includes(lowerSearch)) ||
+          (t.empleado && t.empleado.toLowerCase().includes(lowerSearch)) ||
+          (t.cliente && t.cliente.toLowerCase().includes(lowerSearch)) ||
+          (t.codigoVehiculo && t.codigoVehiculo.toLowerCase().includes(lowerSearch)) ||
+          (t.codigoRepuesto && t.codigoRepuesto.toLowerCase().includes(lowerSearch))
+        );
+      }
+
+      setVentas(datosTransacciones);
+      setPagination(prev => ({ ...prev, total: datosTransacciones.length }));
     } catch (error) {
       console.error('Error al cargar ventas:', error);
       message.error('Error al cargar las ventas');
@@ -262,16 +281,17 @@ const VentasReportes = () => {
     try {
       setLoading(prev => ({ ...prev, estadisticas: true }));
       const params = {};
-      
-      if (filtros.fechaInicio && filtros.fechaFin) {
-        params.fechaInicio = filtros.fechaInicio.format('YYYY-MM-DD');
-        params.fechaFin = filtros.fechaFin.format('YYYY-MM-DD');
+
+      if (filtros.mes && filtros.anio) {
+        const fechaBase = moment().year(filtros.anio).month(filtros.mes - 1);
+        params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+        params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
       }
-      
+
       if (filtros.vendedor) {
         params.vendedorId = filtros.vendedor;
       }
-      
+
       const data = await ventasEmpleadosService.getEstadisticasVentas(params);
       setEstadisticas(data);
     } catch (error) {
@@ -317,8 +337,8 @@ const VentasReportes = () => {
   // Limpiar filtros
   const limpiarFiltros = () => {
     setFiltros({
-      fechaInicio: null,
-      fechaFin: null,
+      mes: null,
+      anio: null,
       estado: 'todos',
       vendedor: null,
       busqueda: '',
@@ -331,26 +351,31 @@ const VentasReportes = () => {
     });
   };
 
-  // Exportar a Excel
-  const exportarAExcel = async () => {
+  // Exportar a Excel usando los datos locales
+  const exportarAExcel = () => {
     try {
       setLoading(prev => ({ ...prev, exportar: true }));
-      
-      const response = await ventasEmpleadosService.exportarReporteExcel();
-      
-      // Crear un enlace para descargar el archivo
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `reporte-ventas-${new Date().toISOString().split('T')[0]}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      
+
+      const exportData = ventas.map(v => ({
+        'Fecha': moment(v.fecha).format('DD/MM/YYYY'),
+        'Código': v.codigoTransaccion,
+        'Tipo': v.tipoTransaccion,
+        'Vehículo/Repuesto': v.codigoVehiculo ? `${v.marca || ''} ${v.modelo || ''} ${v.generacion || ''}`.trim() : (v.codigoRepuesto || 'N/A'),
+        'Empleado': v.empleado,
+        'Monto': v.monto,
+        'Comisión': v.comisionEmpleado,
+        'Estado': v.estado
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Transacciones");
+      XLSX.writeFile(wb, `reporte-transacciones-${moment().format('YYYYMMDD')}.xlsx`);
+
       message.success('Reporte exportado exitosamente');
     } catch (error) {
       console.error('Error al exportar el reporte:', error);
-      message.error('Error al exportar el reporte');
+      message.error('Error al generar el archivo Excel');
     } finally {
       setLoading(prev => ({ ...prev, exportar: false }));
     }
@@ -360,18 +385,20 @@ const VentasReportes = () => {
   const exportarReporte = async (formato) => {
     try {
       setLoading(prev => ({ ...prev, exportando: true }));
-      
+
       const params = { ...filtros, formato };
-      
+
       // Formatear fechas para la exportación
-      if (params.fechaInicio && params.fechaFin) {
-        params.fechaInicio = params.fechaInicio.format('YYYY-MM-DD');
-        params.fechaFin = params.fechaFin.format('YYYY-MM-DD');
-        delete params.rangoFechas; // Eliminar el rango si existe
+      if (params.mes && params.anio) {
+        const fechaBase = moment().year(params.anio).month(params.mes - 1);
+        params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+        params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
+        delete params.mes;
+        delete params.anio;
       }
-      
+
       const blob = await ventasEmpleadosService.exportarReporte(formato, params);
-      
+
       // Crear enlace para descargar el archivo
       const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
@@ -380,7 +407,7 @@ const VentasReportes = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
+
       message.success(`Reporte exportado exitosamente como ${formato.toUpperCase()}`);
     } catch (error) {
       console.error('Error al exportar reporte:', error);
@@ -394,10 +421,10 @@ const VentasReportes = () => {
   // const exportarVistaExcel = async () => {
   //   try {
   //     setLoading(prev => ({ ...prev, exportandoExcel: true }));
-      
+
   //     // Obtener datos actuales
   //     const datosActuales = vistaExcelEspecifico || vistaExcelActual || [];
-      
+
   //     if (!datosActuales || datosActuales.length === 0) {
   //       message.warning('No hay datos para exportar');
   //       return;
@@ -419,7 +446,7 @@ const VentasReportes = () => {
   //     // Procesar cada mes como una hoja diferente
   //     Object.keys(datosPorMes).forEach(claveMes => {
   //       const datosMes = datosPorMes[claveMes];
-        
+
   //       // Preparar datos para la hoja
   //       const datosHoja = datosMes.map((item, index) => ({
   //         '#': index + 1,
@@ -461,7 +488,7 @@ const VentasReportes = () => {
 
   //       // Crear worksheet
   //       const ws = XLSX.utils.json_to_sheet(datosHoja);
-        
+
   //       // Ajustar anchos de columna
   //       const colWidths = [
   //         { wch: 5 },  // #
@@ -488,7 +515,7 @@ const VentasReportes = () => {
   //     // Generar y descargar archivo
   //     const nombreArchivo = `vista-excel-ventas-${moment().format('YYYYMMDD-HHmmss')}.xlsx`;
   //     XLSX.writeFile(wb, nombreArchivo);
-      
+
   //     message.success('Archivo Excel exportado correctamente');
   //   } catch (error) {
   //     console.error('Error al exportar a Excel:', error);
@@ -506,17 +533,20 @@ const VentasReportes = () => {
   const tasaConversion = estadisticas?.tasaConversion || 0;
 
   // Hooks para vista Excel
+  const mesExcel = filtros.mes || new Date().getMonth() + 1;
+  const anioExcel = filtros.anio || new Date().getFullYear();
+
   const { data: vistaExcelActual, isLoading: loadingVistaExcelActual } = useVistaExcelMesActual();
   const { data: vistaExcelEspecifico, isLoading: loadingVistaExcelEspecifico } = useVistaExcelMesEspecifico(
-    vistaExcelAnio, 
-    vistaExcelMes
+    anioExcel,
+    mesExcel
   );
-  const {  isLoading: exportandoExcel } = useGenerarReporteVentasExcel();
+  const { isLoading: exportandoExcel } = useGenerarReporteVentasExcel();
 
   // Función para exportar a Excel con múltiples hojas
   const exportarAExcelCompleto = () => {
     const datosActuales = vistaExcelEspecifico || vistaExcelActual || [];
-    
+
     if (!datosActuales || datosActuales.length === 0) {
       message.warning('No hay datos para exportar');
       return;
@@ -544,11 +574,11 @@ const VentasReportes = () => {
       Object.keys(datosPorMes).forEach(claveMes => {
         const datos = datosPorMes[claveMes];
         const primerItem = datos[0];
-        
+
         // Preparar datos para la hoja
         const datosHoja = datos.map(item => ({
-          'Fecha': Array.isArray(item.fecha) ? 
-            `${item.fecha[2]}/${item.fecha[1]}/${item.fecha[0]}` : 
+          'Fecha': Array.isArray(item.fecha) ?
+            `${item.fecha[2]}/${item.fecha[1]}/${item.fecha[0]}` :
             moment(item.fecha).format('DD/MM/YYYY'),
           'Vendedor': item.nombreDel || '',
           'Descripción/Observación': item.descripcionLinea || '',
@@ -558,7 +588,7 @@ const VentasReportes = () => {
         }));
 
         // Crear hoja
-        
+
         // Agregar título y subtítulo
         const titulo = `REPORTE DE VENTAS - ${primerItem.nombreMes} ${primerItem.anio}`;
         const comisionFormateada = new Intl.NumberFormat('es-CR', {
@@ -576,7 +606,7 @@ const VentasReportes = () => {
         const subtituloComision = `Comisión Acumulada: ₡${comisionFormateada}`;
         const subtituloIngresosBrutos = `Ingresos Brutos: ₡${ingresosFormateados}`;
         const subtituloIngresoNeto = `Ingreso Neto Rodieja: ₡${ingresoNetoFormateado}`;
-        
+
         // Crear array con títulos y datos
         const datosConTitulo = [
           [titulo],
@@ -585,10 +615,10 @@ const VentasReportes = () => {
           ['Fecha', 'Vendedor', 'Descripción/Observación', 'Forma de Pago', 'Ingreso', 'Comisión Equipo'],
           ...Object.values(datosHoja).map(row => Object.values(row))
         ];
-        
+
         // Recrear hoja con títulos
         const wsConTitulo = XLSX.utils.aoa_to_sheet(datosConTitulo);
-        
+
         // Agregar colores de fondo a los títulos
         // Color para el título principal (azul oscuro)
         wsConTitulo['A1'].s = {
@@ -596,35 +626,35 @@ const VentasReportes = () => {
           font: { sz: 16, bold: true, color: { rgb: "FFFFFFFF" } },
           alignment: { horizontal: "center" }
         };
-        
+
         // Color para el subtítulo (verde) - aplicado a grupos de 3 celdas
         const subtitleStyle = {
           fill: { fgColor: { rgb: "FF70AD47" } },
           font: { sz: 12, bold: true, color: { rgb: "FFFFFFFF" } },
           alignment: { horizontal: "center" }
         };
-        
+
         // Aplicar estilo a las celdas de comisión (A2, B2, C2)
         wsConTitulo['A2'].s = subtitleStyle;
         wsConTitulo['B2'].s = subtitleStyle;
         wsConTitulo['C2'].s = subtitleStyle;
-        
+
         // Aplicar estilo a las celdas de ingresos brutos (D2, E2, F2)
         wsConTitulo['D2'].s = subtitleStyle;
         wsConTitulo['E2'].s = subtitleStyle;
         wsConTitulo['F2'].s = subtitleStyle;
-        
+
         // Aplicar estilo a las celdas de ingreso neto (G2, H2)
         wsConTitulo['G2'].s = subtitleStyle;
         wsConTitulo['H2'].s = subtitleStyle;
-        
+
         // Estilo para los títulos de columnas (negrita)
         const headerStyle = {
           font: { bold: true, sz: 12 },
           fill: { fgColor: { rgb: "FFF2CC" } },
           alignment: { horizontal: "center", vertical: "center" }
         };
-        
+
         // Aplicar estilo de negrita a los títulos de columnas (fila 4)
         const columnHeaders = ['A4', 'B4', 'C4', 'D4', 'E4', 'F4'];
         columnHeaders.forEach(cell => {
@@ -633,23 +663,23 @@ const VentasReportes = () => {
           } else {
             // Si la celda no existe, crearla con el estilo
             const col = cell.charCodeAt(0) - 65; // Convertir A=0, B=1, etc.
-            wsConTitulo[cell] = { 
+            wsConTitulo[cell] = {
               v: ['Fecha', 'Vendedor', 'Descripción/Observación', 'Forma de Pago', 'Ingreso', 'Comisión Equipo'][col],
-              s: headerStyle 
+              s: headerStyle
             };
           }
         });
-        
+
         // Aplicar el estilo a todas las celdas del título (merge effect)
         const range = XLSX.utils.decode_range(wsConTitulo['!ref']);
         for (let col = 0; col <= range.e.c; col++) {
           const cellTitle = XLSX.utils.encode_cell({ r: 0, c: col });
-          
+
           if (col > 0) { // Copiar estilo a otras columnas del título
             wsConTitulo[cellTitle] = { v: '', s: wsConTitulo['A1'].s };
           }
         }
-        
+
         // Ajustar ancho de columnas
         const colWidths = [
           { wch: 12 },  // Fecha
@@ -677,7 +707,7 @@ const VentasReportes = () => {
 
   // Columnas para la tabla de vista Excel
   const columnsVistaExcel = [
-     {
+    {
       title: 'Fecha',
       dataIndex: 'fecha',
       key: 'fecha',
@@ -708,7 +738,7 @@ const VentasReportes = () => {
       width: 200,
       sorter: (a, b) => a.descripcionLinea.localeCompare(b.descripcionLinea)
     },
-        {
+    {
       title: 'Comisión',
       dataIndex: 'comision',
       key: 'comision',
@@ -754,7 +784,7 @@ const VentasReportes = () => {
     },
 
 
-   
+
     {
       title: 'Mes/Año',
       key: 'periodo',
@@ -765,7 +795,7 @@ const VentasReportes = () => {
         return a.mes - b.mes;
       }
     },
-    
+
   ];
 
   return (
@@ -777,17 +807,17 @@ const VentasReportes = () => {
           Reportes de Ventas
         </Title>
         <Space>
-          <Button 
-            icon={<DownloadOutlined />} 
+          <Button
+            icon={<DownloadOutlined />}
             onClick={() => exportarReporte('excel')}
             loading={loading.exportando}
             disabled={loading.ventas}
           >
             Exportar a Excel
           </Button>
-          <Button 
-            type="primary" 
-            icon={<PrinterOutlined />} 
+          <Button
+            type="primary"
+            icon={<PrinterOutlined />}
             onClick={() => exportarReporte('pdf')}
             loading={loading.exportando}
             disabled={loading.ventas}
@@ -796,10 +826,10 @@ const VentasReportes = () => {
           </Button>
         </Space>
       </div>
-      
+
       {/* Filtros */}
-      <Card 
-        className="filtros-card" 
+      <Card
+        className="filtros-card"
         title={
           <Space>
             <FilterOutlined />
@@ -810,90 +840,46 @@ const VentasReportes = () => {
       >
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} md={6}>
-            <div className="filter-label">Rango de fechas:</div>
-            <RangePicker 
-              style={{ width: '100%' }} 
-              value={[filtros.fechaInicio, filtros.fechaFin]}
-              onChange={(dates) => {
-                if (dates && dates.length === 2) {
-                  aplicarFiltros({ 
-                    fechaInicio: dates[0], 
-                    fechaFin: dates[1] 
-                  });
-                } else {
-                  aplicarFiltros({ 
-                    fechaInicio: null, 
-                    fechaFin: null 
-                  });
-                }
-              }}
-              format="DD/MM/YYYY"
-              allowClear
-            />
+            <div className="filter-label">Período de reporte:</div>
+            <Space.Compact style={{ width: '100%' }}>
+              <Select
+                style={{ width: '60%' }}
+                placeholder="Mes"
+                value={filtros.mes}
+                onChange={(value) => aplicarFiltros({ mes: value })}
+                allowClear
+              >
+                <Option value={1}>Enero</Option>
+                <Option value={2}>Febrero</Option>
+                <Option value={3}>Marzo</Option>
+                <Option value={4}>Abril</Option>
+                <Option value={5}>Mayo</Option>
+                <Option value={6}>Junio</Option>
+                <Option value={7}>Julio</Option>
+                <Option value={8}>Agosto</Option>
+                <Option value={9}>Septiembre</Option>
+                <Option value={10}>Octubre</Option>
+                <Option value={11}>Noviembre</Option>
+                <Option value={12}>Diciembre</Option>
+              </Select>
+              <Select
+                style={{ width: '40%' }}
+                placeholder="Año"
+                value={filtros.anio}
+                onChange={(value) => aplicarFiltros({ anio: value })}
+                allowClear
+              >
+                <Option value={2024}>2024</Option>
+                <Option value={2025}>2025</Option>
+                <Option value={2026}>2026</Option>
+              </Select>
+            </Space.Compact>
           </Col>
-          
-          <Col xs={24} md={6}>
-            <div className="filter-label">Vendedor:</div>
-            <Select
-              style={{ width: '100%' }}
-              placeholder="Seleccionar vendedor"
-              value={filtros.vendedor}
-              onChange={(value) => aplicarFiltros({ vendedor: value })}
-              allowClear
-              showSearch
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
-              loading={loading.empleados}
-            >
-              <Option value={null}>Todos los vendedores</Option>
-              {empleados.map(empleado => (
-                <Option key={empleado.id} value={empleado.id}>
-                  {empleado.nombreCompleto}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          
-          <Col xs={24} md={6}>
-            <div className="filter-label">Estado:</div>
-            <Select
-              style={{ width: '100%' }}
-              value={filtros.estado}
-              onChange={(value) => aplicarFiltros({ estado: value })}
-            >
-              <Option value="todos">Todos los estados</Option>
-              {estadosVenta.map(estado => (
-                <Option key={estado.value} value={estado.value}>
-                  {estado.label}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          
-          <Col xs={24} md={6}>
-            <div className="filter-label">Tipo de producto:</div>
-            <Select
-              style={{ width: '100%' }}
-              placeholder="Todos los tipos"
-              value={filtros.tipoProducto}
-              onChange={(value) => aplicarFiltros({ tipoProducto: value })}
-              allowClear
-            >
-              <Option value={null}>Todos los tipos</Option>
-              {tiposProducto.map(tipo => (
-                <Option key={tipo.value} value={tipo.value}>
-                  {tipo.label}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          
+
           <Col xs={24} md={18}>
             <div className="filter-label">Buscar:</div>
             <Search
-              placeholder="Buscar por ID, cliente, producto, etc."
+              placeholder="Buscar por ID, código, producto, etc."
               allowClear
               enterButton="Buscar"
               value={filtros.busqueda}
@@ -902,10 +888,76 @@ const VentasReportes = () => {
               loading={loading.ventas}
             />
           </Col>
-          
+
+          <Col xs={24}>
+            <Collapse ghost>
+              <Panel header="Filtros Avanzados" key="1">
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} md={8}>
+                    <div className="filter-label">Vendedor:</div>
+                    <Select
+                      style={{ width: '100%' }}
+                      placeholder="Seleccionar vendedor"
+                      value={filtros.vendedor}
+                      onChange={(value) => aplicarFiltros({ vendedor: value })}
+                      allowClear
+                      showSearch
+                      optionFilterProp="children"
+                      filterOption={(input, option) =>
+                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      }
+                      loading={loading.empleados}
+                    >
+                      <Option value={null}>Todos los vendedores</Option>
+                      {empleados.map(empleado => (
+                        <Option key={empleado.id} value={empleado.id}>
+                          {empleado.nombreCompleto}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Col>
+
+                  <Col xs={24} md={8}>
+                    <div className="filter-label">Estado:</div>
+                    <Select
+                      style={{ width: '100%' }}
+                      value={filtros.estado}
+                      onChange={(value) => aplicarFiltros({ estado: value })}
+                    >
+                      <Option value="todos">Todos los estados</Option>
+                      {estadosVenta.map(estado => (
+                        <Option key={estado.value} value={estado.value}>
+                          {estado.label}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Col>
+
+                  <Col xs={24} md={8}>
+                    <div className="filter-label">Tipo de producto:</div>
+                    <Select
+                      style={{ width: '100%' }}
+                      placeholder="Todos los tipos"
+                      value={filtros.tipoProducto}
+                      onChange={(value) => aplicarFiltros({ tipoProducto: value })}
+                      allowClear
+                    >
+                      <Option value={null}>Todos los tipos</Option>
+                      {tiposProducto.map(tipo => (
+                        <Option key={tipo.value} value={tipo.value}>
+                          {tipo.label}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Col>
+                </Row>
+              </Panel>
+            </Collapse>
+          </Col>
+
           <Col xs={24} md={6} style={{ display: 'flex', gap: '8px', marginTop: 24 }}>
-            <Button 
-              type="default" 
+            <Button
+              type="default"
               icon={<ReloadOutlined />}
               onClick={limpiarFiltros}
               block
@@ -916,7 +968,7 @@ const VentasReportes = () => {
           </Col>
         </Row>
       </Card>
-      
+
       {/* Métricas principales */}
       <Spin spinning={loading.estadisticas}>
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
@@ -980,8 +1032,8 @@ const VentasReportes = () => {
           </Col>
         </Row>
       </Spin>
-            {/* Sección Vista Excel de Ventas Mensuales */}
-      <Card 
+      {/* Sección Vista Excel de Ventas Mensuales */}
+      <Card
         title={
           <Space>
             <BarChartOutlined />
@@ -990,55 +1042,14 @@ const VentasReportes = () => {
         }
         extra={
           <Space>
-            <Button 
-              icon={<FileExcelOutlined />} 
+            <Button
+              icon={<FileExcelOutlined />}
               onClick={exportarAExcelCompleto}
               loading={exportandoExcel}
               type="primary"
               style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
             >
               Exportar a Excel
-            </Button>
-            <Select
-              style={{ width: 120 }}
-              placeholder="Mes"
-              value={vistaExcelMes}
-              onChange={(value) => setVistaExcelMes(value)}
-              allowClear
-            >
-              <Option value={1}>Enero</Option>
-              <Option value={2}>Febrero</Option>
-              <Option value={3}>Marzo</Option>
-              <Option value={4}>Abril</Option>
-              <Option value={5}>Mayo</Option>
-              <Option value={6}>Junio</Option>
-              <Option value={7}>Julio</Option>
-              <Option value={8}>Agosto</Option>
-              <Option value={9}>Septiembre</Option>
-              <Option value={10}>Octubre</Option>
-              <Option value={11}>Noviembre</Option>
-              <Option value={12}>Diciembre</Option>
-            </Select>
-            <Select
-              style={{ width: 100 }}
-              placeholder="Año"
-              value={vistaExcelAnio}
-              onChange={(value) => setVistaExcelAnio(value)}
-              allowClear
-            >
-              <Option value={2024}>2024</Option>
-              <Option value={2025}>2025</Option>
-              <Option value={2026}>2026</Option>
-            </Select>
-            <Button 
-              type="default" 
-              icon={<ReloadOutlined />} 
-              onClick={() => {
-                setVistaExcelMes(null);
-                setVistaExcelAnio(null);
-              }}
-            >
-              Mes Actual
             </Button>
           </Space>
         }
@@ -1059,13 +1070,13 @@ const VentasReportes = () => {
           }}
           locale={{
             emptyText: (
-              <Empty 
-                image={Empty.PRESENTED_IMAGE_SIMPLE} 
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   <span>
                     <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
-                    {!vistaExcelMes && !vistaExcelAnio 
-                      ? 'Selecciona un mes y año específicos o usa "Mes Actual"'
+                    {!filtros.mes && !filtros.anio
+                      ? 'Selecciona un mes y año específicos en el filtro superior'
                       : 'No hay datos para el período seleccionado'}
                   </span>
                 }
@@ -1075,9 +1086,9 @@ const VentasReportes = () => {
         />
       </Card>
 
-      
+
       {/* Tabla de ventas */}
-      <Card 
+      <Card
         title={
           <Space>
             <TeamOutlined />
@@ -1091,22 +1102,22 @@ const VentasReportes = () => {
         }
         extra={
           <Space>
-            <Button 
-              type="primary" 
-              icon={<DownloadOutlined />} 
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
               onClick={exportarAExcel}
               loading={loading.exportar}
             >
               Exportar
             </Button>
-            <Button 
-              icon={<FilterOutlined />} 
-              onClick={() => {}}
+            <Button
+              icon={<FilterOutlined />}
+              onClick={() => { }}
             >
               Filtros
             </Button>
-            <Button 
-              icon={<ReloadOutlined />} 
+            <Button
+              icon={<ReloadOutlined />}
               onClick={cargarDatosIniciales}
               loading={loading.ventas}
             >
@@ -1116,9 +1127,9 @@ const VentasReportes = () => {
         }
       >
         <Table
-          columns={columnsVentasEmpleados}
+          columns={columnsTransacciones}
           dataSource={ventas}
-          rowKey="empleado"
+          rowKey="id"
           pagination={{
             ...pagination,
             showSizeChanger: true,
@@ -1132,8 +1143,8 @@ const VentasReportes = () => {
           size="middle"
           locale={{
             emptyText: (
-              <Empty 
-                image={Empty.PRESENTED_IMAGE_SIMPLE} 
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   <span>
                     <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
@@ -1147,7 +1158,10 @@ const VentasReportes = () => {
       </Card>
 
       {/* Sección de Comisiones Pendientes */}
-      <ComisionesPendientes />
+      <ComisionesPendientes
+        mesFiltro={filtros.mes}
+        anioFiltro={filtros.anio}
+      />
 
       {/* Modal para ver detalles de venta */}
       <Modal
@@ -1173,7 +1187,7 @@ const VentasReportes = () => {
               </Form.Item>
             </Col>
           </Row>
-          
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item label="Vendedor" name={['vendedor', 'nombreCompleto']}>
@@ -1186,11 +1200,11 @@ const VentasReportes = () => {
               </Form.Item>
             </Col>
           </Row>
-          
+
           <Form.Item label="Monto Total" name="montoTotal">
-            <Input 
-              readOnly 
-              style={{ fontWeight: 'bold' }} 
+            <Input
+              readOnly
+              style={{ fontWeight: 'bold' }}
               prefix="₡"
               value={ventaSeleccionada?.montoTotal ? new Intl.NumberFormat('es-CR', {
                 minimumFractionDigits: 2,
@@ -1198,13 +1212,13 @@ const VentasReportes = () => {
               }).format(ventaSeleccionada.montoTotal) : '0.00'}
             />
           </Form.Item>
-          
+
           <Form.Item label="Estado" name="estado">
             <Input readOnly />
           </Form.Item>
         </Form>
       </Modal>
-      
+
       {/* Estilos */}
       <style jsx global>{`
         .page-header {

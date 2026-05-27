@@ -17,6 +17,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.time.format.TextStyle;
+import java.util.Locale;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class TransaccionesFinancierasService {
@@ -64,8 +68,27 @@ public class TransaccionesFinancierasService {
         }
         
         // Validar que el tipo de transacción existe
-        tiposTransaccionesRepository.findById(transaccion.getTipoTransaccionId())
+        TiposTransacciones tipoTransaccion = tiposTransaccionesRepository.findById(transaccion.getTipoTransaccionId())
             .orElseThrow(() -> new ResourceNotFoundException("Tipo de transacción no encontrado con ID: " + transaccion.getTipoTransaccionId()));
+        
+        // Asignar referencia automáticamente si está vacía
+        if (transaccion.getReferencia() == null || transaccion.getReferencia().trim().isEmpty()) {
+            String categoria = tipoTransaccion.getCategoria().name(); // INGRESO / EGRESO
+            int count = transaccionesRepository.countByTipoTransaccionId(tipoTransaccion.getId()) + 1;
+            
+            // Limpiar el nombre para la referencia (ej: "Venta Repuesto" -> "VENTA_REPUESTO")
+            String nombreLimpio = tipoTransaccion.getNombre()
+                .toUpperCase()
+                .replaceAll("[^A-Z0-9]", "_");
+            if (nombreLimpio.length() > 15) {
+                nombreLimpio = nombreLimpio.substring(0, 15);
+            }
+            
+            String prefix = "INGRESO".equals(categoria) ? "MAN-ING" : "MAN-EGR";
+            String consecutivo = String.format("%04d", count);
+            
+            transaccion.setReferencia(prefix + "-" + nombreLimpio + "-" + consecutivo);
+        }
         
         // Establecer valores por defecto
         if (transaccion.getFecha() == null) {
@@ -186,7 +209,7 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
-    public TransaccionesFinancieras reembolsarVentaRepuesto(Integer transaccionId) {
+    public TransaccionesFinancieras reembolsarTransaccion(Integer transaccionId) {
         TransaccionesFinancieras original = findById(transaccionId);
         
         if (original.getEstado() != TransaccionesFinancierasEstado.COMPLETADA) {
@@ -195,15 +218,27 @@ public class TransaccionesFinancierasService {
         
         TiposTransacciones tipoVenta = tiposTransaccionesRepository.findById(original.getTipoTransaccionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tipo de transacción original no encontrado."));
-        if (!"Venta Repuesto".equals(tipoVenta.getNombre())) {
-            throw new IllegalArgumentException("Solo se pueden reembolsar ventas de repuestos.");
+        if (tipoVenta.getCategoria() != TiposTransaccionesCategoria.INGRESO) {
+            throw new IllegalArgumentException("Solo se pueden reembolsar transacciones de tipo INGRESO.");
         }
         
-        TiposTransacciones tipoReembolso = tiposTransaccionesRepository.findByNombre("Reembolso Repuesto")
+        String nombreReembolso = "Reembolso " + tipoVenta.getNombre();
+        // Limitar a 50 caracteres si es necesario (asumiendo que el campo nombre tiene límite)
+        if (nombreReembolso.length() > 50) {
+            nombreReembolso = nombreReembolso.substring(0, 50);
+        }
+
+        TiposTransacciones tipoReembolso = tiposTransaccionesRepository.findByNombre(nombreReembolso)
                 .orElseGet(() -> {
                     TiposTransacciones nuevoTipo = new TiposTransacciones();
-                    nuevoTipo.setNombre("Reembolso Repuesto");
-                    nuevoTipo.setDescripcion("Egreso por reembolso de repuesto devuelto a stock");
+                    String nombreG = "Reembolso " + tipoVenta.getNombre();
+                    if (nombreG.length() > 50) nombreG = nombreG.substring(0, 50);
+                    nuevoTipo.setNombre(nombreG);
+                    
+                    String descG = "Egreso por reembolso de " + tipoVenta.getNombre();
+                    if (descG.length() > 100) descG = descG.substring(0, 100);
+                    nuevoTipo.setDescripcion(descG);
+                    
                     nuevoTipo.setCategoria(TiposTransaccionesCategoria.EGRESO);
                     nuevoTipo.setActivo((byte) 1);
                     return tiposTransaccionesRepository.save(nuevoTipo);
@@ -219,7 +254,7 @@ public class TransaccionesFinancierasService {
         reembolso.setGeneracionId(original.getGeneracionId());
         reembolso.setMonto(original.getMonto());
         reembolso.setComisionEmpleado(original.getComisionEmpleado() != null ? original.getComisionEmpleado().negate() : BigDecimal.ZERO);
-        reembolso.setDescripcion("Reembolso de repuesto: " + (original.getDescripcion() != null ? original.getDescripcion() : ""));
+        reembolso.setDescripcion("Reembolso de: " + (original.getDescripcion() != null ? original.getDescripcion() : tipoVenta.getNombre()));
         reembolso.setReferencia("Reembolso TR-" + original.getId());
         reembolso.setEstado(TransaccionesFinancierasEstado.COMPLETADA);
         reembolso.setActivo((byte) 1);
@@ -229,5 +264,38 @@ public class TransaccionesFinancierasService {
         reembolso.setFechaActualizacion(now);
         
         return transaccionesRepository.save(reembolso);
+    }
+    
+    public List<Map<String, Object>> getReporteVentasRepuestosMensual(LocalDate fechaInicio, LocalDate fechaFin, Integer generacionId) {
+        List<Map<String, Object>> reportes = transaccionesRepository.getReporteVentasRepuestosMensual(fechaInicio, fechaFin, generacionId);
+        
+        // Convert to mutable maps to add properties
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        
+        for (Map<String, Object> roReporte : reportes) {
+            Map<String, Object> reporte = new HashMap<>(roReporte);
+            
+            Object mesObj = reporte.get("mes");
+            if (mesObj instanceof Number) {
+                int mes = ((Number) mesObj).intValue();
+                String nombreMes = java.time.Month.of(mes)
+                    .getDisplayName(TextStyle.FULL, new Locale("es", "ES"));
+                reporte.put("nombreMes", nombreMes.toUpperCase());
+            }
+            
+            Object ventasObj = reporte.get("totalVentas");
+            Object costosObj = reporte.get("totalCostos");
+            Object comisionesObj = reporte.get("totalComisiones");
+            
+            BigDecimal ventas = ventasObj instanceof BigDecimal ? (BigDecimal) ventasObj : BigDecimal.ZERO;
+            BigDecimal costos = costosObj instanceof BigDecimal ? (BigDecimal) costosObj : BigDecimal.ZERO;
+            BigDecimal comisiones = comisionesObj instanceof BigDecimal ? (BigDecimal) comisionesObj : BigDecimal.ZERO;
+            
+            reporte.put("gananciaNeta", ventas.subtract(costos).subtract(comisiones));
+            
+            result.add(reporte);
+        }
+        
+        return result;
     }
 }

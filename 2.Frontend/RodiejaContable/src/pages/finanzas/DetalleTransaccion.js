@@ -5,6 +5,7 @@ import { ArrowLeftOutlined, CarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import finanzaService from '../../api/finanzas';
 import { getTiposTransacciones } from '../../api/transacciones';
+import transaccionesCompletasService from '../../api/transaccionesCompletas';
 
 const { Title } = Typography;
 
@@ -55,17 +56,9 @@ const DetalleTransaccion = () => {
   const handleReembolso = async () => {
     try {
       setIsReembolsando(true);
-      const response = await fetch(`/api/transacciones-financieras/reembolso/${id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      await transaccionesCompletasService.reembolsarTransaccion(id);
       
-      if (!response.ok) {
-        throw new Error('Error al procesar el reembolso');
-      }
-      
+
       message.success('Reembolso procesado exitosamente');
       setIsReembolsoModalVisible(false);
       
@@ -148,9 +141,11 @@ const DetalleTransaccion = () => {
     }
   };
 
-  const isVentaRepuestoCompletada = 
+  const isIngresoCompletado = 
     transaccion?.estado === 'COMPLETADA' && 
-    (transaccion?.tipo_transaccion?.nombre === 'Venta Repuesto' || transaccion?.tipo === 'Venta Repuesto');
+    (transaccion?.tipo_transaccion?.categoria === 'INGRESO' || 
+     transaccion?.tipo === 'INGRESO' || 
+     transaccion?.categoria === 'INGRESO');
 
   return (
     <div>
@@ -166,7 +161,7 @@ const DetalleTransaccion = () => {
         <Title level={2} style={{ margin: 0 }}>Detalle de la Transacción</Title>
       </div>
       
-      {isVentaRepuestoCompletada && (
+      {isIngresoCompletado && (
         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
           <Button 
             type="primary" 
@@ -247,7 +242,8 @@ const DetalleTransaccion = () => {
         okButtonProps={{ danger: true, loading: isReembolsando }}
       >
         <p>
-          Al confirmar este reembolso, se generará una transacción de egreso y el repuesto asociado volverá a estado <strong>STOCK</strong> en el inventario.
+          Al confirmar este reembolso, se generará una transacción de egreso para revertir este ingreso.
+          Si es un repuesto, volverá a estado <strong>STOCK</strong> en el inventario.
         </p>
         <p>¿Deseas proceder?</p>
       </Modal>

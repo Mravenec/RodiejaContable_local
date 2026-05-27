@@ -229,13 +229,29 @@ const NuevaTransaccion = () => {
         const vehiculo = vehiculos.find(v => v.id === vehiculoId);
         if (vehiculo) {
           let nuevoMonto = 0;
-          if (esCostoGrua && vehiculo.costoGrua) nuevoMonto = parseFloat(vehiculo.costoGrua);
-          else if (esVentaVehiculo && vehiculo.precioVenta) nuevoMonto = parseFloat(vehiculo.precioVenta);
-          else if (esCompraVehiculo && vehiculo.precioCompra) nuevoMonto = parseFloat(vehiculo.precioCompra);
+          let campoBuscado = '';
+          
+          if (esCostoGrua) {
+            nuevoMonto = parseFloat(vehiculo.costoGrua);
+            campoBuscado = 'costo de grúa';
+          }
+          else if (esVentaVehiculo) {
+            nuevoMonto = parseFloat(vehiculo.precioVenta);
+            campoBuscado = 'precio de venta';
+          }
+          else if (esCompraVehiculo) {
+            nuevoMonto = parseFloat(vehiculo.precioCompra);
+            campoBuscado = 'precio de compra';
+          }
           
           if (nuevoMonto > 0) {
             form.setFieldsValue({ monto: nuevoMonto });
             setMonto(nuevoMonto);
+          } else if (esCostoGrua || esVentaVehiculo || esCompraVehiculo) {
+            // El vehículo no tiene el precio registrado
+            form.setFieldsValue({ monto: 0 });
+            setMonto(0);
+            message.info(`El vehículo seleccionado no tiene un ${campoBuscado} registrado.`);
           }
         }
       }
@@ -270,7 +286,6 @@ const NuevaTransaccion = () => {
         tipoTransaccionId: values.tipo,
         monto: esEgreso ? Math.abs(montoValor) : montoValor,
         descripcion: values.descripcion || null,
-        referencia: values.referencia || null,
         estado: 'COMPLETADA'
       };
       
@@ -353,9 +368,6 @@ const NuevaTransaccion = () => {
       setTipoTransaccion(tipoSeleccionado.categoria);
       setEsReembolso(tipoSeleccionado.nombre === 'Reembolso Repuesto');
       
-      // Generar referencia automáticamente
-      generarReferencia(tipoSeleccionado);
-      
       // Auto-popular monto si es relacionado a vehículo y hay uno seleccionado
       const nombreTipo = tipoSeleccionado.nombre.toLowerCase();
       const esCostoGrua = nombreTipo.includes('grúa') || nombreTipo.includes('grua');
@@ -366,13 +378,29 @@ const NuevaTransaccion = () => {
         const vehiculo = vehiculos.find(v => v.id === vehiculoSeleccionado);
         if (vehiculo) {
           let nuevoMonto = 0;
-          if (esCostoGrua && vehiculo.costoGrua) nuevoMonto = parseFloat(vehiculo.costoGrua);
-          else if (esVentaVehiculo && vehiculo.precioVenta) nuevoMonto = parseFloat(vehiculo.precioVenta);
-          else if (esCompraVehiculo && vehiculo.precioCompra) nuevoMonto = parseFloat(vehiculo.precioCompra);
+          let campoBuscado = '';
+          
+          if (esCostoGrua) {
+            nuevoMonto = parseFloat(vehiculo.costoGrua);
+            campoBuscado = 'costo de grúa';
+          }
+          else if (esVentaVehiculo) {
+            nuevoMonto = parseFloat(vehiculo.precioVenta);
+            campoBuscado = 'precio de venta';
+          }
+          else if (esCompraVehiculo) {
+            nuevoMonto = parseFloat(vehiculo.precioCompra);
+            campoBuscado = 'precio de compra';
+          }
           
           if (nuevoMonto > 0) {
             form.setFieldsValue({ monto: nuevoMonto });
             setMonto(nuevoMonto);
+          } else if (esCostoGrua || esVentaVehiculo || esCompraVehiculo) {
+            // El vehículo no tiene el precio registrado
+            form.setFieldsValue({ monto: 0 });
+            setMonto(0);
+            message.info(`El vehículo seleccionado no tiene un ${campoBuscado} registrado.`);
           }
         }
       }
@@ -412,23 +440,7 @@ const NuevaTransaccion = () => {
     }
   };
 
-  // Función para generar referencia automáticamente
-  const generarReferencia = (tipoSeleccionado) => {
-    const categoria = tipoSeleccionado.categoria; // INGRESO o EGRESO
-    const nombreTipo = tipoSeleccionado.nombre; // "Combustible", "Alquiler Espacio", etc.
-    const fechaHoy = dayjs().format('MMMYY').toUpperCase(); // Formato: JUL25
-    
-    // Limpiar y formatear el nombre del tipo
-    const nombreLimpio = nombreTipo
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '_') // Reemplazar caracteres especiales con guión bajo
-      .substring(0, 15); // Limitar longitud
-    
-    const referenciaGenerada = `${categoria}-${nombreLimpio}-${fechaHoy}`;
-    
-    // Establecer la referencia en el formulario
-    form.setFieldsValue({ referencia: referenciaGenerada });
-  };
+
 
 
   const handleMontoChange = (value) => {
@@ -951,18 +963,7 @@ const NuevaTransaccion = () => {
                 </Col>
                 
                 <Col xs={24} md={12}>
-                  <Form.Item
-                    name="referencia"
-                    label="Número de Referencia"
-                    rules={[{ required: true, message: 'Debe ingresar una referencia' }]}
-                  >
-                    <Input 
-                      placeholder="Se genera automáticamente" 
-                      readOnly 
-                      style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                    />
-                  </Form.Item>
-                  
+
                   <Form.Item
                     name="vehiculo_id"
                     label="Vehículo (opcional)"

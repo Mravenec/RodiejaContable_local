@@ -1,10 +1,14 @@
 package com.rodiejacontable.rodiejacontable.repository;
 
 import static com.rodiejacontable.database.jooq.Tables.TRANSACCIONES_FINANCIERAS;
+import static com.rodiejacontable.database.jooq.Tables.TIPOS_TRANSACCIONES;
+import static com.rodiejacontable.database.jooq.Tables.INVENTARIO_REPUESTOS;
 
 import com.rodiejacontable.database.jooq.enums.TransaccionesFinancierasEstado;
 import com.rodiejacontable.database.jooq.tables.pojos.TransaccionesFinancieras;
 import com.rodiejacontable.database.jooq.tables.records.TransaccionesFinancierasRecord;
+import org.jooq.Condition;
+import java.util.Map;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +76,14 @@ public class TransaccionesFinancierasRepository {
                  .from(TRANSACCIONES_FINANCIERAS)
                  .where(TRANSACCIONES_FINANCIERAS.CODIGO_TRANSACCION.eq(codigoTransaccion))
                  .fetchOne(0, Integer.class) > 0;
+    }
+    
+    public int countByTipoTransaccionId(Integer tipoTransaccionId) {
+        Integer count = dsl.selectCount()
+                 .from(TRANSACCIONES_FINANCIERAS)
+                 .where(TRANSACCIONES_FINANCIERAS.TIPO_TRANSACCION_ID.eq(tipoTransaccionId))
+                 .fetchOne(0, Integer.class);
+        return count != null ? count : 0;
     }
     
     public BigDecimal getTotalMontoByTipoTransaccionAndPeriodo(Integer tipoTransaccionId, LocalDate fechaInicio, LocalDate fechaFin) {
@@ -173,5 +185,33 @@ public class TransaccionesFinancierasRepository {
                 .and(TRANSACCIONES_FINANCIERAS.COMISION_EMPLEADO.gt(BigDecimal.ZERO))
                 .orderBy(TRANSACCIONES_FINANCIERAS.FECHA.desc())
                 .fetch();
+    }
+    
+    public List<Map<String, Object>> getReporteVentasRepuestosMensual(LocalDate fechaInicio, LocalDate fechaFin, Integer generacionId) {
+        Condition conditions = TIPOS_TRANSACCIONES.NOMBRE.eq("Venta Repuesto")
+                .and(TRANSACCIONES_FINANCIERAS.ACTIVO.eq((byte) 1));
+                
+        if (fechaInicio != null && fechaFin != null) {
+            conditions = conditions.and(TRANSACCIONES_FINANCIERAS.FECHA.between(fechaInicio, fechaFin));
+        }
+        
+        if (generacionId != null) {
+            conditions = conditions.and(TRANSACCIONES_FINANCIERAS.GENERACION_ID.eq(generacionId));
+        }
+        
+        return dsl.select(
+                TRANSACCIONES_FINANCIERAS.ANIO.as("anio"),
+                TRANSACCIONES_FINANCIERAS.MES.as("mes"),
+                DSL.sum(TRANSACCIONES_FINANCIERAS.MONTO).as("totalVentas"),
+                DSL.sum(INVENTARIO_REPUESTOS.PRECIO_COSTO).as("totalCostos"),
+                DSL.sum(TRANSACCIONES_FINANCIERAS.COMISION_EMPLEADO).as("totalComisiones")
+            )
+            .from(TRANSACCIONES_FINANCIERAS)
+            .join(TIPOS_TRANSACCIONES).on(TRANSACCIONES_FINANCIERAS.TIPO_TRANSACCION_ID.eq(TIPOS_TRANSACCIONES.ID))
+            .join(INVENTARIO_REPUESTOS).on(TRANSACCIONES_FINANCIERAS.REPUESTO_ID.eq(INVENTARIO_REPUESTOS.ID))
+            .where(conditions)
+            .groupBy(TRANSACCIONES_FINANCIERAS.ANIO, TRANSACCIONES_FINANCIERAS.MES)
+            .orderBy(TRANSACCIONES_FINANCIERAS.ANIO.desc(), TRANSACCIONES_FINANCIERAS.MES.desc())
+            .fetchMaps();
     }
 }
