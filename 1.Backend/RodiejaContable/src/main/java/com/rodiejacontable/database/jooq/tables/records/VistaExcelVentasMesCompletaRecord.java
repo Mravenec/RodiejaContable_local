@@ -18,7 +18,7 @@ import org.jooq.impl.TableRecordImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class VistaExcelVentasMesCompletaRecord extends TableRecordImpl<VistaExcelVentasMesCompletaRecord> implements Record17<Short, Byte, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, LocalDate, String, String, String, BigDecimal, BigDecimal, String> {
 
     private static final long serialVersionUID = 1L;

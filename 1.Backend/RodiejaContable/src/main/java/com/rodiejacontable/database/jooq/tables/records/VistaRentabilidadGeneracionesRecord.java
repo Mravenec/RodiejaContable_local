@@ -17,7 +17,7 @@ import org.jooq.impl.TableRecordImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class VistaRentabilidadGeneracionesRecord extends TableRecordImpl<VistaRentabilidadGeneracionesRecord> implements Record15<Integer, String, Integer, Integer, Long, Long, Long, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, String> {
 
     private static final long serialVersionUID = 1L;

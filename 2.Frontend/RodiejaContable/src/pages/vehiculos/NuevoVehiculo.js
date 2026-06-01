@@ -744,20 +744,20 @@ const NuevoVehiculo = ({ editMode = false }) => {
     }
   };
 
-  
+
   const handleNext = async () => {
     try {
       console.log('🔄 Iniciando proceso de siguiente paso...');
-      
+
       // PASO 1: Obtener valores actuales del formulario
       const currentValues = form.getFieldsValue();
       console.log('📋 Valores actuales en formulario:', currentValues);
-      
+
       // PASO 2: Forzar que se mantengan los valores en el formulario
       let paso1Values = {};
       if (currentStep === 0) {
         console.log('💾 Guardando valores del paso 1...');
-        
+
         // Usar valores de estado como respaldo
         paso1Values = {
           marcaId: currentValues.marcaId || marcaId,
@@ -767,19 +767,19 @@ const NuevoVehiculo = ({ editMode = false }) => {
           estado: currentValues.estado || estadoValue,
           notas: currentValues.notas || notasValue
         };
-        
+
         console.log('📝 Valores a persistir:', paso1Values);
-        
+
         // Forzar que los valores se mantengan en el formulario
         Object.keys(paso1Values).forEach(key => {
           if (paso1Values[key]) {
             form.setFieldsValue({ [key]: paso1Values[key] });
           }
         });
-        
+
         console.log('✅ Valores forzados en el formulario');
       }
-      
+
       // Verificar que se guardaron correctamente
       const valoresVerificacion = form.getFieldsValue();
       console.log('✅ Verificación post-guardado:', valoresVerificacion);
@@ -1744,7 +1744,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                     <Text>{comisionesValue ? `₡ ${parseFloat(comisionesValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}</Text>
                   </Col>
                 </Row>
-                
+
                 <div style={{ marginTop: '24px', padding: '16px', background: '#fafafa', borderRadius: '8px', border: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text type="secondary" strong>Inversión Total Estimada</Text>
                   <Text strong style={{ color: '#1890ff', fontSize: '20px' }}>
@@ -1753,7 +1753,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 </div>
               </Card>
             )}
-            
+
             {steps[currentStep].content}
           </div>
 

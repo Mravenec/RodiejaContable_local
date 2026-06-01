@@ -69,7 +69,7 @@ const NuevaTransaccion = () => {
   const vehiculos = tipoTransaccion === 'EGRESO' ? vehiculosEgreso : vehiculosIngreso;
   const loadingVehiculos = tipoTransaccion === 'EGRESO' ? loadingVehiculosEgreso : loadingVehiculosIngreso;
   const errorVehiculos = tipoTransaccion === 'EGRESO' ? errorVehiculosEgreso : errorVehiculosIngreso;
-  const estadoRepuestos = esReembolso ? 'VENDIDO' : 'STOCK';
+  const estadoRepuestos = esReembolso ? (tipoTransaccion === 'EGRESO' ? 'VENDIDO' : 'STOCK') : 'STOCK';
   const { data: repuestos = [], isLoading: loadingRepuestos } = useRepuestos({ estado: estadoRepuestos });
   
   // Hook para crear transacción
@@ -365,7 +365,7 @@ const NuevaTransaccion = () => {
       
     if (tipoSeleccionado) {
       setTipoTransaccion(tipoSeleccionado.categoria);
-      setEsReembolso(tipoSeleccionado.nombre === 'Reembolso Repuesto');
+      setEsReembolso(tipoSeleccionado.nombre.toLowerCase().includes('reembolso'));
       
       // Auto-popular monto si es relacionado a vehículo y hay uno seleccionado
       const nombreTipo = tipoSeleccionado.nombre.toLowerCase();
@@ -427,8 +427,9 @@ const NuevaTransaccion = () => {
     const repuesto = repuestos.find(r => r.id === value);
     if (repuesto) {
       if (esReembolso) {
-        form.setFieldsValue({ monto: repuesto.precioVenta });
-        setMonto(repuesto.precioVenta || 0);
+        const montoReembolso = tipoTransaccion === 'EGRESO' ? repuesto.precioVenta : repuesto.precioCosto;
+        form.setFieldsValue({ monto: montoReembolso });
+        setMonto(montoReembolso || 0);
       } else if (tipoTransaccion === 'EGRESO') {
         form.setFieldsValue({ monto: repuesto.precioCosto });
         setMonto(repuesto.precioCosto || 0);
@@ -513,7 +514,7 @@ const NuevaTransaccion = () => {
                     name="tipo"
                     label="Tipo de Transacción"
                     rules={[{ required: true, message: 'Seleccione el tipo de transacción' }]}
-                    extra={esReembolso && <Text type="warning">Seleccione el repuesto vendido que está siendo devuelto. Volverá automáticamente al inventario (STOCK) al guardar.</Text>}
+                    extra={esReembolso && <Text type="warning">Seleccione el repuesto en STOCK que está siendo devuelto al proveedor. Se eliminará del inventario al guardar.</Text>}
                   >
                     <Select 
                       placeholder={loadingTiposIngreso ? 'Cargando...' : 'Seleccione el tipo'}

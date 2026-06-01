@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class VistaVentasPorEmpleado implements Serializable {
 
     private static final long serialVersionUID = 1L;

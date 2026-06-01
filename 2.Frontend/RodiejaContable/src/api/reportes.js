@@ -43,6 +43,21 @@ const reportesService = {
     return response.data;
   },
 
+  getResumenInventarioCritico: async () => {
+    const response = await api.get('/inventario-critico/resumen');
+    return response.data;
+  },
+
+  getEstadisticasRepuestos: async () => {
+    const response = await api.get('/dashboard/ejecutivo/estadisticas-repuestos');
+    return response.data;
+  },
+
+  getEstadisticasVehiculos: async () => {
+    const response = await api.get('/dashboard/ejecutivo/estadisticas-vehiculos');
+    return response.data;
+  },
+
   descargarArchivo: (blob, filename) => {
     const url = window.URL.createObjectURL(new Blob([blob]));
     const link = document.createElement('a');

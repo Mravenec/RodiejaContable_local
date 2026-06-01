@@ -32,7 +32,7 @@ import org.jooq.impl.TableImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class VistaInventarioCritico extends TableImpl<VistaInventarioCriticoRecord> {
 
     private static final long serialVersionUID = 1L;

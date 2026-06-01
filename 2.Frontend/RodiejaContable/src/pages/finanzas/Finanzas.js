@@ -318,13 +318,13 @@ const Finanzas = () => {
       width: 150,
       render: (_, record) => (
         <Space size="middle">
-          {record.estado === 'COMPLETADA' && record.esIngreso && (
+          {record.estado === 'COMPLETADA' && (
             <Button 
               type="text" 
               danger
               icon={<UndoOutlined />} 
               onClick={() => confirmarReembolso(record)}
-              title="Reembolsar Ingreso"
+              title="Reembolsar Transacción"
             />
           )}
           <Button 
@@ -435,7 +435,7 @@ const Finanzas = () => {
       content: (
         <div>
           <p>¿Está seguro que desea reembolsar la transacción <strong>#{transaccion.codigoTransaccion}</strong>?</p>
-          <p>Esta acción generará un registro de Egreso de <strong>₡{transaccion.monto?.toLocaleString('es-CR')}</strong> balanceando este ingreso.</p>
+          <p>Esta acción generará una transacción de balance (Ingreso/Egreso) por <strong>₡{transaccion.monto?.toLocaleString('es-CR')}</strong>.</p>
         </div>
       ),
       okText: 'Sí, Reembolsar',

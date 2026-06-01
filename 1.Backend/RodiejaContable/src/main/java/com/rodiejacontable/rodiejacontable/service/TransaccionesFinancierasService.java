@@ -216,30 +216,30 @@ public class TransaccionesFinancierasService {
             throw new IllegalArgumentException("Solo se pueden reembolsar transacciones completadas.");
         }
         
-        TiposTransacciones tipoVenta = tiposTransaccionesRepository.findById(original.getTipoTransaccionId())
+        TiposTransacciones tipoOriginal = tiposTransaccionesRepository.findById(original.getTipoTransaccionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tipo de transacción original no encontrado."));
-        if (tipoVenta.getCategoria() != TiposTransaccionesCategoria.INGRESO) {
-            throw new IllegalArgumentException("Solo se pueden reembolsar transacciones de tipo INGRESO.");
-        }
         
-        String nombreReembolso = "Reembolso " + tipoVenta.getNombre();
+        String nombreReembolso = "Reembolso " + tipoOriginal.getNombre();
         // Limitar a 50 caracteres si es necesario (asumiendo que el campo nombre tiene límite)
         if (nombreReembolso.length() > 50) {
             nombreReembolso = nombreReembolso.substring(0, 50);
         }
 
+        TiposTransaccionesCategoria categoriaReembolso = tipoOriginal.getCategoria() == TiposTransaccionesCategoria.INGRESO ? 
+                TiposTransaccionesCategoria.EGRESO : TiposTransaccionesCategoria.INGRESO;
+
         TiposTransacciones tipoReembolso = tiposTransaccionesRepository.findByNombre(nombreReembolso)
                 .orElseGet(() -> {
                     TiposTransacciones nuevoTipo = new TiposTransacciones();
-                    String nombreG = "Reembolso " + tipoVenta.getNombre();
+                    String nombreG = "Reembolso " + tipoOriginal.getNombre();
                     if (nombreG.length() > 50) nombreG = nombreG.substring(0, 50);
                     nuevoTipo.setNombre(nombreG);
                     
-                    String descG = "Egreso por reembolso de " + tipoVenta.getNombre();
+                    String descG = "Reembolso de " + tipoOriginal.getNombre();
                     if (descG.length() > 100) descG = descG.substring(0, 100);
                     nuevoTipo.setDescripcion(descG);
                     
-                    nuevoTipo.setCategoria(TiposTransaccionesCategoria.EGRESO);
+                    nuevoTipo.setCategoria(categoriaReembolso);
                     nuevoTipo.setActivo((byte) 1);
                     return tiposTransaccionesRepository.save(nuevoTipo);
                 });
@@ -254,7 +254,7 @@ public class TransaccionesFinancierasService {
         reembolso.setGeneracionId(original.getGeneracionId());
         reembolso.setMonto(original.getMonto());
         reembolso.setComisionEmpleado(original.getComisionEmpleado() != null ? original.getComisionEmpleado().negate() : BigDecimal.ZERO);
-        reembolso.setDescripcion("Reembolso de: " + (original.getDescripcion() != null ? original.getDescripcion() : tipoVenta.getNombre()));
+        reembolso.setDescripcion("Reembolso de: " + (original.getDescripcion() != null ? original.getDescripcion() : tipoOriginal.getNombre()));
         reembolso.setReferencia("Reembolso TR-" + original.getId());
         reembolso.setEstado(TransaccionesFinancierasEstado.COMPLETADA);
         reembolso.setActivo((byte) 1);
