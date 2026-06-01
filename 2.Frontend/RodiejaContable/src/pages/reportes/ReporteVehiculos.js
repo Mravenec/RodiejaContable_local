@@ -27,12 +27,12 @@ const ReporteVehiculos = () => {
 
   // Estados
   const [data, setData] = useState([]);
-  const [generaciones, setGeneraciones] = useState([]);
+  const [vehiculosListado, setVehiculosListado] = useState([]);
   
   const [filtros, setFiltros] = useState({
     mes: moment().month() + 1,
     anio: moment().year(),
-    generacionId: null,
+    vehiculoId: null,
     estadoVehiculo: null,
     busqueda: ''
   });
@@ -52,15 +52,7 @@ const ReporteVehiculos = () => {
 
   const loading = loadingMovimientos || loadingVehiculos;
 
-  const cargarGeneraciones = async () => {
-    try {
-      const res = await vehiculosService.getGeneraciones();
-      setGeneraciones(res || []);
-    } catch (error) {
-      console.error('Error al cargar generaciones', error);
-      message.error('Error al cargar generaciones');
-    }
-  };
+
 
   const cargarMovimientosYVehiculos = useCallback(async () => {
     try {
@@ -76,7 +68,7 @@ const ReporteVehiculos = () => {
 
       // Fetch all vehicles and transactions concurrently
       const [vehiculosRes, transaccionesResVista] = await Promise.all([
-        vehiculosService.getVehiculos(),
+        vehiculosService.getVehiculosCompletos(),
         (params.fechaInicio && params.fechaFin)
           ? transaccionesCompletasService.getTransaccionesPorRangoFechas(params.fechaInicio, params.fechaFin)
           : transaccionesCompletasService.getTransacciones()
@@ -90,16 +82,16 @@ const ReporteVehiculos = () => {
       const vehiculosMap = new Map();
       
       vehiculosNoDesarmados.forEach(v => {
-        const nombreVehiculo = `${v.marca || v.marcaNombre || ''} ${v.modelo || ''} ${v.generacion?.nombre || v.generacionNombre || ''}`.trim();
+        const genStr = typeof v.generacion === 'string' ? v.generacion : (v.generacion?.nombre || v.generacionNombre || '');
+        const nombreVehiculo = `${v.marca || v.marcaNombre || ''} ${v.modelo || ''} ${genStr}`.trim();
         if (v.codigoVehiculo) vehiculosMap.set(v.codigoVehiculo, nombreVehiculo);
         if (v.id) vehiculosMap.set(v.id.toString(), nombreVehiculo);
       });
 
       // FILTRO DE VEHÍCULOS: Aplicar filtros de la UI
       const vehiculosList = vehiculosNoDesarmados.filter(v => {
-        if (filtros.generacionId) {
-          const genId = v.generacion?.id || v.generacionId;
-          if (parseInt(genId, 10) !== parseInt(filtros.generacionId, 10)) return false;
+        if (filtros.vehiculoId) {
+          if (parseInt(v.id, 10) !== parseInt(filtros.vehiculoId, 10)) return false;
         }
         if (filtros.estadoVehiculo && v.estado !== filtros.estadoVehiculo) return false;
         if (filtros.busqueda) {
@@ -112,6 +104,7 @@ const ReporteVehiculos = () => {
         return true;
       });
       setVehiculosFiltrados(vehiculosList);
+      setVehiculosListado(vehiculosNoDesarmados);
       
       // Subset of valid IDs based on filters to apply to transactions
       const filteredVehiculosIds = new Set(vehiculosList.map(v => v.id));
@@ -140,7 +133,7 @@ const ReporteVehiculos = () => {
         }
         
         // Aplicar filtro de generacion/estado usando los sets filtrados
-        if (filtros.generacionId || filtros.estadoVehiculo) {
+        if (filtros.vehiculoId || filtros.estadoVehiculo) {
             const isFilteredId = t.vehiculoId != null && filteredVehiculosIds.has(parseInt(t.vehiculoId, 10));
             const isFilteredCodigo = t.codigoVehiculo != null && filteredVehiculosCodigos.has(t.codigoVehiculo);
             if (!(isFilteredId || isFilteredCodigo)) return false;
@@ -253,9 +246,7 @@ const ReporteVehiculos = () => {
     }
   }, [filtros]);
 
-  useEffect(() => {
-    cargarGeneraciones();
-  }, []);
+
 
   useEffect(() => {
     cargarMovimientosYVehiculos();
@@ -269,7 +260,7 @@ const ReporteVehiculos = () => {
     setFiltros({
       mes: null,
       anio: null,
-      generacionId: null,
+      vehiculoId: null,
       estadoVehiculo: null,
       busqueda: ''
     });
@@ -550,58 +541,6 @@ const ReporteVehiculos = () => {
         </Row>
       </div>
 
-      {/* Resumen Global (4 Cuadros) Siempre Visible */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos por Ventas</span>}
-              value={totales.ingresos}
-              precision={2}
-              prefix={<ArrowUpOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Inversión y Reparación</span>}
-              value={totales.egresos}
-              precision={2}
-              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Comisiones Totales</span>}
-              value={totales.comisiones}
-              precision={2}
-              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#faad14', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ganancia Neta</span>}
-              value={Math.abs(totales.balanceNeto)}
-              precision={2}
-              prefix={totales.balanceNeto >= 0 ? <ArrowUpOutlined style={{ fontSize: '20px' }} /> : <ArrowDownOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: totales.balanceNeto >= 0 ? '#52c41a' : '#f5222d', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `${totales.balanceNeto < 0 ? '-' : ''}₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
-        </Col>
-      </Row>
-
       {/* Control Panel de Filtros */}
       <Collapse
         defaultActiveKey={['1']}
@@ -667,17 +606,40 @@ const ReporteVehiculos = () => {
                   </Space.Compact>
                 </Col>
                 <Col xs={24} sm={12} md={5}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Familia / Generación</Text>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Vehículo</Text>
                   <Select
                     allowClear
-                    placeholder="Todas"
+                    showSearch
+                    placeholder="Todos"
                     style={{ width: '100%' }}
-                    value={filtros.generacionId}
-                    onChange={(val) => aplicarFiltros({ generacionId: val })}
+                    value={filtros.vehiculoId}
+                    onChange={(val) => aplicarFiltros({ vehiculoId: val })}
+                    optionFilterProp="children"
                   >
-                    {generaciones.map(g => (
-                      <Option key={g.id} value={g.id}>{g.nombre}</Option>
-                    ))}
+                    {vehiculosListado.map(vehiculo => {
+                      const codigo = vehiculo.codigoVehiculo || 'SIN_CODIGO';
+                      const anio = vehiculo.anio || 'Año N/A';
+                      const estado = vehiculo.estado || 'SIN_ESTADO';
+                      const marca = vehiculo.marca || vehiculo.marcaNombre || 'Marca N/A';
+                      const modelo = vehiculo.modelo || 'Modelo N/A';
+                      
+                      let estadoAmigable = estado;
+                      if (estado === 'DESARMADO') {
+                        estadoAmigable = 'Para repuestos';
+                      } else if (estado === 'REPARACION') {
+                        estadoAmigable = 'Para reparar';
+                      } else if (estado !== 'SIN_ESTADO') {
+                        estadoAmigable = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+                      }
+                      
+                      const displayText = `${codigo} — ${marca} ${modelo} ${anio} (${estadoAmigable})`;
+                      
+                      return (
+                        <Option key={vehiculo.id} value={vehiculo.id} title={displayText}>
+                          {displayText}
+                        </Option>
+                      );
+                    })}
                   </Select>
                 </Col>
                 <Col xs={24} sm={12} md={5}>
@@ -704,6 +666,58 @@ const ReporteVehiculos = () => {
           }
         ]}
       />
+
+      {/* Resumen Global (4 Cuadros) Siempre Visible */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos por Ventas</span>}
+              value={totales.ingresos}
+              precision={2}
+              prefix={<ArrowUpOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Inversión y Reparación</span>}
+              value={totales.egresos}
+              precision={2}
+              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Comisiones Totales</span>}
+              value={totales.comisiones}
+              precision={2}
+              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: '#faad14', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ganancia Neta</span>}
+              value={Math.abs(totales.balanceNeto)}
+              precision={2}
+              prefix={totales.balanceNeto >= 0 ? <ArrowUpOutlined style={{ fontSize: '20px' }} /> : <ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: totales.balanceNeto >= 0 ? '#52c41a' : '#f5222d', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `${totales.balanceNeto < 0 ? '-' : ''}₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       {/* Navegación por Pestañas */}
       <Tabs

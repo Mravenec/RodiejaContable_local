@@ -2,15 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, Row, Col, Table, Typography, Button, Space,
   Select, message, Statistic, Tabs, Tag,
-  Tooltip, Empty, Layout, Badge, Input, Spin, Collapse
+  Tooltip, Empty, Layout, Badge, Input, Collapse
 } from 'antd';
 import {
   BarChartOutlined, ReloadOutlined,
   CarOutlined, UnorderedListOutlined,
-  RiseOutlined,
   CalendarOutlined, DashboardOutlined, ToolOutlined,
   FilterOutlined, FileExcelOutlined,
-  ArrowUpOutlined, ArrowDownOutlined, WarningOutlined
+  ArrowUpOutlined, ArrowDownOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +17,6 @@ import inventarioService from '../../api/inventario';
 import vehiculosService from '../../api/vehiculos';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import finanzasService from '../../api/finanzas';
-import reportesService from '../../api/reportes';
 import * as XLSX from 'xlsx';
 
 const { Title, Text } = Typography;
@@ -54,9 +52,6 @@ const ReporteRepuestos = () => {
 
   const [repuestosFiltrados, setRepuestosFiltrados] = useState([]);
 
-  // Nuevos estados
-  const [statsRepuestos, setStatsRepuestos] = useState(null);
-  const [statsVehiculos, setStatsVehiculos] = useState(null);
 
   const loading = loadingMovimientos || loadingVehiculos;
 
@@ -73,18 +68,7 @@ const ReporteRepuestos = () => {
     }
   }, []);
 
-  const cargarStatsGlobales = useCallback(async () => {
-    try {
-      const [vehiculos, repuestos] = await Promise.all([
-        reportesService.getEstadisticasVehiculos(),
-        reportesService.getEstadisticasRepuestos()
-      ]);
-      setStatsVehiculos(vehiculos);
-      setStatsRepuestos(repuestos);
-    } catch (error) {
-      console.error('Error al cargar stats globales', error);
-    }
-  }, []);
+
 
   const cargarMovimientosRepuestos = useCallback(async () => {
     try {
@@ -188,26 +172,26 @@ const ReporteRepuestos = () => {
         // Filtro por Vehículo Desarmado (Igual que VehiculosJerarquicos.js)
         if (filtros.vehiculoDesarmadoId) {
           const targetVehiculoId = parseInt(filtros.vehiculoDesarmadoId, 10);
-          
+
           // 1. Obtener todos los repuestos (físicos) de este vehículo
-          const repuestosAsociados = repuestosRes.filter(r => 
-            (r.vehiculoOrigenId && parseInt(r.vehiculoOrigenId, 10) === targetVehiculoId) || 
+          const repuestosAsociados = repuestosRes.filter(r =>
+            (r.vehiculoOrigenId && parseInt(r.vehiculoOrigenId, 10) === targetVehiculoId) ||
             (r.vehiculoId && parseInt(r.vehiculoId, 10) === targetVehiculoId)
           );
-          
+
           const repuestosAsociadosIds = new Set(repuestosAsociados.map(r => parseInt(r.id, 10)));
           const repuestosAsociadosCodigos = new Set(repuestosAsociados.map(r => r.codigo).filter(Boolean));
-          
+
           // 2. Comprobar si la transacción pertenece directamente al vehículo
           const matchesVehicleId = t.vehiculoId != null && parseInt(t.vehiculoId, 10) === targetVehiculoId;
           const matchesVehicleCode = vehiculoIdToCodigoMap.get(targetVehiculoId.toString()) && t.codigoVehiculo === vehiculoIdToCodigoMap.get(targetVehiculoId.toString());
           const matchesVehicle = matchesVehicleId || matchesVehicleCode;
-          
+
           // 3. Comprobar si la transacción pertenece a alguno de los repuestos del vehículo
           const matchesRepuestoId = t.repuestoId != null && repuestosAsociadosIds.has(parseInt(t.repuestoId, 10));
           const matchesRepuestoCode = t.codigoRepuesto != null && repuestosAsociadosCodigos.has(t.codigoRepuesto);
           const matchesRepuesto = matchesRepuestoId || matchesRepuestoCode;
-          
+
           if (!(matchesVehicle || matchesRepuesto)) {
             return false;
           }
@@ -361,9 +345,9 @@ const ReporteRepuestos = () => {
         if (filtros.estadoRepuesto && r.estado !== filtros.estadoRepuesto) return false;
         if (filtros.busqueda) {
           const q = filtros.busqueda.toLowerCase();
-          const matches = (r.codigo || '').toLowerCase().includes(q) || 
-                          (r.descripcion || '').toLowerCase().includes(q) ||
-                          (r.parteVehiculo || '').toLowerCase().includes(q);
+          const matches = (r.codigo || '').toLowerCase().includes(q) ||
+            (r.descripcion || '').toLowerCase().includes(q) ||
+            (r.parteVehiculo || '').toLowerCase().includes(q);
           if (!matches) return false;
         }
         return true;
@@ -388,8 +372,7 @@ const ReporteRepuestos = () => {
 
   useEffect(() => {
     cargarVehiculosDesarmados();
-    cargarStatsGlobales();
-  }, [cargarVehiculosDesarmados, cargarStatsGlobales]);
+  }, [cargarVehiculosDesarmados]);
 
   useEffect(() => {
     cargarMovimientosRepuestos();
@@ -756,58 +739,6 @@ const ReporteRepuestos = () => {
 
 
 
-      {/* Resumen Global (4 Cuadros) Siempre Visible */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
-              value={totales.ingresos}
-              precision={2}
-              prefix={<ArrowUpOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Egresos / Costos</span>}
-              value={totales.egresos}
-              precision={2}
-              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Comisiones Totales</span>}
-              value={totales.comisiones}
-              precision={2}
-              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#faad14', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Balance Neto</span>}
-              value={Math.abs(totales.balanceNeto)}
-              precision={2}
-              prefix={totales.balanceNeto >= 0 ? <ArrowUpOutlined style={{ fontSize: '20px' }} /> : <ArrowDownOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: totales.balanceNeto >= 0 ? '#52c41a' : '#f5222d', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `${totales.balanceNeto < 0 ? '-' : ''}₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
-        </Col>
-      </Row>
-
       {/* Control Panel de Filtros */}
       <Collapse
         defaultActiveKey={['1']}
@@ -934,6 +865,58 @@ const ReporteRepuestos = () => {
           }
         ]}
       />
+
+      {/* Resumen Global (4 Cuadros) Siempre Visible */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
+              value={totales.ingresos}
+              precision={2}
+              prefix={<ArrowUpOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Egresos / Costos</span>}
+              value={totales.egresos}
+              precision={2}
+              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Comisiones Totales</span>}
+              value={totales.comisiones}
+              precision={2}
+              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: '#faad14', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Balance Neto</span>}
+              value={Math.abs(totales.balanceNeto)}
+              precision={2}
+              prefix={totales.balanceNeto >= 0 ? <ArrowUpOutlined style={{ fontSize: '20px' }} /> : <ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: totales.balanceNeto >= 0 ? '#52c41a' : '#f5222d', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `${totales.balanceNeto < 0 ? '-' : ''}₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       {/* Navegación por Pestañas */}
       <Tabs

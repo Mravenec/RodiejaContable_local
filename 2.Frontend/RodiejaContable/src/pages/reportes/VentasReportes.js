@@ -9,7 +9,6 @@ import {
   Space,
   Statistic,
   Select,
-  DatePicker,
   Tag,
   message,
   Spin,
@@ -17,45 +16,55 @@ import {
   Modal,
   Form,
   Input,
-  Collapse
+  Collapse,
+  Layout,
+  Tabs
 } from 'antd';
 import {
   ShoppingCartOutlined,
   DownloadOutlined,
   FilterOutlined,
   ReloadOutlined,
-  PrinterOutlined,
   BarChartOutlined,
   TeamOutlined,
   CheckCircleOutlined,
   InboxOutlined,
-  FileExcelOutlined
+  FileExcelOutlined,
+  DashboardOutlined,
+  ArrowUpOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import ventasEmpleadosService from '../../api/ventasEmpleados';
 import { buscarTransacciones } from '../../api/transacciones';
 import { useVistaExcelMesActual, useVistaExcelMesEspecifico, useGenerarReporteVentasExcel } from '../../hooks/useReportes';
+import { useEmpleados } from '../../hooks/useEmpleados';
 import * as XLSX from 'xlsx';
 import ComisionesPendientes from '../../components/finanzas/ComisionesPendientes';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { Search } = Input;
-const { Panel } = Collapse;
+const { Content } = Layout;
 
 const VentasReportes = () => {
   // Estados para datos y carga
   const [ventas, setVentas] = useState([]);
   const [estadisticas, setEstadisticas] = useState({});
-  const [empleados, setEmpleados] = useState([]);
+  const { data: empleadosData = [], isLoading: loadingEmpleados, refetch: refetchEmpleados } = useEmpleados();
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
   const [loading, setLoading] = useState({
     ventas: false,
     estadisticas: false,
-    empleados: false,
     exportar: false,
     exportandoExcel: false
   });
+
+  const empleados = React.useMemo(() => {
+    return empleadosData.map(e => ({
+      ...e,
+      nombreCompleto: e.nombreCompleto || `${e.nombres} ${e.apellidos}`.trim()
+    }));
+  }, [empleadosData]);
   const [filtros, setFiltros] = useState({
     mes: null,
     anio: null,
@@ -63,11 +72,6 @@ const VentasReportes = () => {
     vendedor: null,
     busqueda: '',
     tipoProducto: null
-  });
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0
   });
 
   // Tipos de productos y estados
@@ -84,119 +88,58 @@ const VentasReportes = () => {
     { value: 'reembolsado', label: 'Reembolsado', color: 'warning' }
   ];
 
-  // Columnas para la tabla de transacciones de ventas
-  const columnsTransacciones = [
-    {
-      title: 'Fecha',
-      dataIndex: 'fecha',
-      key: 'fecha',
-      render: (fecha) => moment(fecha).format('DD/MM/YYYY'),
-      width: 120,
-      sorter: (a, b) => moment(a.fecha) - moment(b.fecha)
-    },
-    {
-      title: 'Código',
-      dataIndex: 'codigoTransaccion',
-      key: 'codigoTransaccion',
-      width: 150,
-      sorter: (a, b) => a.codigoTransaccion.localeCompare(b.codigoTransaccion)
-    },
-    {
-      title: 'Tipo',
-      dataIndex: 'tipoTransaccion',
-      key: 'tipoTransaccion',
-      width: 150,
-      sorter: (a, b) => a.tipoTransaccion.localeCompare(b.tipoTransaccion)
-    },
-    {
-      title: 'Vehículo/Repuesto',
-      key: 'vehiculoRepuesto',
-      render: (record) => {
-        if (record.codigoVehiculo) {
-          return `${record.marca || ''} ${record.modelo || ''} ${record.generacion || ''}`.trim();
-        } else if (record.codigoRepuesto) {
-          return record.codigoRepuesto;
-        }
-        return 'N/A';
-      },
-      width: 250
-    },
+
+  // Columnas para la tabla de ventas por empleado (agrupadas)
+  const columnsVentasAgrupadas = [
     {
       title: 'Empleado',
       dataIndex: 'empleado',
       key: 'empleado',
       render: (text) => <Text strong>{text}</Text>,
-      width: 150,
-      sorter: (a, b) => (a.empleado || '').localeCompare(b.empleado || '')
+      sorter: (a, b) => a.empleado.localeCompare(b.empleado)
     },
     {
-      title: 'Monto',
-      dataIndex: 'monto',
-      key: 'monto',
+      title: 'Cantidad de Ventas',
+      dataIndex: 'cantidadVentas',
+      key: 'cantidadVentas',
+      align: 'center',
+      sorter: (a, b) => a.cantidadVentas - b.cantidadVentas
+    },
+    {
+      title: 'Total Ventas',
+      dataIndex: 'totalVentas',
+      key: 'totalVentas',
       render: (value) => (
         <Text strong>
-          {value !== null && value !== undefined
-            ? `₡${new Intl.NumberFormat('es-CR', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            }).format(value)}`
-            : '₡0.00'}
+          ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}
         </Text>
       ),
       align: 'right',
-      sorter: (a, b) => (a.monto || 0) - (b.monto || 0),
-      width: 150
+      sorter: (a, b) => a.totalVentas - b.totalVentas
     },
     {
-      title: 'Comisión',
-      dataIndex: 'comisionEmpleado',
-      key: 'comisionEmpleado',
+      title: 'Total Comisiones',
+      dataIndex: 'totalComisiones',
+      key: 'totalComisiones',
       render: (value) => (
         <Text type={value > 0 ? 'success' : 'default'}>
-          {value !== null && value !== undefined
-            ? `₡${new Intl.NumberFormat('es-CR', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            }).format(value)}`
-            : 'N/A'}
+          ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}
         </Text>
       ),
       align: 'right',
-      sorter: (a, b) => (a.comisionEmpleado || 0) - (b.comisionEmpleado || 0),
-      width: 150
-    },
-    {
-      title: 'Estado',
-      dataIndex: 'estado',
-      key: 'estado',
-      render: (text) => {
-        const estadoInfo = estadosVenta.find(e => e.value.toUpperCase() === (text || '').toUpperCase());
-        return (
-          <Tag color={estadoInfo ? estadoInfo.color : 'default'}>
-            {(text || '').toUpperCase()}
-          </Tag>
-        );
-      },
-      width: 120,
-      sorter: (a, b) => (a.estado || '').localeCompare(b.estado || '')
+      sorter: (a, b) => a.totalComisiones - b.totalComisiones
     }
   ];
 
   // Función para cargar datos iniciales
   const cargarDatosIniciales = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, empleados: true }));
-      const [empleadosRes] = await Promise.all([
-        ventasEmpleadosService.getEmpleadosConVentas()
-      ]);
-      setEmpleados(empleadosRes);
+      await refetchEmpleados();
     } catch (error) {
       console.error('Error al cargar datos iniciales:', error);
       message.error('Error al cargar datos iniciales');
-    } finally {
-      setLoading(prev => ({ ...prev, empleados: false }));
     }
-  }, []);
+  }, [refetchEmpleados]);
 
   // Función para cargar ventas por empleado con filtros
   const cargarVentas = useCallback(async () => {
@@ -243,6 +186,9 @@ const VentasReportes = () => {
 
       let datosTransacciones = response.transacciones || response || [];
 
+      // Filtrar para mostrar SOLO transacciones que tienen un empleado asociado
+      datosTransacciones = datosTransacciones.filter(t => t.empleado && t.empleado.trim() !== '');
+
       // Filtrar localmente por vendedor/empleado y búsqueda (si la API no soporta texto libre en /buscar)
       if (params.vendedorId) {
         const empleadoSeleccionado = empleados.find(e => e.id === params.vendedorId);
@@ -263,13 +209,11 @@ const VentasReportes = () => {
       }
 
       setVentas(datosTransacciones);
-      setPagination(prev => ({ ...prev, total: datosTransacciones.length }));
     } catch (error) {
       console.error('Error al cargar ventas:', error);
       message.error('Error al cargar las ventas');
       // Vaciar la lista cuando hay error
       setVentas([]);
-      setPagination(prev => ({ ...prev, total: 0 }));
     } finally {
       setLoading(prev => ({ ...prev, ventas: false }));
     }
@@ -313,24 +257,32 @@ const VentasReportes = () => {
     cargarEstadisticas();
   }, [cargarVentas, cargarEstadisticas]);
 
-  // Manejador de cambio de página
-  const handleTableChange = (pagination, filters, sorter) => {
-    setPagination({
-      ...pagination,
-      current: pagination.current,
-      pageSize: pagination.pageSize
+  // Agrupar ventas por empleado
+  const ventasAgrupadas = React.useMemo(() => {
+    const agrupar = {};
+    ventas.forEach(v => {
+      const emp = v.empleado;
+      if (!agrupar[emp]) {
+        agrupar[emp] = {
+          empleado: emp,
+          cantidadVentas: 0,
+          totalVentas: 0,
+          totalComisiones: 0
+        };
+      }
+      agrupar[emp].cantidadVentas += 1;
+      agrupar[emp].totalVentas += (v.monto || 0);
+      agrupar[emp].totalComisiones += (v.comisionEmpleado || 0);
     });
-  };
+    return Object.values(agrupar);
+  }, [ventas]);
+
 
   // Aplicar filtros
   const aplicarFiltros = (values) => {
     setFiltros(prev => ({
       ...prev,
       ...values
-    }));
-    setPagination(prev => ({
-      ...prev,
-      current: 1 // Volver a la primera página al aplicar nuevos filtros
     }));
   };
 
@@ -344,11 +296,6 @@ const VentasReportes = () => {
       busqueda: '',
       tipoProducto: null
     });
-    setPagination({
-      current: 1,
-      pageSize: 10,
-      total: 0
-    });
   };
 
   // Exportar a Excel usando los datos locales
@@ -356,21 +303,17 @@ const VentasReportes = () => {
     try {
       setLoading(prev => ({ ...prev, exportar: true }));
 
-      const exportData = ventas.map(v => ({
-        'Fecha': moment(v.fecha).format('DD/MM/YYYY'),
-        'Código': v.codigoTransaccion,
-        'Tipo': v.tipoTransaccion,
-        'Vehículo/Repuesto': v.codigoVehiculo ? `${v.marca || ''} ${v.modelo || ''} ${v.generacion || ''}`.trim() : (v.codigoRepuesto || 'N/A'),
+      const exportData = ventasAgrupadas.map(v => ({
         'Empleado': v.empleado,
-        'Monto': v.monto,
-        'Comisión': v.comisionEmpleado,
-        'Estado': v.estado
+        'Cantidad de Ventas': v.cantidadVentas,
+        'Total Ventas': v.totalVentas,
+        'Total Comisiones': v.totalComisiones
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Transacciones");
-      XLSX.writeFile(wb, `reporte-transacciones-${moment().format('YYYYMMDD')}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, ws, "Ventas por Empleado");
+      XLSX.writeFile(wb, `resumen-ventas-empleados-${moment().format('YYYYMMDD')}.xlsx`);
 
       message.success('Reporte exportado exitosamente');
     } catch (error) {
@@ -381,41 +324,6 @@ const VentasReportes = () => {
     }
   };
 
-  // Exportar reporte
-  const exportarReporte = async (formato) => {
-    try {
-      setLoading(prev => ({ ...prev, exportando: true }));
-
-      const params = { ...filtros, formato };
-
-      // Formatear fechas para la exportación
-      if (params.mes && params.anio) {
-        const fechaBase = moment().year(params.anio).month(params.mes - 1);
-        params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
-        params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
-        delete params.mes;
-        delete params.anio;
-      }
-
-      const blob = await ventasEmpleadosService.exportarReporte(formato, params);
-
-      // Crear enlace para descargar el archivo
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `reporte-ventas-${moment().format('YYYYMMDD-HHmmss')}.${formato}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      message.success(`Reporte exportado exitosamente como ${formato.toUpperCase()}`);
-    } catch (error) {
-      console.error('Error al exportar reporte:', error);
-      message.error('Error al exportar el reporte');
-    } finally {
-      setLoading(prev => ({ ...prev, exportando: false }));
-    }
-  };
 
   // // Función para exportar a Excel con múltiples hojas por mes
   // const exportarVistaExcel = async () => {
@@ -543,9 +451,14 @@ const VentasReportes = () => {
   );
   const { isLoading: exportandoExcel } = useGenerarReporteVentasExcel();
 
+  const datosVistaExcel = React.useMemo(() => {
+    const data = vistaExcelEspecifico || vistaExcelActual || [];
+    return data.filter(item => item.nombreDel && item.nombreDel.trim() !== '');
+  }, [vistaExcelEspecifico, vistaExcelActual]);
+
   // Función para exportar a Excel con múltiples hojas
   const exportarAExcelCompleto = () => {
-    const datosActuales = vistaExcelEspecifico || vistaExcelActual || [];
+    const datosActuales = datosVistaExcel;
 
     if (!datosActuales || datosActuales.length === 0) {
       message.warning('No hay datos para exportar');
@@ -799,191 +712,159 @@ const VentasReportes = () => {
   ];
 
   return (
-    <div className="ventas-reportes" style={{ padding: '24px' }}>
+    <Content style={{ padding: '0 24px', minHeight: 280 }}>
       {/* Encabezado */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <Title level={2} style={{ margin: 0, fontSize: '24px' }}>
-          <BarChartOutlined style={{ marginRight: 8 }} />
-          Reportes de Ventas
-        </Title>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={() => exportarReporte('excel')}
-            loading={loading.exportando}
-            disabled={loading.ventas}
-            size="middle"
-          >
-            Exportar a Excel
-          </Button>
-          <Button
-            type="primary"
-            icon={<PrinterOutlined />}
-            onClick={() => exportarReporte('pdf')}
-            loading={loading.exportando}
-            disabled={loading.ventas}
-            size="middle"
-            style={{ backgroundColor: '#1890ff', borderColor: '#1890ff', boxShadow: '0 2px 4px rgba(24,144,255,0.2)' }}
-          >
-            Imprimir Reporte
-          </Button>
-        </div>
-      </div>
-
-      {/* Filtros */}
-      <Card
-        className="filtros-card"
-        title={
-          <span style={{ fontWeight: 600, fontSize: '16px' }}>
-            <FilterOutlined style={{ marginRight: 8 }} />
-            Filtros de Búsqueda
-          </span>
-        }
-        bordered={false}
-        headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '56px' }}
-        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
-      >
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} md={6}>
-            <div className="filter-label">Período de reporte:</div>
-            <Space.Compact style={{ width: '100%' }}>
-              <Select
-                style={{ width: '60%' }}
-                placeholder="Mes"
-                value={filtros.mes}
-                onChange={(value) => aplicarFiltros({ mes: value })}
-                allowClear
-              >
-                <Option value={1}>Enero</Option>
-                <Option value={2}>Febrero</Option>
-                <Option value={3}>Marzo</Option>
-                <Option value={4}>Abril</Option>
-                <Option value={5}>Mayo</Option>
-                <Option value={6}>Junio</Option>
-                <Option value={7}>Julio</Option>
-                <Option value={8}>Agosto</Option>
-                <Option value={9}>Septiembre</Option>
-                <Option value={10}>Octubre</Option>
-                <Option value={11}>Noviembre</Option>
-                <Option value={12}>Diciembre</Option>
-              </Select>
-              <Select
-                style={{ width: '40%' }}
-                placeholder="Año"
-                value={filtros.anio}
-                onChange={(value) => aplicarFiltros({ anio: value })}
-                allowClear
-              >
-                <Option value={2024}>2024</Option>
-                <Option value={2025}>2025</Option>
-                <Option value={2026}>2026</Option>
-              </Select>
-            </Space.Compact>
-          </Col>
-
-          <Col xs={24} md={18}>
-            <div className="filter-label">Buscar:</div>
-            <Search
-              placeholder="Buscar por ID, código, producto, etc."
-              allowClear
-              enterButton="Buscar"
-              value={filtros.busqueda}
-              onChange={(e) => aplicarFiltros({ busqueda: e.target.value })}
-              onSearch={(value) => aplicarFiltros({ busqueda: value })}
-              loading={loading.ventas}
-            />
-          </Col>
-
-          <Col xs={24}>
-            <Collapse ghost>
-              <Panel header="Filtros Avanzados" key="1">
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} md={8}>
-                    <div className="filter-label">Vendedor:</div>
-                    <Select
-                      style={{ width: '100%' }}
-                      placeholder="Seleccionar vendedor"
-                      value={filtros.vendedor}
-                      onChange={(value) => aplicarFiltros({ vendedor: value })}
-                      allowClear
-                      showSearch
-                      optionFilterProp="children"
-                      filterOption={(input, option) =>
-                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                      }
-                      loading={loading.empleados}
-                    >
-                      <Option value={null}>Todos los vendedores</Option>
-                      {empleados.map(empleado => (
-                        <Option key={empleado.id} value={empleado.id}>
-                          {empleado.nombreCompleto}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Col>
-
-                  <Col xs={24} md={8}>
-                    <div className="filter-label">Estado:</div>
-                    <Select
-                      style={{ width: '100%' }}
-                      value={filtros.estado}
-                      onChange={(value) => aplicarFiltros({ estado: value })}
-                    >
-                      <Option value="todos">Todos los estados</Option>
-                      {estadosVenta.map(estado => (
-                        <Option key={estado.value} value={estado.value}>
-                          {estado.label}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Col>
-
-                  <Col xs={24} md={8}>
-                    <div className="filter-label">Tipo de producto:</div>
-                    <Select
-                      style={{ width: '100%' }}
-                      placeholder="Todos los tipos"
-                      value={filtros.tipoProducto}
-                      onChange={(value) => aplicarFiltros({ tipoProducto: value })}
-                      allowClear
-                    >
-                      <Option value={null}>Todos los tipos</Option>
-                      {tiposProducto.map(tipo => (
-                        <Option key={tipo.value} value={tipo.value}>
-                          {tipo.label}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Col>
-                </Row>
-              </Panel>
-            </Collapse>
-          </Col>
-
-          <Col xs={24} md={6} style={{ display: 'flex', gap: '8px', marginTop: 24 }}>
-            <Button
-              type="default"
-              icon={<ReloadOutlined />}
-              onClick={limpiarFiltros}
-              block
-              disabled={loading.ventas}
-            >
-              Limpiar Filtros
-            </Button>
+      <div style={{ marginBottom: 24, marginTop: 8 }}>
+        <Row align="middle" justify="space-between">
+          <Col>
+            <Title level={3} style={{ margin: 0, color: '#262626' }}>
+              <DashboardOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+              Reportes de Ventas
+            </Title>
+            <Text type="secondary" style={{ marginTop: 4, display: 'block' }}>
+              Análisis financiero, comisiones y trazabilidad de operaciones de ventas.
+            </Text>
           </Col>
         </Row>
-      </Card>
+      </div>
+
+      {/* Control Panel de Filtros */}
+      <Collapse
+        defaultActiveKey={['1']}
+        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px -2px rgba(0, 0, 0, 0.16)', background: '#fff' }}
+        items={[
+          {
+            key: '1',
+            label: (
+              <Text strong style={{ fontSize: '15px', color: '#262626' }}>
+                <FilterOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                Parámetros de Análisis
+              </Text>
+            ),
+            children: (
+              <Row gutter={[24, 16]} align="bottom">
+                <Col xs={24} sm={12} md={4}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Búsqueda</Text>
+                  <Search
+                    placeholder="Buscar..."
+                    allowClear
+                    value={filtros.busqueda}
+                    onChange={(e) => aplicarFiltros({ busqueda: e.target.value })}
+                    onSearch={(value) => aplicarFiltros({ busqueda: value })}
+                    loading={loading.ventas}
+                    style={{ width: '100%', borderRadius: '6px' }}
+                  />
+                </Col>
+                <Col xs={24} sm={12} md={4}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Mes a Consultar</Text>
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Select
+                      style={{ width: '60%', borderRadius: '6px 0 0 6px' }}
+                      placeholder="Mes"
+                      value={filtros.mes}
+                      onChange={(value) => aplicarFiltros({ mes: value })}
+                      allowClear
+                    >
+                      <Option value={1}>Ene</Option>
+                      <Option value={2}>Feb</Option>
+                      <Option value={3}>Mar</Option>
+                      <Option value={4}>Abr</Option>
+                      <Option value={5}>May</Option>
+                      <Option value={6}>Jun</Option>
+                      <Option value={7}>Jul</Option>
+                      <Option value={8}>Ago</Option>
+                      <Option value={9}>Sep</Option>
+                      <Option value={10}>Oct</Option>
+                      <Option value={11}>Nov</Option>
+                      <Option value={12}>Dic</Option>
+                    </Select>
+                    <Select
+                      style={{ width: '40%', borderRadius: '0 6px 6px 0' }}
+                      placeholder="Año"
+                      value={filtros.anio}
+                      onChange={(value) => aplicarFiltros({ anio: value })}
+                      allowClear
+                    >
+                      <Option value={2024}>24</Option>
+                      <Option value={2025}>25</Option>
+                      <Option value={2026}>26</Option>
+                    </Select>
+                  </Space.Compact>
+                </Col>
+                <Col xs={24} sm={12} md={4}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Vendedor</Text>
+                  <Select
+                    style={{ width: '100%' }}
+                    placeholder="Todos"
+                    value={filtros.vendedor}
+                    onChange={(value) => aplicarFiltros({ vendedor: value })}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                    filterOption={(input, option) =>
+                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                    }
+                    loading={loadingEmpleados}
+                  >
+                    {empleados.map(empleado => (
+                      <Option key={empleado.id} value={empleado.id}>
+                        {empleado.nombreCompleto}
+                      </Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12} md={4}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Estado</Text>
+                  <Select
+                    style={{ width: '100%' }}
+                    value={filtros.estado}
+                    onChange={(value) => aplicarFiltros({ estado: value })}
+                    placeholder="Todos"
+                  >
+                    <Option value="todos">Todos</Option>
+                    {estadosVenta.map(estado => (
+                      <Option key={estado.value} value={estado.value}>
+                        {estado.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12} md={4}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Tipo Producto</Text>
+                  <Select
+                    style={{ width: '100%' }}
+                    placeholder="Todos"
+                    value={filtros.tipoProducto}
+                    onChange={(value) => aplicarFiltros({ tipoProducto: value })}
+                    allowClear
+                  >
+                    {tiposProducto.map(tipo => (
+                      <Option key={tipo.value} value={tipo.value}>
+                        {tipo.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col xs={24} sm={24} md={4}>
+                  <Button block icon={<ReloadOutlined />} onClick={limpiarFiltros} disabled={loading.ventas} style={{ borderRadius: '6px' }}>
+                    Reset
+                  </Button>
+                </Col>
+              </Row>
+            )
+          }
+        ]}
+      />
 
       {/* Métricas principales */}
       <Spin spinning={loading.estadisticas}>
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
                 title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Totales</span>}
                 value={totalVentasCount}
                 prefix={<ShoppingCartOutlined style={{ fontSize: '20px' }} />}
-                suffix={totalVentasCount === 1 ? 'venta' : 'ventas'}
                 valueStyle={{ color: '#1890ff', fontWeight: 600, fontSize: '24px' }}
                 loading={loading.estadisticas}
                 formatter={value => new Intl.NumberFormat('es-CR').format(value)}
@@ -991,24 +872,20 @@ const VentasReportes = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
                 title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
                 value={totalIngresos}
                 precision={2}
-                prefix="₡"
+                prefix={<ArrowUpOutlined style={{ fontSize: '20px' }} />}
                 valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
                 loading={loading.estadisticas}
-                formatter={value => new Intl.NumberFormat('es-CR', {
-                  style: 'decimal',
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }).format(value)}
+                formatter={value => `₡${new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`}
               />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
                 title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Completadas</span>}
                 value={ventasCompletadas}
@@ -1020,7 +897,7 @@ const VentasReportes = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
                 title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Tasa de Conversión</span>}
                 value={tasaConversion}
@@ -1028,155 +905,174 @@ const VentasReportes = () => {
                 suffix="%"
                 valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: '24px' }}
                 loading={loading.estadisticas}
-                formatter={value => new Intl.NumberFormat('es-CR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }).format(value)}
+                formatter={value => new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}
               />
             </Card>
           </Col>
         </Row>
       </Spin>
-      {/* Sección Vista Excel de Ventas Mensuales */}
-      {/* Sección Vista Excel de Ventas Mensuales */}
-      <Card
-        title={
-          <span style={{ fontWeight: 600, fontSize: '18px' }}>
-            <BarChartOutlined style={{ marginRight: 8 }} />
-            Vista Excel de Ventas Mensuales
-          </span>
-        }
-        extra={
-          <Button
-            icon={<FileExcelOutlined />}
-            onClick={exportarAExcelCompleto}
-            loading={exportandoExcel}
-            type="primary"
-            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 2px 4px rgba(82,196,26,0.2)' }}
-          >
-            Exportar a Excel
-          </Button>
-        }
-        bordered={false}
-        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
-        headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
-        bodyStyle={{ padding: '0' }}
-      >
-        <div style={{ padding: '24px' }}>
-          <Table
-            columns={columnsVistaExcel}
-            dataSource={vistaExcelEspecifico || vistaExcelActual || []}
-            rowKey="id"
-            loading={loadingVistaExcelActual || loadingVistaExcelEspecifico}
-            scroll={{ x: 1200 }}
-            size="middle"
-            pagination={{
-              showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50', '100'],
-              showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} registros`
-            }}
-            locale={{
-              emptyText: (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={
-                    <span>
-                      <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
-                      {!filtros.mes && !filtros.anio
-                        ? 'Selecciona un mes y año específicos en el filtro superior'
-                        : 'No hay datos para el período seleccionado'}
+      <Tabs
+        defaultActiveKey="1"
+        size="large"
+        style={{ background: 'transparent' }}
+        items={[
+          {
+            key: '1',
+            label: (
+              <span style={{ fontSize: '16px', fontWeight: 500 }}>
+                <BarChartOutlined /> Reporte General
+              </span>
+            ),
+            children: (
+              <div style={{ marginTop: '8px' }}>
+                {/* Sección Vista Excel de Ventas Mensuales */}
+                <Card
+                  title={
+                    <span style={{ fontWeight: 600, fontSize: '18px' }}>
+                      <BarChartOutlined style={{ marginRight: 8 }} />
+                      Vista Excel de Ventas Mensuales
                     </span>
                   }
-                />
-              )
-            }}
-          />
-        </div>
-      </Card>
-
-
-      {/* Tabla de ventas */}
-      <Card
-        title={
-          <Space>
-            <span style={{ fontWeight: 600, fontSize: '18px' }}>
-              <TeamOutlined style={{ marginRight: 8 }} />
-              Ventas por Empleado
-            </span>
-            {filtros.vendedor && (
-              <Tag color="blue" style={{ marginLeft: 8 }}>
-                Filtrado por: {empleados.find(e => e.id === filtros.vendedor)?.nombreCompleto || 'Vendedor'}
-              </Tag>
-            )}
-          </Space>
-        }
-        extra={
-          <Space>
-            <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              onClick={exportarAExcel}
-              loading={loading.exportar}
-            >
-              Exportar
-            </Button>
-            <Button
-              icon={<FilterOutlined />}
-              onClick={() => { }}
-            >
-              Filtros
-            </Button>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={cargarDatosIniciales}
-              loading={loading.ventas}
-              type="text"
-            >
-              Actualizar
-            </Button>
-          </Space>
-        }
-        bordered={false}
-        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
-        headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
-        bodyStyle={{ padding: '0' }}
-      >
-        <div style={{ padding: '24px' }}>
-          <Table
-            columns={columnsTransacciones}
-            dataSource={ventas}
-            rowKey="id"
-            pagination={{
-              ...pagination,
-              showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50', '100'],
-              showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} registros`
-            }}
-            onChange={handleTableChange}
-            loading={loading.ventas}
-            scroll={{ x: 1000 }}
-            size="middle"
-            locale={{
-              emptyText: (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={
-                    <span>
-                      <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
-                      No hay datos de ventas por empleado
-                    </span>
+                  extra={
+                    <Button
+                      icon={<FileExcelOutlined />}
+                      onClick={exportarAExcelCompleto}
+                      loading={exportandoExcel}
+                      type="primary"
+                      style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 2px 4px rgba(82,196,26,0.2)' }}
+                    >
+                      Exportar a Excel
+                    </Button>
                   }
-                />
-              )
-            }}
-          />
-        </div>
-      </Card>
+                  bordered={false}
+                  style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
+                  headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
+                  bodyStyle={{ padding: '0' }}
+                >
+                  <div style={{ padding: '24px' }}>
+                    <Table
+                      columns={columnsVistaExcel}
+                      dataSource={datosVistaExcel}
+                      rowKey="id"
+                      loading={loadingVistaExcelActual || loadingVistaExcelEspecifico}
+                      scroll={{ x: 1200 }}
+                      size="middle"
+                      pagination={{
+                        showSizeChanger: true,
+                        pageSizeOptions: ['10', '20', '50', '100'],
+                        showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} registros`
+                      }}
+                      locale={{
+                        emptyText: (
+                          <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={
+                              <span>
+                                <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
+                                {!filtros.mes && !filtros.anio
+                                  ? 'Selecciona un mes y año específicos en el filtro superior'
+                                  : 'No hay datos para el período seleccionado'}
+                              </span>
+                            }
+                          />
+                        )
+                      }}
+                    />
+                  </div>
+                </Card>
 
-      {/* Modal de Detalle */}
-      <ComisionesPendientes
-        mesFiltro={filtros.mes}
-        anioFiltro={filtros.anio}
+
+                {/* Tabla de ventas */}
+                <Card
+                  title={
+                    <Space>
+                      <span style={{ fontWeight: 600, fontSize: '18px' }}>
+                        <TeamOutlined style={{ marginRight: 8 }} />
+                        Ventas por Empleado
+                      </span>
+                      {filtros.vendedor && (
+                        <Tag color="blue" style={{ marginLeft: 8 }}>
+                          Filtrado por: {empleados.find(e => e.id === filtros.vendedor)?.nombreCompleto || 'Vendedor'}
+                        </Tag>
+                      )}
+                    </Space>
+                  }
+                  extra={
+                    <Space>
+                      <Button
+                        type="primary"
+                        icon={<DownloadOutlined />}
+                        style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 2px 4px rgba(82,196,26,0.2)' }}
+                        onClick={exportarAExcel}
+                        loading={loading.exportar}
+                      >
+                        Exportar a Excel
+                      </Button>
+                      <Button
+                        icon={<ReloadOutlined />}
+                        onClick={cargarDatosIniciales}
+                        loading={loading.ventas}
+                        type="text"
+                      >
+                        Actualizar
+                      </Button>
+                    </Space>
+                  }
+                  bordered={false}
+                  style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
+                  headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
+                  bodyStyle={{ padding: '0' }}
+                >
+                  <div style={{ padding: '24px' }}>
+                    <Table
+                      columns={columnsVentasAgrupadas}
+                      dataSource={ventasAgrupadas}
+                      rowKey="empleado"
+                      pagination={{
+                        showSizeChanger: true,
+                        pageSizeOptions: ['10', '20', '50', '100'],
+                        showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} registros`
+                      }}
+                      loading={loading.ventas}
+                      scroll={{ x: 1000 }}
+                      size="middle"
+                      locale={{
+                        emptyText: (
+                          <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={
+                              <span>
+                                <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
+                                No hay datos de ventas por empleado
+                              </span>
+                            }
+                          />
+                        )
+                      }}
+                    />
+                  </div>
+                </Card>
+
+              </div>
+            )
+          },
+          {
+            key: '2',
+            label: (
+              <span style={{ fontSize: '16px', fontWeight: 500 }}>
+                <TeamOutlined /> Pago de Comisiones
+              </span>
+            ),
+            children: (
+              <div style={{ marginTop: '8px' }}>
+                <ComisionesPendientes
+                  mesFiltro={filtros.mes}
+                  anioFiltro={filtros.anio}
+                />
+              </div>
+            )
+          }
+        ]}
       />
 
       {/* Modal para ver detalles de venta */}
@@ -1270,7 +1166,7 @@ const VentasReportes = () => {
           }
         }
       `}</style>
-    </div>
+    </Content>
   );
 };
 

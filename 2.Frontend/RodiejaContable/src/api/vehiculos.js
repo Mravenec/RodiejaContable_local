@@ -339,6 +339,18 @@ class VehiculoService {
     }
   }
 
+  // Obtener todos los vehículos desde la vista completa (con marca, modelo, etc.)
+  async getVehiculosCompletos() {
+    try {
+      this.log('Fetching ALL complete vehicles (view)...');
+      const response = await api.get('/v1/vehiculos');
+      return response.data;
+    } catch (error) {
+      this.error('Error fetching all complete vehicles:', error);
+      throw error;
+    }
+  }
+
   // Obtener un vehículo por su ID desde la vista completa
   async getVehiculoCompletoPorId(id) {
     try {
