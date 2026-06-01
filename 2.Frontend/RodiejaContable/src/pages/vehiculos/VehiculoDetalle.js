@@ -520,11 +520,18 @@ const VehiculoDetalle = () => {
                         Hacer Disponible
                       </Button>
                     )}
-                    {vehiculo.estado !== 'VENDIDO' && (
+                    {vehiculo.estado === 'DISPONIBLE' && (
                       <Button 
                         type="primary" 
                         icon={<MoneyCollectOutlined />}
-                        onClick={() => navigate(`/finanzas/venta-vehiculo/${vehiculo.id}`)}
+                        onClick={() => navigate('/finanzas/nueva', {
+                          state: {
+                            vehiculoId: vehiculo.id,
+                            tipoTransaccion: 'INGRESO',
+                            monto: vehiculo.precioVenta || 0,
+                            esVentaVehiculo: true
+                          }
+                        })}
                       >
                         Registrar Venta
                       </Button>

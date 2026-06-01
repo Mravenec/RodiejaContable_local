@@ -19,7 +19,7 @@ import org.jooq.impl.TableRecordImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventarioCriticoRecord> implements Record17<String, VistaInventarioCriticoParteVehiculo, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCriticoEstado, String, String, Integer, Short, Byte, Integer, String, String> {
 
     private static final long serialVersionUID = 1L;

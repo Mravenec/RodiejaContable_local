@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, message } from 'antd';
 import esES from 'antd/locale/es_ES';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -12,6 +12,12 @@ import { QueryProvider } from './providers/QueryProvider';
 import App from './App';
 import 'antd/dist/reset.css';
 import './index.css';
+
+// Configure global message settings
+message.config({
+  maxCount: 1,
+  duration: 3,
+});
 
 // Configurar locales a español de forma global
 dayjs.locale('es');

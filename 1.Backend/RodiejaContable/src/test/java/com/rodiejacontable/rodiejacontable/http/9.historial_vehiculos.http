@@ -2,7 +2,7 @@
 GET http://localhost:8080/api/historial-vehiculos
 
 ### Obtener un registro de historial por ID
-GET http://localhost:8080/api/historial-vehiculos/7
+GET http://localhost:8080/api/historial-vehiculos/2
 
 ### Obtener historial por ID de vehículo
 GET http://localhost:8080/api/historial-vehiculos/vehiculo/2

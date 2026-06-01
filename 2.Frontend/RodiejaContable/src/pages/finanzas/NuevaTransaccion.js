@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from 'react-query';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -41,11 +41,15 @@ const { TabPane } = Tabs;
 const NuevaTransaccion = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
-  const [tipoTransaccion, setTipoTransaccion] = useState('INGRESO');
-  const [monto, setMonto] = useState(0);
+  
+  const prefilledData = React.useMemo(() => location.state || {}, [location.state]);
+  
+  const [tipoTransaccion, setTipoTransaccion] = useState(prefilledData.tipoTransaccion || 'INGRESO');
+  const [monto, setMonto] = useState(prefilledData.monto || 0);
   const [comision, setComision] = useState(0);
-  const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState(null);
+  const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState(prefilledData.vehiculoId || null);
   const [esReembolso, setEsReembolso] = useState(false);
   
   // Estados para manejar nuevo empleado inline
@@ -190,12 +194,35 @@ const NuevaTransaccion = () => {
 
   // Efecto para establecer el primer tipo de transacción disponible cuando se cargan los datos
   useEffect(() => {
-    if (tipoTransaccion === 'INGRESO' && tiposIngreso && tiposIngreso.length > 0) {
-      form.setFieldsValue({ tipo: tiposIngreso[0].id });
-    } else if (tipoTransaccion === 'EGRESO' && tiposEgreso && tiposEgreso.length > 0) {
-      form.setFieldsValue({ tipo: tiposEgreso[0].id });
+    // Si viene pre-cargado como venta de vehículo, buscar el tipo correspondiente
+    if (prefilledData.esVentaVehiculo && tipoTransaccion === 'INGRESO' && tiposIngreso && tiposIngreso.length > 0) {
+      const ventaType = tiposIngreso.find(t => t.nombre.toLowerCase().includes('venta') && t.nombre.toLowerCase().includes('veh'));
+      if (ventaType) {
+        form.setFieldsValue({ tipo: ventaType.id });
+        return;
+      }
     }
-  }, [tiposIngreso, tiposEgreso, tipoTransaccion, form]);
+    
+    // Fallback: primer elemento de la lista si el valor actual no está definido
+    const currentTipo = form.getFieldValue('tipo');
+    if (!currentTipo) {
+      if (tipoTransaccion === 'INGRESO' && tiposIngreso && tiposIngreso.length > 0) {
+        form.setFieldsValue({ tipo: tiposIngreso[0].id });
+      } else if (tipoTransaccion === 'EGRESO' && tiposEgreso && tiposEgreso.length > 0) {
+        form.setFieldsValue({ tipo: tiposEgreso[0].id });
+      }
+    }
+  }, [tiposIngreso, tiposEgreso, tipoTransaccion, form, prefilledData.esVentaVehiculo]);
+  
+  // Efecto para rellenar los datos del formulario si vienen del location state
+  useEffect(() => {
+    if (prefilledData.vehiculoId) {
+      form.setFieldsValue({ vehiculo_id: prefilledData.vehiculoId });
+    }
+    if (prefilledData.monto) {
+      form.setFieldsValue({ monto: prefilledData.monto });
+    }
+  }, [form, prefilledData]);
 
   // Función para filtrar repuestos según vehículo seleccionado
   const getRepuestosFiltrados = useCallback(() => {

@@ -2,4 +2,4 @@
 GET http://localhost:8080/api/vista-excel-ventas-mes-completa/mes-actual
 
 ### Obtener vista para un mes específico (ejemplo 2023, mes 12)
-GET http://localhost:8080/api/vista-excel-ventas-mes-completa/2026/2
+GET http://localhost:8080/api/vista-excel-ventas-mes-completa/2026/6

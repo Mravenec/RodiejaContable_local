@@ -2,7 +2,7 @@
 GET http://localhost:8080/api/analisis-financiero
 
 ### Obtener análisis financiero por año y mes
-GET http://localhost:8080/api/analisis-financiero/anio/2026/mes/2
+GET http://localhost:8080/api/analisis-financiero/anio/2026/mes/5
 
 ### Obtener resumen anual consolidado
 GET http://localhost:8080/api/analisis-financiero/resumen-anual/2023

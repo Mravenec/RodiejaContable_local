@@ -1,26 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, Row, Col, Table, Typography, Button, Space,
-  Select, DatePicker, message, Statistic, Tabs, Tag,
-  Tooltip, Empty, Layout, Badge
+  Select, message, Statistic, Tabs, Tag,
+  Tooltip, Empty, Layout, Badge, Input, Collapse
 } from 'antd';
 import {
   BarChartOutlined, ReloadOutlined,
   CarOutlined, UnorderedListOutlined,
-  MoneyCollectOutlined, FallOutlined, RiseOutlined,
-  CalendarOutlined, DashboardOutlined,
-  FilterOutlined, FileExcelOutlined
+  DashboardOutlined, 
+  FilterOutlined, FileExcelOutlined,
+  ArrowUpOutlined, ArrowDownOutlined,
+  CalendarOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
-import reportesService from '../../api/reportes';
 import vehiculosService from '../../api/vehiculos';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
-import locale from 'antd/es/date-picker/locale/es_ES';
 import * as XLSX from 'xlsx';
 
 const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
 const { Option } = Select;
 const { Content } = Layout;
 
@@ -30,121 +28,142 @@ const ReporteVehiculos = () => {
   // Estados
   const [data, setData] = useState([]);
   const [generaciones, setGeneraciones] = useState([]);
-  const [loading, setLoading] = useState(false);
+  
   const [filtros, setFiltros] = useState({
-    fechaInicio: null,
-    fechaFin: null,
-    generacionId: null
+    mes: moment().month() + 1,
+    anio: moment().year(),
+    generacionId: null,
+    estadoVehiculo: null,
+    busqueda: ''
   });
 
   const [totales, setTotales] = useState({
-    ventas: 0,
-    inversion: 0,
+    ingresos: 0,
+    egresos: 0,
     comisiones: 0,
-    gananciaNeta: 0
+    balanceNeto: 0
   });
 
-  const [vehiculosActivos, setVehiculosActivos] = useState([]);
+  const [vehiculosFiltrados, setVehiculosFiltrados] = useState([]);
   const [loadingVehiculos, setLoadingVehiculos] = useState(false);
 
   const [movimientos, setMovimientos] = useState([]);
   const [loadingMovimientos, setLoadingMovimientos] = useState(false);
 
+  const loading = loadingMovimientos || loadingVehiculos;
+
   const cargarGeneraciones = async () => {
     try {
       const res = await vehiculosService.getGeneraciones();
-      setGeneraciones(res);
+      setGeneraciones(res || []);
     } catch (error) {
       console.error('Error al cargar generaciones', error);
       message.error('Error al cargar generaciones');
     }
   };
 
-  const cargarReporteMensual = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = {};
-
-      if (filtros.fechaInicio && filtros.fechaFin) {
-        params.fechaInicio = filtros.fechaInicio.format('YYYY-MM-DD');
-        params.fechaFin = filtros.fechaFin.format('YYYY-MM-DD');
-      }
-
-      if (filtros.generacionId) {
-        params.generacionId = filtros.generacionId;
-      }
-
-      const res = await reportesService.getReporteVehiculosMensual(params);
-
-      const processedData = res.map(item => ({
-        ...item,
-        cantidadVehiculos: Number(item.cantidadVehiculos || 0),
-        totalVentas: Number(item.totalVentas || 0),
-        totalInversion: Number(item.totalInversion || 0),
-        totalComisiones: Number(item.totalComisiones || 0),
-        gananciaNeta: Number(item.gananciaNeta || 0),
-        periodo: `${item.nombreMes} ${item.anio}`
-      }));
-
-      setData(processedData);
-
-      const tVentas = processedData.reduce((acc, curr) => acc + curr.totalVentas, 0);
-      const tInversion = processedData.reduce((acc, curr) => acc + curr.totalInversion, 0);
-      const tComisiones = processedData.reduce((acc, curr) => acc + curr.totalComisiones, 0);
-      const tGanancia = processedData.reduce((acc, curr) => acc + curr.gananciaNeta, 0);
-
-      setTotales({
-        ventas: tVentas,
-        inversion: tInversion,
-        comisiones: tComisiones,
-        gananciaNeta: tGanancia
-      });
-
-    } catch (error) {
-      console.error('Error al cargar el reporte de vehículos:', error);
-      message.error('Error al cargar el reporte de vehículos');
-    } finally {
-      setLoading(false);
-    }
-  }, [filtros]);
-
-  const cargarVehiculosActivos = useCallback(async () => {
-    try {
-      setLoadingVehiculos(true);
-      // Cargar vehiculos en reparacion y disponibles
-      const resReparacion = await vehiculosService.getVehiculosPorEstado('REPARACION');
-      const resDisponibles = await vehiculosService.getVehiculosPorEstado('DISPONIBLE');
-
-      const combined = [...(resReparacion || []), ...(resDisponibles || [])];
-      setVehiculosActivos(combined);
-    } catch (error) {
-      console.error('Error al cargar vehículos activos:', error);
-      message.error('Error al cargar los vehículos activos');
-    } finally {
-      setLoadingVehiculos(false);
-    }
-  }, []);
-
-  const cargarMovimientosVehiculos = useCallback(async () => {
+  const cargarMovimientosYVehiculos = useCallback(async () => {
     try {
       setLoadingMovimientos(true);
+      setLoadingVehiculos(true);
+      
       const params = {};
-
-      if (filtros.fechaInicio && filtros.fechaFin) {
-        params.fechaInicio = filtros.fechaInicio.format('YYYY-MM-DD');
-        params.fechaFin = filtros.fechaFin.format('YYYY-MM-DD');
+      if (filtros.mes && filtros.anio) {
+        const fechaBase = moment().year(filtros.anio).month(filtros.mes - 1);
+        params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+        params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
       }
 
-      let res = [];
-      if (params.fechaInicio && params.fechaFin) {
-        res = await transaccionesCompletasService.getTransaccionesPorRangoFechas(params.fechaInicio, params.fechaFin);
-      } else {
-        res = await transaccionesCompletasService.getTransacciones();
-      }
+      // Fetch all vehicles and transactions concurrently
+      const [vehiculosRes, transaccionesResVista] = await Promise.all([
+        vehiculosService.getVehiculos(),
+        (params.fechaInicio && params.fechaFin)
+          ? transaccionesCompletasService.getTransaccionesPorRangoFechas(params.fechaInicio, params.fechaFin)
+          : transaccionesCompletasService.getTransacciones()
+      ]);
 
-      // Filtrar transacciones que tienen vehiculo asignado, pero excluir repuestos para enfocarse en la vista general del vehiculo
-      // o incluir ambas si es relevante para el vehiculo
-      const movimientosVehiculos = res.filter(t => t.codigoVehiculo != null || t.vehiculoId != null);
+      // 1. Filtrar los vehículos que NO sean desarmados
+      const vehiculosNoDesarmados = (vehiculosRes || []).filter(v => v.estado !== 'DESARMADO');
+      
+      const vehiculosIdsValid = new Set(vehiculosNoDesarmados.map(v => v.id));
+      const vehiculosCodigosValid = new Set(vehiculosNoDesarmados.map(v => v.codigoVehiculo).filter(Boolean));
+      const vehiculosMap = new Map();
+      
+      vehiculosNoDesarmados.forEach(v => {
+        const nombreVehiculo = `${v.marca || v.marcaNombre || ''} ${v.modelo || ''} ${v.generacion?.nombre || v.generacionNombre || ''}`.trim();
+        if (v.codigoVehiculo) vehiculosMap.set(v.codigoVehiculo, nombreVehiculo);
+        if (v.id) vehiculosMap.set(v.id.toString(), nombreVehiculo);
+      });
+
+      // FILTRO DE VEHÍCULOS: Aplicar filtros de la UI
+      const vehiculosList = vehiculosNoDesarmados.filter(v => {
+        if (filtros.generacionId) {
+          const genId = v.generacion?.id || v.generacionId;
+          if (parseInt(genId, 10) !== parseInt(filtros.generacionId, 10)) return false;
+        }
+        if (filtros.estadoVehiculo && v.estado !== filtros.estadoVehiculo) return false;
+        if (filtros.busqueda) {
+          const q = filtros.busqueda.toLowerCase();
+          const matches = (v.codigoVehiculo || '').toLowerCase().includes(q) || 
+                          (v.marca || v.marcaNombre || '').toLowerCase().includes(q) ||
+                          (v.modelo || '').toLowerCase().includes(q);
+          if (!matches) return false;
+        }
+        return true;
+      });
+      setVehiculosFiltrados(vehiculosList);
+      
+      // Subset of valid IDs based on filters to apply to transactions
+      const filteredVehiculosIds = new Set(vehiculosList.map(v => v.id));
+      const filteredVehiculosCodigos = new Set(vehiculosList.map(v => v.codigoVehiculo).filter(Boolean));
+
+      // 2. Filtrar transacciones para quedarse SOLO con el historial de estos vehículos
+      const movimientosVehiculos = (transaccionesResVista || []).filter(t => {
+        // Verificar si la transacción pertenece a uno de los vehículos permitidos
+        const matchesVehiculoId = t.vehiculoId != null && vehiculosIdsValid.has(parseInt(t.vehiculoId, 10));
+        const matchesVehiculoCodigo = t.codigoVehiculo != null && vehiculosCodigosValid.has(t.codigoVehiculo);
+        
+        if (!(matchesVehiculoId || matchesVehiculoCodigo)) {
+          return false; // Ignorar transacciones que no son de vehículos válidos (ej. repuestos puros, desarmados)
+        }
+        
+        // Aplicar filtros de la UI sobre la transacción (busqueda)
+        if (filtros.busqueda && filtros.busqueda.trim() !== '') {
+          const query = filtros.busqueda.toLowerCase();
+          const desc = (t.descripcion || '').toLowerCase();
+          const ref = (t.referencia || '').toLowerCase();
+          const codV = (t.codigoVehiculo || '').toLowerCase();
+
+          if (!desc.includes(query) && !ref.includes(query) && !codV.includes(query)) {
+            return false;
+          }
+        }
+        
+        // Aplicar filtro de generacion/estado usando los sets filtrados
+        if (filtros.generacionId || filtros.estadoVehiculo) {
+            const isFilteredId = t.vehiculoId != null && filteredVehiculosIds.has(parseInt(t.vehiculoId, 10));
+            const isFilteredCodigo = t.codigoVehiculo != null && filteredVehiculosCodigos.has(t.codigoVehiculo);
+            if (!(isFilteredId || isFilteredCodigo)) return false;
+        }
+
+        return true;
+      }).map(t => {
+        const infoOrigen = [];
+        if (t.codigoVehiculo && vehiculosMap.has(t.codigoVehiculo)) {
+          infoOrigen.push(`Vehículo: ${vehiculosMap.get(t.codigoVehiculo)} (${t.codigoVehiculo})`);
+        } else if (t.vehiculoId && vehiculosMap.has(t.vehiculoId.toString())) {
+          infoOrigen.push(`Vehículo: ${vehiculosMap.get(t.vehiculoId.toString())}`);
+        } else if (t.codigoVehiculo) {
+          infoOrigen.push(`Vehículo: ${t.codigoVehiculo}`);
+        } else if (t.marca && t.modelo) {
+          infoOrigen.push(`Vehículo: ${t.marca} ${t.modelo} ${t.generacion || ''}`.trim());
+        }
+
+        return {
+          ...t,
+          _infoOrigen: infoOrigen.length > 0 ? infoOrigen.join(' | ') : null
+        };
+      });
 
       const ordenados = movimientosVehiculos.sort((a, b) => {
         const fechaA = new Date(Array.isArray(a.fecha) ? `${a.fecha[0]}-${String(a.fecha[1]).padStart(2, '0')}-${String(a.fecha[2]).padStart(2, '0')}` : a.fecha);
@@ -154,23 +173,93 @@ const ReporteVehiculos = () => {
 
       setMovimientos(ordenados);
 
+      // CÁLCULO DINÁMICO DE TOTALES Y TABLA MENSUAL "FLUJO FINANCIERO"
+      let tIngresos = 0;
+      let tEgresos = 0;
+      let tComisiones = 0;
+      const monthlyDataMap = {};
+
+      ordenados.forEach(t => {
+        const monto = parseFloat(t.monto || 0);
+        const categoria = (t.categoria || t.tipoTransaccion || '').toUpperCase();
+        const comision = parseFloat(t.comisionEmpleado || 0);
+
+        let fechaObj = null;
+        if (Array.isArray(t.fecha)) {
+          fechaObj = new Date(t.fecha[0], t.fecha[1] - 1, t.fecha[2]);
+        } else if (t.fecha) {
+          fechaObj = new Date(t.fecha);
+        }
+
+        let monthKey = 'Desconocido';
+        let nombreMes = 'Desconocido';
+        let anio = '';
+
+        if (fechaObj && !isNaN(fechaObj.getTime())) {
+          anio = fechaObj.getFullYear();
+          nombreMes = fechaObj.toLocaleString('es-ES', { month: 'long' });
+          nombreMes = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+          monthKey = `${anio}-${fechaObj.getMonth()}`;
+        }
+
+        if (!monthlyDataMap[monthKey]) {
+          monthlyDataMap[monthKey] = {
+            periodo: `${nombreMes} ${anio}`,
+            nombreMes,
+            anio,
+            totalIngresos: 0,
+            totalEgresos: 0,
+            totalComisiones: 0,
+            balanceNeto: 0,
+            monthIndex: fechaObj ? fechaObj.getMonth() : -1
+          };
+        }
+
+        const md = monthlyDataMap[monthKey];
+
+        if (categoria === 'INGRESO' || categoria === 'VENTA') {
+          tIngresos += monto;
+          md.totalIngresos += monto;
+        } else if (categoria === 'EGRESO' || categoria === 'COMPRA' || categoria === 'REPARACION') {
+          tEgresos += monto;
+          md.totalEgresos += monto;
+        }
+
+        tComisiones += comision;
+        md.totalComisiones += comision;
+
+        md.balanceNeto = md.totalIngresos - md.totalEgresos - md.totalComisiones;
+      });
+
+      const processedData = Object.values(monthlyDataMap).sort((a, b) => {
+        if (a.anio !== b.anio) return a.anio - b.anio;
+        return a.monthIndex - b.monthIndex;
+      });
+
+      setData(processedData);
+      setTotales({
+        ingresos: tIngresos,
+        egresos: tEgresos,
+        comisiones: tComisiones,
+        balanceNeto: tIngresos - tEgresos - tComisiones
+      });
+
     } catch (error) {
-      console.error('Error al cargar movimientos de vehículos:', error);
-      message.error('Error al cargar el historial de transacciones');
+      console.error('Error al cargar movimientos y vehículos:', error);
+      message.error('Error al cargar el reporte');
     } finally {
       setLoadingMovimientos(false);
+      setLoadingVehiculos(false);
     }
   }, [filtros]);
 
   useEffect(() => {
     cargarGeneraciones();
-    cargarVehiculosActivos();
-  }, [cargarVehiculosActivos]);
+  }, []);
 
   useEffect(() => {
-    cargarReporteMensual();
-    cargarMovimientosVehiculos();
-  }, [cargarReporteMensual, cargarMovimientosVehiculos]);
+    cargarMovimientosYVehiculos();
+  }, [cargarMovimientosYVehiculos]);
 
   const aplicarFiltros = (valores) => {
     setFiltros(prev => ({ ...prev, ...valores }));
@@ -178,9 +267,11 @@ const ReporteVehiculos = () => {
 
   const limpiarFiltros = () => {
     setFiltros({
-      fechaInicio: null,
-      fechaFin: null,
-      generacionId: null
+      mes: null,
+      anio: null,
+      generacionId: null,
+      estadoVehiculo: null,
+      busqueda: ''
     });
   };
 
@@ -193,21 +284,19 @@ const ReporteVehiculos = () => {
     const exportData = data.map(item => ({
       'Año': item.anio,
       'Mes': item.nombreMes,
-      'Cant. Vendida': item.cantidadVehiculos,
-      'Total Ingresos': item.totalVentas,
-      'Total Inversión': item.totalInversion,
+      'Ingresos': item.totalIngresos,
+      'Inversión/Egresos': item.totalEgresos,
       'Comisiones': item.totalComisiones,
-      'Ganancia Neta': item.gananciaNeta
+      'Ganancia Neta': item.balanceNeto
     }));
 
     exportData.push({
       'Año': 'TOTALES',
       'Mes': '',
-      'Cant. Vendida': data.reduce((a, b) => a + b.cantidadVehiculos, 0),
-      'Total Ingresos': totales.ventas,
-      'Total Inversión': totales.inversion,
+      'Ingresos': totales.ingresos,
+      'Inversión/Egresos': totales.egresos,
       'Comisiones': totales.comisiones,
-      'Ganancia Neta': totales.gananciaNeta
+      'Ganancia Neta': totales.balanceNeto
     });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -215,7 +304,7 @@ const ReporteVehiculos = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'Reporte Vehículos');
 
     const colWidths = [
-      { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+      { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
     ];
     ws['!cols'] = colWidths;
 
@@ -239,27 +328,20 @@ const ReporteVehiculos = () => {
       sorter: (a, b) => a.anio - b.anio
     },
     {
-      title: 'Cant. Vehículos',
-      dataIndex: 'cantidadVehiculos',
-      key: 'cantidadVehiculos',
-      align: 'center',
-      render: (val) => <Tag color="blue">{val}</Tag>
-    },
-    {
       title: 'Ingresos por Ventas',
-      dataIndex: 'totalVentas',
-      key: 'totalVentas',
+      dataIndex: 'totalIngresos',
+      key: 'totalIngresos',
       render: (val) => <Text style={{ color: '#1890ff' }}>₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(val)}</Text>,
       align: 'right',
-      sorter: (a, b) => a.totalVentas - b.totalVentas
+      sorter: (a, b) => a.totalIngresos - b.totalIngresos
     },
     {
-      title: 'Inversión Base',
-      dataIndex: 'totalInversion',
-      key: 'totalInversion',
+      title: 'Inversión y Reparación',
+      dataIndex: 'totalEgresos',
+      key: 'totalEgresos',
       render: (val) => `₡${new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(val)}`,
       align: 'right',
-      sorter: (a, b) => a.totalInversion - b.totalInversion
+      sorter: (a, b) => a.totalEgresos - b.totalEgresos
     },
     {
       title: 'Comisiones',
@@ -271,8 +353,8 @@ const ReporteVehiculos = () => {
     },
     {
       title: 'Ganancia Neta Real',
-      dataIndex: 'gananciaNeta',
-      key: 'gananciaNeta',
+      dataIndex: 'balanceNeto',
+      key: 'balanceNeto',
       render: (val) => (
         <Badge
           status={val >= 0 ? "success" : "error"}
@@ -284,11 +366,11 @@ const ReporteVehiculos = () => {
         />
       ),
       align: 'right',
-      sorter: (a, b) => a.gananciaNeta - b.gananciaNeta
+      sorter: (a, b) => a.balanceNeto - b.balanceNeto
     }
   ];
 
-  const columnasVehiculosActivos = [
+  const columnasVehiculos = [
     {
       title: 'Vehículo',
       key: 'vehiculo',
@@ -305,11 +387,10 @@ const ReporteVehiculos = () => {
       title: 'Estado',
       dataIndex: 'estado',
       key: 'estado',
-      render: (text) => (
-        <Tag color={text === 'REPARACION' ? 'warning' : 'success'}>
-          {text}
-        </Tag>
-      )
+      render: (text) => {
+        const colors = { 'DISPONIBLE': 'success', 'REPARACION': 'warning', 'VENDIDO': 'red', 'RESERVADO': 'processing' };
+        return <Tag color={colors[text] || 'default'}>{text}</Tag>;
+      }
     },
     {
       title: 'Antigüedad (Ingreso)',
@@ -319,7 +400,7 @@ const ReporteVehiculos = () => {
         if (!fecha) return '-';
         let formatted = '';
         if (Array.isArray(fecha)) {
-          formatted = `${fecha[2]}/${fecha[1]}/${fecha[0]}`;
+          formatted = `${String(fecha[2]).padStart(2, '0')}/${String(fecha[1]).padStart(2, '0')}/${fecha[0]}`;
         } else {
           formatted = moment(fecha).format('DD/MM/YYYY');
         }
@@ -332,21 +413,12 @@ const ReporteVehiculos = () => {
       }
     },
     {
-      title: 'Costo Compra',
-      dataIndex: 'precioCompra',
-      key: 'precioCompra',
-      align: 'right',
-      render: (val) => <Text>₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(val || 0)}</Text>
-    },
-    {
-      title: 'Inversión Total Acumulada',
+      title: 'Inversión Acumulada',
       dataIndex: 'inversionTotal',
       key: 'inversionTotal',
       align: 'right',
       render: (val) => (
-        <Text strong>
-          ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(val || 0)}
-        </Text>
+        <Text strong>₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(val || 0)}</Text>
       )
     },
     {
@@ -395,7 +467,7 @@ const ReporteVehiculos = () => {
       key: 'tipo',
       width: '15%',
       render: (_, record) => {
-        const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO';
+        const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO' || record.categoria === 'VENTA';
         return (
           <Tag color={isIngreso ? 'success' : 'error'} style={{ borderRadius: '4px', padding: '0 8px' }}>
             {record.tipoTransaccion || record.categoria || 'DESCONOCIDO'}
@@ -413,9 +485,6 @@ const ReporteVehiculos = () => {
           <div style={{ fontSize: '13px', color: '#595959', marginTop: '2px', lineHeight: '1.4' }}>
             {record.descripcion}
           </div>
-          {record.codigoRepuesto && (
-            <Tag color="orange" style={{ marginTop: 4 }}>Repuesto: {record.codigoRepuesto}</Tag>
-          )}
         </div>
       )
     },
@@ -423,10 +492,21 @@ const ReporteVehiculos = () => {
       title: 'Vehículo',
       key: 'vehiculoAsociado',
       width: '20%',
-      render: (_, record) => record.codigoVehiculo ? (
-        <Tag icon={<CarOutlined />} color="blue">
-          {record.codigoVehiculo}
-        </Tag>
+      render: (_, record) => record._infoOrigen ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {record._infoOrigen.split(' | ').map((info, i) => {
+            const isVehiculo = info.startsWith('Vehículo:');
+            const text = info.replace('Vehículo: ', '');
+            return (
+              <Tooltip title={info} key={i}>
+                <div style={{ fontSize: '12px', lineHeight: '1.3', color: '#595959', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {isVehiculo ? <CarOutlined style={{ marginRight: 4, color: '#8c8c8c' }} /> : null}
+                  {text}
+                </div>
+              </Tooltip>
+            );
+          })}
+        </div>
       ) : <Text type="secondary">N/A</Text>
     },
     {
@@ -436,7 +516,7 @@ const ReporteVehiculos = () => {
       align: 'right',
       width: '15%',
       render: (monto, record) => {
-        const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO';
+        const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO' || record.categoria === 'VENTA';
         return (
           <Text strong style={{ fontSize: '15px', color: isIngreso ? '#52c41a' : '#f5222d' }}>
             {isIngreso ? '+' : '-'} ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(monto || 0)}
@@ -448,91 +528,182 @@ const ReporteVehiculos = () => {
 
   return (
     <Content style={{ padding: '0 24px', minHeight: 280 }}>
-      {/* Header Premium */}
-      <div style={{
-        marginBottom: 24,
-        padding: '24px 32px',
-        background: 'linear-gradient(90deg, #531dab 0%, #391085 100%)',
-        borderRadius: '8px',
-        color: 'white',
-        boxShadow: '0 4px 12px rgba(83, 29, 171, 0.15)'
-      }}>
+      {/* Encabezado Simple */}
+      <div style={{ marginBottom: 24, marginTop: 8 }}>
         <Row align="middle" justify="space-between">
           <Col>
-            <Title level={2} style={{ color: 'white', margin: 0, fontWeight: 600 }}>
-              <CarOutlined style={{ marginRight: 12, opacity: 0.9 }} />
-              Inteligencia de Vehículos
+            <Title level={3} style={{ margin: 0, color: '#262626' }}>
+              <DashboardOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+              Reporte de Vehículos
             </Title>
-            <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '15px', marginTop: '8px', display: 'block' }}>
-              Análisis financiero, control de vehículos en reparación y trazabilidad operativa.
+            <Text type="secondary" style={{ marginTop: 4, display: 'block' }}>
+              Análisis financiero, control de vehículos y trazabilidad de operaciones de compra-venta.
             </Text>
           </Col>
           <Col>
-            <Tooltip title="Exportar la vista actual a Microsoft Excel">
-              <Button
-                size="large"
-                icon={<FileExcelOutlined />}
-                onClick={exportarAExcel}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  border: '1px solid rgba(255,255,255,0.4)',
-                  color: 'white',
-                  backdropFilter: 'blur(4px)'
-                }}
-              >
-                Exportar Reporte
+            <Tooltip title="Exportar a Microsoft Excel">
+              <Button type="primary" icon={<FileExcelOutlined />} onClick={exportarAExcel}>
+                Exportar
               </Button>
             </Tooltip>
           </Col>
         </Row>
       </div>
 
+      {/* Resumen Global (4 Cuadros) Siempre Visible */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos por Ventas</span>}
+              value={totales.ingresos}
+              precision={2}
+              prefix={<ArrowUpOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Inversión y Reparación</span>}
+              value={totales.egresos}
+              precision={2}
+              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Comisiones Totales</span>}
+              value={totales.comisiones}
+              precision={2}
+              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: '#faad14', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ganancia Neta</span>}
+              value={Math.abs(totales.balanceNeto)}
+              precision={2}
+              prefix={totales.balanceNeto >= 0 ? <ArrowUpOutlined style={{ fontSize: '20px' }} /> : <ArrowDownOutlined style={{ fontSize: '20px' }} />}
+              valueStyle={{ color: totales.balanceNeto >= 0 ? '#52c41a' : '#f5222d', fontWeight: 600, fontSize: '24px' }}
+              formatter={(value) => `${totales.balanceNeto < 0 ? '-' : ''}₡${value.toLocaleString('es-CR')}`}
+            />
+          </Card>
+        </Col>
+      </Row>
+
       {/* Control Panel de Filtros */}
-      <Card
-        bordered={false}
-        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px -2px rgba(0, 0, 0, 0.16)' }}
-        bodyStyle={{ padding: '20px 24px' }}
-      >
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Text strong style={{ fontSize: '15px', color: '#262626' }}>
-            <FilterOutlined style={{ marginRight: 8, color: '#531dab' }} />
-            Parámetros de Análisis
-          </Text>
-          <Row gutter={[24, 16]} align="bottom">
-            <Col xs={24} sm={12} md={9}>
-              <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Rango Temporal</Text>
-              <RangePicker
-                locale={locale}
-                style={{ width: '100%', borderRadius: '6px' }}
-                value={filtros.fechaInicio ? [filtros.fechaInicio, filtros.fechaFin] : []}
-                onChange={(dates) => aplicarFiltros({
-                  fechaInicio: dates ? dates[0] : null,
-                  fechaFin: dates ? dates[1] : null
-                })}
-              />
-            </Col>
-            <Col xs={24} sm={12} md={9}>
-              <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Familia / Generación</Text>
-              <Select
-                allowClear
-                placeholder="Seleccione para segmentar"
-                style={{ width: '100%' }}
-                value={filtros.generacionId}
-                onChange={(val) => aplicarFiltros({ generacionId: val })}
-              >
-                {generaciones.map(g => (
-                  <Option key={g.id} value={g.id}>{g.nombre}</Option>
-                ))}
-              </Select>
-            </Col>
-            <Col xs={24} sm={24} md={6}>
-              <Button block icon={<ReloadOutlined />} onClick={limpiarFiltros} style={{ borderRadius: '6px' }}>
-                Restablecer Vista
-              </Button>
-            </Col>
-          </Row>
-        </Space>
-      </Card>
+      <Collapse
+        defaultActiveKey={['1']}
+        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px -2px rgba(0, 0, 0, 0.16)', background: '#fff' }}
+        items={[
+          {
+            key: '1',
+            label: (
+              <Text strong style={{ fontSize: '15px', color: '#262626' }}>
+                <FilterOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                Parámetros de Análisis
+              </Text>
+            ),
+            children: (
+              <Row gutter={[24, 16]} align="bottom">
+                <Col xs={24} sm={12} md={5}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Búsqueda</Text>
+                  <Input.Search
+                    placeholder="Buscar..."
+                    allowClear
+                    onSearch={(val) => aplicarFiltros({ busqueda: val })}
+                    onChange={(e) => {
+                      if (!e.target.value) aplicarFiltros({ busqueda: '' });
+                    }}
+                    style={{ width: '100%', borderRadius: '6px' }}
+                  />
+                </Col>
+                <Col xs={24} sm={12} md={5}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Mes a Consultar</Text>
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Select
+                      style={{ width: '60%', borderRadius: '6px 0 0 6px' }}
+                      placeholder="Mes"
+                      value={filtros.mes}
+                      onChange={(value) => aplicarFiltros({ mes: value })}
+                      allowClear
+                    >
+                      <Option value={1}>Ene</Option>
+                      <Option value={2}>Feb</Option>
+                      <Option value={3}>Mar</Option>
+                      <Option value={4}>Abr</Option>
+                      <Option value={5}>May</Option>
+                      <Option value={6}>Jun</Option>
+                      <Option value={7}>Jul</Option>
+                      <Option value={8}>Ago</Option>
+                      <Option value={9}>Sep</Option>
+                      <Option value={10}>Oct</Option>
+                      <Option value={11}>Nov</Option>
+                      <Option value={12}>Dic</Option>
+                    </Select>
+                    <Select
+                      style={{ width: '40%', borderRadius: '0 6px 6px 0' }}
+                      placeholder="Año"
+                      value={filtros.anio}
+                      onChange={(value) => aplicarFiltros({ anio: value })}
+                      allowClear
+                    >
+                      <Option value={2023}>23</Option>
+                      <Option value={2024}>24</Option>
+                      <Option value={2025}>25</Option>
+                      <Option value={2026}>26</Option>
+                    </Select>
+                  </Space.Compact>
+                </Col>
+                <Col xs={24} sm={12} md={5}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Familia / Generación</Text>
+                  <Select
+                    allowClear
+                    placeholder="Todas"
+                    style={{ width: '100%' }}
+                    value={filtros.generacionId}
+                    onChange={(val) => aplicarFiltros({ generacionId: val })}
+                  >
+                    {generaciones.map(g => (
+                      <Option key={g.id} value={g.id}>{g.nombre}</Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12} md={5}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Estado</Text>
+                  <Select
+                    allowClear
+                    placeholder="Todos"
+                    style={{ width: '100%' }}
+                    value={filtros.estadoVehiculo}
+                    onChange={(val) => aplicarFiltros({ estadoVehiculo: val })}
+                  >
+                    <Option value="DISPONIBLE">Disponible</Option>
+                    <Option value="REPARACION">En Reparación</Option>
+                    <Option value="VENDIDO">Vendido</Option>
+                  </Select>
+                </Col>
+                <Col xs={24} sm={24} md={4}>
+                  <Button block icon={<ReloadOutlined />} onClick={limpiarFiltros} style={{ borderRadius: '6px' }}>
+                    Reset
+                  </Button>
+                </Col>
+              </Row>
+            )
+          }
+        ]}
+      />
 
       {/* Navegación por Pestañas */}
       <Tabs
@@ -549,53 +720,6 @@ const ReporteVehiculos = () => {
             ),
             children: (
               <div style={{ marginTop: '8px' }}>
-                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                  <Col xs={24} sm={12} md={6}>
-                    <Card bordered={false} style={{ borderRadius: '8px', borderLeft: '4px solid #1890ff', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                      <Statistic
-                        title={<Text type="secondary">Ingresos por Ventas</Text>}
-                        value={totales.ventas}
-                        precision={2}
-                        prefix={<MoneyCollectOutlined />}
-                        valueStyle={{ color: '#1890ff', fontWeight: 600 }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12} md={6}>
-                    <Card bordered={false} style={{ borderRadius: '8px', borderLeft: '4px solid #faad14', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                      <Statistic
-                        title={<Text type="secondary">Inversión y Reparación</Text>}
-                        value={totales.inversion}
-                        precision={2}
-                        prefix={<FallOutlined />}
-                        valueStyle={{ color: '#faad14', fontWeight: 600 }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12} md={6}>
-                    <Card bordered={false} style={{ borderRadius: '8px', borderLeft: '4px solid #f5222d', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                      <Statistic
-                        title={<Text type="secondary">Comisiones Deducidas</Text>}
-                        value={totales.comisiones}
-                        precision={2}
-                        prefix={<FallOutlined />}
-                        valueStyle={{ color: '#f5222d', fontWeight: 600 }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12} md={6}>
-                    <Card bordered={false} style={{ borderRadius: '8px', borderLeft: `4px solid ${totales.gananciaNeta >= 0 ? '#52c41a' : '#f5222d'}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                      <Statistic
-                        title={<Text type="secondary" strong>Ganancia Neta Real</Text>}
-                        value={totales.gananciaNeta}
-                        precision={2}
-                        prefix={<RiseOutlined />}
-                        valueStyle={{ color: totales.gananciaNeta >= 0 ? '#52c41a' : '#f5222d', fontWeight: 700 }}
-                      />
-                    </Card>
-                  </Col>
-                </Row>
-
                 <Card
                   bordered={false}
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Desglose de Periodos</span>}
@@ -613,21 +737,18 @@ const ReporteVehiculos = () => {
                       <Table.Summary fixed>
                         <Table.Summary.Row style={{ backgroundColor: '#fafafa', fontWeight: 600 }}>
                           <Table.Summary.Cell index={0} colSpan={1}>CONSOLIDADO GLOBAL</Table.Summary.Cell>
-                          <Table.Summary.Cell index={1} align="center">
-                            <Tag color="blue">{data.reduce((a, b) => a + b.cantidadVehiculos, 0)}</Tag>
+                          <Table.Summary.Cell index={1} align="right">
+                            <Text style={{ color: '#1890ff' }}>₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totales.ingresos)}</Text>
                           </Table.Summary.Cell>
                           <Table.Summary.Cell index={2} align="right">
-                            <Text style={{ color: '#1890ff' }}>₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totales.ventas)}</Text>
+                            ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totales.egresos)}
                           </Table.Summary.Cell>
                           <Table.Summary.Cell index={3} align="right">
-                            ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totales.inversion)}
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={4} align="right">
                             ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totales.comisiones)}
                           </Table.Summary.Cell>
-                          <Table.Summary.Cell index={5} align="right">
-                            <Text style={{ color: totales.gananciaNeta >= 0 ? '#52c41a' : '#f5222d', fontSize: '15px' }}>
-                              ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totales.gananciaNeta)}
+                          <Table.Summary.Cell index={4} align="right">
+                            <Text style={{ color: totales.balanceNeto >= 0 ? '#52c41a' : '#f5222d', fontSize: '15px' }}>
+                              ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totales.balanceNeto)}
                             </Text>
                           </Table.Summary.Cell>
                         </Table.Summary.Row>
@@ -642,24 +763,24 @@ const ReporteVehiculos = () => {
             key: '2',
             label: (
               <span style={{ fontSize: '16px', fontWeight: 500 }}>
-                <CarOutlined /> Vehículos en Reparación / Disponibles
+                <CarOutlined /> Vehículos Activos y Vendidos
               </span>
             ),
             children: (
               <div style={{ marginTop: '8px' }}>
                 <Card
                   bordered={false}
-                  title={<span style={{ fontWeight: 600, color: '#262626' }}>Vehículos Activos e Inversión Acumulada</span>}
+                  title={<span style={{ fontWeight: 600, color: '#262626' }}>Listado de Vehículos (Excepto Desarmados)</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
                   <Table
-                    columns={columnasVehiculosActivos}
-                    dataSource={vehiculosActivos}
+                    columns={columnasVehiculos}
+                    dataSource={vehiculosFiltrados}
                     rowKey="id"
                     loading={loadingVehiculos}
-                    pagination={{ defaultPageSize: 10 }}
+                    pagination={{ defaultPageSize: 10, showSizeChanger: true }}
                     size="middle"
-                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No hay vehículos en estado REPARACION ni DISPONIBLE" /> }}
+                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No hay vehículos que coincidan con el filtro" /> }}
                   />
                 </Card>
               </div>
@@ -676,7 +797,7 @@ const ReporteVehiculos = () => {
               <div style={{ marginTop: '8px' }}>
                 <Card
                   bordered={false}
-                  title={<span style={{ fontWeight: 600, color: '#262626' }}>Trazabilidad Operativa de Vehículos</span>}
+                  title={<span style={{ fontWeight: 600, color: '#262626' }}>Trazabilidad Operativa (Compras, Reparaciones, Ventas)</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
                   <Table
@@ -686,7 +807,7 @@ const ReporteVehiculos = () => {
                     loading={loadingMovimientos}
                     pagination={{ defaultPageSize: 10, showSizeChanger: true }}
                     size="middle"
-                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No existen transacciones de vehículos en el rango seleccionado" /> }}
+                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No existen transacciones en el rango seleccionado" /> }}
                   />
                 </Card>
               </div>
