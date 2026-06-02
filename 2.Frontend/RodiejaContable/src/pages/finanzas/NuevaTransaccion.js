@@ -565,6 +565,7 @@ const NuevaTransaccion = () => {
                   <Form.Item
                     name="tipoTransferencia"
                     label="Tipo de Transferencia"
+                    rules={[{ required: true, message: 'Por favor seleccione el tipo de transferencia' }]}
                   >
                     <Select 
                       placeholder="Seleccione el tipo de transferencia"
@@ -957,6 +958,7 @@ const NuevaTransaccion = () => {
                   <Form.Item
                     name="tipoTransferencia"
                     label="Tipo de Transferencia"
+                    rules={[{ required: true, message: 'Por favor seleccione el tipo de transferencia' }]}
                   >
                     <Select 
                       placeholder="Seleccione el tipo de transferencia"
