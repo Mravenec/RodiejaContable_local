@@ -567,12 +567,12 @@ const ReporteRepuestos = () => {
       key: 'acciones',
       align: 'center',
       render: (_, record) => (
-        <Tooltip title="Ver el desglose de piezas en Inventario">
+        <Tooltip title="Extraer nueva pieza de este vehículo">
           <Button
             type="primary"
             shape="round"
             icon={<ToolOutlined />}
-            onClick={() => navigate('/inventario', { state: { filtroVehiculo: record.codigoVehiculo } })}
+            onClick={() => navigate(`/inventario/nuevo?vehiculoId=${record.id}`)}
           >
             Extraer Piezas
           </Button>
