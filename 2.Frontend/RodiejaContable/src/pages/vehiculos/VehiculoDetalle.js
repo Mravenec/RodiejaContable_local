@@ -791,7 +791,7 @@ const VehiculoDetalle = () => {
                   <Button 
                     type="primary" 
                     size="small"
-                    onClick={() => navigate(`/finanzas/transaccion/nueva?vehiculoId=${vehiculo.id}`)}
+                    onClick={() => navigate('/finanzas/nueva')}
                   >
                     Nueva Transacción
                   </Button>
@@ -846,7 +846,7 @@ const VehiculoDetalle = () => {
                     <Button 
                       type="primary" 
                       style={{ marginTop: '16px' }}
-                      onClick={() => navigate(`/finanzas/transaccion/nueva?vehiculoId=${vehiculo.id}`)}
+                      onClick={() => navigate('/finanzas/nueva')}
                     >
                       Agregar Transacción
                     </Button>
