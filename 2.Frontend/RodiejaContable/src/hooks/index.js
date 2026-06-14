@@ -6,3 +6,4 @@ export * from './useReportes';
 export * from './useTiposTransaccion';
 export * from './useEmpleados';
 export * from './useVehiculosParaTransacciones';
+export * from './usePartesVehiculo';

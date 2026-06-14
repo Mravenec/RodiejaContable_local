@@ -22,12 +22,14 @@ import {
   InfoCircleOutlined,
   PlusOutlined,
   CheckOutlined,
-  CloseOutlined
+  CloseOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import { useMarcas } from '../../hooks/useMarcas';
 import { useModelos } from '../../hooks/useModelos';
 import { useGeneraciones } from '../../hooks/useGeneraciones';
 import { useVehiculos } from '../../hooks/useVehiculos';
+import { usePartesVehiculo } from '../../hooks/usePartesVehiculo';
 import api from '../../api/axios';
 
 const { Title, Text } = Typography;
@@ -72,6 +74,14 @@ const NuevoRepuesto = () => {
   const [nuevaGeneracionAnioInicio, setNuevaGeneracionAnioInicio] = useState('');
   const [nuevaGeneracionAnioFin, setNuevaGeneracionAnioFin] = useState('');
   const [creandoGeneracion, setCreandoGeneracion] = useState(false);
+
+  // Estados para nueva parte de vehículo
+  const [nuevaParteModal, setNuevaParteModal] = useState(false);
+  const [nuevaParteNombre, setNuevaParteNombre] = useState('');
+  const [creandoParte, setCreandoParte] = useState(false);
+
+  const [editingParteId, setEditingParteId] = useState(null);
+  const [editingParteNombre, setEditingParteNombre] = useState('');
 
   // Cálculos dinámicos
   const costoTotalCalculado = precioCostoUnitario * (cantidad > 0 ? cantidad : 1);
@@ -184,6 +194,70 @@ const NuevoRepuesto = () => {
     }
   };
 
+  // Función para crear nueva parte de vehículo
+  const handleNuevaParte = async () => {
+    if (!nuevaParteNombre.trim()) {
+      message.warning('Por favor ingrese el nombre de la parte de vehículo');
+      return;
+    }
+
+    setCreandoParte(true);
+    try {
+      const response = await api.post('/partes-vehiculo', {
+        nombre: nuevaParteNombre.trim(),
+        activo: 1
+      });
+
+      message.success('Parte de vehículo creada exitosamente');
+      setNuevaParteModal(false);
+      setNuevaParteNombre('');
+      
+      // La lista se actualiza automáticamente gracias a invalidateQueries en el hook
+      queryClient.invalidateQueries('partesVehiculoActivas');
+
+      // Seleccionar automáticamente la parte recién creada
+      if (response.data && response.data.id) {
+        form.setFieldsValue({ parte_vehiculo_id: response.data.id });
+      }
+    } catch (error) {
+      console.error('Error al crear parte de vehículo:', error);
+      message.error('Error al crear parte de vehículo: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setCreandoParte(false);
+    }
+  };
+
+  const handleEditarParte = (parte) => {
+    setEditingParteId(parte.id);
+    setEditingParteNombre(parte.nombre);
+  };
+
+  const handleCancelarEdicionParte = () => {
+    setEditingParteId(null);
+    setEditingParteNombre('');
+  };
+
+  const { updateParteVehiculoMutation } = usePartesVehiculo();
+
+  const handleGuardarEdicionParte = async () => {
+    if (!editingParteNombre.trim()) {
+      message.warning('El nombre no puede estar vacío');
+      return;
+    }
+
+    try {
+      await updateParteVehiculoMutation.mutateAsync({
+        id: editingParteId,
+        nombre: editingParteNombre.trim(),
+        activo: 1
+      });
+      setEditingParteId(null);
+      setEditingParteNombre('');
+    } catch (error) {
+      // El hook usePartesVehiculo ya maneja el mensaje de error
+    }
+  };
+
   // Hooks para cargar datos
   const { data: marcas = [], isLoading: loadingMarcas } = useMarcas();
   const { data: modelos = [], isLoading: loadingModelos } = useModelos(
@@ -194,6 +268,8 @@ const NuevoRepuesto = () => {
     modeloSeleccionado,
     tipoRepuesto === 'sin_vehiculo' && !!modeloSeleccionado
   );
+  
+  const { data: partesVehiculo = [], isLoading: loadingPartes } = usePartesVehiculo();
 
   // Para repuestos CON vehículo: cargar vehículos solo cuando sea necesario
   const { data: todosVehiculos = [], isLoading: loadingVehiculos } = useVehiculos(
@@ -228,63 +304,6 @@ const NuevoRepuesto = () => {
 
     const partes = [codigo, anio, marca, modelo, generacion].filter(p => p);
     return partes.join(' ');
-  };
-
-  // Opciones para parte_vehiculo según tipo
-  const getParteOptions = () => {
-    if (tipoRepuesto === 'con_vehiculo') {
-      return [
-        { value: 'MOTOR', label: 'Motor' },
-        { value: 'CHASIS', label: 'Chasis' },
-        { value: 'CARROCERIA', label: 'Carrocería' },
-        { value: 'COMPUTADORA', label: 'Computadora' },
-        { value: 'CAJA_DE_CAMBIO', label: 'Caja de Cambio' },
-        { value: 'AIRBAGS_O_BOLSAS_DE_AIRE', label: 'Airbags o Bolsas de Aire' },
-        { value: 'EJES_Y_DIFERENCIA', label: 'Ejes y Diferencia' },
-        { value: 'SUSPENSION_Y_AMORTIGUAMIENTO', label: 'Suspensión y Amortiguamiento' },
-        { value: 'EMBRAGUE', label: 'Embrague' },
-        { value: 'SISTEMA_DE_FRENOS', label: 'Sistema de Frenos' },
-        { value: 'TANQUE_DE_GASOLINA', label: 'Tanque de Gasolina' },
-        { value: 'DISTRIBUIDOR', label: 'Distribuidor' },
-        { value: 'RADIADOR', label: 'Radiador' },
-        { value: 'VENTILADOR', label: 'Ventilador' },
-        { value: 'BOMBA_DE_AGUA', label: 'Bomba de Agua' },
-        { value: 'BATERIA', label: 'Batería' },
-        { value: 'AROS_Y_LLANTAS', label: 'Aros y Llantas' },
-        { value: 'SISTEMA_DE_DIRECCION', label: 'Sistema de Dirección' },
-        { value: 'SISTEMA_ELECTRICO', label: 'Sistema Eléctrico' },
-        { value: 'FUSIBLES', label: 'Fusibles' },
-        { value: 'ALTERNADOR', label: 'Alternador' },
-        { value: 'VALVULAS_DE_ESCAPE', label: 'Válvulas de Escape' },
-        { value: 'TURBO', label: 'Turbo' }
-      ];
-    } else {
-      return [
-        { value: 'MOTOR', label: 'Motor' },
-        { value: 'CHASIS', label: 'Chasis' },
-        { value: 'CARROCERIA', label: 'Carrocería' },
-        { value: 'COMPUTADORA', label: 'Computadora' },
-        { value: 'CAJA DE CAMBIO', label: 'Caja de Cambio' },
-        { value: 'AIRBAGS O BOLSAS DE AIRE', label: 'Airbags o Bolsas de Aire' },
-        { value: 'EJES Y DIFERENCIA', label: 'Ejes y Diferencia' },
-        { value: 'SUSPENSION Y AMORTIGUAMIENTO', label: 'Suspensión y Amortiguamiento' },
-        { value: 'EMBRAGUE', label: 'Embrague' },
-        { value: 'SISTEMA DE FRENOS', label: 'Sistema de Frenos' },
-        { value: 'TANQUE DE GASOLINA', label: 'Tanque de Gasolina' },
-        { value: 'DISTRIBUIDOR', label: 'Distribuidor' },
-        { value: 'RADIADOR', label: 'Radiador' },
-        { value: 'VENTILADOR', label: 'Ventilador' },
-        { value: 'BOMBA DE AGUA', label: 'Bomba de Agua' },
-        { value: 'BATERIA', label: 'Batería' },
-        { value: 'AROS Y LLANTAS', label: 'Aros y Llantas' },
-        { value: 'SISTEMA DE DIRECCION', label: 'Sistema de Dirección' },
-        { value: 'SISTEMA ELECTRICO', label: 'Sistema Eléctrico' },
-        { value: 'FUSIBLES', label: 'Fusibles' },
-        { value: 'ALTERNADOR', label: 'Alternador' },
-        { value: 'VÁLVULAS DE ESCAPE', label: 'Válvulas de Escape' },
-        { value: 'TURBO', label: 'Turbo' }
-      ];
-    }
   };
 
   // Opciones para condicion según tipo
@@ -364,7 +383,7 @@ const NuevoRepuesto = () => {
       modelo_id: undefined,
       generacion_id: undefined,
       vehiculo_origen_id: undefined,
-      parte_vehiculo: undefined,
+      parte_vehiculo_id: undefined,
       condicion: undefined,
       bodega: undefined,
       zona: undefined,
@@ -408,7 +427,7 @@ const NuevoRepuesto = () => {
 
         const repuestoData = {
           vehiculoOrigenId: values.vehiculo_origen_id,
-          parteVehiculo: values.parte_vehiculo,
+          parteVehiculoId: values.parte_vehiculo_id,
           descripcion: descripcionModificada,
           precioCosto: costoUnitario,
           precioVenta: precioVentaCalculado,
@@ -455,7 +474,7 @@ const NuevoRepuesto = () => {
         const procedureData = {
           generacionId: generacionSeleccionada,
           marcaNombre: marcaNombre,
-          parteVehiculo: values.parte_vehiculo,
+          parteVehiculoId: values.parte_vehiculo_id,
           descripcion: descripcionModificada,
           precioCosto: costoUnitario,
           precioVenta: precioVentaCalculado,
@@ -567,16 +586,136 @@ const NuevoRepuesto = () => {
               </Text>
 
               <Form.Item
-                name="parte_vehiculo"
+                name="parte_vehiculo_id"
                 label="Parte del Vehículo"
                 rules={[{ required: true, message: 'Seleccione la parte del vehículo' }]}
               >
-                <Select placeholder="Seleccione la parte del vehículo">
-                  {getParteOptions().map(option => (
-                    <Option key={option.value} value={option.value}>
-                      {option.label}
+                <Select 
+                  placeholder="Seleccione la parte del vehículo"
+                  loading={loadingPartes}
+                  showSearch
+                  optionFilterProp="children"
+                  dropdownRender={(menu) => (
+                    <div>
+                      {menu}
+                      <Divider style={{ margin: '8px 0' }} />
+                      {nuevaParteModal ? (
+                        <div style={{ padding: '8px', display: 'flex', gap: '8px' }}>
+                          <Input
+                            autoFocus
+                            size="small"
+                            placeholder="Nombre de la parte"
+                            value={nuevaParteNombre}
+                            onChange={(e) => setNuevaParteNombre(e.target.value)}
+                            onPressEnter={handleNuevaParte}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') {
+                                setNuevaParteModal(false);
+                                setNuevaParteNombre('');
+                              }
+                            }}
+                            style={{ flex: 1 }}
+                          />
+                          <Button
+                            type="text"
+                            icon={<CheckOutlined style={{ color: '#52c41a' }} />}
+                            onClick={handleNuevaParte}
+                            loading={creandoParte}
+                            disabled={!nuevaParteNombre.trim()}
+                            title="Agregar"
+                          />
+                          <Button
+                            type="text"
+                            danger
+                            icon={<CloseOutlined />}
+                            onClick={() => {
+                              setNuevaParteModal(false);
+                              setNuevaParteNombre('');
+                            }}
+                            disabled={creandoParte}
+                            title="Cancelar"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            color: '#1890ff'
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setNuevaParteModal(true);
+                            setNuevaParteNombre('');
+                          }}
+                        >
+                          <PlusOutlined style={{ marginRight: 8 }} />
+                          Agregar nueva parte de vehículo
+                        </div>
+                      )}
+                    </div>
+                  )}
+                >
+                  {partesVehiculo.map(parte => (
+                    <Option key={parte.id} value={parte.id} label={parte.nombre}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        {editingParteId === parte.id ? (
+                          <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
+                            <Input
+                              value={editingParteNombre}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                setEditingParteNombre(e.target.value);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              style={{ flex: 1 }}
+                              autoFocus
+                            />
+                            <Button
+                              type="text"
+                              icon={<CheckOutlined style={{ color: 'green' }} />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleGuardarEdicionParte();
+                              }}
+                              size="small"
+                            />
+                            <Button
+                              type="text"
+                              icon={<CloseOutlined />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelarEdicionParte();
+                              }}
+                              size="small"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <span>{parte.nombre}</span>
+                            <Button
+                              type="text"
+                              icon={<EditOutlined />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditarParte(parte);
+                              }}
+                              size="small"
+                            />
+                          </>
+                        )}
+                      </div>
                     </Option>
                   ))}
+                  {nuevaParteModal && (
+                    <Option className="add-new-option" value="" style={{ display: 'none' }}>
+                      {nuevaParteNombre}
+                    </Option>
+                  )}
                 </Select>
               </Form.Item>
 
