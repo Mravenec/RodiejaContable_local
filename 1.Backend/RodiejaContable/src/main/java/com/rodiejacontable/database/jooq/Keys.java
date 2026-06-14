@@ -13,6 +13,7 @@ import com.rodiejacontable.database.jooq.tables.InventarioRepuestos;
 import com.rodiejacontable.database.jooq.tables.Marcas;
 import com.rodiejacontable.database.jooq.tables.Modelos;
 import com.rodiejacontable.database.jooq.tables.PagosComisiones;
+import com.rodiejacontable.database.jooq.tables.ParteVehiculo;
 import com.rodiejacontable.database.jooq.tables.TiposTransacciones;
 import com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras;
 import com.rodiejacontable.database.jooq.tables.Vehiculos;
@@ -25,6 +26,7 @@ import com.rodiejacontable.database.jooq.tables.records.InventarioRepuestosRecor
 import com.rodiejacontable.database.jooq.tables.records.MarcasRecord;
 import com.rodiejacontable.database.jooq.tables.records.ModelosRecord;
 import com.rodiejacontable.database.jooq.tables.records.PagosComisionesRecord;
+import com.rodiejacontable.database.jooq.tables.records.ParteVehiculoRecord;
 import com.rodiejacontable.database.jooq.tables.records.TiposTransaccionesRecord;
 import com.rodiejacontable.database.jooq.tables.records.TransaccionesFinancierasRecord;
 import com.rodiejacontable.database.jooq.tables.records.VehiculosRecord;
@@ -62,6 +64,8 @@ public class Keys {
     public static final UniqueKey<ModelosRecord> KEY_MODELOS_UNIQUE_MARCA_MODELO = Internal.createUniqueKey(Modelos.MODELOS, DSL.name("KEY_modelos_unique_marca_modelo"), new TableField[] { Modelos.MODELOS.MARCA_ID, Modelos.MODELOS.NOMBRE }, true);
     public static final UniqueKey<PagosComisionesRecord> KEY_PAGOS_COMISIONES_PRIMARY = Internal.createUniqueKey(PagosComisiones.PAGOS_COMISIONES, DSL.name("KEY_pagos_comisiones_PRIMARY"), new TableField[] { PagosComisiones.PAGOS_COMISIONES.ID }, true);
     public static final UniqueKey<PagosComisionesRecord> KEY_PAGOS_COMISIONES_UNIQUE_PAGO_PERIODO = Internal.createUniqueKey(PagosComisiones.PAGOS_COMISIONES, DSL.name("KEY_pagos_comisiones_unique_pago_periodo"), new TableField[] { PagosComisiones.PAGOS_COMISIONES.EMPLEADO_ID, PagosComisiones.PAGOS_COMISIONES.ANIO, PagosComisiones.PAGOS_COMISIONES.MES }, true);
+    public static final UniqueKey<ParteVehiculoRecord> KEY_PARTE_VEHICULO_NOMBRE = Internal.createUniqueKey(ParteVehiculo.PARTE_VEHICULO, DSL.name("KEY_parte_vehiculo_nombre"), new TableField[] { ParteVehiculo.PARTE_VEHICULO.NOMBRE }, true);
+    public static final UniqueKey<ParteVehiculoRecord> KEY_PARTE_VEHICULO_PRIMARY = Internal.createUniqueKey(ParteVehiculo.PARTE_VEHICULO, DSL.name("KEY_parte_vehiculo_PRIMARY"), new TableField[] { ParteVehiculo.PARTE_VEHICULO.ID }, true);
     public static final UniqueKey<TiposTransaccionesRecord> KEY_TIPOS_TRANSACCIONES_NOMBRE = Internal.createUniqueKey(TiposTransacciones.TIPOS_TRANSACCIONES, DSL.name("KEY_tipos_transacciones_nombre"), new TableField[] { TiposTransacciones.TIPOS_TRANSACCIONES.NOMBRE }, true);
     public static final UniqueKey<TiposTransaccionesRecord> KEY_TIPOS_TRANSACCIONES_PRIMARY = Internal.createUniqueKey(TiposTransacciones.TIPOS_TRANSACCIONES, DSL.name("KEY_tipos_transacciones_PRIMARY"), new TableField[] { TiposTransacciones.TIPOS_TRANSACCIONES.ID }, true);
     public static final UniqueKey<TransaccionesFinancierasRecord> KEY_TRANSACCIONES_FINANCIERAS_CODIGO_TRANSACCION = Internal.createUniqueKey(TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, DSL.name("KEY_transacciones_financieras_codigo_transaccion"), new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.CODIGO_TRANSACCION }, true);
@@ -78,6 +82,7 @@ public class Keys {
     public static final ForeignKey<HistorialTransaccionesRecord, TransaccionesFinancierasRecord> HISTORIAL_TRANSACCIONES_IBFK_1 = Internal.createForeignKey(HistorialTransacciones.HISTORIAL_TRANSACCIONES, DSL.name("historial_transacciones_ibfk_1"), new TableField[] { HistorialTransacciones.HISTORIAL_TRANSACCIONES.TRANSACCION_ID }, Keys.KEY_TRANSACCIONES_FINANCIERAS_PRIMARY, new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ID }, true);
     public static final ForeignKey<HistorialVehiculosRecord, VehiculosRecord> HISTORIAL_VEHICULOS_IBFK_1 = Internal.createForeignKey(HistorialVehiculos.HISTORIAL_VEHICULOS, DSL.name("historial_vehiculos_ibfk_1"), new TableField[] { HistorialVehiculos.HISTORIAL_VEHICULOS.VEHICULO_ID }, Keys.KEY_VEHICULOS_PRIMARY, new TableField[] { Vehiculos.VEHICULOS.ID }, true);
     public static final ForeignKey<InventarioRepuestosRecord, VehiculosRecord> INVENTARIO_REPUESTOS_IBFK_1 = Internal.createForeignKey(InventarioRepuestos.INVENTARIO_REPUESTOS, DSL.name("inventario_repuestos_ibfk_1"), new TableField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID }, Keys.KEY_VEHICULOS_PRIMARY, new TableField[] { Vehiculos.VEHICULOS.ID }, true);
+    public static final ForeignKey<InventarioRepuestosRecord, ParteVehiculoRecord> INVENTARIO_REPUESTOS_IBFK_2 = Internal.createForeignKey(InventarioRepuestos.INVENTARIO_REPUESTOS, DSL.name("inventario_repuestos_ibfk_2"), new TableField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.PARTE_VEHICULO_ID }, Keys.KEY_PARTE_VEHICULO_PRIMARY, new TableField[] { ParteVehiculo.PARTE_VEHICULO.ID }, true);
     public static final ForeignKey<ModelosRecord, MarcasRecord> MODELOS_IBFK_1 = Internal.createForeignKey(Modelos.MODELOS, DSL.name("modelos_ibfk_1"), new TableField[] { Modelos.MODELOS.MARCA_ID }, Keys.KEY_MARCAS_PRIMARY, new TableField[] { Marcas.MARCAS.ID }, true);
     public static final ForeignKey<PagosComisionesRecord, EmpleadosRecord> PAGOS_COMISIONES_IBFK_1 = Internal.createForeignKey(PagosComisiones.PAGOS_COMISIONES, DSL.name("pagos_comisiones_ibfk_1"), new TableField[] { PagosComisiones.PAGOS_COMISIONES.EMPLEADO_ID }, Keys.KEY_EMPLEADOS_PRIMARY, new TableField[] { Empleados.EMPLEADOS.ID }, true);
     public static final ForeignKey<TransaccionesFinancierasRecord, TiposTransaccionesRecord> TRANSACCIONES_FINANCIERAS_IBFK_1 = Internal.createForeignKey(TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, DSL.name("transacciones_financieras_ibfk_1"), new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.TIPO_TRANSACCION_ID }, Keys.KEY_TIPOS_TRANSACCIONES_PRIMARY, new TableField[] { TiposTransacciones.TIPOS_TRANSACCIONES.ID }, true);

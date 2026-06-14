@@ -52,7 +52,7 @@ public class InventarioRepuestosService {
     public void crearRepuestoSinVehiculoOrigen(
             Integer generacionId,
             String marcaNombre,
-            String parteVehiculo,
+            Integer parteVehiculoId,
             String descripcion,
             BigDecimal precioCosto,
             BigDecimal precioVenta,
@@ -69,7 +69,7 @@ public class InventarioRepuestosService {
             Integer cantidad) {
         
         inventarioRepuestosRepository.insertarRepuestoConGeneracionSinVehiculo(
-                generacionId, marcaNombre, parteVehiculo, descripcion,
+                generacionId, marcaNombre, parteVehiculoId, descripcion,
                 precioCosto, precioVenta, precioMayoreo,
                 bodega, zona, pared, malla, estante, piso,
                 estado, condicion, imagenUrl, cantidad
@@ -99,8 +99,8 @@ public class InventarioRepuestosService {
         if (repuestoActualizado.getImagenUrl() != null) {
             repuestoExistente.setImagenUrl(repuestoActualizado.getImagenUrl());
         }
-        if (repuestoActualizado.getParteVehiculo() != null) {
-            repuestoExistente.setParteVehiculo(repuestoActualizado.getParteVehiculo());
+        if (repuestoActualizado.getParteVehiculoId() != null) {
+            repuestoExistente.setParteVehiculoId(repuestoActualizado.getParteVehiculoId());
         }
         if (repuestoActualizado.getDescripcion() != null) {
             repuestoExistente.setDescripcion(repuestoActualizado.getDescripcion());

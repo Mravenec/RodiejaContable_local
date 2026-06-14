@@ -5,7 +5,6 @@ package com.rodiejacontable.database.jooq.tables.pojos;
 
 
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoEstado;
-import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoParteVehiculo;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -22,7 +21,7 @@ public class VistaInventarioCompleto implements Serializable {
     private Integer id;
     private String codigoRepuesto;
     private String codigoUbicacion;
-    private VistaInventarioCompletoParteVehiculo parteVehiculo;
+    private String parteVehiculo;
     private String descripcion;
     private BigDecimal precioCosto;
     private BigDecimal precioVenta;
@@ -67,7 +66,7 @@ public class VistaInventarioCompleto implements Serializable {
         Integer id,
         String codigoRepuesto,
         String codigoUbicacion,
-        VistaInventarioCompletoParteVehiculo parteVehiculo,
+        String parteVehiculo,
         String descripcion,
         BigDecimal precioCosto,
         BigDecimal precioVenta,
@@ -158,7 +157,7 @@ public class VistaInventarioCompleto implements Serializable {
      * Getter for
      * <code>sistema_vehicular.vista_inventario_completo.parte_vehiculo</code>.
      */
-    public VistaInventarioCompletoParteVehiculo getParteVehiculo() {
+    public String getParteVehiculo() {
         return this.parteVehiculo;
     }
 
@@ -166,7 +165,7 @@ public class VistaInventarioCompleto implements Serializable {
      * Setter for
      * <code>sistema_vehicular.vista_inventario_completo.parte_vehiculo</code>.
      */
-    public VistaInventarioCompleto setParteVehiculo(VistaInventarioCompletoParteVehiculo parteVehiculo) {
+    public VistaInventarioCompleto setParteVehiculo(String parteVehiculo) {
         this.parteVehiculo = parteVehiculo;
         return this;
     }

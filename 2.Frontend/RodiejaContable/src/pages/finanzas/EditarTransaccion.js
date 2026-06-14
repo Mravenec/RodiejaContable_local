@@ -1,7 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Form, Input, InputNumber, Button, Card, Typography, message, Select, Row, Col, Divider } from 'antd';
+import { Form, Input, InputNumber, Button, Card, Typography, message, Select, Row, Col, Divider, Spin } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { useQuery } from 'react-query';
+
+import { useTransaccion, useUpdateTransaccion } from '../../hooks/useFinanzas';
+import { useEmpleados } from '../../hooks/useEmpleados';
+import { useVehiculosParaTransacciones } from '../../hooks/useVehiculosParaTransacciones';
+import { getTiposTransacciones } from '../../api/transacciones';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -10,136 +16,83 @@ const EditarTransaccion = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [tiposTransacciones, setTiposTransacciones] = useState([]);
-  const [vehiculos, setVehiculos] = useState([]);
-  const [empleados, setEmpleados] = useState([]);
 
-  const cargarTransaccion = useCallback(async () => {
-    try {
-      const response = await fetch(`http://localhost:8080/api/transacciones-financieras/${id}`);
-      if (response.ok) {
-        const data = await response.json();
+  // Queries
+  const { data: transaccion, isLoading: loadingTransaccion } = useTransaccion(id);
+  const { data: empleados = [], isLoading: loadingEmpleados } = useEmpleados();
+  const { vehiculos = [], loadingVehiculos } = useVehiculosParaTransacciones();
 
-        // Manejar la fecha que viene como array [año, mes, dia] desde el backend
-        let fechaFormateada = null;
-        if (data.fecha && Array.isArray(data.fecha) && data.fecha.length >= 3) {
-          const [year, month, day] = data.fecha;
-          // Formatear como string para el DatePicker
-          fechaFormateada = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        }
+  const { data: tiposTransacciones = [], isLoading: loadingTipos } = useQuery(
+    ['tiposTransacciones'],
+    getTiposTransacciones,
+    { staleTime: 1000 * 60 * 5 }
+  );
 
-        form.setFieldsValue({
-          ...data,
-          fecha: fechaFormateada,
-          monto: data.monto ? parseFloat(data.monto) : null,
-          comisionEmpleado: data.comisionEmpleado ? parseFloat(data.comisionEmpleado) : null
-        });
-        console.log('Transacción cargada por ID:', id, data);
-      } else {
-        message.error(`Error al cargar transacción con ID: ${id}`);
-      }
-    } catch (error) {
-      console.error('Error al cargar transacción por ID:', error);
-      message.error('Error al conectar con el servidor');
-    }
-  }, [id, form]);
-
-  const cargarTiposTransacciones = async () => {
-    try {
-      const response = await fetch('http://localhost:8080/api/tipos-transacciones');
-      if (response.ok) {
-        const data = await response.json();
-        setTiposTransacciones(data);
-      }
-    } catch (error) {
-      console.error('Error cargando tipos de transacciones:', error);
-    }
-  };
-
-  const cargarVehiculos = async () => {
-    try {
-      const response = await fetch('http://localhost:8080/api/v1/vehiculos');
-      if (response.ok) {
-        const data = await response.json();
-        setVehiculos(data);
-      }
-    } catch (error) {
-      console.error('Error cargando vehículos:', error);
-    }
-  };
-
-  const cargarEmpleados = async () => {
-    try {
-      const response = await fetch('http://localhost:8080/api/empleados');
-      if (response.ok) {
-        const data = await response.json();
-        setEmpleados(data);
-      }
-    } catch (error) {
-      console.error('Error cargando empleados:', error);
-    }
-  };
+  // Mutation
+  const { mutate: updateTransaccion, isLoading: isUpdating } = useUpdateTransaccion();
 
   // Cargar datos iniciales
   useEffect(() => {
-    cargarTransaccion();
-    cargarTiposTransacciones();
-    cargarVehiculos();
-    cargarEmpleados();
-  }, [cargarTransaccion, id]);
-
-  const onFinish = async (values) => {
-    setLoading(true);
-    try {
-      const dataToSend = {
-        ...values,
-        fecha: values.fecha || null
-      };
-
-      console.log('Datos enviados al backend:', dataToSend);
-      console.log('Fecha enviada:', values.fecha);
-      console.log('Tipo de dato de fecha:', typeof values.fecha);
-
-      const response = await fetch(`http://localhost:8080/api/transacciones-financieras/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dataToSend),
-      });
-
-      if (response.ok) {
-        // message.success('Transacción actualizada correctamente');
-        navigate('/finanzas');
-      } else {
-        const errorData = await response.json();
-        message.error(errorData.message || 'Error al actualizar transacción');
+    if (transaccion) {
+      let fechaFormateada = null;
+      if (transaccion.fecha && Array.isArray(transaccion.fecha) && transaccion.fecha.length >= 3) {
+        const [year, month, day] = transaccion.fecha;
+        fechaFormateada = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      } else if (transaccion.fecha) {
+        // Fallback for string dates
+        fechaFormateada = transaccion.fecha.substring(0, 10);
       }
-    } catch (error) {
-      message.error('Error al conectar con el servidor');
-    } finally {
-      setLoading(false);
+
+      form.setFieldsValue({
+        ...transaccion,
+        fecha: fechaFormateada,
+        monto: transaccion.monto ? parseFloat(transaccion.monto) : null,
+        comisionEmpleado: transaccion.comisionEmpleado ? parseFloat(transaccion.comisionEmpleado) : null
+      });
     }
+  }, [transaccion, form]);
+
+  const onFinish = (values) => {
+    const dataToSend = {
+      id: id,
+      ...values,
+      fecha: values.fecha || null
+    };
+
+    updateTransaccion(dataToSend, {
+      onSuccess: () => {
+        // Navigate back to finanzas list where React Query will auto-update
+        navigate('/finanzas');
+      }
+    });
   };
+
+  const isLoading = loadingTransaccion || loadingEmpleados || loadingVehiculos || loadingTipos;
+
+  if (loadingTransaccion) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '50px' }}>
+        <Spin size="large" tip="Cargando transacción..." />
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '40px' }}>
-      {/* ── Header de navegación ─────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '8px' }}>
         <Button
           type="text"
           icon={<ArrowLeftOutlined />}
           onClick={() => navigate(-1)}
           style={{ color: '#595959', fontWeight: 500 }}
-          disabled={loading}
+          disabled={isUpdating}
         >
           Volver
         </Button>
         <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
           Editar Transacción #{id}
         </Title>
-        <div style={{ width: '100px' }}></div> {/* Spacer */}
+        <div style={{ width: '100px' }}></div>
       </div>
 
       <Card
@@ -188,7 +141,7 @@ const EditarTransaccion = () => {
                 name="tipoTransaccionId"
                 rules={[{ required: true, message: 'Este campo es requerido' }]}
               >
-                <Select placeholder="Seleccionar tipo" disabled>
+                <Select placeholder="Seleccionar tipo" disabled loading={loadingTipos}>
                   {tiposTransacciones.map(tipo => (
                     <Option key={tipo.id} value={tipo.id}>
                       {tipo.nombre}
@@ -202,10 +155,10 @@ const EditarTransaccion = () => {
                 label="Empleado"
                 name="empleadoId"
               >
-                <Select placeholder="Seleccionar empleado" allowClear>
+                <Select placeholder="Seleccionar empleado" allowClear loading={loadingEmpleados}>
                   {empleados.map(empleado => (
                     <Option key={empleado.id} value={empleado.id}>
-                      {empleado.nombre}
+                      {empleado.nombre || empleado.nombres}
                     </Option>
                   ))}
                 </Select>
@@ -216,10 +169,11 @@ const EditarTransaccion = () => {
                 label="Vehículo"
                 name="vehiculoId"
               >
-                <Select 
-                  placeholder="Seleccionar vehículo" 
+                <Select
+                  placeholder="Seleccionar vehículo"
                   allowClear
                   showSearch
+                  loading={loadingVehiculos}
                   optionFilterProp="children"
                   filterOption={(input, option) =>
                     option?.children?.toLowerCase().indexOf(input.toLowerCase()) >= 0
@@ -231,7 +185,7 @@ const EditarTransaccion = () => {
                     const estado = vehiculo.estado || 'SIN_ESTADO';
                     const marca = vehiculo.marca || 'Marca N/A';
                     const modelo = vehiculo.modelo || 'Modelo N/A';
-                    
+
                     let estadoAmigable = estado;
                     if (estado === 'DESARMADO') {
                       estadoAmigable = 'Para repuestos';
@@ -240,12 +194,12 @@ const EditarTransaccion = () => {
                     } else if (estado !== 'SIN_ESTADO') {
                       estadoAmigable = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
                     }
-                        
+
                     const displayText = `${codigo} — ${marca} ${modelo} ${anio} (${estadoAmigable})`;
-                    
+
                     return (
-                      <Option 
-                        key={vehiculo.id} 
+                      <Option
+                        key={vehiculo.id}
                         value={vehiculo.id}
                         title={displayText}
                       >
@@ -329,17 +283,19 @@ const EditarTransaccion = () => {
           <Divider style={{ margin: '32px 0 24px' }} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            <Button 
+            <Button
               size="large"
               onClick={() => navigate(-1)}
               style={{ borderRadius: '6px' }}
+              disabled={isUpdating}
             >
               Cancelar
             </Button>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              loading={loading}
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={isUpdating}
+              disabled={isLoading}
               size="large"
               style={{ borderRadius: '6px', padding: '0 32px' }}
             >
@@ -353,3 +309,4 @@ const EditarTransaccion = () => {
 };
 
 export default EditarTransaccion;
+

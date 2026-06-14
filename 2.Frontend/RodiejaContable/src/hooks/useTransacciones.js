@@ -1,17 +1,24 @@
 import { useQuery } from 'react-query';
 import { message } from 'antd';
-import { transaccionService } from '../api/transacciones';
+import transaccionesCompletasService from '../api/transaccionesCompletas';
 
-export function useTransacciones(params = {}) {
+export function useTransaccionesCompletas(params = {}) {
   return useQuery(
     ['transacciones', params],
-    () => transaccionService.getTransacciones(params),
+    async () => {
+      if (params.fechaInicio && params.fechaFin) {
+        return transaccionesCompletasService.getTransaccionesPorRangoFechas(params.fechaInicio, params.fechaFin);
+      }
+      return transaccionesCompletasService.getTransacciones(params);
+    },
     {
       onError: (error) => {
-        message.error('Error al cargar las transacciones');
-        console.error('Error en useTransacciones:', error);
+        message.error('Error al cargar las transacciones completas');
+        console.error('Error en useTransaccionesCompletas:', error);
       },
-      enabled: !params.vehiculoId || !!params.vehiculoId,
+      staleTime: 1000 * 60, // 1 minute
+      refetchOnWindowFocus: true, // Ensuring it re-fetches when user comes back
     }
   );
 }
+

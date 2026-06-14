@@ -6,7 +6,6 @@ package com.rodiejacontable.database.jooq.tables;
 
 import com.rodiejacontable.database.jooq.SistemaVehicular;
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoEstado;
-import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoParteVehiculo;
 import com.rodiejacontable.database.jooq.tables.records.VistaInventarioCompletoRecord;
 
 import java.math.BigDecimal;
@@ -72,7 +71,7 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
      * The column
      * <code>sistema_vehicular.vista_inventario_completo.parte_vehiculo</code>.
      */
-    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoParteVehiculo> PARTE_VEHICULO = createField(DSL.name("parte_vehiculo"), SQLDataType.VARCHAR(28).nullable(false).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoParteVehiculo.class), this, "");
+    public final TableField<VistaInventarioCompletoRecord, String> PARTE_VEHICULO = createField(DSL.name("parte_vehiculo"), SQLDataType.VARCHAR(100), this, "");
 
     /**
      * The column
@@ -169,7 +168,7 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
     }
 
     private VistaInventarioCompleto(Name alias, Table<VistaInventarioCompletoRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_inventario_completo` as select `ir`.`id` AS `id`,`ir`.`codigo_repuesto` AS `codigo_repuesto`,`ir`.`codigo_ubicacion` AS `codigo_ubicacion`,`ir`.`parte_vehiculo` AS `parte_vehiculo`,`ir`.`descripcion` AS `descripcion`,`ir`.`precio_costo` AS `precio_costo`,`ir`.`precio_venta` AS `precio_venta`,`ir`.`precio_mayoreo` AS `precio_mayoreo`,`ir`.`formula_15` AS `formula_15`,`ir`.`formula_30` AS `formula_30`,`ir`.`estado` AS `estado`,`ir`.`anio_registro` AS `anio_registro`,`ir`.`mes_registro` AS `mes_registro`,`v`.`codigo_vehiculo` AS `codigo_vehiculo`,`vvc`.`marca` AS `marca`,`vvc`.`modelo` AS `modelo`,`vvc`.`generacion` AS `generacion`,`vvc`.`anio` AS `anio_vehiculo`,`vvc`.`clave_generacion` AS `clave_generacion` from ((`sistema_vehicular`.`inventario_repuestos` `ir` left join `sistema_vehicular`.`vehiculos` `v` on(`ir`.`vehiculo_origen_id` = `v`.`id`)) left join `sistema_vehicular`.`vista_vehiculos_completa` `vvc` on(`v`.`id` = `vvc`.`id`))"));
+        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_inventario_completo` as select `ir`.`id` AS `id`,`ir`.`codigo_repuesto` AS `codigo_repuesto`,`ir`.`codigo_ubicacion` AS `codigo_ubicacion`,`pv`.`nombre` AS `parte_vehiculo`,`ir`.`descripcion` AS `descripcion`,`ir`.`precio_costo` AS `precio_costo`,`ir`.`precio_venta` AS `precio_venta`,`ir`.`precio_mayoreo` AS `precio_mayoreo`,`ir`.`formula_15` AS `formula_15`,`ir`.`formula_30` AS `formula_30`,`ir`.`estado` AS `estado`,`ir`.`anio_registro` AS `anio_registro`,`ir`.`mes_registro` AS `mes_registro`,`v`.`codigo_vehiculo` AS `codigo_vehiculo`,`vvc`.`marca` AS `marca`,`vvc`.`modelo` AS `modelo`,`vvc`.`generacion` AS `generacion`,`vvc`.`anio` AS `anio_vehiculo`,`vvc`.`clave_generacion` AS `clave_generacion` from (((`sistema_vehicular`.`inventario_repuestos` `ir` left join `sistema_vehicular`.`vehiculos` `v` on(`ir`.`vehiculo_origen_id` = `v`.`id`)) left join `sistema_vehicular`.`parte_vehiculo` `pv` on(`ir`.`parte_Vehiculo_id` = `pv`.`id`)) left join `sistema_vehicular`.`vista_vehiculos_completa` `vvc` on(`v`.`id` = `vvc`.`id`))"));
     }
 
     /**
@@ -249,14 +248,14 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
     // -------------------------------------------------------------------------
 
     @Override
-    public Row19<Integer, String, String, VistaInventarioCompletoParteVehiculo, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> fieldsRow() {
+    public Row19<Integer, String, String, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> fieldsRow() {
         return (Row19) super.fieldsRow();
     }
 
     /**
      * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
      */
-    public <U> SelectField<U> mapping(Function19<? super Integer, ? super String, ? super String, ? super VistaInventarioCompletoParteVehiculo, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCompletoEstado, ? super Short, ? super Byte, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super String, ? extends U> from) {
+    public <U> SelectField<U> mapping(Function19<? super Integer, ? super String, ? super String, ? super String, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCompletoEstado, ? super Short, ? super Byte, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super String, ? extends U> from) {
         return convertFrom(Records.mapping(from));
     }
 
@@ -264,7 +263,7 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
      * Convenience mapping calling {@link SelectField#convertFrom(Class,
      * Function)}.
      */
-    public <U> SelectField<U> mapping(Class<U> toType, Function19<? super Integer, ? super String, ? super String, ? super VistaInventarioCompletoParteVehiculo, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCompletoEstado, ? super Short, ? super Byte, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super String, ? extends U> from) {
+    public <U> SelectField<U> mapping(Class<U> toType, Function19<? super Integer, ? super String, ? super String, ? super String, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCompletoEstado, ? super Short, ? super Byte, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super String, ? extends U> from) {
         return convertFrom(toType, Records.mapping(from));
     }
 }

@@ -37,9 +37,9 @@ public class SpInsertarRepuestoConGeneracionSinVehiculo extends AbstractRoutine<
 
     /**
      * The parameter
-     * <code>sistema_vehicular.sp_insertar_repuesto_con_generacion_sin_vehiculo.p_parte_vehiculo</code>.
+     * <code>sistema_vehicular.sp_insertar_repuesto_con_generacion_sin_vehiculo.p_parte_Vehiculo_id</code>.
      */
-    public static final Parameter<String> P_PARTE_VEHICULO = Internal.createParameter("p_parte_vehiculo", SQLDataType.VARCHAR(100), false, false);
+    public static final Parameter<Integer> P_PARTE_VEHICULO_ID = Internal.createParameter("p_parte_Vehiculo_id", SQLDataType.INTEGER, false, false);
 
     /**
      * The parameter
@@ -133,7 +133,7 @@ public class SpInsertarRepuestoConGeneracionSinVehiculo extends AbstractRoutine<
 
         addInParameter(P_GENERACION_ID);
         addInParameter(P_MARCA_NOMBRE);
-        addInParameter(P_PARTE_VEHICULO);
+        addInParameter(P_PARTE_VEHICULO_ID);
         addInParameter(P_DESCRIPCION);
         addInParameter(P_PRECIO_COSTO);
         addInParameter(P_PRECIO_VENTA);
@@ -165,10 +165,11 @@ public class SpInsertarRepuestoConGeneracionSinVehiculo extends AbstractRoutine<
     }
 
     /**
-     * Set the <code>p_parte_vehiculo</code> parameter IN value to the routine
+     * Set the <code>p_parte_Vehiculo_id</code> parameter IN value to the
+     * routine
      */
-    public void setPParteVehiculo(String value) {
-        setValue(P_PARTE_VEHICULO, value);
+    public void setPParteVehiculoId(Integer value) {
+        setValue(P_PARTE_VEHICULO_ID, value);
     }
 
     /**

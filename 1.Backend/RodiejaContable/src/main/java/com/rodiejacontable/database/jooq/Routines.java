@@ -98,7 +98,7 @@ public class Routines {
           Configuration configuration
         , Integer pGeneracionId
         , String pMarcaNombre
-        , String pParteVehiculo
+        , Integer pParteVehiculoId
         , String pDescripcion
         , BigDecimal pPrecioCosto
         , BigDecimal pPrecioVenta
@@ -117,7 +117,7 @@ public class Routines {
         SpInsertarRepuestoConGeneracionSinVehiculo p = new SpInsertarRepuestoConGeneracionSinVehiculo();
         p.setPGeneracionId(pGeneracionId);
         p.setPMarcaNombre(pMarcaNombre);
-        p.setPParteVehiculo(pParteVehiculo);
+        p.setPParteVehiculoId(pParteVehiculoId);
         p.setPDescripcion(pDescripcion);
         p.setPPrecioCosto(pPrecioCosto);
         p.setPPrecioVenta(pPrecioVenta);

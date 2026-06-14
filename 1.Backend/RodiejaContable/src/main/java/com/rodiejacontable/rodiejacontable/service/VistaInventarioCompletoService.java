@@ -1,7 +1,7 @@
 package com.rodiejacontable.rodiejacontable.service;
 
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoEstado;
-import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoParteVehiculo;
+
 import com.rodiejacontable.database.jooq.tables.pojos.VistaInventarioCompleto;
 import com.rodiejacontable.rodiejacontable.repository.VistaInventarioCompletoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +33,7 @@ public class VistaInventarioCompletoService {
         return repository.findByEstado(estado);
     }
 
-    public List<VistaInventarioCompleto> findByParteVehiculo(VistaInventarioCompletoParteVehiculo parteVehiculo) {
+    public List<VistaInventarioCompleto> findByParteVehiculo(String parteVehiculo) {
         return repository.findByParteVehiculo(parteVehiculo);
     }
 
@@ -59,7 +59,7 @@ public class VistaInventarioCompletoService {
             String marca,
             String modelo,
             Integer anioVehiculo,
-            VistaInventarioCompletoParteVehiculo parteVehiculo,
+            String parteVehiculo,
             VistaInventarioCompletoEstado estado,
             BigDecimal precioMin,
             BigDecimal precioMax) {
@@ -70,7 +70,7 @@ public class VistaInventarioCompletoService {
                 .filter(item -> marca == null || (item.getMarca() != null && item.getMarca().equalsIgnoreCase(marca)))
                 .filter(item -> modelo == null || (item.getModelo() != null && item.getModelo().equalsIgnoreCase(modelo)))
                 .filter(item -> anioVehiculo == null || (item.getAnioVehiculo() != null && item.getAnioVehiculo().equals(anioVehiculo)))
-                .filter(item -> parteVehiculo == null || item.getParteVehiculo() == parteVehiculo)
+                .filter(item -> parteVehiculo == null || (item.getParteVehiculo() != null && item.getParteVehiculo().equalsIgnoreCase(parteVehiculo)))
                 .filter(item -> estado == null || item.getEstado() == estado)
                 .filter(item -> (precioMin == null || item.getPrecioVenta() == null || item.getPrecioVenta().compareTo(precioMin) >= 0) &&
                                (precioMax == null || item.getPrecioVenta() == null || item.getPrecioVenta().compareTo(precioMax) <= 0))
@@ -90,7 +90,7 @@ public class VistaInventarioCompletoService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         
-        Map<VistaInventarioCompletoParteVehiculo, Long> conteoPorParte = items.stream()
+        Map<String, Long> conteoPorParte = items.stream()
                 .collect(Collectors.groupingBy(VistaInventarioCompleto::getParteVehiculo, Collectors.counting()));
         
         Map<String, Object> resumen = new HashMap<>();

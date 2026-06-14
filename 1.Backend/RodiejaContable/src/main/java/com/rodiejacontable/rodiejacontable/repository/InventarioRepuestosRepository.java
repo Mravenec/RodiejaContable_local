@@ -98,7 +98,7 @@ public class InventarioRepuestosRepository {
     public void insertarRepuestoConGeneracionSinVehiculo(
             Integer generacionId,
             String marcaNombre,
-            String parteVehiculo,
+            Integer parteVehiculoId,
             String descripcion,
             BigDecimal precioCosto,
             BigDecimal precioVenta,
@@ -117,7 +117,7 @@ public class InventarioRepuestosRepository {
         SpInsertarRepuestoConGeneracionSinVehiculo sp = new SpInsertarRepuestoConGeneracionSinVehiculo();
         sp.setPGeneracionId(generacionId);
         sp.setPMarcaNombre(marcaNombre);
-        sp.setPParteVehiculo(parteVehiculo);
+        sp.setPParteVehiculoId(parteVehiculoId);
         sp.setPDescripcion(descripcion);
         sp.setPPrecioCosto(precioCosto);
         sp.setPPrecioVenta(precioVenta);

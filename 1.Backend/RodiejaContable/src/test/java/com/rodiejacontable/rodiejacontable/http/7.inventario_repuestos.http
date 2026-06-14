@@ -24,7 +24,7 @@ Content-Type: application/json
 
 {
   "vehiculoOrigenId": 1,
-  "parteVehiculo": "MOTOR",
+  "parteVehiculoId": 1,
   "descripcion": "Motor completo 1.8L 2ZR-FE",
   "precioCosto": 580000.00,
   "precioVenta": 750000.00,
@@ -46,7 +46,7 @@ Content-Type: application/json
 
 {
   "vehiculoOrigenId": 1,
-  "parteVehiculo": "CAJA_DE_CAMBIO",
+  "parteVehiculoId": 2,
   "descripcion": "Transmisión automática CVT",
   "precioCosto": 420000.00,
   "precioVenta": 580000.00,
@@ -68,7 +68,7 @@ Content-Type: application/json
 
 {
   "vehiculoOrigenId": 2,
-  "parteVehiculo": "AIRBAGS_O_BOLSAS_DE_AIRE",
+  "parteVehiculoId": 3,
   "descripcion": "222",
   "precioCosto": 1110,
   "precioVenta": 1665,
@@ -95,7 +95,7 @@ Content-Type: application/json
 {
   "generacionId": 1,
   "marcaNombre": "Toyota",
-  "parteVehiculo": "BOMBA DE AGUA",
+  "parteVehiculoId": 4,
   "descripcion": "Bomba de agua OEM Toyota Corolla",
   "precioCosto": 70000.00,
   "precioVenta": 110000.00,
@@ -118,7 +118,7 @@ Content-Type: application/json
 {
   "generacionId": 2,
   "marcaNombre": "Honda",
-  "parteVehiculo": "EMBRAGUE",
+  "parteVehiculoId": 5,
   "descripcion": "Kit embrague original Honda Civic",
   "precioCosto": 85000.00,
   "precioVenta": 140000.00,

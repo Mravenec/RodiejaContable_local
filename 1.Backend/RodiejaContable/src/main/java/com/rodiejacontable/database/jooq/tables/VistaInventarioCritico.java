@@ -6,7 +6,6 @@ package com.rodiejacontable.database.jooq.tables;
 
 import com.rodiejacontable.database.jooq.SistemaVehicular;
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoEstado;
-import com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoParteVehiculo;
 import com.rodiejacontable.database.jooq.tables.records.VistaInventarioCriticoRecord;
 
 import java.math.BigDecimal;
@@ -61,7 +60,7 @@ public class VistaInventarioCritico extends TableImpl<VistaInventarioCriticoReco
      * The column
      * <code>sistema_vehicular.vista_inventario_critico.parte_vehiculo</code>.
      */
-    public final TableField<VistaInventarioCriticoRecord, VistaInventarioCriticoParteVehiculo> PARTE_VEHICULO = createField(DSL.name("parte_vehiculo"), SQLDataType.VARCHAR(28).nullable(false).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoParteVehiculo.class), this, "");
+    public final TableField<VistaInventarioCriticoRecord, String> PARTE_VEHICULO = createField(DSL.name("parte_vehiculo"), SQLDataType.VARCHAR(100), this, "");
 
     /**
      * The column
@@ -158,7 +157,7 @@ public class VistaInventarioCritico extends TableImpl<VistaInventarioCriticoReco
     }
 
     private VistaInventarioCritico(Name alias, Table<VistaInventarioCriticoRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_inventario_critico` as select `ir`.`codigo_repuesto` AS `codigo_repuesto`,`ir`.`parte_vehiculo` AS `parte_vehiculo`,`ir`.`descripcion` AS `descripcion`,`ir`.`precio_costo` AS `precio_costo`,`ir`.`precio_venta` AS `precio_venta`,`ir`.`precio_mayoreo` AS `precio_mayoreo`,`ir`.`formula_15` AS `formula_15`,`ir`.`formula_30` AS `formula_30`,`ir`.`estado` AS `estado`,`ir`.`codigo_ubicacion` AS `codigo_ubicacion`,concat(`vvc`.`marca`,' ',`vvc`.`modelo`,' ',`vvc`.`generacion`) AS `vehiculo_origen`,`vvc`.`anio` AS `anio_vehiculo`,`ir`.`anio_registro` AS `anio_registro`,`ir`.`mes_registro` AS `mes_registro`,to_days(curdate()) - to_days(cast(`ir`.`fecha_creacion` as date)) AS `dias_en_inventario`,case when `ir`.`precio_venta` > `ir`.`precio_costo` * 2 then 'Alto Margen' when `ir`.`precio_venta` > `ir`.`precio_costo` * 1.5 then 'Margen Medio' when `ir`.`precio_venta` > `ir`.`precio_costo` * 1.2 then 'Margen Bajo' else 'Sin Margen' end AS `clasificacion_margen`,case when to_days(curdate()) - to_days(cast(`ir`.`fecha_creacion` as date)) > 365 then 'Inventario Lento' when to_days(curdate()) - to_days(cast(`ir`.`fecha_creacion` as date)) > 180 then 'Inventario Medio' else 'Inventario Rápido' end AS `clasificacion_rotacion` from ((`sistema_vehicular`.`inventario_repuestos` `ir` left join `sistema_vehicular`.`vehiculos` `v` on(`ir`.`vehiculo_origen_id` = `v`.`id`)) left join `sistema_vehicular`.`vista_vehiculos_completa` `vvc` on(`v`.`id` = `vvc`.`id`)) where `ir`.`estado` = 'STOCK' order by to_days(curdate()) - to_days(cast(`ir`.`fecha_creacion` as date)) desc"));
+        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_inventario_critico` as select `ir`.`codigo_repuesto` AS `codigo_repuesto`,`pv`.`nombre` AS `parte_vehiculo`,`ir`.`descripcion` AS `descripcion`,`ir`.`precio_costo` AS `precio_costo`,`ir`.`precio_venta` AS `precio_venta`,`ir`.`precio_mayoreo` AS `precio_mayoreo`,`ir`.`formula_15` AS `formula_15`,`ir`.`formula_30` AS `formula_30`,`ir`.`estado` AS `estado`,`ir`.`codigo_ubicacion` AS `codigo_ubicacion`,concat(`vvc`.`marca`,' ',`vvc`.`modelo`,' ',`vvc`.`generacion`) AS `vehiculo_origen`,`vvc`.`anio` AS `anio_vehiculo`,`ir`.`anio_registro` AS `anio_registro`,`ir`.`mes_registro` AS `mes_registro`,to_days(curdate()) - to_days(cast(`ir`.`fecha_creacion` as date)) AS `dias_en_inventario`,case when `ir`.`precio_venta` > `ir`.`precio_costo` * 2 then 'Alto Margen' when `ir`.`precio_venta` > `ir`.`precio_costo` * 1.5 then 'Margen Medio' when `ir`.`precio_venta` > `ir`.`precio_costo` * 1.2 then 'Margen Bajo' else 'Sin Margen' end AS `clasificacion_margen`,case when to_days(curdate()) - to_days(cast(`ir`.`fecha_creacion` as date)) > 365 then 'Inventario Lento' when to_days(curdate()) - to_days(cast(`ir`.`fecha_creacion` as date)) > 180 then 'Inventario Medio' else 'Inventario Rápido' end AS `clasificacion_rotacion` from (((`sistema_vehicular`.`inventario_repuestos` `ir` left join `sistema_vehicular`.`parte_vehiculo` `pv` on(`ir`.`parte_Vehiculo_id` = `pv`.`id`)) left join `sistema_vehicular`.`vehiculos` `v` on(`ir`.`vehiculo_origen_id` = `v`.`id`)) left join `sistema_vehicular`.`vista_vehiculos_completa` `vvc` on(`v`.`id` = `vvc`.`id`)) where `ir`.`estado` = 'STOCK' order by to_days(curdate()) - to_days(cast(`ir`.`fecha_creacion` as date)) desc"));
     }
 
     /**
@@ -238,14 +237,14 @@ public class VistaInventarioCritico extends TableImpl<VistaInventarioCriticoReco
     // -------------------------------------------------------------------------
 
     @Override
-    public Row17<String, VistaInventarioCriticoParteVehiculo, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCriticoEstado, String, String, Integer, Short, Byte, Integer, String, String> fieldsRow() {
+    public Row17<String, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCriticoEstado, String, String, Integer, Short, Byte, Integer, String, String> fieldsRow() {
         return (Row17) super.fieldsRow();
     }
 
     /**
      * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
      */
-    public <U> SelectField<U> mapping(Function17<? super String, ? super VistaInventarioCriticoParteVehiculo, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCriticoEstado, ? super String, ? super String, ? super Integer, ? super Short, ? super Byte, ? super Integer, ? super String, ? super String, ? extends U> from) {
+    public <U> SelectField<U> mapping(Function17<? super String, ? super String, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCriticoEstado, ? super String, ? super String, ? super Integer, ? super Short, ? super Byte, ? super Integer, ? super String, ? super String, ? extends U> from) {
         return convertFrom(Records.mapping(from));
     }
 
@@ -253,7 +252,7 @@ public class VistaInventarioCritico extends TableImpl<VistaInventarioCriticoReco
      * Convenience mapping calling {@link SelectField#convertFrom(Class,
      * Function)}.
      */
-    public <U> SelectField<U> mapping(Class<U> toType, Function17<? super String, ? super VistaInventarioCriticoParteVehiculo, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCriticoEstado, ? super String, ? super String, ? super Integer, ? super Short, ? super Byte, ? super Integer, ? super String, ? super String, ? extends U> from) {
+    public <U> SelectField<U> mapping(Class<U> toType, Function17<? super String, ? super String, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCriticoEstado, ? super String, ? super String, ? super Integer, ? super Short, ? super Byte, ? super Integer, ? super String, ? super String, ? extends U> from) {
         return convertFrom(toType, Records.mapping(from));
     }
 }

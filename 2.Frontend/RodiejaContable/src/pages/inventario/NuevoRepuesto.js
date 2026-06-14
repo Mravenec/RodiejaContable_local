@@ -548,14 +548,14 @@ const NuevoRepuesto = () => {
           {/* Selector del tipo de repuesto */}
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <Form.Item name="tipo_repuesto_radio" style={{ marginBottom: 0 }}>
-              <Radio.Group 
-                value={tipoRepuesto} 
+              <Radio.Group
+                value={tipoRepuesto}
                 onChange={onTipoRepuestoChange}
                 buttonStyle="solid"
                 size="large"
               >
                 <Radio.Button value="con_vehiculo" style={{ padding: '0 32px' }}>Repuesto de Vehículo Específico</Radio.Button>
-                <Radio.Button value="sin_vehiculo" style={{ padding: '0 32px' }}>Repuesto Genérico/Comprado</Radio.Button>
+                <Radio.Button value="sin_vehiculo" style={{ padding: '0 32px' }}>Repuesto Genérico</Radio.Button>
               </Radio.Group>
             </Form.Item>
           </div>

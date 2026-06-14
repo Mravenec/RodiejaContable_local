@@ -3,7 +3,7 @@ package com.rodiejacontable.rodiejacontable.repository;
 import static com.rodiejacontable.database.jooq.Tables.VISTA_INVENTARIO_CRITICO;
 
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoEstado;
-import com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoParteVehiculo;
+
 import com.rodiejacontable.database.jooq.tables.pojos.VistaInventarioCritico;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -30,7 +30,7 @@ public class VistaInventarioCriticoRepository {
                 .fetchInto(VistaInventarioCritico.class);
     }
 
-    public List<VistaInventarioCritico> findByParteVehiculo(VistaInventarioCriticoParteVehiculo parteVehiculo) {
+    public List<VistaInventarioCritico> findByParteVehiculo(String parteVehiculo) {
         return dsl.selectFrom(VISTA_INVENTARIO_CRITICO)
                 .where(VISTA_INVENTARIO_CRITICO.PARTE_VEHICULO.eq(parteVehiculo))
                 .fetchInto(VistaInventarioCritico.class);

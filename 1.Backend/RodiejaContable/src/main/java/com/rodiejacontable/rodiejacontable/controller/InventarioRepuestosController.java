@@ -43,7 +43,7 @@ public class InventarioRepuestosController {
             inventarioRepuestosService.crearRepuestoSinVehiculoOrigen(
                     (Integer) payload.get("generacionId"),
                     (String) payload.get("marcaNombre"),
-                    (String) payload.get("parteVehiculo"),
+                    payload.get("parteVehiculoId") != null ? Integer.parseInt(payload.get("parteVehiculoId").toString()) : null,
                     (String) payload.get("descripcion"),
                     payload.get("precioCosto") != null ? new BigDecimal(payload.get("precioCosto").toString()) : BigDecimal.ZERO,
                     payload.get("precioVenta") != null ? new BigDecimal(payload.get("precioVenta").toString()) : null,

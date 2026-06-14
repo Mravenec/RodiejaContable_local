@@ -5,7 +5,6 @@ package com.rodiejacontable.database.jooq.tables.records;
 
 
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoEstado;
-import com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoParteVehiculo;
 import com.rodiejacontable.database.jooq.tables.VistaInventarioCritico;
 
 import java.math.BigDecimal;
@@ -20,7 +19,7 @@ import org.jooq.impl.TableRecordImpl;
  * VIEW
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
-public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventarioCriticoRecord> implements Record17<String, VistaInventarioCriticoParteVehiculo, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCriticoEstado, String, String, Integer, Short, Byte, Integer, String, String> {
+public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventarioCriticoRecord> implements Record17<String, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCriticoEstado, String, String, Integer, Short, Byte, Integer, String, String> {
 
     private static final long serialVersionUID = 1L;
 
@@ -45,7 +44,7 @@ public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventari
      * Setter for
      * <code>sistema_vehicular.vista_inventario_critico.parte_vehiculo</code>.
      */
-    public VistaInventarioCriticoRecord setParteVehiculo(VistaInventarioCriticoParteVehiculo value) {
+    public VistaInventarioCriticoRecord setParteVehiculo(String value) {
         set(1, value);
         return this;
     }
@@ -54,8 +53,8 @@ public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventari
      * Getter for
      * <code>sistema_vehicular.vista_inventario_critico.parte_vehiculo</code>.
      */
-    public VistaInventarioCriticoParteVehiculo getParteVehiculo() {
-        return (VistaInventarioCriticoParteVehiculo) get(1);
+    public String getParteVehiculo() {
+        return (String) get(1);
     }
 
     /**
@@ -318,12 +317,12 @@ public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventari
     // -------------------------------------------------------------------------
 
     @Override
-    public Row17<String, VistaInventarioCriticoParteVehiculo, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCriticoEstado, String, String, Integer, Short, Byte, Integer, String, String> fieldsRow() {
+    public Row17<String, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCriticoEstado, String, String, Integer, Short, Byte, Integer, String, String> fieldsRow() {
         return (Row17) super.fieldsRow();
     }
 
     @Override
-    public Row17<String, VistaInventarioCriticoParteVehiculo, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCriticoEstado, String, String, Integer, Short, Byte, Integer, String, String> valuesRow() {
+    public Row17<String, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCriticoEstado, String, String, Integer, Short, Byte, Integer, String, String> valuesRow() {
         return (Row17) super.valuesRow();
     }
 
@@ -333,7 +332,7 @@ public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventari
     }
 
     @Override
-    public Field<VistaInventarioCriticoParteVehiculo> field2() {
+    public Field<String> field2() {
         return VistaInventarioCritico.VISTA_INVENTARIO_CRITICO.PARTE_VEHICULO;
     }
 
@@ -418,7 +417,7 @@ public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventari
     }
 
     @Override
-    public VistaInventarioCriticoParteVehiculo component2() {
+    public String component2() {
         return getParteVehiculo();
     }
 
@@ -503,7 +502,7 @@ public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventari
     }
 
     @Override
-    public VistaInventarioCriticoParteVehiculo value2() {
+    public String value2() {
         return getParteVehiculo();
     }
 
@@ -589,7 +588,7 @@ public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventari
     }
 
     @Override
-    public VistaInventarioCriticoRecord value2(VistaInventarioCriticoParteVehiculo value) {
+    public VistaInventarioCriticoRecord value2(String value) {
         setParteVehiculo(value);
         return this;
     }
@@ -685,7 +684,7 @@ public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventari
     }
 
     @Override
-    public VistaInventarioCriticoRecord values(String value1, VistaInventarioCriticoParteVehiculo value2, String value3, BigDecimal value4, BigDecimal value5, BigDecimal value6, BigDecimal value7, BigDecimal value8, VistaInventarioCriticoEstado value9, String value10, String value11, Integer value12, Short value13, Byte value14, Integer value15, String value16, String value17) {
+    public VistaInventarioCriticoRecord values(String value1, String value2, String value3, BigDecimal value4, BigDecimal value5, BigDecimal value6, BigDecimal value7, BigDecimal value8, VistaInventarioCriticoEstado value9, String value10, String value11, Integer value12, Short value13, Byte value14, Integer value15, String value16, String value17) {
         value1(value1);
         value2(value2);
         value3(value3);
@@ -720,7 +719,7 @@ public class VistaInventarioCriticoRecord extends TableRecordImpl<VistaInventari
     /**
      * Create a detached, initialised VistaInventarioCriticoRecord
      */
-    public VistaInventarioCriticoRecord(String codigoRepuesto, VistaInventarioCriticoParteVehiculo parteVehiculo, String descripcion, BigDecimal precioCosto, BigDecimal precioVenta, BigDecimal precioMayoreo, BigDecimal formula_15, BigDecimal formula_30, VistaInventarioCriticoEstado estado, String codigoUbicacion, String vehiculoOrigen, Integer anioVehiculo, Short anioRegistro, Byte mesRegistro, Integer diasEnInventario, String clasificacionMargen, String clasificacionRotacion) {
+    public VistaInventarioCriticoRecord(String codigoRepuesto, String parteVehiculo, String descripcion, BigDecimal precioCosto, BigDecimal precioVenta, BigDecimal precioMayoreo, BigDecimal formula_15, BigDecimal formula_30, VistaInventarioCriticoEstado estado, String codigoUbicacion, String vehiculoOrigen, Integer anioVehiculo, Short anioRegistro, Byte mesRegistro, Integer diasEnInventario, String clasificacionMargen, String clasificacionRotacion) {
         super(VistaInventarioCritico.VISTA_INVENTARIO_CRITICO);
 
         setCodigoRepuesto(codigoRepuesto);

@@ -13,6 +13,7 @@ import com.rodiejacontable.database.jooq.tables.InventarioRepuestos;
 import com.rodiejacontable.database.jooq.tables.Marcas;
 import com.rodiejacontable.database.jooq.tables.Modelos;
 import com.rodiejacontable.database.jooq.tables.PagosComisiones;
+import com.rodiejacontable.database.jooq.tables.ParteVehiculo;
 import com.rodiejacontable.database.jooq.tables.TiposTransacciones;
 import com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras;
 import com.rodiejacontable.database.jooq.tables.Vehiculos;
@@ -82,6 +83,11 @@ public class Tables {
      * The table <code>sistema_vehicular.pagos_comisiones</code>.
      */
     public static final PagosComisiones PAGOS_COMISIONES = PagosComisiones.PAGOS_COMISIONES;
+
+    /**
+     * The table <code>sistema_vehicular.parte_vehiculo</code>.
+     */
+    public static final ParteVehiculo PARTE_VEHICULO = ParteVehiculo.PARTE_VEHICULO;
 
     /**
      * The table <code>sistema_vehicular.tipos_transacciones</code>.

@@ -3,7 +3,7 @@ package com.rodiejacontable.rodiejacontable.repository;
 import static com.rodiejacontable.database.jooq.Tables.VISTA_INVENTARIO_COMPLETO;
 
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoEstado;
-import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoParteVehiculo;
+
 import com.rodiejacontable.database.jooq.tables.pojos.VistaInventarioCompleto;
 import com.rodiejacontable.database.jooq.tables.records.VistaInventarioCompletoRecord;
 import org.jooq.DSLContext;
@@ -38,7 +38,7 @@ public class VistaInventarioCompletoRepository {
                 .fetchInto(VistaInventarioCompleto.class);
     }
 
-    public List<VistaInventarioCompleto> findByParteVehiculo(VistaInventarioCompletoParteVehiculo parteVehiculo) {
+    public List<VistaInventarioCompleto> findByParteVehiculo(String parteVehiculo) {
         return dsl.selectFrom(VISTA_INVENTARIO_COMPLETO)
                 .where(VISTA_INVENTARIO_COMPLETO.PARTE_VEHICULO.eq(parteVehiculo))
                 .fetchInto(VistaInventarioCompleto.class);

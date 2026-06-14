@@ -13,7 +13,6 @@ import com.rodiejacontable.database.jooq.enums.InventarioRepuestosHorizontal;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosMalla;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosNivel;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosPared;
-import com.rodiejacontable.database.jooq.enums.InventarioRepuestosParteVehiculo;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosPiso;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosPlastica;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosZona;
@@ -35,12 +34,12 @@ public class InventarioRepuestos implements Serializable {
 
     private Integer id;
     private String codigoRepuesto;
+    private Integer parteVehiculoId;
     private Integer vehiculoOrigenId;
     private Short anioRegistro;
     private Byte mesRegistro;
     private String codigoUbicacion;
     private String imagenUrl;
-    private InventarioRepuestosParteVehiculo parteVehiculo;
     private String descripcion;
     private BigDecimal precioCosto;
     private BigDecimal precioVenta;
@@ -70,12 +69,12 @@ public class InventarioRepuestos implements Serializable {
     public InventarioRepuestos(InventarioRepuestos value) {
         this.id = value.id;
         this.codigoRepuesto = value.codigoRepuesto;
+        this.parteVehiculoId = value.parteVehiculoId;
         this.vehiculoOrigenId = value.vehiculoOrigenId;
         this.anioRegistro = value.anioRegistro;
         this.mesRegistro = value.mesRegistro;
         this.codigoUbicacion = value.codigoUbicacion;
         this.imagenUrl = value.imagenUrl;
-        this.parteVehiculo = value.parteVehiculo;
         this.descripcion = value.descripcion;
         this.precioCosto = value.precioCosto;
         this.precioVenta = value.precioVenta;
@@ -104,12 +103,12 @@ public class InventarioRepuestos implements Serializable {
     public InventarioRepuestos(
         Integer id,
         String codigoRepuesto,
+        Integer parteVehiculoId,
         Integer vehiculoOrigenId,
         Short anioRegistro,
         Byte mesRegistro,
         String codigoUbicacion,
         String imagenUrl,
-        InventarioRepuestosParteVehiculo parteVehiculo,
         String descripcion,
         BigDecimal precioCosto,
         BigDecimal precioVenta,
@@ -136,12 +135,12 @@ public class InventarioRepuestos implements Serializable {
     ) {
         this.id = id;
         this.codigoRepuesto = codigoRepuesto;
+        this.parteVehiculoId = parteVehiculoId;
         this.vehiculoOrigenId = vehiculoOrigenId;
         this.anioRegistro = anioRegistro;
         this.mesRegistro = mesRegistro;
         this.codigoUbicacion = codigoUbicacion;
         this.imagenUrl = imagenUrl;
-        this.parteVehiculo = parteVehiculo;
         this.descripcion = descripcion;
         this.precioCosto = precioCosto;
         this.precioVenta = precioVenta;
@@ -196,6 +195,23 @@ public class InventarioRepuestos implements Serializable {
      */
     public InventarioRepuestos setCodigoRepuesto(String codigoRepuesto) {
         this.codigoRepuesto = codigoRepuesto;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.inventario_repuestos.parte_Vehiculo_id</code>.
+     */
+    public Integer getParteVehiculoId() {
+        return this.parteVehiculoId;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.inventario_repuestos.parte_Vehiculo_id</code>.
+     */
+    public InventarioRepuestos setParteVehiculoId(Integer parteVehiculoId) {
+        this.parteVehiculoId = parteVehiculoId;
         return this;
     }
 
@@ -281,23 +297,6 @@ public class InventarioRepuestos implements Serializable {
      */
     public InventarioRepuestos setImagenUrl(String imagenUrl) {
         this.imagenUrl = imagenUrl;
-        return this;
-    }
-
-    /**
-     * Getter for
-     * <code>sistema_vehicular.inventario_repuestos.parte_vehiculo</code>.
-     */
-    public InventarioRepuestosParteVehiculo getParteVehiculo() {
-        return this.parteVehiculo;
-    }
-
-    /**
-     * Setter for
-     * <code>sistema_vehicular.inventario_repuestos.parte_vehiculo</code>.
-     */
-    public InventarioRepuestos setParteVehiculo(InventarioRepuestosParteVehiculo parteVehiculo) {
-        this.parteVehiculo = parteVehiculo;
         return this;
     }
 
@@ -685,6 +684,12 @@ public class InventarioRepuestos implements Serializable {
         }
         else if (!this.codigoRepuesto.equals(other.codigoRepuesto))
             return false;
+        if (this.parteVehiculoId == null) {
+            if (other.parteVehiculoId != null)
+                return false;
+        }
+        else if (!this.parteVehiculoId.equals(other.parteVehiculoId))
+            return false;
         if (this.vehiculoOrigenId == null) {
             if (other.vehiculoOrigenId != null)
                 return false;
@@ -714,12 +719,6 @@ public class InventarioRepuestos implements Serializable {
                 return false;
         }
         else if (!this.imagenUrl.equals(other.imagenUrl))
-            return false;
-        if (this.parteVehiculo == null) {
-            if (other.parteVehiculo != null)
-                return false;
-        }
-        else if (!this.parteVehiculo.equals(other.parteVehiculo))
             return false;
         if (this.descripcion == null) {
             if (other.descripcion != null)
@@ -868,12 +867,12 @@ public class InventarioRepuestos implements Serializable {
         int result = 1;
         result = prime * result + ((this.id == null) ? 0 : this.id.hashCode());
         result = prime * result + ((this.codigoRepuesto == null) ? 0 : this.codigoRepuesto.hashCode());
+        result = prime * result + ((this.parteVehiculoId == null) ? 0 : this.parteVehiculoId.hashCode());
         result = prime * result + ((this.vehiculoOrigenId == null) ? 0 : this.vehiculoOrigenId.hashCode());
         result = prime * result + ((this.anioRegistro == null) ? 0 : this.anioRegistro.hashCode());
         result = prime * result + ((this.mesRegistro == null) ? 0 : this.mesRegistro.hashCode());
         result = prime * result + ((this.codigoUbicacion == null) ? 0 : this.codigoUbicacion.hashCode());
         result = prime * result + ((this.imagenUrl == null) ? 0 : this.imagenUrl.hashCode());
-        result = prime * result + ((this.parteVehiculo == null) ? 0 : this.parteVehiculo.hashCode());
         result = prime * result + ((this.descripcion == null) ? 0 : this.descripcion.hashCode());
         result = prime * result + ((this.precioCosto == null) ? 0 : this.precioCosto.hashCode());
         result = prime * result + ((this.precioVenta == null) ? 0 : this.precioVenta.hashCode());
@@ -906,12 +905,12 @@ public class InventarioRepuestos implements Serializable {
 
         sb.append(id);
         sb.append(", ").append(codigoRepuesto);
+        sb.append(", ").append(parteVehiculoId);
         sb.append(", ").append(vehiculoOrigenId);
         sb.append(", ").append(anioRegistro);
         sb.append(", ").append(mesRegistro);
         sb.append(", ").append(codigoUbicacion);
         sb.append(", ").append(imagenUrl);
-        sb.append(", ").append(parteVehiculo);
         sb.append(", ").append(descripcion);
         sb.append(", ").append(precioCosto);
         sb.append(", ").append(precioVenta);

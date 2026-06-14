@@ -13,7 +13,6 @@ import com.rodiejacontable.database.jooq.enums.InventarioRepuestosHorizontal;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosMalla;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosNivel;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosPared;
-import com.rodiejacontable.database.jooq.enums.InventarioRepuestosParteVehiculo;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosPiso;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosPlastica;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosZona;
@@ -69,10 +68,27 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
 
     /**
      * Setter for
+     * <code>sistema_vehicular.inventario_repuestos.parte_Vehiculo_id</code>.
+     */
+    public InventarioRepuestosRecord setParteVehiculoId(Integer value) {
+        set(2, value);
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.inventario_repuestos.parte_Vehiculo_id</code>.
+     */
+    public Integer getParteVehiculoId() {
+        return (Integer) get(2);
+    }
+
+    /**
+     * Setter for
      * <code>sistema_vehicular.inventario_repuestos.vehiculo_origen_id</code>.
      */
     public InventarioRepuestosRecord setVehiculoOrigenId(Integer value) {
-        set(2, value);
+        set(3, value);
         return this;
     }
 
@@ -81,7 +97,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.vehiculo_origen_id</code>.
      */
     public Integer getVehiculoOrigenId() {
-        return (Integer) get(2);
+        return (Integer) get(3);
     }
 
     /**
@@ -89,7 +105,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.anio_registro</code>.
      */
     public InventarioRepuestosRecord setAnioRegistro(Short value) {
-        set(3, value);
+        set(4, value);
         return this;
     }
 
@@ -98,7 +114,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.anio_registro</code>.
      */
     public Short getAnioRegistro() {
-        return (Short) get(3);
+        return (Short) get(4);
     }
 
     /**
@@ -106,7 +122,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.mes_registro</code>.
      */
     public InventarioRepuestosRecord setMesRegistro(Byte value) {
-        set(4, value);
+        set(5, value);
         return this;
     }
 
@@ -115,7 +131,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.mes_registro</code>.
      */
     public Byte getMesRegistro() {
-        return (Byte) get(4);
+        return (Byte) get(5);
     }
 
     /**
@@ -123,7 +139,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.codigo_ubicacion</code>.
      */
     public InventarioRepuestosRecord setCodigoUbicacion(String value) {
-        set(5, value);
+        set(6, value);
         return this;
     }
 
@@ -132,7 +148,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.codigo_ubicacion</code>.
      */
     public String getCodigoUbicacion() {
-        return (String) get(5);
+        return (String) get(6);
     }
 
     /**
@@ -140,7 +156,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.imagen_url</code>.
      */
     public InventarioRepuestosRecord setImagenUrl(String value) {
-        set(6, value);
+        set(7, value);
         return this;
     }
 
@@ -149,24 +165,7 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
      * <code>sistema_vehicular.inventario_repuestos.imagen_url</code>.
      */
     public String getImagenUrl() {
-        return (String) get(6);
-    }
-
-    /**
-     * Setter for
-     * <code>sistema_vehicular.inventario_repuestos.parte_vehiculo</code>.
-     */
-    public InventarioRepuestosRecord setParteVehiculo(InventarioRepuestosParteVehiculo value) {
-        set(7, value);
-        return this;
-    }
-
-    /**
-     * Getter for
-     * <code>sistema_vehicular.inventario_repuestos.parte_vehiculo</code>.
-     */
-    public InventarioRepuestosParteVehiculo getParteVehiculo() {
-        return (InventarioRepuestosParteVehiculo) get(7);
+        return (String) get(7);
     }
 
     /**
@@ -555,17 +554,17 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
     /**
      * Create a detached, initialised InventarioRepuestosRecord
      */
-    public InventarioRepuestosRecord(Integer id, String codigoRepuesto, Integer vehiculoOrigenId, Short anioRegistro, Byte mesRegistro, String codigoUbicacion, String imagenUrl, InventarioRepuestosParteVehiculo parteVehiculo, String descripcion, BigDecimal precioCosto, BigDecimal precioVenta, BigDecimal precioMayoreo, BigDecimal formula_15, BigDecimal formula_30, InventarioRepuestosBodega bodega, InventarioRepuestosZona zona, InventarioRepuestosPared pared, InventarioRepuestosMalla malla, InventarioRepuestosHorizontal horizontal, InventarioRepuestosEstante estante, InventarioRepuestosNivel nivel, InventarioRepuestosPiso piso, InventarioRepuestosPlastica plastica, InventarioRepuestosCarton carton, String posicion, UInteger cantidad, InventarioRepuestosEstado estado, InventarioRepuestosCondicion condicion, LocalDateTime fechaCreacion, LocalDateTime fechaActualizacion, Byte activo) {
+    public InventarioRepuestosRecord(Integer id, String codigoRepuesto, Integer parteVehiculoId, Integer vehiculoOrigenId, Short anioRegistro, Byte mesRegistro, String codigoUbicacion, String imagenUrl, String descripcion, BigDecimal precioCosto, BigDecimal precioVenta, BigDecimal precioMayoreo, BigDecimal formula_15, BigDecimal formula_30, InventarioRepuestosBodega bodega, InventarioRepuestosZona zona, InventarioRepuestosPared pared, InventarioRepuestosMalla malla, InventarioRepuestosHorizontal horizontal, InventarioRepuestosEstante estante, InventarioRepuestosNivel nivel, InventarioRepuestosPiso piso, InventarioRepuestosPlastica plastica, InventarioRepuestosCarton carton, String posicion, UInteger cantidad, InventarioRepuestosEstado estado, InventarioRepuestosCondicion condicion, LocalDateTime fechaCreacion, LocalDateTime fechaActualizacion, Byte activo) {
         super(InventarioRepuestos.INVENTARIO_REPUESTOS);
 
         setId(id);
         setCodigoRepuesto(codigoRepuesto);
+        setParteVehiculoId(parteVehiculoId);
         setVehiculoOrigenId(vehiculoOrigenId);
         setAnioRegistro(anioRegistro);
         setMesRegistro(mesRegistro);
         setCodigoUbicacion(codigoUbicacion);
         setImagenUrl(imagenUrl);
-        setParteVehiculo(parteVehiculo);
         setDescripcion(descripcion);
         setPrecioCosto(precioCosto);
         setPrecioVenta(precioVenta);
@@ -601,12 +600,12 @@ public class InventarioRepuestosRecord extends UpdatableRecordImpl<InventarioRep
         if (value != null) {
             setId(value.getId());
             setCodigoRepuesto(value.getCodigoRepuesto());
+            setParteVehiculoId(value.getParteVehiculoId());
             setVehiculoOrigenId(value.getVehiculoOrigenId());
             setAnioRegistro(value.getAnioRegistro());
             setMesRegistro(value.getMesRegistro());
             setCodigoUbicacion(value.getCodigoUbicacion());
             setImagenUrl(value.getImagenUrl());
-            setParteVehiculo(value.getParteVehiculo());
             setDescripcion(value.getDescripcion());
             setPrecioCosto(value.getPrecioCosto());
             setPrecioVenta(value.getPrecioVenta());

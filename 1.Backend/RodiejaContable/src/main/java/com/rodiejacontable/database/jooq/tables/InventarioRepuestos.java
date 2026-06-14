@@ -16,7 +16,6 @@ import com.rodiejacontable.database.jooq.enums.InventarioRepuestosHorizontal;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosMalla;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosNivel;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosPared;
-import com.rodiejacontable.database.jooq.enums.InventarioRepuestosParteVehiculo;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosPiso;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosPlastica;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosZona;
@@ -79,6 +78,12 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
 
     /**
      * The column
+     * <code>sistema_vehicular.inventario_repuestos.parte_Vehiculo_id</code>.
+     */
+    public final TableField<InventarioRepuestosRecord, Integer> PARTE_VEHICULO_ID = createField(DSL.name("parte_Vehiculo_id"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column
      * <code>sistema_vehicular.inventario_repuestos.vehiculo_origen_id</code>.
      */
     public final TableField<InventarioRepuestosRecord, Integer> VEHICULO_ORIGEN_ID = createField(DSL.name("vehiculo_origen_id"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
@@ -106,12 +111,6 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
      * <code>sistema_vehicular.inventario_repuestos.imagen_url</code>.
      */
     public final TableField<InventarioRepuestosRecord, String> IMAGEN_URL = createField(DSL.name("imagen_url"), SQLDataType.CLOB.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.CLOB)), this, "");
-
-    /**
-     * The column
-     * <code>sistema_vehicular.inventario_repuestos.parte_vehiculo</code>.
-     */
-    public final TableField<InventarioRepuestosRecord, InventarioRepuestosParteVehiculo> PARTE_VEHICULO = createField(DSL.name("parte_vehiculo"), SQLDataType.VARCHAR(28).nullable(false).asEnumDataType(com.rodiejacontable.database.jooq.enums.InventarioRepuestosParteVehiculo.class), this, "");
 
     /**
      * The column
@@ -300,10 +299,22 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
 
     @Override
     public List<ForeignKey<InventarioRepuestosRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.INVENTARIO_REPUESTOS_IBFK_1);
+        return Arrays.asList(Keys.INVENTARIO_REPUESTOS_IBFK_2, Keys.INVENTARIO_REPUESTOS_IBFK_1);
     }
 
+    private transient ParteVehiculo _parteVehiculo;
     private transient Vehiculos _vehiculos;
+
+    /**
+     * Get the implicit join path to the
+     * <code>sistema_vehicular.parte_vehiculo</code> table.
+     */
+    public ParteVehiculo parteVehiculo() {
+        if (_parteVehiculo == null)
+            _parteVehiculo = new ParteVehiculo(this, Keys.INVENTARIO_REPUESTOS_IBFK_2);
+
+        return _parteVehiculo;
+    }
 
     /**
      * Get the implicit join path to the

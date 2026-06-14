@@ -1,7 +1,7 @@
 package com.rodiejacontable.rodiejacontable.controller;
 
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoEstado;
-import com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoParteVehiculo;
+
 import com.rodiejacontable.database.jooq.tables.pojos.VistaInventarioCritico;
 import com.rodiejacontable.rodiejacontable.service.VistaInventarioCriticoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +26,7 @@ public class VistaInventarioCriticoController {
     public List<VistaInventarioCritico> buscarConFiltros(
             @RequestParam(required = false) String codigo,
             @RequestParam(required = false) String descripcion,
-            @RequestParam(required = false) VistaInventarioCriticoParteVehiculo parteVehiculo,
+            @RequestParam(required = false) String parteVehiculo,
             @RequestParam(required = false) VistaInventarioCriticoEstado estado,
             @RequestParam(required = false) String clasificacionMargen,
             @RequestParam(required = false) String clasificacionRotacion,
@@ -48,7 +48,7 @@ public class VistaInventarioCriticoController {
 
     @GetMapping("/parte-vehiculo/{parte}")
     public List<VistaInventarioCritico> getByParteVehiculo(
-            @PathVariable VistaInventarioCriticoParteVehiculo parte) {
+            @PathVariable String parte) {
         return inventarioCriticoService.findByParteVehiculo(parte);
     }
 
@@ -102,10 +102,7 @@ public class VistaInventarioCriticoController {
         return inventarioCriticoService.getAniosVehiculoDisponibles();
     }
 
-    @GetMapping("/opciones/partes-vehiculo")
-    public VistaInventarioCriticoParteVehiculo[] getPartesVehiculo() {
-        return VistaInventarioCriticoParteVehiculo.values();
-    }
+
 
     @GetMapping("/opciones/estados")
     public VistaInventarioCriticoEstado[] getEstados() {

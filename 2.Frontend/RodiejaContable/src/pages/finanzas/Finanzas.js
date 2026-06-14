@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Table, 
   Tag, 
@@ -34,14 +33,12 @@ import {
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
+import { useTransaccionesCompletas } from '../../hooks/useTransacciones';
 
 const { Option } = Select;
 const { Text } = Typography;
 
 const Finanzas = () => {
-  const [transacciones, setTransacciones] = useState([]);
-  const [loading, setLoading] = useState({ transacciones: false, filtros: false });
-  const [error, setError] = useState(null);
   const [filtros, setFiltros] = useState({
     tipo: null,
     estado: null,
@@ -55,120 +52,96 @@ const Finanzas = () => {
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
-    total: 0,
-  });
-  const [estadisticas, setEstadisticas] = useState({
-    ingresos: 0,
-    egresos: 0,
-    balance: 0,
-    totalTransacciones: 0
   });
 
   const navigate = useNavigate();
 
-  const obtenerTransacciones = useCallback(async (filtrosAplicados = {}) => {
-    try {
-      setLoading(prev => ({ ...prev, transacciones: true }));
-      setError(null);
-      
-      const { tipo, estado, rangoFechas, vehiculo, busqueda, categoria } = { ...filtros, ...filtrosAplicados };
-      
-      let data;
-      if (rangoFechas && rangoFechas.length === 2) {
-        const primerDia = rangoFechas[0].format('YYYY-MM-DD');
-        const ultimoDia = rangoFechas[1].format('YYYY-MM-DD');
-        data = await transaccionesCompletasService.getTransaccionesPorRangoFechas(primerDia, ultimoDia);
-      } else {
-        data = await transaccionesCompletasService.getTransacciones();
-      }
-      
-      let transaccionesMapeadas = Array.isArray(data) ? data.map(transaccion => {
-        const cat = String(transaccion?.categoria || '').toUpperCase();
-        const esIngreso = cat === 'INGRESO';
-        const tipoTrans = esIngreso ? 'INGRESO' : 'EGRESO';
-        let fechaFormateada = 'Fecha no disponible';
-        
-        if (Array.isArray(transaccion?.fecha) && transaccion.fecha.length >= 3) {
-          const [year, month, day] = transaccion.fecha;
-          fechaFormateada = moment([year, month - 1, day]).format('DD/MM/YYYY');
-        } else if (transaccion?.fecha) {
-          fechaFormateada = moment(transaccion.fecha).format('DD/MM/YYYY');
-        }
-        
-        const monto = parseFloat(transaccion?.monto) || 0;
-        
-        return {
-          ...transaccion,
-          key: transaccion?.codigoTransaccion || transaccion?.id?.toString() || Math.random().toString(),
-          fecha: transaccion.fecha || [2023, 1, 1],
-          tipo: tipoTrans,
-          tipoTransaccion: tipoTrans, // Guardamos para la UI
-          tipoTransaccionOriginal: transaccion.tipoTransaccion, // Conservamos el nombre original para lógica
-          monto: Math.abs(monto),
-          esIngreso,
-          fechaFormateada
-        };
-      }) : [];
-
-      if (tipo) {
-        transaccionesMapeadas = transaccionesMapeadas.filter(t => t.tipoTransaccion === tipo);
-      }
-      if (estado) {
-        transaccionesMapeadas = transaccionesMapeadas.filter(t => t.estado === estado);
-      }
-      if (categoria && categoria.trim() !== '') {
-        const catLower = categoria.toLowerCase();
-        transaccionesMapeadas = transaccionesMapeadas.filter(t => t.categoria && t.categoria.toLowerCase().includes(catLower));
-      }
-      if (vehiculo && vehiculo.trim() !== '') {
-        const v = vehiculo.toLowerCase();
-        transaccionesMapeadas = transaccionesMapeadas.filter(t => 
-          t.codigoVehiculo && t.codigoVehiculo.toLowerCase().includes(v)
-        );
-      }
-      if (busqueda && busqueda.trim() !== '') {
-        const b = busqueda.toLowerCase();
-        transaccionesMapeadas = transaccionesMapeadas.filter(t => 
-          (t.descripcion && t.descripcion.toLowerCase().includes(b)) ||
-          (t.referencia && t.referencia.toLowerCase().includes(b)) ||
-          (t.codigoTransaccion && t.codigoTransaccion.toLowerCase().includes(b))
-        );
-      }
-
-      setTransacciones(transaccionesMapeadas);
-      
-      const ingresos = transaccionesMapeadas
-        .filter(t => t.esIngreso)
-        .reduce((sum, t) => sum + t.monto, 0);
-        
-      const egresos = transaccionesMapeadas
-        .filter(t => !t.esIngreso)
-        .reduce((sum, t) => sum + t.monto, 0);
-        
-      setEstadisticas({
-        ingresos,
-        egresos,
-        balance: ingresos - egresos,
-        totalTransacciones: transaccionesMapeadas.length
-      });
-      
-      setPagination(prev => ({
-        ...prev,
-        total: transaccionesMapeadas.length
-      }));
-      
-    } catch (error) {
-      console.error('Error al obtener transacciones:', error);
-      setError('Error al cargar las transacciones. Por favor, intente de nuevo.');
-      message.error('Error al cargar las transacciones');
-    } finally {
-      setLoading(prev => ({ ...prev, transacciones: false }));
+  const queryParams = useMemo(() => {
+    const params = {};
+    if (filtros.rangoFechas && filtros.rangoFechas.length === 2) {
+      params.fechaInicio = filtros.rangoFechas[0].format('YYYY-MM-DD');
+      params.fechaFin = filtros.rangoFechas[1].format('YYYY-MM-DD');
     }
-  }, [filtros]);
+    return params;
+  }, [filtros.rangoFechas]);
 
-  useEffect(() => {
-    obtenerTransacciones();
-  }, [obtenerTransacciones]);
+  const { data: queryData, isLoading: isLoadingTransacciones, error: queryError, refetch: refetchTransacciones } = useTransaccionesCompletas(queryParams);
+
+  const transacciones = useMemo(() => {
+    let data = queryData || [];
+    
+    let transaccionesMapeadas = Array.isArray(data) ? data.map(transaccion => {
+      const cat = String(transaccion?.categoria || '').toUpperCase();
+      const esIngreso = cat === 'INGRESO';
+      const tipoTrans = esIngreso ? 'INGRESO' : 'EGRESO';
+      let fechaFormateada = 'Fecha no disponible';
+      
+      if (Array.isArray(transaccion?.fecha) && transaccion.fecha.length >= 3) {
+        const [year, month, day] = transaccion.fecha;
+        fechaFormateada = moment([year, month - 1, day]).format('DD/MM/YYYY');
+      } else if (transaccion?.fecha) {
+        fechaFormateada = moment(transaccion.fecha).format('DD/MM/YYYY');
+      }
+      
+      const monto = parseFloat(transaccion?.monto) || 0;
+      
+      return {
+        ...transaccion,
+        key: transaccion?.codigoTransaccion || transaccion?.id?.toString() || Math.random().toString(),
+        fecha: transaccion.fecha || [2023, 1, 1],
+        tipo: tipoTrans,
+        tipoTransaccion: tipoTrans,
+        tipoTransaccionOriginal: transaccion.tipoTransaccion,
+        monto: Math.abs(monto),
+        esIngreso,
+        fechaFormateada
+      };
+    }) : [];
+
+    if (filtros.tipo) {
+      transaccionesMapeadas = transaccionesMapeadas.filter(t => t.tipoTransaccion === filtros.tipo);
+    }
+    if (filtros.estado) {
+      transaccionesMapeadas = transaccionesMapeadas.filter(t => t.estado === filtros.estado);
+    }
+    if (filtros.categoria && filtros.categoria.trim() !== '') {
+      const catLower = filtros.categoria.toLowerCase();
+      transaccionesMapeadas = transaccionesMapeadas.filter(t => t.categoria && t.categoria.toLowerCase().includes(catLower));
+    }
+    if (filtros.vehiculo && filtros.vehiculo.trim() !== '') {
+      const v = filtros.vehiculo.toLowerCase();
+      transaccionesMapeadas = transaccionesMapeadas.filter(t => 
+        t.codigoVehiculo && t.codigoVehiculo.toLowerCase().includes(v)
+      );
+    }
+    if (filtros.busqueda && filtros.busqueda.trim() !== '') {
+      const b = filtros.busqueda.toLowerCase();
+      transaccionesMapeadas = transaccionesMapeadas.filter(t => 
+        (t.descripcion && t.descripcion.toLowerCase().includes(b)) ||
+        (t.referencia && t.referencia.toLowerCase().includes(b)) ||
+        (t.codigoTransaccion && t.codigoTransaccion.toLowerCase().includes(b))
+      );
+    }
+
+    return transaccionesMapeadas;
+  }, [queryData, filtros]);
+
+  const estadisticas = useMemo(() => {
+    const ingresos = transacciones
+      .filter(t => t.esIngreso)
+      .reduce((sum, t) => sum + t.monto, 0);
+      
+    const egresos = transacciones
+      .filter(t => !t.esIngreso)
+      .reduce((sum, t) => sum + t.monto, 0);
+      
+    return {
+      ingresos,
+      egresos,
+      balance: ingresos - egresos,
+      totalTransacciones: transacciones.length
+    };
+  }, [transacciones]);
 
   const handleTableChange = (pagination, filters, sorter) => {
     setPagination(pagination);
@@ -449,7 +422,7 @@ const Finanzas = () => {
     try {
       await transaccionesCompletasService.reembolsarTransaccion(id);
       message.success('Reembolso procesado exitosamente');
-      obtenerTransacciones(); // Recargar la lista
+      refetchTransacciones(); // Recargar la lista
     } catch (error) {
       console.error('Error al procesar el reembolso:', error);
       message.error(error.message || 'Error al procesar el reembolso');
@@ -460,7 +433,7 @@ const Finanzas = () => {
     try {
       await transaccionesCompletasService.eliminarTransaccion(id);
       message.success('Transacción eliminada correctamente');
-      obtenerTransacciones(); // Recargar la lista
+      refetchTransacciones(); // Recargar la lista
     } catch (error) {
       console.error('Error al eliminar transacción:', error);
       message.error('Error al eliminar la transacción');
@@ -469,11 +442,10 @@ const Finanzas = () => {
 
   const handleBuscar = (value) => {
     setFiltros(prev => ({ ...prev, busqueda: value }));
-    obtenerTransacciones({ busqueda: value });
   };
 
   const handleFiltrar = (filtrosAplicados) => {
-    obtenerTransacciones(filtrosAplicados);
+    // handled by useMemo
   };
 
   const limpiarFiltros = () => {
@@ -486,7 +458,6 @@ const Finanzas = () => {
       categoria: null
     };
     setFiltros(filtrosIniciales);
-    obtenerTransacciones(filtrosIniciales);
   };
 
   const toggleFiltros = () => {
@@ -695,8 +666,8 @@ const Finanzas = () => {
             <span style={{ fontWeight: 600, fontSize: '16px' }}>Historial de Transacciones</span>
             <Button 
               icon={<ReloadOutlined />} 
-              onClick={() => obtenerTransacciones()}
-              loading={loading.transacciones}
+              onClick={() => refetchTransacciones()}
+              loading={isLoadingTransacciones}
               type="text"
             >
               Actualizar
@@ -708,9 +679,9 @@ const Finanzas = () => {
         headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
         bodyStyle={{ padding: '0' }}
       >
-        {error && (
+        {queryError && (
           <div style={{ marginBottom: 16 }}>
-            <Alert message="Error" description={error} type="error" showIcon />
+            <Alert message="Error" description={queryError.message || 'Error al cargar las transacciones'} type="error" showIcon />
           </div>
         )}
         
@@ -719,7 +690,7 @@ const Finanzas = () => {
             columns={columns}
             dataSource={transacciones}
             rowKey="codigoTransaccion"
-            loading={loading.transacciones}
+            loading={isLoadingTransacciones}
             pagination={{
               ...pagination,
               showSizeChanger: true,

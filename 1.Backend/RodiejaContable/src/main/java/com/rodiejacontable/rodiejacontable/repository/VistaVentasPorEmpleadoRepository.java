@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import com.rodiejacontable.database.jooq.enums.InventarioRepuestosParteVehiculo;
+
 import com.rodiejacontable.database.jooq.enums.TiposTransaccionesCategoria;
 
 import static com.rodiejacontable.database.jooq.Tables.EMPLEADOS;
@@ -248,12 +248,12 @@ public class VistaVentasPorEmpleadoRepository {
         var v = VEHICULOS.as("v");
         var ir = INVENTARIO_REPUESTOS.as("ir");
         
-        // Convert string to enum
-        InventarioRepuestosParteVehiculo tipoProductoEnum;
+        // Convert string to ID
+        Integer tipoProductoId;
         try {
-            tipoProductoEnum = InventarioRepuestosParteVehiculo.valueOf(tipoProducto);
-        } catch (IllegalArgumentException ex) {
-            // If the string doesn't match any enum value, return empty list
+            tipoProductoId = Integer.parseInt(tipoProducto);
+        } catch (NumberFormatException ex) {
+            // If the string doesn't match an ID, return empty list
             return Collections.emptyList();
         }
         
@@ -299,7 +299,7 @@ public class VistaVentasPorEmpleadoRepository {
                 .leftJoin(v).on(tf.VEHICULO_ID.eq(v.ID))
                 .leftJoin(ir).on(tf.REPUESTO_ID.eq(ir.ID))
                 .where(tt.CATEGORIA.eq(TiposTransaccionesCategoria.INGRESO)
-                    .and(ir.PARTE_VEHICULO.eq(tipoProductoEnum).or(v.ID.isNotNull()))) // Use the enum value here
+                    .and(ir.PARTE_VEHICULO_ID.eq(tipoProductoId).or(v.ID.isNotNull()))) // Use the ID value here
                 .groupBy(e.ID, e.NOMBRE)
                 .fetchInto(com.rodiejacontable.database.jooq.tables.pojos.VistaVentasPorEmpleado.class);
     }

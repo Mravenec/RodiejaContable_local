@@ -1,7 +1,7 @@
 package com.rodiejacontable.rodiejacontable.service;
 
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoEstado;
-import com.rodiejacontable.database.jooq.enums.VistaInventarioCriticoParteVehiculo;
+
 import com.rodiejacontable.database.jooq.tables.pojos.VistaInventarioCritico;
 import com.rodiejacontable.rodiejacontable.repository.VistaInventarioCriticoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +26,7 @@ public class VistaInventarioCriticoService {
         return repository.findByEstado(estado);
     }
 
-    public List<VistaInventarioCritico> findByParteVehiculo(VistaInventarioCriticoParteVehiculo parteVehiculo) {
+    public List<VistaInventarioCritico> findByParteVehiculo(String parteVehiculo) {
         return repository.findByParteVehiculo(parteVehiculo);
     }
 
@@ -53,7 +53,7 @@ public class VistaInventarioCriticoService {
     public List<VistaInventarioCritico> buscarConFiltros(
             String codigoRepuesto,
             String descripcion,
-            VistaInventarioCriticoParteVehiculo parteVehiculo,
+            String parteVehiculo,
             VistaInventarioCriticoEstado estado,
             String clasificacionMargen,
             String clasificacionRotacion,
@@ -68,7 +68,7 @@ public class VistaInventarioCriticoService {
                 .filter(item -> descripcion == null || 
                     (item.getDescripcion() != null && 
                      item.getDescripcion().toLowerCase().contains(descripcion.toLowerCase())))
-                .filter(item -> parteVehiculo == null || item.getParteVehiculo() == parteVehiculo)
+                .filter(item -> parteVehiculo == null || (item.getParteVehiculo() != null && item.getParteVehiculo().equalsIgnoreCase(parteVehiculo)))
                 .filter(item -> estado == null || item.getEstado() == estado)
                 .filter(item -> clasificacionMargen == null || 
                     (item.getClasificacionMargen() != null && 
