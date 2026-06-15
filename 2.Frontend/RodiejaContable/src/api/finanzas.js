@@ -1,12 +1,20 @@
-// src/api/finanzas.js
 import api from './axios';
+
+// Helper para ordenar transacciones por fecha descendente
+const sortTransaccionesDesc = (transacciones) => {
+  if (!Array.isArray(transacciones)) return transacciones;
+  return [...transacciones].sort((a, b) => {
+    const getVal = f => f ? (Array.isArray(f) ? new Date(f[0], f[1]-1, f[2]).getTime() : new Date(f).getTime()) : 0;
+    return getVal(b.fecha || b.createdAt) - getVal(a.fecha || a.createdAt);
+  });
+};
 
 export const finanzasService = {
   // Get all financial transactions with optional filters
   getTransacciones: async (filters = {}) => {
     try {
       const response = await api.get('transacciones-financieras', { params: filters });
-      return response.data;
+      return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
     }
@@ -76,7 +84,7 @@ export const finanzasService = {
   getTransaccionesByTipo: async (tipo, params = {}) => {
     try {
       const response = await api.get(`transacciones-financieras/tipo/${tipo}`, { params });
-      return response.data;
+      return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
     }
@@ -88,7 +96,7 @@ export const finanzasService = {
       const response = await api.get('transacciones-financieras/rango-fechas', {
         params: { fechaInicio, fechaFin, ...params }
       });
-      return response.data;
+      return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
     }
@@ -101,7 +109,7 @@ export const finanzasService = {
         `transacciones-financieras/vehiculo/${vehiculoId}`,
         { params: { activo: 1, ...params } }
       );
-      return data;
+      return sortTransaccionesDesc(data);
     } catch (error) {
       throw error?.response?.data || error?.message || 'Error al cargar transacciones del vehículo';
     }

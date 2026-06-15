@@ -1,11 +1,20 @@
 import api from './axios';
 
+// Helper para ordenar transacciones por fecha descendente
+const sortTransaccionesDesc = (transacciones) => {
+  if (!Array.isArray(transacciones)) return transacciones;
+  return [...transacciones].sort((a, b) => {
+    const getVal = f => f ? (Array.isArray(f) ? new Date(f[0], f[1]-1, f[2]).getTime() : new Date(f).getTime()) : 0;
+    return getVal(b.fecha || b.createdAt) - getVal(a.fecha || a.createdAt);
+  });
+};
+
 export const transaccionesCompletasService = {
   // Get all complete transactions with optional filters
   getTransacciones: async (filters = {}) => {
     try {
       const response = await api.get('v1/transacciones', { params: filters });
-      return response.data;
+      return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
     }
@@ -20,7 +29,7 @@ export const transaccionesCompletasService = {
           fechaFin
         }
       });
-      return response.data;
+      return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
     }
@@ -30,7 +39,7 @@ export const transaccionesCompletasService = {
   getTransaccionesPorCategoria: async (categoria) => {
     try {
       const response = await api.get(`v1/transacciones/categoria/${categoria}`);
-      return response.data;
+      return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
     }
@@ -40,7 +49,7 @@ export const transaccionesCompletasService = {
   getTransaccionesPorEstado: async (estado) => {
     try {
       const response = await api.get(`v1/transacciones/estado/${estado}`);
-      return response.data;
+      return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
     }
@@ -50,6 +59,9 @@ export const transaccionesCompletasService = {
   buscarTransacciones: async (filters = {}) => {
     try {
       const response = await api.get('v1/transacciones/buscar', { params: filters });
+      if (response.data && Array.isArray(response.data.transacciones)) {
+        response.data.transacciones = sortTransaccionesDesc(response.data.transacciones);
+      }
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -60,7 +72,7 @@ export const transaccionesCompletasService = {
   getTransaccionesPorEmpleado: async (empleado) => {
     try {
       const response = await api.get(`v1/transacciones/empleado/${empleado}`);
-      return response.data;
+      return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
     }
@@ -70,7 +82,7 @@ export const transaccionesCompletasService = {
   getTransaccionesPorTipo: async (tipo) => {
     try {
       const response = await api.get(`v1/transacciones/tipo/${tipo}`);
-      return response.data;
+      return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
     }
@@ -80,7 +92,7 @@ export const transaccionesCompletasService = {
   getTransaccionesPorVehiculo: async (placa) => {
     try {
       const response = await api.get(`v1/transacciones/vehiculo/${placa}`);
-      return response.data;
+      return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
     }

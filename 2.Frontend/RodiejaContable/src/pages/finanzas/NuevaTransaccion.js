@@ -178,10 +178,31 @@ const NuevaTransaccion = () => {
   };
 
   // Función para calcular comisión
-  const calcularComision = useCallback((monto) => {
-    // 3% de comisión para transacciones de ingreso
-    return tipoTransaccion === 'INGRESO' ? monto * 0.03 : 0;
-  }, [tipoTransaccion]);
+  const calcularComision = useCallback((montoTotal) => {
+    if (tipoTransaccion === 'INGRESO') {
+      const repuestoId = form.getFieldValue('repuesto_id');
+      const vehiculoId = form.getFieldValue('vehiculo_id');
+      
+      if (repuestoId && repuestos.length > 0) {
+        const repuesto = repuestos.find(r => r.id === repuestoId);
+        if (repuesto) {
+          const cantidad = form.getFieldValue('cantidad_repuesto') || 1;
+          const costoTotal = (repuesto.precioCosto || 0) * cantidad;
+          const ganancia = montoTotal - costoTotal;
+          return ganancia > 0 ? ganancia * 0.03 : 0;
+        }
+      } else if (vehiculoId && vehiculos.length > 0) {
+        const vehiculo = vehiculos.find(v => v.id === vehiculoId);
+        if (vehiculo) {
+          const inversionTotal = parseFloat(vehiculo.inversionTotal || vehiculo.precioCompra || 0);
+          const ganancia = montoTotal - inversionTotal;
+          return ganancia > 0 ? ganancia * 0.03 : 0;
+        }
+      }
+      return montoTotal * 0.03;
+    }
+    return 0;
+  }, [tipoTransaccion, form, repuestos, vehiculos]);
 
   // Efecto para actualizar la comisión cuando cambia el monto o el tipo
   useEffect(() => {
@@ -321,6 +342,7 @@ const NuevaTransaccion = () => {
           empleadoId: values.empleado_id || null,
           vehiculoId: values.vehiculo_id || null,
           repuestoId: values.repuesto_id || null,
+          cantidadRepuesto: values.repuesto_id ? (values.cantidad_repuesto || 1) : null,
           comisionEmpleado: 0,
           proveedor: values.proveedor || null,
           metodoPago: values.metodo_pago || 'EFECTIVO'
@@ -349,6 +371,7 @@ const NuevaTransaccion = () => {
           empleadoId: values.empleado_id || null,
           vehiculoId: values.vehiculo_id,
           repuestoId: values.repuesto_id || null,
+          cantidadRepuesto: values.repuesto_id ? (values.cantidad_repuesto || 1) : null,
           comisionEmpleado: parseFloat(comision) || 0
         });
         
@@ -375,6 +398,7 @@ const NuevaTransaccion = () => {
         esEgreso: esEgreso,
         vehiculoId: payload.vehiculoId,
         repuestoId: payload.repuestoId,
+        cantidadRepuesto: payload.cantidadRepuesto,
         empleadoId: payload.empleadoId
       });
       
@@ -453,18 +477,51 @@ const NuevaTransaccion = () => {
   const handleRepuestoChange = (value) => {
     const repuesto = repuestos.find(r => r.id === value);
     if (repuesto) {
+      let unitPrice = 0;
       if (esReembolso) {
-        const montoReembolso = tipoTransaccion === 'EGRESO' ? repuesto.precioVenta : repuesto.precioCosto;
-        form.setFieldsValue({ monto: montoReembolso });
-        setMonto(montoReembolso || 0);
+        unitPrice = tipoTransaccion === 'EGRESO' ? repuesto.precioVenta : repuesto.precioCosto;
       } else if (tipoTransaccion === 'EGRESO') {
-        form.setFieldsValue({ monto: repuesto.precioCosto });
-        setMonto(repuesto.precioCosto || 0);
+        unitPrice = repuesto.precioCosto;
       } else if (tipoTransaccion === 'INGRESO') {
-        form.setFieldsValue({ monto: repuesto.precioVenta });
-        setMonto(repuesto.precioVenta || 0);
+        unitPrice = repuesto.precioVenta;
+      }
+      
+      const cantidad = form.getFieldValue('cantidad_repuesto') || 1;
+      form.setFieldsValue({ monto: unitPrice * cantidad });
+      setMonto(unitPrice * cantidad || 0);
+    }
+  };
+
+  const handleCantidadRepuestoChange = (value) => {
+    const repuestoId = form.getFieldValue('repuesto_id');
+    if (repuestoId) {
+      const repuesto = repuestos.find(r => r.id === repuestoId);
+      if (repuesto) {
+        let unitPrice = 0;
+        if (esReembolso) {
+          unitPrice = tipoTransaccion === 'EGRESO' ? repuesto.precioVenta : repuesto.precioCosto;
+        } else if (tipoTransaccion === 'EGRESO') {
+          unitPrice = repuesto.precioCosto;
+        } else if (tipoTransaccion === 'INGRESO') {
+          unitPrice = repuesto.precioVenta;
+        }
+        form.setFieldsValue({ monto: unitPrice * (value || 1) });
+        setMonto(unitPrice * (value || 1) || 0);
       }
     }
+  };
+
+  const getRepuestoMaxStock = () => {
+    const repuestoId = form.getFieldValue('repuesto_id');
+    if (repuestoId) {
+      const repuesto = repuestos.find(r => r.id === repuestoId);
+      if (repuesto) {
+        if (repuesto.estado === 'STOCK') {
+          return repuesto.cantidad;
+        }
+      }
+    }
+    return undefined;
   };
 
 
@@ -863,6 +920,31 @@ const NuevaTransaccion = () => {
                     </Select>
                   </Form.Item>
                   
+                  {/* Cantidad de Repuesto Condicional (Ingreso) */}
+                  <Form.Item
+                    noStyle
+                    shouldUpdate={(prevValues, currentValues) => prevValues.repuesto_id !== currentValues.repuesto_id}
+                  >
+                    {({ getFieldValue }) =>
+                      getFieldValue('repuesto_id') ? (
+                        <Form.Item
+                          name="cantidad_repuesto"
+                          label="Cantidad a mover"
+                          initialValue={1}
+                          rules={[{ required: true, message: 'Ingrese la cantidad' }]}
+                        >
+                          <InputNumber
+                            min={1}
+                            max={getRepuestoMaxStock()}
+                            onChange={handleCantidadRepuestoChange}
+                            style={{ width: '100%' }}
+                            placeholder="Ej. 1"
+                          />
+                        </Form.Item>
+                      ) : null
+                    }
+                  </Form.Item>
+                  
                   <Form.Item
                     name="descripcion"
                     label="Descripción"
@@ -1097,6 +1179,31 @@ const NuevaTransaccion = () => {
                         </Option>
                       ))}
                     </Select>
+                  </Form.Item>
+                  
+                  {/* Cantidad de Repuesto Condicional (Egreso) */}
+                  <Form.Item
+                    noStyle
+                    shouldUpdate={(prevValues, currentValues) => prevValues.repuesto_id !== currentValues.repuesto_id}
+                  >
+                    {({ getFieldValue }) =>
+                      getFieldValue('repuesto_id') ? (
+                        <Form.Item
+                          name="cantidad_repuesto"
+                          label="Cantidad a mover"
+                          initialValue={1}
+                          rules={[{ required: true, message: 'Ingrese la cantidad' }]}
+                        >
+                          <InputNumber
+                            min={1}
+                            max={getRepuestoMaxStock()}
+                            onChange={handleCantidadRepuestoChange}
+                            style={{ width: '100%' }}
+                            placeholder="Ej. 1"
+                          />
+                        </Form.Item>
+                      ) : null
+                    }
                   </Form.Item>
                   
                   <Form.Item

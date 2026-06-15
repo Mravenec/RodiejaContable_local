@@ -161,6 +161,7 @@ public class TransaccionesFinancierasService {
         existingTransaccion.setEmpleadoId(transaccion.getEmpleadoId());
         existingTransaccion.setVehiculoId(transaccion.getVehiculoId());
         existingTransaccion.setRepuestoId(transaccion.getRepuestoId());
+        existingTransaccion.setCantidadRepuesto(transaccion.getCantidadRepuesto() != null ? transaccion.getCantidadRepuesto() : existingTransaccion.getCantidadRepuesto());
         existingTransaccion.setGeneracionId(transaccion.getGeneracionId());
         existingTransaccion.setMonto(transaccion.getMonto() != null ? transaccion.getMonto() : existingTransaccion.getMonto());
         existingTransaccion.setComisionEmpleado(transaccion.getComisionEmpleado());
@@ -251,6 +252,7 @@ public class TransaccionesFinancierasService {
         reembolso.setEmpleadoId(original.getEmpleadoId());
         reembolso.setVehiculoId(original.getVehiculoId());
         reembolso.setRepuestoId(original.getRepuestoId());
+        reembolso.setCantidadRepuesto(original.getCantidadRepuesto());
         reembolso.setGeneracionId(original.getGeneracionId());
         reembolso.setMonto(original.getMonto());
         reembolso.setComisionEmpleado(original.getComisionEmpleado() != null ? original.getComisionEmpleado().negate() : BigDecimal.ZERO);

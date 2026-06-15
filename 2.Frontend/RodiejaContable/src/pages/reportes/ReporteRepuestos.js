@@ -17,6 +17,7 @@ import inventarioService from '../../api/inventario';
 import vehiculosService from '../../api/vehiculos';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import finanzasService from '../../api/finanzas';
+import { usePartesVehiculo } from '../../hooks';
 import * as XLSX from 'xlsx';
 
 const { Title, Text } = Typography;
@@ -50,7 +51,9 @@ const ReporteRepuestos = () => {
   const [movimientos, setMovimientos] = useState([]);
   const [loadingMovimientos, setLoadingMovimientos] = useState(false);
 
-  const [repuestosFiltrados, setRepuestosFiltrados] = useState([]);
+
+  // Cargar partes de vehículo desde API (para el selector de filtros)
+  const { data: partesVehiculo = [] } = usePartesVehiculo();
 
 
   const loading = loadingMovimientos || loadingVehiculos;
@@ -121,7 +124,12 @@ const ReporteRepuestos = () => {
       const vehiculoOrigenMap = new Map();
       repuestosRes.forEach(r => {
         const nombreRepuesto = r.descripcion || r.parteVehiculo || r.codigo;
-        const info = { nombre: nombreRepuesto, parteVehiculo: r.parteVehiculo, estado: r.estado };
+        const info = {
+          nombre: nombreRepuesto,
+          parteVehiculo: r.parteVehiculo,
+          parteVehiculoId: r.parteVehiculoId,
+          estado: r.estado
+        };
         const vehRef = r.vehiculoOrigenId || r.vehiculoId || r.codigoVehiculo;
         const vehRefStr = vehRef ? vehRef.toString() : null;
 
@@ -203,7 +211,7 @@ const ReporteRepuestos = () => {
           if (t.codigoRepuesto) repuestoInfo = repuestosMap.get(t.codigoRepuesto);
           else if (t.repuestoId) repuestoInfo = repuestosMap.get(t.repuestoId.toString());
 
-          if (!repuestoInfo || repuestoInfo.parteVehiculo !== filtros.parteVehiculo) {
+          if (!repuestoInfo || repuestoInfo.parteVehiculoId !== filtros.parteVehiculo) {
             return false;
           }
         }
@@ -279,7 +287,10 @@ const ReporteRepuestos = () => {
       ordenados.forEach(t => {
         const monto = parseFloat(t.monto || 0);
         const categoria = (t.categoria || '').toUpperCase();
-        const comision = parseFloat(t.comisionEmpleado || 0);
+
+        // Determinar si la comisión fue pagada
+        const estaPagada = t.comisionPagada === true || t.comisionPagada === 1 || t.comisionPagada === '1';
+        const comision = estaPagada ? parseFloat(t.comisionEmpleado || 0) : 0;
 
         let fechaObj = null;
         if (Array.isArray(t.fecha)) {
@@ -333,27 +344,7 @@ const ReporteRepuestos = () => {
         return a.monthIndex - b.monthIndex;
       });
 
-      // LÓGICA PARA REPUESTOS (PIEZAS FÍSICAS)
-      const repuestosList = repuestosRes.filter(r => {
-        if (filtros.vehiculoDesarmadoId) {
-          const targetVehiculoId = parseInt(filtros.vehiculoDesarmadoId, 10);
-          if (parseInt(r.vehiculoOrigenId, 10) !== targetVehiculoId && parseInt(r.vehiculoId, 10) !== targetVehiculoId) {
-            return false;
-          }
-        }
-        if (filtros.parteVehiculo && r.parteVehiculo !== filtros.parteVehiculo) return false;
-        if (filtros.estadoRepuesto && r.estado !== filtros.estadoRepuesto) return false;
-        if (filtros.busqueda) {
-          const q = filtros.busqueda.toLowerCase();
-          const matches = (r.codigo || '').toLowerCase().includes(q) ||
-            (r.descripcion || '').toLowerCase().includes(q) ||
-            (r.parteVehiculo || '').toLowerCase().includes(q);
-          if (!matches) return false;
-        }
-        return true;
-      });
 
-      setRepuestosFiltrados(repuestosList);
       setData(processedData);
       setTotales({
         ingresos: tIngresos,
@@ -393,32 +384,8 @@ const ReporteRepuestos = () => {
     });
   };
 
-  // Opciones completas para parte del vehículo
-  const getParteOptions = () => [
-    { value: 'MOTOR', label: 'Motor' },
-    { value: 'CHASIS', label: 'Chasis' },
-    { value: 'CARROCERIA', label: 'Carrocería' },
-    { value: 'COMPUTADORA', label: 'Computadora' },
-    { value: 'CAJA_DE_CAMBIO', label: 'Caja de Cambio' },
-    { value: 'AIRBAGS_O_BOLSAS_DE_AIRE', label: 'Airbags o Bolsas de Aire' },
-    { value: 'EJES_Y_DIFERENCIA', label: 'Ejes y Diferencia' },
-    { value: 'SUSPENSION_Y_AMORTIGUAMIENTO', label: 'Suspensión y Amortiguamiento' },
-    { value: 'EMBRAGUE', label: 'Embrague' },
-    { value: 'SISTEMA_DE_FRENOS', label: 'Sistema de Frenos' },
-    { value: 'TANQUE_DE_GASOLINA', label: 'Tanque de Gasolina' },
-    { value: 'DISTRIBUIDOR', label: 'Distribuidor' },
-    { value: 'RADIADOR', label: 'Radiador' },
-    { value: 'VENTILADOR', label: 'Ventilador' },
-    { value: 'BOMBA_DE_AGUA', label: 'Bomba de Agua' },
-    { value: 'BATERIA', label: 'Batería' },
-    { value: 'AROS_Y_LLANTAS', label: 'Aros y Llantas' },
-    { value: 'SISTEMA_DE_DIRECCION', label: 'Sistema de Dirección' },
-    { value: 'SISTEMA_ELECTRICO', label: 'Sistema Eléctrico' },
-    { value: 'FUSIBLES', label: 'Fusibles' },
-    { value: 'ALTERNADOR', label: 'Alternador' },
-    { value: 'VALVULAS_DE_ESCAPE', label: 'Válvulas de Escape' },
-    { value: 'TURBO', label: 'Turbo' }
-  ];
+  // Opciones completas para parte del vehículo - Ahora dinámicas desde usePartesVehiculo
+  const getParteOptions = () => partesVehiculo.map(p => ({ value: p.id, label: p.nombre }));
 
   const exportarAExcel = () => {
     if (data.length === 0) {
@@ -574,7 +541,7 @@ const ReporteRepuestos = () => {
             icon={<ToolOutlined />}
             onClick={() => navigate(`/inventario/nuevo?vehiculoId=${record.id}`)}
           >
-            Extraer Piezas
+            Extraer
           </Button>
         </Tooltip>
       )
@@ -678,40 +645,6 @@ const ReporteRepuestos = () => {
     }
   ];
 
-  const columnasPiezas = [
-    {
-      title: 'Código / Detalle',
-      key: 'codigo',
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <Text strong>{record.codigo}</Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>{record.descripcion}</Text>
-        </Space>
-      )
-    },
-    {
-      title: 'Tipo de Parte',
-      dataIndex: 'parteVehiculo',
-      key: 'parteVehiculo',
-      render: (text) => <Tag color="blue">{text || 'N/A'}</Tag>
-    },
-    {
-      title: 'Estado',
-      dataIndex: 'estado',
-      key: 'estado',
-      render: (estado) => {
-        const colors = { 'STOCK': 'green', 'VENDIDO': 'red', 'AGOTADO': 'orange', 'DAÑADO': 'volcano', 'USADO_INTERNO': 'purple' };
-        return <Tag color={colors[estado] || 'default'}>{estado}</Tag>;
-      }
-    },
-    {
-      title: 'Precio Venta',
-      dataIndex: 'precioVenta',
-      key: 'precioVenta',
-      align: 'right',
-      render: (val) => <Text strong type="success">₡{new Intl.NumberFormat('es-CR').format(val || 0)}</Text>
-    }
-  ];
 
   return (
     <Content style={{ padding: '0 24px', minHeight: 280 }}>
@@ -895,7 +828,7 @@ const ReporteRepuestos = () => {
         <Col xs={24} sm={12} md={6}>
           <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
             <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Comisiones Totales</span>}
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Comisiones (Pagadas)</span>}
               value={totales.comisiones}
               precision={2}
               prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
@@ -995,33 +928,6 @@ const ReporteRepuestos = () => {
                     pagination={{ defaultPageSize: 10 }}
                     size="middle"
                     locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No hay vehículos en estado DESARMADO" /> }}
-                  />
-                </Card>
-              </div>
-            )
-          },
-          {
-            key: '3',
-            label: (
-              <span style={{ fontSize: '16px', fontWeight: 500 }}>
-                <ToolOutlined /> Inventario Físico (Piezas)
-              </span>
-            ),
-            children: (
-              <div style={{ marginTop: '8px' }}>
-                <Card
-                  bordered={false}
-                  title={<span style={{ fontWeight: 600, color: '#262626' }}>Listado de Repuestos Extraídos y Patrimonio</span>}
-                  style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-                >
-                  <Table
-                    columns={columnasPiezas}
-                    dataSource={repuestosFiltrados}
-                    rowKey="id"
-                    loading={loadingMovimientos}
-                    pagination={{ defaultPageSize: 10, showSizeChanger: true }}
-                    size="middle"
-                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No hay repuestos físicos que coincidan con el filtro" /> }}
                   />
                 </Card>
               </div>

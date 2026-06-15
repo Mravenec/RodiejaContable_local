@@ -7,7 +7,7 @@ import {
 import {
   BarChartOutlined, ReloadOutlined,
   CarOutlined, UnorderedListOutlined,
-  DashboardOutlined, 
+  DashboardOutlined,
   FilterOutlined, FileExcelOutlined,
   ArrowUpOutlined, ArrowDownOutlined,
   CalendarOutlined
@@ -28,7 +28,7 @@ const ReporteVehiculos = () => {
   // Estados
   const [data, setData] = useState([]);
   const [vehiculosListado, setVehiculosListado] = useState([]);
-  
+
   const [filtros, setFiltros] = useState({
     mes: moment().month() + 1,
     anio: moment().year(),
@@ -58,7 +58,7 @@ const ReporteVehiculos = () => {
     try {
       setLoadingMovimientos(true);
       setLoadingVehiculos(true);
-      
+
       const params = {};
       if (filtros.mes && filtros.anio) {
         const fechaBase = moment().year(filtros.anio).month(filtros.mes - 1);
@@ -76,11 +76,11 @@ const ReporteVehiculos = () => {
 
       // 1. Filtrar los vehículos que NO sean desarmados
       const vehiculosNoDesarmados = (vehiculosRes || []).filter(v => v.estado !== 'DESARMADO');
-      
+
       const vehiculosIdsValid = new Set(vehiculosNoDesarmados.map(v => v.id));
       const vehiculosCodigosValid = new Set(vehiculosNoDesarmados.map(v => v.codigoVehiculo).filter(Boolean));
       const vehiculosMap = new Map();
-      
+
       vehiculosNoDesarmados.forEach(v => {
         const genStr = typeof v.generacion === 'string' ? v.generacion : (v.generacion?.nombre || v.generacionNombre || '');
         const nombreVehiculo = `${v.marca || v.marcaNombre || ''} ${v.modelo || ''} ${genStr}`.trim();
@@ -96,16 +96,16 @@ const ReporteVehiculos = () => {
         if (filtros.estadoVehiculo && v.estado !== filtros.estadoVehiculo) return false;
         if (filtros.busqueda) {
           const q = filtros.busqueda.toLowerCase();
-          const matches = (v.codigoVehiculo || '').toLowerCase().includes(q) || 
-                          (v.marca || v.marcaNombre || '').toLowerCase().includes(q) ||
-                          (v.modelo || '').toLowerCase().includes(q);
+          const matches = (v.codigoVehiculo || '').toLowerCase().includes(q) ||
+            (v.marca || v.marcaNombre || '').toLowerCase().includes(q) ||
+            (v.modelo || '').toLowerCase().includes(q);
           if (!matches) return false;
         }
         return true;
       });
       setVehiculosFiltrados(vehiculosList);
       setVehiculosListado(vehiculosNoDesarmados);
-      
+
       // Subset of valid IDs based on filters to apply to transactions
       const filteredVehiculosIds = new Set(vehiculosList.map(v => v.id));
       const filteredVehiculosCodigos = new Set(vehiculosList.map(v => v.codigoVehiculo).filter(Boolean));
@@ -115,11 +115,11 @@ const ReporteVehiculos = () => {
         // Verificar si la transacción pertenece a uno de los vehículos permitidos
         const matchesVehiculoId = t.vehiculoId != null && vehiculosIdsValid.has(parseInt(t.vehiculoId, 10));
         const matchesVehiculoCodigo = t.codigoVehiculo != null && vehiculosCodigosValid.has(t.codigoVehiculo);
-        
+
         if (!(matchesVehiculoId || matchesVehiculoCodigo)) {
           return false; // Ignorar transacciones que no son de vehículos válidos (ej. repuestos puros, desarmados)
         }
-        
+
         // Aplicar filtros de la UI sobre la transacción (busqueda)
         if (filtros.busqueda && filtros.busqueda.trim() !== '') {
           const query = filtros.busqueda.toLowerCase();
@@ -131,12 +131,12 @@ const ReporteVehiculos = () => {
             return false;
           }
         }
-        
+
         // Aplicar filtro de generacion/estado usando los sets filtrados
         if (filtros.vehiculoId || filtros.estadoVehiculo) {
-            const isFilteredId = t.vehiculoId != null && filteredVehiculosIds.has(parseInt(t.vehiculoId, 10));
-            const isFilteredCodigo = t.codigoVehiculo != null && filteredVehiculosCodigos.has(t.codigoVehiculo);
-            if (!(isFilteredId || isFilteredCodigo)) return false;
+          const isFilteredId = t.vehiculoId != null && filteredVehiculosIds.has(parseInt(t.vehiculoId, 10));
+          const isFilteredCodigo = t.codigoVehiculo != null && filteredVehiculosCodigos.has(t.codigoVehiculo);
+          if (!(isFilteredId || isFilteredCodigo)) return false;
         }
 
         return true;
@@ -175,7 +175,10 @@ const ReporteVehiculos = () => {
       ordenados.forEach(t => {
         const monto = parseFloat(t.monto || 0);
         const categoria = (t.categoria || t.tipoTransaccion || '').toUpperCase();
-        const comision = parseFloat(t.comisionEmpleado || 0);
+
+        // Determinar si la comisión fue pagada
+        const estaPagada = t.comisionPagada === true || t.comisionPagada === 1 || t.comisionPagada === '1';
+        const comision = estaPagada ? parseFloat(t.comisionEmpleado || 0) : 0;
 
         let fechaObj = null;
         if (Array.isArray(t.fecha)) {
@@ -622,7 +625,7 @@ const ReporteVehiculos = () => {
                       const estado = vehiculo.estado || 'SIN_ESTADO';
                       const marca = vehiculo.marca || vehiculo.marcaNombre || 'Marca N/A';
                       const modelo = vehiculo.modelo || 'Modelo N/A';
-                      
+
                       let estadoAmigable = estado;
                       if (estado === 'DESARMADO') {
                         estadoAmigable = 'Para repuestos';
@@ -631,9 +634,9 @@ const ReporteVehiculos = () => {
                       } else if (estado !== 'SIN_ESTADO') {
                         estadoAmigable = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
                       }
-                      
+
                       const displayText = `${codigo} — ${marca} ${modelo} ${anio} (${estadoAmigable})`;
-                      
+
                       return (
                         <Option key={vehiculo.id} value={vehiculo.id} title={displayText}>
                           {displayText}
@@ -696,7 +699,7 @@ const ReporteVehiculos = () => {
         <Col xs={24} sm={12} md={6}>
           <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
             <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Comisiones Totales</span>}
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Comisiones (Pagadas)</span>}
               value={totales.comisiones}
               precision={2}
               prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}

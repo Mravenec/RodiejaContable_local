@@ -169,9 +169,9 @@ const Finanzas = () => {
         return 'Fecha inválida';
       },
       sorter: (a, b) => {
-        const dateA = Array.isArray(a.fecha) ? new Date(a.fecha[0], a.fecha[1] - 1, a.fecha[2]) : new Date(0);
-        const dateB = Array.isArray(b.fecha) ? new Date(b.fecha[0], b.fecha[1] - 1, b.fecha[2]) : new Date(0);
-        return dateB - dateA; // Invertido: más reciente primero
+        const dateA = Array.isArray(a.fecha) ? new Date(a.fecha[0], a.fecha[1] - 1, a.fecha[2]).getTime() : new Date(a.fecha || 0).getTime();
+        const dateB = Array.isArray(b.fecha) ? new Date(b.fecha[0], b.fecha[1] - 1, b.fecha[2]).getTime() : new Date(b.fecha || 0).getTime();
+        return dateA - dateB; // Ant Design Table automatically reverses this for 'descend'
       },
       defaultSortOrder: 'descend', // Ordenar descendente por defecto
     },

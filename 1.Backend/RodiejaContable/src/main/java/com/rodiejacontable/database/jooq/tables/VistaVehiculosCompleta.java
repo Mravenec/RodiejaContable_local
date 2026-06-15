@@ -140,7 +140,7 @@ public class VistaVehiculosCompleta extends TableImpl<VistaVehiculosCompletaReco
      * The column
      * <code>sistema_vehicular.vista_vehiculos_completa.combustible</code>.
      */
-    public final TableField<VistaVehiculosCompletaRecord, VistaVehiculosCompletaCombustible> COMBUSTIBLE = createField(DSL.name("combustible"), SQLDataType.VARCHAR(8).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaVehiculosCompletaCombustible.class), this, "");
+    public final TableField<VistaVehiculosCompletaRecord, VistaVehiculosCompletaCombustible> COMBUSTIBLE = createField(DSL.name("combustible"), SQLDataType.VARCHAR(9).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaVehiculosCompletaCombustible.class), this, "");
 
     /**
      * The column

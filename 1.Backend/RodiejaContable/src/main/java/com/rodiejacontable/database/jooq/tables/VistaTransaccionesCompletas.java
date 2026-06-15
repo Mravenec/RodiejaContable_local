@@ -15,11 +15,11 @@ import java.util.function.Function;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
-import org.jooq.Function17;
+import org.jooq.Function18;
 import org.jooq.Name;
 import org.jooq.Record;
 import org.jooq.Records;
-import org.jooq.Row17;
+import org.jooq.Row18;
 import org.jooq.Schema;
 import org.jooq.SelectField;
 import org.jooq.Table;
@@ -102,6 +102,12 @@ public class VistaTransaccionesCompletas extends TableImpl<VistaTransaccionesCom
 
     /**
      * The column
+     * <code>sistema_vehicular.vista_transacciones_completas.comision_pagada</code>.
+     */
+    public final TableField<VistaTransaccionesCompletasRecord, Byte> COMISION_PAGADA = createField(DSL.name("comision_pagada"), SQLDataType.TINYINT.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.TINYINT)), this, "");
+
+    /**
+     * The column
      * <code>sistema_vehicular.vista_transacciones_completas.tipo_transaccion</code>.
      */
     public final TableField<VistaTransaccionesCompletasRecord, String> TIPO_TRANSACCION = createField(DSL.name("tipo_transaccion"), SQLDataType.VARCHAR(50).nullable(false), this, "");
@@ -159,7 +165,7 @@ public class VistaTransaccionesCompletas extends TableImpl<VistaTransaccionesCom
     }
 
     private VistaTransaccionesCompletas(Name alias, Table<VistaTransaccionesCompletasRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_transacciones_completas` as select `tf`.`id` AS `id`,`tf`.`codigo_transaccion` AS `codigo_transaccion`,`tf`.`fecha` AS `fecha`,`tf`.`monto` AS `monto`,`tf`.`comision_empleado` AS `comision_empleado`,`tf`.`descripcion` AS `descripcion`,`tf`.`referencia` AS `referencia`,`tf`.`estado` AS `estado`,`tt`.`nombre` AS `tipo_transaccion`,`tt`.`categoria` AS `categoria`,`e`.`nombre` AS `empleado`,`v`.`codigo_vehiculo` AS `codigo_vehiculo`,`ir`.`codigo_repuesto` AS `codigo_repuesto`,`vvc`.`marca` AS `marca`,`vvc`.`modelo` AS `modelo`,`vvc`.`generacion` AS `generacion`,`vvc`.`clave_generacion` AS `clave_generacion` from (((((`sistema_vehicular`.`transacciones_financieras` `tf` join `sistema_vehicular`.`tipos_transacciones` `tt` on(`tf`.`tipo_transaccion_id` = `tt`.`id`)) left join `sistema_vehicular`.`empleados` `e` on(`tf`.`empleado_id` = `e`.`id`)) left join `sistema_vehicular`.`vehiculos` `v` on(`tf`.`vehiculo_id` = `v`.`id`)) left join `sistema_vehicular`.`inventario_repuestos` `ir` on(`tf`.`repuesto_id` = `ir`.`id`)) left join `sistema_vehicular`.`vista_vehiculos_completa` `vvc` on(`vvc`.`id` = coalesce(`tf`.`vehiculo_id`,`ir`.`vehiculo_origen_id`))) where `tf`.`activo` = 1"));
+        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_transacciones_completas` as select `tf`.`id` AS `id`,`tf`.`codigo_transaccion` AS `codigo_transaccion`,`tf`.`fecha` AS `fecha`,`tf`.`monto` AS `monto`,`tf`.`comision_empleado` AS `comision_empleado`,`tf`.`descripcion` AS `descripcion`,`tf`.`referencia` AS `referencia`,`tf`.`estado` AS `estado`,`fn_comision_pagada`(`tf`.`empleado_id`,`tf`.`fecha`) AS `comision_pagada`,`tt`.`nombre` AS `tipo_transaccion`,`tt`.`categoria` AS `categoria`,`e`.`nombre` AS `empleado`,`v`.`codigo_vehiculo` AS `codigo_vehiculo`,`ir`.`codigo_repuesto` AS `codigo_repuesto`,`vvc`.`marca` AS `marca`,`vvc`.`modelo` AS `modelo`,`vvc`.`generacion` AS `generacion`,`vvc`.`clave_generacion` AS `clave_generacion` from (((((`sistema_vehicular`.`transacciones_financieras` `tf` join `sistema_vehicular`.`tipos_transacciones` `tt` on(`tf`.`tipo_transaccion_id` = `tt`.`id`)) left join `sistema_vehicular`.`empleados` `e` on(`tf`.`empleado_id` = `e`.`id`)) left join `sistema_vehicular`.`vehiculos` `v` on(`tf`.`vehiculo_id` = `v`.`id`)) left join `sistema_vehicular`.`inventario_repuestos` `ir` on(`tf`.`repuesto_id` = `ir`.`id`)) left join `sistema_vehicular`.`vista_vehiculos_completa` `vvc` on(`vvc`.`id` = coalesce(`tf`.`vehiculo_id`,`ir`.`vehiculo_origen_id`))) where `tf`.`activo` = 1"));
     }
 
     /**
@@ -237,18 +243,18 @@ public class VistaTransaccionesCompletas extends TableImpl<VistaTransaccionesCom
     }
 
     // -------------------------------------------------------------------------
-    // Row17 type methods
+    // Row18 type methods
     // -------------------------------------------------------------------------
 
     @Override
-    public Row17<Integer, String, LocalDate, BigDecimal, BigDecimal, String, String, VistaTransaccionesCompletasEstado, String, VistaTransaccionesCompletasCategoria, String, String, String, String, String, String, String> fieldsRow() {
-        return (Row17) super.fieldsRow();
+    public Row18<Integer, String, LocalDate, BigDecimal, BigDecimal, String, String, VistaTransaccionesCompletasEstado, Byte, String, VistaTransaccionesCompletasCategoria, String, String, String, String, String, String, String> fieldsRow() {
+        return (Row18) super.fieldsRow();
     }
 
     /**
      * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
      */
-    public <U> SelectField<U> mapping(Function17<? super Integer, ? super String, ? super LocalDate, ? super BigDecimal, ? super BigDecimal, ? super String, ? super String, ? super VistaTransaccionesCompletasEstado, ? super String, ? super VistaTransaccionesCompletasCategoria, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? extends U> from) {
+    public <U> SelectField<U> mapping(Function18<? super Integer, ? super String, ? super LocalDate, ? super BigDecimal, ? super BigDecimal, ? super String, ? super String, ? super VistaTransaccionesCompletasEstado, ? super Byte, ? super String, ? super VistaTransaccionesCompletasCategoria, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? extends U> from) {
         return convertFrom(Records.mapping(from));
     }
 
@@ -256,7 +262,7 @@ public class VistaTransaccionesCompletas extends TableImpl<VistaTransaccionesCom
      * Convenience mapping calling {@link SelectField#convertFrom(Class,
      * Function)}.
      */
-    public <U> SelectField<U> mapping(Class<U> toType, Function17<? super Integer, ? super String, ? super LocalDate, ? super BigDecimal, ? super BigDecimal, ? super String, ? super String, ? super VistaTransaccionesCompletasEstado, ? super String, ? super VistaTransaccionesCompletasCategoria, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? extends U> from) {
+    public <U> SelectField<U> mapping(Class<U> toType, Function18<? super Integer, ? super String, ? super LocalDate, ? super BigDecimal, ? super BigDecimal, ? super String, ? super String, ? super VistaTransaccionesCompletasEstado, ? super Byte, ? super String, ? super VistaTransaccionesCompletasCategoria, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? extends U> from) {
         return convertFrom(toType, Records.mapping(from));
     }
 }

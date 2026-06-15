@@ -35,7 +35,7 @@ import { getTiposTransacciones } from '../../api/transacciones';
 import { generacionesAPI } from '../../api/generaciones';
 import { formatCurrency } from '../../utils/formatters';
 import api from '../../api/axios';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 
 // Servicio para repuestos
@@ -222,15 +222,19 @@ const EditarVehiculo = () => {
       const imagenUrl = vehiculo.imagenUrl || vehiculo.imagen_url || '';
 
       // Handle date parsing more robustly
-      let fechaIngresoMoment = null;
-      let fechaVentaMoment = null;
+      let fechaIngresoDayjs = null;
+      let fechaVentaDayjs = null;
 
       if (vehiculo.fechaIngreso) {
         try {
-          fechaIngresoMoment = moment(vehiculo.fechaIngreso);
-          if (!fechaIngresoMoment.isValid()) {
-            console.warn('Invalid fechaIngreso, trying alternative formats');
-            fechaIngresoMoment = moment(vehiculo.fechaIngreso, ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY/MM/DD']);
+          if (Array.isArray(vehiculo.fechaIngreso)) {
+            const [y, m, d] = vehiculo.fechaIngreso;
+            fechaIngresoDayjs = dayjs(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, 'YYYY-MM-DD');
+          } else {
+            fechaIngresoDayjs = dayjs(vehiculo.fechaIngreso);
+            if (!fechaIngresoDayjs.isValid()) {
+              fechaIngresoDayjs = dayjs(vehiculo.fechaIngreso, ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY/MM/DD']);
+            }
           }
         } catch (error) {
           console.error('Error parsing fechaIngreso:', error, 'Raw value:', vehiculo.fechaIngreso);
@@ -239,10 +243,14 @@ const EditarVehiculo = () => {
 
       if (vehiculo.fechaVenta) {
         try {
-          fechaVentaMoment = moment(vehiculo.fechaVenta);
-          if (!fechaVentaMoment.isValid()) {
-            console.warn('Invalid fechaVenta, trying alternative formats');
-            fechaVentaMoment = moment(vehiculo.fechaVenta, ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY/MM/DD']);
+          if (Array.isArray(vehiculo.fechaVenta)) {
+            const [y, m, d] = vehiculo.fechaVenta;
+            fechaVentaDayjs = dayjs(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, 'YYYY-MM-DD');
+          } else {
+            fechaVentaDayjs = dayjs(vehiculo.fechaVenta);
+            if (!fechaVentaDayjs.isValid()) {
+              fechaVentaDayjs = dayjs(vehiculo.fechaVenta, ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY/MM/DD']);
+            }
           }
         } catch (error) {
           console.error('Error parsing fechaVenta:', error, 'Raw value:', vehiculo.fechaVenta);
@@ -258,8 +266,8 @@ const EditarVehiculo = () => {
         costoGrua: vehiculo.costoGrua || 0,
         comisiones: vehiculo.comisiones || 0,
         inversionTotal: vehiculo.inversionTotal || 0,
-        fechaIngreso: fechaIngresoMoment,
-        fechaVenta: fechaVentaMoment,
+        fechaIngreso: fechaIngresoDayjs,
+        fechaVenta: fechaVentaDayjs,
         estado: vehiculo.estado || 'DISPONIBLE',
         precioVenta: vehiculo.precioVenta,
         activo: vehiculo.activo !== false,
@@ -275,8 +283,8 @@ const EditarVehiculo = () => {
         costoGrua: vehiculo.costoGrua || 0,
         comisiones: vehiculo.comisiones || 0,
         inversionTotal: vehiculo.inversionTotal || 0,
-        fechaIngreso: fechaIngresoMoment,
-        fechaVenta: fechaVentaMoment,
+        fechaIngreso: fechaIngresoDayjs,
+        fechaVenta: fechaVentaDayjs,
         estado: vehiculo.estado || 'DISPONIBLE',
         precioVenta: vehiculo.precioVenta,
         activo: vehiculo.activo !== false,

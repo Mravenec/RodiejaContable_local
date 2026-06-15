@@ -12,8 +12,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import org.jooq.Field;
-import org.jooq.Record17;
-import org.jooq.Row17;
+import org.jooq.Record18;
+import org.jooq.Row18;
 import org.jooq.impl.TableRecordImpl;
 
 
@@ -21,7 +21,7 @@ import org.jooq.impl.TableRecordImpl;
  * VIEW
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
-public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTransaccionesCompletasRecord> implements Record17<Integer, String, LocalDate, BigDecimal, BigDecimal, String, String, VistaTransaccionesCompletasEstado, String, VistaTransaccionesCompletasCategoria, String, String, String, String, String, String, String> {
+public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTransaccionesCompletasRecord> implements Record18<Integer, String, LocalDate, BigDecimal, BigDecimal, String, String, VistaTransaccionesCompletasEstado, Byte, String, VistaTransaccionesCompletasCategoria, String, String, String, String, String, String, String> {
 
     private static final long serialVersionUID = 1L;
 
@@ -163,10 +163,27 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
 
     /**
      * Setter for
+     * <code>sistema_vehicular.vista_transacciones_completas.comision_pagada</code>.
+     */
+    public VistaTransaccionesCompletasRecord setComisionPagada(Byte value) {
+        set(8, value);
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_transacciones_completas.comision_pagada</code>.
+     */
+    public Byte getComisionPagada() {
+        return (Byte) get(8);
+    }
+
+    /**
+     * Setter for
      * <code>sistema_vehicular.vista_transacciones_completas.tipo_transaccion</code>.
      */
     public VistaTransaccionesCompletasRecord setTipoTransaccion(String value) {
-        set(8, value);
+        set(9, value);
         return this;
     }
 
@@ -175,7 +192,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.tipo_transaccion</code>.
      */
     public String getTipoTransaccion() {
-        return (String) get(8);
+        return (String) get(9);
     }
 
     /**
@@ -183,7 +200,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.categoria</code>.
      */
     public VistaTransaccionesCompletasRecord setCategoria(VistaTransaccionesCompletasCategoria value) {
-        set(9, value);
+        set(10, value);
         return this;
     }
 
@@ -192,7 +209,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.categoria</code>.
      */
     public VistaTransaccionesCompletasCategoria getCategoria() {
-        return (VistaTransaccionesCompletasCategoria) get(9);
+        return (VistaTransaccionesCompletasCategoria) get(10);
     }
 
     /**
@@ -200,7 +217,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.empleado</code>.
      */
     public VistaTransaccionesCompletasRecord setEmpleado(String value) {
-        set(10, value);
+        set(11, value);
         return this;
     }
 
@@ -209,7 +226,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.empleado</code>.
      */
     public String getEmpleado() {
-        return (String) get(10);
+        return (String) get(11);
     }
 
     /**
@@ -217,7 +234,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.codigo_vehiculo</code>.
      */
     public VistaTransaccionesCompletasRecord setCodigoVehiculo(String value) {
-        set(11, value);
+        set(12, value);
         return this;
     }
 
@@ -226,7 +243,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.codigo_vehiculo</code>.
      */
     public String getCodigoVehiculo() {
-        return (String) get(11);
+        return (String) get(12);
     }
 
     /**
@@ -234,7 +251,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.codigo_repuesto</code>.
      */
     public VistaTransaccionesCompletasRecord setCodigoRepuesto(String value) {
-        set(12, value);
+        set(13, value);
         return this;
     }
 
@@ -243,7 +260,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.codigo_repuesto</code>.
      */
     public String getCodigoRepuesto() {
-        return (String) get(12);
+        return (String) get(13);
     }
 
     /**
@@ -251,7 +268,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.marca</code>.
      */
     public VistaTransaccionesCompletasRecord setMarca(String value) {
-        set(13, value);
+        set(14, value);
         return this;
     }
 
@@ -260,7 +277,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.marca</code>.
      */
     public String getMarca() {
-        return (String) get(13);
+        return (String) get(14);
     }
 
     /**
@@ -268,7 +285,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.modelo</code>.
      */
     public VistaTransaccionesCompletasRecord setModelo(String value) {
-        set(14, value);
+        set(15, value);
         return this;
     }
 
@@ -277,7 +294,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.modelo</code>.
      */
     public String getModelo() {
-        return (String) get(14);
+        return (String) get(15);
     }
 
     /**
@@ -285,7 +302,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.generacion</code>.
      */
     public VistaTransaccionesCompletasRecord setGeneracion(String value) {
-        set(15, value);
+        set(16, value);
         return this;
     }
 
@@ -294,7 +311,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.generacion</code>.
      */
     public String getGeneracion() {
-        return (String) get(15);
+        return (String) get(16);
     }
 
     /**
@@ -302,7 +319,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.clave_generacion</code>.
      */
     public VistaTransaccionesCompletasRecord setClaveGeneracion(String value) {
-        set(16, value);
+        set(17, value);
         return this;
     }
 
@@ -311,21 +328,21 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
      * <code>sistema_vehicular.vista_transacciones_completas.clave_generacion</code>.
      */
     public String getClaveGeneracion() {
-        return (String) get(16);
+        return (String) get(17);
     }
 
     // -------------------------------------------------------------------------
-    // Record17 type implementation
+    // Record18 type implementation
     // -------------------------------------------------------------------------
 
     @Override
-    public Row17<Integer, String, LocalDate, BigDecimal, BigDecimal, String, String, VistaTransaccionesCompletasEstado, String, VistaTransaccionesCompletasCategoria, String, String, String, String, String, String, String> fieldsRow() {
-        return (Row17) super.fieldsRow();
+    public Row18<Integer, String, LocalDate, BigDecimal, BigDecimal, String, String, VistaTransaccionesCompletasEstado, Byte, String, VistaTransaccionesCompletasCategoria, String, String, String, String, String, String, String> fieldsRow() {
+        return (Row18) super.fieldsRow();
     }
 
     @Override
-    public Row17<Integer, String, LocalDate, BigDecimal, BigDecimal, String, String, VistaTransaccionesCompletasEstado, String, VistaTransaccionesCompletasCategoria, String, String, String, String, String, String, String> valuesRow() {
-        return (Row17) super.valuesRow();
+    public Row18<Integer, String, LocalDate, BigDecimal, BigDecimal, String, String, VistaTransaccionesCompletasEstado, Byte, String, VistaTransaccionesCompletasCategoria, String, String, String, String, String, String, String> valuesRow() {
+        return (Row18) super.valuesRow();
     }
 
     @Override
@@ -369,47 +386,52 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
     }
 
     @Override
-    public Field<String> field9() {
+    public Field<Byte> field9() {
+        return VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS.COMISION_PAGADA;
+    }
+
+    @Override
+    public Field<String> field10() {
         return VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS.TIPO_TRANSACCION;
     }
 
     @Override
-    public Field<VistaTransaccionesCompletasCategoria> field10() {
+    public Field<VistaTransaccionesCompletasCategoria> field11() {
         return VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS.CATEGORIA;
     }
 
     @Override
-    public Field<String> field11() {
+    public Field<String> field12() {
         return VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS.EMPLEADO;
     }
 
     @Override
-    public Field<String> field12() {
+    public Field<String> field13() {
         return VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS.CODIGO_VEHICULO;
     }
 
     @Override
-    public Field<String> field13() {
+    public Field<String> field14() {
         return VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS.CODIGO_REPUESTO;
     }
 
     @Override
-    public Field<String> field14() {
+    public Field<String> field15() {
         return VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS.MARCA;
     }
 
     @Override
-    public Field<String> field15() {
+    public Field<String> field16() {
         return VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS.MODELO;
     }
 
     @Override
-    public Field<String> field16() {
+    public Field<String> field17() {
         return VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS.GENERACION;
     }
 
     @Override
-    public Field<String> field17() {
+    public Field<String> field18() {
         return VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS.CLAVE_GENERACION;
     }
 
@@ -454,47 +476,52 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
     }
 
     @Override
-    public String component9() {
+    public Byte component9() {
+        return getComisionPagada();
+    }
+
+    @Override
+    public String component10() {
         return getTipoTransaccion();
     }
 
     @Override
-    public VistaTransaccionesCompletasCategoria component10() {
+    public VistaTransaccionesCompletasCategoria component11() {
         return getCategoria();
     }
 
     @Override
-    public String component11() {
+    public String component12() {
         return getEmpleado();
     }
 
     @Override
-    public String component12() {
+    public String component13() {
         return getCodigoVehiculo();
     }
 
     @Override
-    public String component13() {
+    public String component14() {
         return getCodigoRepuesto();
     }
 
     @Override
-    public String component14() {
+    public String component15() {
         return getMarca();
     }
 
     @Override
-    public String component15() {
+    public String component16() {
         return getModelo();
     }
 
     @Override
-    public String component16() {
+    public String component17() {
         return getGeneracion();
     }
 
     @Override
-    public String component17() {
+    public String component18() {
         return getClaveGeneracion();
     }
 
@@ -539,47 +566,52 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
     }
 
     @Override
-    public String value9() {
+    public Byte value9() {
+        return getComisionPagada();
+    }
+
+    @Override
+    public String value10() {
         return getTipoTransaccion();
     }
 
     @Override
-    public VistaTransaccionesCompletasCategoria value10() {
+    public VistaTransaccionesCompletasCategoria value11() {
         return getCategoria();
     }
 
     @Override
-    public String value11() {
+    public String value12() {
         return getEmpleado();
     }
 
     @Override
-    public String value12() {
+    public String value13() {
         return getCodigoVehiculo();
     }
 
     @Override
-    public String value13() {
+    public String value14() {
         return getCodigoRepuesto();
     }
 
     @Override
-    public String value14() {
+    public String value15() {
         return getMarca();
     }
 
     @Override
-    public String value15() {
+    public String value16() {
         return getModelo();
     }
 
     @Override
-    public String value16() {
+    public String value17() {
         return getGeneracion();
     }
 
     @Override
-    public String value17() {
+    public String value18() {
         return getClaveGeneracion();
     }
 
@@ -632,61 +664,67 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
     }
 
     @Override
-    public VistaTransaccionesCompletasRecord value9(String value) {
+    public VistaTransaccionesCompletasRecord value9(Byte value) {
+        setComisionPagada(value);
+        return this;
+    }
+
+    @Override
+    public VistaTransaccionesCompletasRecord value10(String value) {
         setTipoTransaccion(value);
         return this;
     }
 
     @Override
-    public VistaTransaccionesCompletasRecord value10(VistaTransaccionesCompletasCategoria value) {
+    public VistaTransaccionesCompletasRecord value11(VistaTransaccionesCompletasCategoria value) {
         setCategoria(value);
         return this;
     }
 
     @Override
-    public VistaTransaccionesCompletasRecord value11(String value) {
+    public VistaTransaccionesCompletasRecord value12(String value) {
         setEmpleado(value);
         return this;
     }
 
     @Override
-    public VistaTransaccionesCompletasRecord value12(String value) {
+    public VistaTransaccionesCompletasRecord value13(String value) {
         setCodigoVehiculo(value);
         return this;
     }
 
     @Override
-    public VistaTransaccionesCompletasRecord value13(String value) {
+    public VistaTransaccionesCompletasRecord value14(String value) {
         setCodigoRepuesto(value);
         return this;
     }
 
     @Override
-    public VistaTransaccionesCompletasRecord value14(String value) {
+    public VistaTransaccionesCompletasRecord value15(String value) {
         setMarca(value);
         return this;
     }
 
     @Override
-    public VistaTransaccionesCompletasRecord value15(String value) {
+    public VistaTransaccionesCompletasRecord value16(String value) {
         setModelo(value);
         return this;
     }
 
     @Override
-    public VistaTransaccionesCompletasRecord value16(String value) {
+    public VistaTransaccionesCompletasRecord value17(String value) {
         setGeneracion(value);
         return this;
     }
 
     @Override
-    public VistaTransaccionesCompletasRecord value17(String value) {
+    public VistaTransaccionesCompletasRecord value18(String value) {
         setClaveGeneracion(value);
         return this;
     }
 
     @Override
-    public VistaTransaccionesCompletasRecord values(Integer value1, String value2, LocalDate value3, BigDecimal value4, BigDecimal value5, String value6, String value7, VistaTransaccionesCompletasEstado value8, String value9, VistaTransaccionesCompletasCategoria value10, String value11, String value12, String value13, String value14, String value15, String value16, String value17) {
+    public VistaTransaccionesCompletasRecord values(Integer value1, String value2, LocalDate value3, BigDecimal value4, BigDecimal value5, String value6, String value7, VistaTransaccionesCompletasEstado value8, Byte value9, String value10, VistaTransaccionesCompletasCategoria value11, String value12, String value13, String value14, String value15, String value16, String value17, String value18) {
         value1(value1);
         value2(value2);
         value3(value3);
@@ -704,6 +742,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
         value15(value15);
         value16(value16);
         value17(value17);
+        value18(value18);
         return this;
     }
 
@@ -721,7 +760,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
     /**
      * Create a detached, initialised VistaTransaccionesCompletasRecord
      */
-    public VistaTransaccionesCompletasRecord(Integer id, String codigoTransaccion, LocalDate fecha, BigDecimal monto, BigDecimal comisionEmpleado, String descripcion, String referencia, VistaTransaccionesCompletasEstado estado, String tipoTransaccion, VistaTransaccionesCompletasCategoria categoria, String empleado, String codigoVehiculo, String codigoRepuesto, String marca, String modelo, String generacion, String claveGeneracion) {
+    public VistaTransaccionesCompletasRecord(Integer id, String codigoTransaccion, LocalDate fecha, BigDecimal monto, BigDecimal comisionEmpleado, String descripcion, String referencia, VistaTransaccionesCompletasEstado estado, Byte comisionPagada, String tipoTransaccion, VistaTransaccionesCompletasCategoria categoria, String empleado, String codigoVehiculo, String codigoRepuesto, String marca, String modelo, String generacion, String claveGeneracion) {
         super(VistaTransaccionesCompletas.VISTA_TRANSACCIONES_COMPLETAS);
 
         setId(id);
@@ -732,6 +771,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
         setDescripcion(descripcion);
         setReferencia(referencia);
         setEstado(estado);
+        setComisionPagada(comisionPagada);
         setTipoTransaccion(tipoTransaccion);
         setCategoria(categoria);
         setEmpleado(empleado);
@@ -759,6 +799,7 @@ public class VistaTransaccionesCompletasRecord extends TableRecordImpl<VistaTran
             setDescripcion(value.getDescripcion());
             setReferencia(value.getReferencia());
             setEstado(value.getEstado());
+            setComisionPagada(value.getComisionPagada());
             setTipoTransaccion(value.getTipoTransaccion());
             setCategoria(value.getCategoria());
             setEmpleado(value.getEmpleado());

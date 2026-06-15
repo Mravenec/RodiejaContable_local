@@ -93,7 +93,7 @@ CREATE TABLE vehiculos (
     ) STORED,
     traccion ENUM ('4x2','4x4'),
     transmision ENUM ('Automatico','Manual'),
-    combustible ENUM ('Gasolina','Diesel','Elécrico'),
+    combustible ENUM ('Gasolina','Diesel','Eléctrico'),
     cilindraje VARCHAR(200),
     fecha_ingreso DATE NOT NULL,
     estado ENUM('DISPONIBLE', 'VENDIDO', 'DESARMADO', 'REPARACION') DEFAULT 'DISPONIBLE',
@@ -288,6 +288,7 @@ CREATE TABLE transacciones_financieras (
     vehiculo_id INT DEFAULT NULL,
     repuesto_id INT DEFAULT NULL,
     generacion_id INT DEFAULT NULL,
+    cantidad_repuesto INT DEFAULT 1,
     monto DECIMAL(12,2) NOT NULL,
     comision_empleado DECIMAL(12,2) DEFAULT 0.00,
     descripcion TEXT,
@@ -463,8 +464,8 @@ BEGIN
     -- Si es venta de repuesto, actualiza el estado y la cantidad
     IF NEW.tipo_transaccion_id = tipo_venta_repuesto_id AND NEW.repuesto_id IS NOT NULL THEN
         UPDATE inventario_repuestos
-        SET estado = IF(cantidad - 1 <= 0, 'VENDIDO', 'STOCK'),
-            cantidad = GREATEST(cantidad - 1, 0)
+        SET estado = IF(cantidad - COALESCE(NEW.cantidad_repuesto, 1) <= 0, 'VENDIDO', 'STOCK'),
+            cantidad = GREATEST(cantidad - COALESCE(NEW.cantidad_repuesto, 1), 0)
         WHERE id = NEW.repuesto_id;
     END IF;
 END//
@@ -476,19 +477,18 @@ CREATE TRIGGER tr_reembolso_repuesto
 AFTER INSERT ON transacciones_financieras
 FOR EACH ROW
 BEGIN
-    DECLARE tipo_reembolso_id INT;
+    DECLARE is_refund INT DEFAULT 0;
 
-    -- Obtener ID del tipo 'Reembolso'
-    SELECT id INTO tipo_reembolso_id
+    -- Verificar si el tipo de transacción es un reembolso
+    SELECT COUNT(*) INTO is_refund
     FROM tipos_transacciones
-    WHERE nombre = 'Reembolso'
-    LIMIT 1;
+    WHERE id = NEW.tipo_transaccion_id AND nombre LIKE '%Reembolso%';
 
-    -- Si es un reembolso de repuesto, revertir estado y cantidad
-    IF NEW.tipo_transaccion_id = tipo_reembolso_id AND NEW.repuesto_id IS NOT NULL THEN
+    -- Si es un reembolso y tiene repuesto asociado, revertir estado y sumar cantidad
+    IF is_refund > 0 AND NEW.repuesto_id IS NOT NULL THEN
         UPDATE inventario_repuestos
         SET estado = 'STOCK',
-            cantidad = cantidad + 1
+            cantidad = cantidad + COALESCE(NEW.cantidad_repuesto, 1)
         WHERE id = NEW.repuesto_id;
     END IF;
 END//
@@ -681,12 +681,13 @@ BEGIN
     INSERT INTO transacciones_financieras (
         fecha, tipo_transaccion_id,
         repuesto_id, generacion_id,
-        monto, descripcion, referencia
+        cantidad_repuesto, monto,
+        descripcion, referencia
     ) VALUES (
         CURDATE(),
         v_tipo_compra_id,
         v_repuesto_id, p_generacion_id,
-        v_monto_total,
+        p_cantidad, v_monto_total,
         CONCAT('Compra automática de repuesto ', codigo_generado, ' (Cant: ', p_cantidad, ')'),
         CONCAT('AUTO-COMP-REP-', LPAD(v_repuesto_id, 6, '0'))
     );
@@ -1175,6 +1176,7 @@ SELECT
     ir.id,
     ir.codigo_repuesto,
     ir.codigo_ubicacion,
+    ir.parte_vehiculo_id,
     pv.nombre AS parte_vehiculo,
     ir.descripcion,
     ir.precio_costo,
@@ -1197,6 +1199,34 @@ LEFT JOIN vehiculos v ON ir.vehiculo_origen_id = v.id
 LEFT JOIN parte_vehiculo pv ON ir.parte_Vehiculo_id = pv.id
 LEFT JOIN vista_vehiculos_completa vvc ON v.id = vvc.id;
 
+-- Función para verificar si una comisión está pagada
+DELIMITER //
+CREATE FUNCTION fn_comision_pagada(p_empleado_id INT, p_fecha DATE) 
+RETURNS TINYINT(1)
+DETERMINISTIC
+BEGIN
+    DECLARE v_estado VARCHAR(20);
+    DECLARE v_resultado TINYINT(1) DEFAULT 0;
+    
+    IF p_empleado_id IS NULL OR p_fecha IS NULL THEN
+        RETURN 0;
+    END IF;
+
+    SELECT estado INTO v_estado
+    FROM pagos_comisiones
+    WHERE empleado_id = p_empleado_id 
+      AND anio = YEAR(p_fecha) 
+      AND mes = MONTH(p_fecha)
+    LIMIT 1;
+
+    IF v_estado = 'PAGADO' THEN
+        SET v_resultado = 1;
+    END IF;
+
+    RETURN v_resultado;
+END//
+DELIMITER ;
+
 -- Vista de transacciones completas
 CREATE OR REPLACE VIEW vista_transacciones_completas AS
 SELECT 
@@ -1208,6 +1238,7 @@ SELECT
     tf.descripcion,
     tf.referencia,
     tf.estado,
+    fn_comision_pagada(tf.empleado_id, tf.fecha) AS comision_pagada,
     tt.nombre AS tipo_transaccion,
     tt.categoria,
     e.nombre AS empleado,

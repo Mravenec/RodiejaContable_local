@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from 'react-query';
-import { 
-  Form, 
-  Input, 
-  Button, 
-  Card, 
-  Typography, 
-  Select, 
+import {
+  Form,
+  Input,
+  Button,
+  Card,
+  Typography,
+  Select,
   InputNumber,
   message,
   Row,
@@ -17,8 +17,8 @@ import {
   Spin,
   Checkbox
 } from 'antd';
-import { 
-  SaveOutlined, 
+import {
+  SaveOutlined,
   ArrowLeftOutlined,
   PlusOutlined,
   CheckOutlined,
@@ -38,13 +38,13 @@ const EditarRepuesto = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const { id } = useParams();
-  
+
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [repuestoActual, setRepuestoActual] = useState(null);
   const [vehiculoOrigen, setVehiculoOrigen] = useState(null);
   const [ubicacionFisicaHabilitada, setUbicacionFisicaHabilitada] = useState(false);
-  
+
   const [precioCostoUnitario, setPrecioCostoUnitario] = useState(0);
   const [cantidad, setCantidad] = useState(1);
 
@@ -84,7 +84,7 @@ const EditarRepuesto = () => {
         setFetching(true);
         const data = await InventarioService.getRepuestoPorId(id);
         if (!data) throw new Error("No se encontraron los datos del repuesto");
-        
+
         setRepuestoActual(data);
 
         // Si pertenece a un vehículo, obtener sus datos
@@ -96,24 +96,24 @@ const EditarRepuesto = () => {
             console.error('Error fetching vehiculo:', vErr);
           }
         }
-        
+
         // El costo unitario es lo que guarda la bd.
         // Si hay una cantidad > 1, calculamos el costo total multiplicando
         const cant = data.cantidad !== undefined && data.cantidad !== null ? data.cantidad : 1;
         const pCosto = parseFloat(data.precioCosto || 0);
-        
+
         setCantidad(cant);
         setPrecioCostoUnitario(pCosto);
 
         // Formatear los guiones bajos según si es genérico o no, ya que el API a veces lo mezcla
         let condicionFormat = data.condicion;
         if (!condicionFormat) {
-            condicionFormat = data.vehiculoOrigenId ? '_100_25_' : '100%-';
+          condicionFormat = data.vehiculoOrigenId ? '_100_25_' : '100%-';
         }
 
         const esGenerico = data.vehiculoOrigenId == null;
         const defaultSep = esGenerico ? '-' : '_';
-        
+
         // Determinar si ya tiene una ubicación asignada
         const tieneUbicacion = (data.bodega && data.bodega !== `0${defaultSep}` && data.bodega !== '0-' && data.bodega !== '0_');
         setUbicacionFisicaHabilitada(tieneUbicacion);
@@ -166,7 +166,7 @@ const EditarRepuesto = () => {
       message.success('Parte de vehículo creada exitosamente');
       setNuevaParteModal(false);
       setNuevaParteNombre('');
-      
+
       queryClient.invalidateQueries('partesVehiculoActivas');
 
       if (response.data && response.data.id) {
@@ -298,7 +298,24 @@ const EditarRepuesto = () => {
             <Tag color="geekblue" style={{ fontSize: 14, padding: '4px 8px' }}>Genérico / Comprado</Tag>
           ) : (
             <Tag color="purple" style={{ fontSize: 14, padding: '4px 8px' }}>
-              Vehículo Desarmado: {vehiculoOrigen ? `${vehiculoOrigen.marcaNombre || ''} ${vehiculoOrigen.modelo || ''} ${vehiculoOrigen.anio || ''}` : ''} (ID: {repuestoActual?.vehiculoOrigenId})
+              Vehículo Desarmado: {vehiculoOrigen ? (() => {
+                const codigo = vehiculoOrigen.codigoVehiculo || vehiculoOrigen.codigo_vehiculo || 'SIN_CODIGO';
+                const anio = vehiculoOrigen.anio || 'Año N/A';
+                const estado = vehiculoOrigen.estado || 'SIN_ESTADO';
+                const marca = vehiculoOrigen.marcaNombre || vehiculoOrigen.marca || 'Marca N/A';
+                const modelo = vehiculoOrigen.modelo || 'Modelo N/A';
+
+                let estadoAmigable = estado;
+                if (estado === 'DESARMADO') {
+                  estadoAmigable = 'Para repuestos';
+                } else if (estado === 'REPARACION') {
+                  estadoAmigable = 'Para reparar';
+                } else if (estado !== 'SIN_ESTADO') {
+                  estadoAmigable = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+                }
+
+                return `${codigo} — ${marca} ${modelo} ${anio} (${estadoAmigable})`;
+              })() : ''}
             </Tag>
           )}
           <div style={{ marginTop: 8 }}>
@@ -316,17 +333,18 @@ const EditarRepuesto = () => {
               <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '16px' }}>
                 Información del Repuesto
               </Text>
-              
+
               <Form.Item
                 name="parte_vehiculo_id"
                 label="Parte del Vehículo"
                 rules={[{ required: true, message: 'Seleccione la parte del vehículo' }]}
               >
-                <Select 
+                <Select
                   placeholder="Seleccione la parte del vehículo"
                   loading={loadingPartes}
                   showSearch
-                  optionFilterProp="children"
+                  optionFilterProp="label"
+                  optionLabelProp="label"
                   dropdownRender={(menu) => (
                     <div>
                       {menu}
@@ -450,7 +468,7 @@ const EditarRepuesto = () => {
                   )}
                 </Select>
               </Form.Item>
-              
+
               <Form.Item
                 name="descripcion"
                 label="Descripción"
@@ -464,12 +482,12 @@ const EditarRepuesto = () => {
               </Form.Item>
 
             </Col>
-            
+
             <Col xs={24} md={12}>
               <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '16px' }}>
                 Precios y Estado
               </Text>
-              
+
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
@@ -477,10 +495,10 @@ const EditarRepuesto = () => {
                     label="Costo Unitario"
                     rules={[{ required: true, message: 'Ingrese el costo unitario' }]}
                   >
-                    <InputNumber 
-                      style={{ width: '100%' }} 
-                      min={0} 
-                      step={1000} 
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      min={0}
+                      step={1000}
                       precision={2}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={value => value.replace(/₡\s?|(,*)/g, '')}
@@ -488,13 +506,13 @@ const EditarRepuesto = () => {
                     />
                   </Form.Item>
                 </Col>
-                
+
                 <Col span={12}>
                   <Form.Item
                     label="Costo Total (Calculado)"
                   >
-                    <InputNumber 
-                      style={{ width: '100%' }} 
+                    <InputNumber
+                      style={{ width: '100%' }}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       value={costoTotalCalculado}
                       disabled
@@ -509,8 +527,8 @@ const EditarRepuesto = () => {
                     name="precio_venta"
                     label="Precio de Venta Unitario (Calculado)"
                   >
-                    <InputNumber 
-                      style={{ width: '100%' }} 
+                    <InputNumber
+                      style={{ width: '100%' }}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       value={precioVentaCalculado}
                       disabled
@@ -522,8 +540,8 @@ const EditarRepuesto = () => {
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item label="Fórmula 15% (Lectura)">
-                    <InputNumber 
-                      style={{ width: '100%' }} 
+                    <InputNumber
+                      style={{ width: '100%' }}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       value={formula15Calculada}
                       disabled
@@ -532,8 +550,8 @@ const EditarRepuesto = () => {
                 </Col>
                 <Col span={12}>
                   <Form.Item label="Fórmula 30% (Lectura)">
-                    <InputNumber 
-                      style={{ width: '100%' }} 
+                    <InputNumber
+                      style={{ width: '100%' }}
                       formatter={value => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       value={formula30Calculada}
                       disabled
@@ -541,7 +559,7 @@ const EditarRepuesto = () => {
                   </Form.Item>
                 </Col>
               </Row>
-              
+
               <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f0f8ff', borderRadius: '6px' }}>
                 <Text strong>Costo Unitario: ₡ {precioCostoUnitario.toFixed(2)}</Text>
               </div>
@@ -549,22 +567,34 @@ const EditarRepuesto = () => {
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="cantidad" label="Cantidad">
-                    <InputNumber 
-                      style={{ width: '100%' }} 
-                      min={1} 
-                      onChange={(value) => setCantidad(value || 1)}
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      min={0}
+                      onChange={(value) => {
+                        const val = value !== null ? value : 0;
+                        setCantidad(val);
+
+                        // Si hay cantidad mayor a 0 y estaba agotado, pasarlo a STOCK
+                        if (val > 0 && form.getFieldValue('estado') === 'AGOTADO') {
+                          form.setFieldsValue({ estado: 'STOCK' });
+                        }
+                        // Si la cantidad es 0, pasarlo automáticamente a AGOTADO
+                        else if (val === 0) {
+                          form.setFieldsValue({ estado: 'AGOTADO' });
+                        }
+                      }}
                     />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item name="estado" label="Estado" rules={[{ required: true }]}>
-                    <Select disabled={repuestoActual?.estado === 'VENDIDO' || repuestoActual?.estado === 'AGOTADO'}>
+                    <Select>
                       <Option value="STOCK">En Stock</Option>
                       <Option value="PROCESO">En Proceso</Option>
                       <Option value="DAÑADO">Dañado</Option>
                       <Option value="USADO_INTERNO">Usado Interno</Option>
                       <Option value="VENDIDO" disabled={repuestoActual?.estado !== 'VENDIDO'}>Vendido</Option>
-                      <Option value="AGOTADO" disabled={repuestoActual?.estado !== 'AGOTADO'}>Agotado</Option>
+                      <Option value="AGOTADO">Agotado</Option>
                     </Select>
                   </Form.Item>
                 </Col>
@@ -585,7 +615,7 @@ const EditarRepuesto = () => {
           <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', margin: '32px 0 16px' }}>
             Ubicación Física
           </Text>
-          
+
           <div style={{ marginBottom: '16px' }}>
             <Checkbox
               checked={ubicacionFisicaHabilitada}
@@ -596,120 +626,120 @@ const EditarRepuesto = () => {
           </div>
 
           {ubicacionFisicaHabilitada && (
-            <div style={{ 
-              padding: '16px', 
-              border: '1px solid #d9d9d9', 
+            <div style={{
+              padding: '16px',
+              border: '1px solid #d9d9d9',
               borderRadius: '6px',
               backgroundColor: '#fafafa'
             }}>
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="bodega" label="Bodega">
-                  <Select>
-                    <Option value={`_0_`}>Sin especificar</Option>
-                    <Option value={`R_`}>Bodega R</Option>
-                    <Option value={`D_`}>Bodega D</Option>
-                    <Option value={`C_`}>Bodega C</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="zona" label="Zona">
-                  <Select>
-                    <Option value={`_0_`}>Sin especificar</Option>
-                    {Array.from({length: 22}, (_, i) => (
-                      <Option key={`Z${i+1}_`} value={`Z${i+1}_`}>Zona {i+1}</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
+                    <Select>
+                      <Option value={`_0_`}>Sin especificar</Option>
+                      <Option value={`R_`}>Bodega R</Option>
+                      <Option value={`D_`}>Bodega D</Option>
+                      <Option value={`C_`}>Bodega C</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="zona" label="Zona">
+                    <Select>
+                      <Option value={`_0_`}>Sin especificar</Option>
+                      {Array.from({ length: 22 }, (_, i) => (
+                        <Option key={`Z${i + 1}_`} value={`Z${i + 1}_`}>Zona {i + 1}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="pared" label="Pared">
-                  <Select>
-                    <Option value={`_0_`}>Sin especificar</Option>
-                    <Option value={`PE_`}>Pared Este</Option>
-                    <Option value={`PO_`}>Pared Oeste</Option>
-                    <Option value={`PN_`}>Pared Norte</Option>
-                    <Option value={`PS_`}>Pared Sur</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="estante" label="Estante">
-                  <Select>
-                    {Array.from({length: 14}, (_, i) => (
-                      <Option key={`E${i+1}`} value={`E${i+1}`}>Estante {i+1}</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="pared" label="Pared">
+                    <Select>
+                      <Option value={`_0_`}>Sin especificar</Option>
+                      <Option value={`PE_`}>Pared Este</Option>
+                      <Option value={`PO_`}>Pared Oeste</Option>
+                      <Option value={`PN_`}>Pared Norte</Option>
+                      <Option value={`PS_`}>Pared Sur</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="estante" label="Estante">
+                    <Select>
+                      {Array.from({ length: 14 }, (_, i) => (
+                        <Option key={`E${i + 1}`} value={`E${i + 1}`}>Estante {i + 1}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="malla" label="Malla">
-                  <Select>
-                    <Option value={`_0_`}>Sin especificar</Option>
-                    {Array.from({length: 200}, (_, i) => (
-                      <Option key={`V${i+1}`} value={`V${i+1}`}>Malla {i+1}</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="piso" label="Piso">
-                  <Select>
-                    {Array.from({length: 21}, (_, i) => (
-                      <Option key={`P${i+1}_`} value={`P${i+1}_`}>Piso {i+1}</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="malla" label="Malla">
+                    <Select>
+                      <Option value={`_0_`}>Sin especificar</Option>
+                      {Array.from({ length: 200 }, (_, i) => (
+                        <Option key={`V${i + 1}`} value={`V${i + 1}`}>Malla {i + 1}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="piso" label="Piso">
+                    <Select>
+                      {Array.from({ length: 21 }, (_, i) => (
+                        <Option key={`P${i + 1}_`} value={`P${i + 1}_`}>Piso {i + 1}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="plastica" label="Plástica (Opcional)">
-                  <Select allowClear>
-                    {Array.from({length: 52}, (_, i) => (
-                      <Option key={`CP${i+1}_`} value={`CP${i+1}_`}>CP {i+1}</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="carton" label="Cartón (Opcional)">
-                  <Select allowClear>
-                    {Array.from({length: 52}, (_, i) => (
-                      <Option key={`MM${i+1}_`} value={`MM${i+1}_`}>MM {i+1}</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="plastica" label="Plástica (Opcional)">
+                    <Select allowClear>
+                      {Array.from({ length: 52 }, (_, i) => (
+                        <Option key={`CP${i + 1}_`} value={`CP${i + 1}_`}>CP {i + 1}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="carton" label="Cartón (Opcional)">
+                    <Select allowClear>
+                      {Array.from({ length: 52 }, (_, i) => (
+                        <Option key={`MM${i + 1}_`} value={`MM${i + 1}_`}>MM {i + 1}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
 
               <Form.Item name="posicion" label="Posición (Opcional)">
                 <Input placeholder="Posición específica" />
               </Form.Item>
             </div>
           )}
-          
+
           <Divider style={{ margin: '32px 0 24px' }} />
-          
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            <Button 
+            <Button
               size="large"
               onClick={() => navigate(-1)}
               style={{ borderRadius: '6px' }}
             >
               Cancelar
             </Button>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
+            <Button
+              type="primary"
+              htmlType="submit"
               icon={<SaveOutlined />}
               loading={loading}
               size="large"

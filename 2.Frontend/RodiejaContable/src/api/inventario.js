@@ -156,6 +156,7 @@ class InventarioService {
       vehiculoOrigenId: item.vehiculoOrigenId || item.vehiculo_origen_id,
       anioRegistro: item.anioRegistro || item.anio_registro,
       mesRegistro: item.mesRegistro || item.mes_registro,
+      parteVehiculoId: item.parteVehiculoId || item.parte_vehiculo_id,
       parteVehiculo: item.parteVehiculo || item.parte_vehiculo,
       descripcion: item.descripcion,
       precioCosto: item.precioCosto || item.precio_costo,

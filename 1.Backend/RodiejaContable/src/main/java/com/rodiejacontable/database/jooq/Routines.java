@@ -4,6 +4,7 @@
 package com.rodiejacontable.database.jooq;
 
 
+import com.rodiejacontable.database.jooq.routines.FnComisionPagada;
 import com.rodiejacontable.database.jooq.routines.ListarComisionesPendientes;
 import com.rodiejacontable.database.jooq.routines.RegistrarPagoComisionesEmpleado;
 import com.rodiejacontable.database.jooq.routines.SpActividadAuditoriaFecha;
@@ -14,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import org.jooq.Configuration;
+import org.jooq.Field;
 import org.jooq.types.UInteger;
 
 
@@ -23,6 +25,50 @@ import org.jooq.types.UInteger;
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Routines {
+
+    /**
+     * Call <code>sistema_vehicular.fn_comision_pagada</code>
+     */
+    public static Byte fnComisionPagada(
+          Configuration configuration
+        , Integer pEmpleadoId
+        , LocalDate pFecha
+    ) {
+        FnComisionPagada f = new FnComisionPagada();
+        f.setPEmpleadoId(pEmpleadoId);
+        f.setPFecha(pFecha);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>sistema_vehicular.fn_comision_pagada</code> as a field.
+     */
+    public static Field<Byte> fnComisionPagada(
+          Integer pEmpleadoId
+        , LocalDate pFecha
+    ) {
+        FnComisionPagada f = new FnComisionPagada();
+        f.setPEmpleadoId(pEmpleadoId);
+        f.setPFecha(pFecha);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>sistema_vehicular.fn_comision_pagada</code> as a field.
+     */
+    public static Field<Byte> fnComisionPagada(
+          Field<Integer> pEmpleadoId
+        , Field<LocalDate> pFecha
+    ) {
+        FnComisionPagada f = new FnComisionPagada();
+        f.setPEmpleadoId(pEmpleadoId);
+        f.setPFecha(pFecha);
+
+        return f.asField();
+    }
 
     /**
      * Call <code>sistema_vehicular.listar_comisiones_pendientes</code>

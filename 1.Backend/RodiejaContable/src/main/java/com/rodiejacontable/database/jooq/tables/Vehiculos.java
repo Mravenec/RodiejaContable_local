@@ -124,7 +124,7 @@ public class Vehiculos extends TableImpl<VehiculosRecord> {
     /**
      * The column <code>sistema_vehicular.vehiculos.combustible</code>.
      */
-    public final TableField<VehiculosRecord, VehiculosCombustible> COMBUSTIBLE = createField(DSL.name("combustible"), SQLDataType.VARCHAR(8).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VehiculosCombustible.class), this, "");
+    public final TableField<VehiculosRecord, VehiculosCombustible> COMBUSTIBLE = createField(DSL.name("combustible"), SQLDataType.VARCHAR(9).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VehiculosCombustible.class), this, "");
 
     /**
      * The column <code>sistema_vehicular.vehiculos.cilindraje</code>.

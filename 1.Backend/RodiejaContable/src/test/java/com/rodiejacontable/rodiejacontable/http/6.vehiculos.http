@@ -23,7 +23,7 @@ Content-Type: application/json
   "comisiones": 50000.00,
   "imagenUrl": "https://ejemplo.com/imagenes/corolla-2015.jpg",
   "fechaIngreso": "2023-01-15",
-  "estado": "VENDIDO",
+  "estado": "REPARACION",
   "precioVenta": 4200000.00,
   "fechaVenta": "2023-02-20",
   "notas": "Excelente estado, un solo dueño"
@@ -57,7 +57,7 @@ Content-Type: application/json
   "costoGrua": 35000.00,
   "comisiones": 70000.00,
   "fechaIngreso": "2023-02-10",
-  "estado": "DISPONIBLE",
+  "estado": "REPARACION",
   "notas": "Mecánico, aire acondicionado"
 }
 
@@ -72,7 +72,7 @@ Content-Type: application/json
   "costoGrua": 40000.00,
   "comisiones": 80000.00,
   "fechaIngreso": "2023-02-25",
-  "estado": "VENDIDO",
+  "estado": "DESARMADO",
   "precioVenta": 6300000.00,
   "fechaVenta": "2023-04-10",
   "notas": "Híbrido, excelente consumo"
@@ -89,7 +89,7 @@ Content-Type: application/json
   "costoGrua": 45000.00,
   "comisiones": 90000.00,
   "fechaIngreso": "2023-03-05",
-  "estado": "DISPONIBLE",
+  "estado": "DESARMADO",
   "notas": "Recién llegado, impecable"
 }
 

@@ -31,6 +31,7 @@ public class TransaccionesFinancieras implements Serializable {
     private Integer vehiculoId;
     private Integer repuestoId;
     private Integer generacionId;
+    private Integer cantidadRepuesto;
     private BigDecimal monto;
     private BigDecimal comisionEmpleado;
     private String descripcion;
@@ -54,6 +55,7 @@ public class TransaccionesFinancieras implements Serializable {
         this.vehiculoId = value.vehiculoId;
         this.repuestoId = value.repuestoId;
         this.generacionId = value.generacionId;
+        this.cantidadRepuesto = value.cantidadRepuesto;
         this.monto = value.monto;
         this.comisionEmpleado = value.comisionEmpleado;
         this.descripcion = value.descripcion;
@@ -76,6 +78,7 @@ public class TransaccionesFinancieras implements Serializable {
         Integer vehiculoId,
         Integer repuestoId,
         Integer generacionId,
+        Integer cantidadRepuesto,
         BigDecimal monto,
         BigDecimal comisionEmpleado,
         String descripcion,
@@ -96,6 +99,7 @@ public class TransaccionesFinancieras implements Serializable {
         this.vehiculoId = vehiculoId;
         this.repuestoId = repuestoId;
         this.generacionId = generacionId;
+        this.cantidadRepuesto = cantidadRepuesto;
         this.monto = monto;
         this.comisionEmpleado = comisionEmpleado;
         this.descripcion = descripcion;
@@ -282,6 +286,23 @@ public class TransaccionesFinancieras implements Serializable {
      */
     public TransaccionesFinancieras setGeneracionId(Integer generacionId) {
         this.generacionId = generacionId;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.transacciones_financieras.cantidad_repuesto</code>.
+     */
+    public Integer getCantidadRepuesto() {
+        return this.cantidadRepuesto;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.transacciones_financieras.cantidad_repuesto</code>.
+     */
+    public TransaccionesFinancieras setCantidadRepuesto(Integer cantidadRepuesto) {
+        this.cantidadRepuesto = cantidadRepuesto;
         return this;
     }
 
@@ -496,6 +517,12 @@ public class TransaccionesFinancieras implements Serializable {
         }
         else if (!this.generacionId.equals(other.generacionId))
             return false;
+        if (this.cantidadRepuesto == null) {
+            if (other.cantidadRepuesto != null)
+                return false;
+        }
+        else if (!this.cantidadRepuesto.equals(other.cantidadRepuesto))
+            return false;
         if (this.monto == null) {
             if (other.monto != null)
                 return false;
@@ -562,6 +589,7 @@ public class TransaccionesFinancieras implements Serializable {
         result = prime * result + ((this.vehiculoId == null) ? 0 : this.vehiculoId.hashCode());
         result = prime * result + ((this.repuestoId == null) ? 0 : this.repuestoId.hashCode());
         result = prime * result + ((this.generacionId == null) ? 0 : this.generacionId.hashCode());
+        result = prime * result + ((this.cantidadRepuesto == null) ? 0 : this.cantidadRepuesto.hashCode());
         result = prime * result + ((this.monto == null) ? 0 : this.monto.hashCode());
         result = prime * result + ((this.comisionEmpleado == null) ? 0 : this.comisionEmpleado.hashCode());
         result = prime * result + ((this.descripcion == null) ? 0 : this.descripcion.hashCode());
@@ -588,6 +616,7 @@ public class TransaccionesFinancieras implements Serializable {
         sb.append(", ").append(vehiculoId);
         sb.append(", ").append(repuestoId);
         sb.append(", ").append(generacionId);
+        sb.append(", ").append(cantidadRepuesto);
         sb.append(", ").append(monto);
         sb.append(", ").append(comisionEmpleado);
         sb.append(", ").append(descripcion);

@@ -153,6 +153,9 @@ public class InventarioRepuestosService {
         if (repuestoActualizado.getCondicion() != null) {
             repuestoExistente.setCondicion(repuestoActualizado.getCondicion());
         }
+        if (repuestoActualizado.getCantidad() != null) {
+            repuestoExistente.setCantidad(repuestoActualizado.getCantidad());
+        }
         
         repuestoExistente.setFechaActualizacion(LocalDateTime.now());
         

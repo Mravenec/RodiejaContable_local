@@ -327,6 +327,10 @@ class VehiculoService {
         fechaVenta: vehiculo.fechaVenta,
         activo: vehiculo.activo !== false,
         notas: vehiculo.notas,
+        combustible: vehiculo.combustible,
+        cilindraje: vehiculo.cilindraje,
+        traccion: vehiculo.traccion,
+        transmision: vehiculo.transmision,
         // Mantener campos adicionales para compatibilidad
         modelo: vehiculo.modeloNombre,
         marcaId: vehiculo.marcaId,

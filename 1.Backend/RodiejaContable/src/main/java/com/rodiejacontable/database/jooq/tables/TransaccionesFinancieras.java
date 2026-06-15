@@ -19,13 +19,13 @@ import java.util.function.Function;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
-import org.jooq.Function19;
+import org.jooq.Function20;
 import org.jooq.Identity;
 import org.jooq.Index;
 import org.jooq.Name;
 import org.jooq.Record;
 import org.jooq.Records;
-import org.jooq.Row19;
+import org.jooq.Row20;
 import org.jooq.Schema;
 import org.jooq.SelectField;
 import org.jooq.Table;
@@ -120,6 +120,12 @@ public class TransaccionesFinancieras extends TableImpl<TransaccionesFinancieras
      * <code>sistema_vehicular.transacciones_financieras.generacion_id</code>.
      */
     public final TableField<TransaccionesFinancierasRecord, Integer> GENERACION_ID = createField(DSL.name("generacion_id"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.transacciones_financieras.cantidad_repuesto</code>.
+     */
+    public final TableField<TransaccionesFinancierasRecord, Integer> CANTIDAD_REPUESTO = createField(DSL.name("cantidad_repuesto"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("1"), SQLDataType.INTEGER)), this, "");
 
     /**
      * The column
@@ -336,18 +342,18 @@ public class TransaccionesFinancieras extends TableImpl<TransaccionesFinancieras
     }
 
     // -------------------------------------------------------------------------
-    // Row19 type methods
+    // Row20 type methods
     // -------------------------------------------------------------------------
 
     @Override
-    public Row19<Integer, String, LocalDate, Byte, Byte, Short, Integer, Integer, Integer, Integer, Integer, BigDecimal, BigDecimal, String, String, TransaccionesFinancierasEstado, Byte, LocalDateTime, LocalDateTime> fieldsRow() {
-        return (Row19) super.fieldsRow();
+    public Row20<Integer, String, LocalDate, Byte, Byte, Short, Integer, Integer, Integer, Integer, Integer, Integer, BigDecimal, BigDecimal, String, String, TransaccionesFinancierasEstado, Byte, LocalDateTime, LocalDateTime> fieldsRow() {
+        return (Row20) super.fieldsRow();
     }
 
     /**
      * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
      */
-    public <U> SelectField<U> mapping(Function19<? super Integer, ? super String, ? super LocalDate, ? super Byte, ? super Byte, ? super Short, ? super Integer, ? super Integer, ? super Integer, ? super Integer, ? super Integer, ? super BigDecimal, ? super BigDecimal, ? super String, ? super String, ? super TransaccionesFinancierasEstado, ? super Byte, ? super LocalDateTime, ? super LocalDateTime, ? extends U> from) {
+    public <U> SelectField<U> mapping(Function20<? super Integer, ? super String, ? super LocalDate, ? super Byte, ? super Byte, ? super Short, ? super Integer, ? super Integer, ? super Integer, ? super Integer, ? super Integer, ? super Integer, ? super BigDecimal, ? super BigDecimal, ? super String, ? super String, ? super TransaccionesFinancierasEstado, ? super Byte, ? super LocalDateTime, ? super LocalDateTime, ? extends U> from) {
         return convertFrom(Records.mapping(from));
     }
 
@@ -355,7 +361,7 @@ public class TransaccionesFinancieras extends TableImpl<TransaccionesFinancieras
      * Convenience mapping calling {@link SelectField#convertFrom(Class,
      * Function)}.
      */
-    public <U> SelectField<U> mapping(Class<U> toType, Function19<? super Integer, ? super String, ? super LocalDate, ? super Byte, ? super Byte, ? super Short, ? super Integer, ? super Integer, ? super Integer, ? super Integer, ? super Integer, ? super BigDecimal, ? super BigDecimal, ? super String, ? super String, ? super TransaccionesFinancierasEstado, ? super Byte, ? super LocalDateTime, ? super LocalDateTime, ? extends U> from) {
+    public <U> SelectField<U> mapping(Class<U> toType, Function20<? super Integer, ? super String, ? super LocalDate, ? super Byte, ? super Byte, ? super Short, ? super Integer, ? super Integer, ? super Integer, ? super Integer, ? super Integer, ? super Integer, ? super BigDecimal, ? super BigDecimal, ? super String, ? super String, ? super TransaccionesFinancierasEstado, ? super Byte, ? super LocalDateTime, ? super LocalDateTime, ? extends U> from) {
         return convertFrom(toType, Records.mapping(from));
     }
 }

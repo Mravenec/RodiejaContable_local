@@ -12,7 +12,8 @@ import {
   Col, 
   Statistic,
   Image,
-  message
+  message,
+  Table
 } from 'antd';
 import { 
   ArrowLeftOutlined, 
@@ -22,6 +23,7 @@ import {
 } from '@ant-design/icons';
 import InventarioService from '../../api/inventario';
 import vehiculoService from '../../api/vehiculos';
+import transaccionesCompletasService from '../../api/transaccionesCompletas';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -32,6 +34,8 @@ const DetalleRepuesto = () => {
   const [loading, setLoading] = useState(true);
   const [repuesto, setRepuesto] = useState(null);
   const [vehiculoOrigen, setVehiculoOrigen] = useState(null);
+  const [movimientos, setMovimientos] = useState([]);
+  const [loadingMovimientos, setLoadingMovimientos] = useState(false);
 
   useEffect(() => {
     const fetchRepuesto = async () => {
@@ -59,6 +63,31 @@ const DetalleRepuesto = () => {
     fetchRepuesto();
   }, [id]);
 
+  useEffect(() => {
+    const fetchMovimientos = async () => {
+      if (!repuesto) return;
+      try {
+        setLoadingMovimientos(true);
+        const data = await transaccionesCompletasService.getTransacciones();
+        const filtrados = data.filter(t => 
+          (t.repuestoId && t.repuestoId.toString() === id.toString()) || 
+          (t.codigoRepuesto && repuesto.codigo && t.codigoRepuesto === repuesto.codigo)
+        );
+        
+        filtrados.sort((a, b) => {
+           const getVal = f => f ? (Array.isArray(f) ? new Date(f[0], f[1]-1, f[2]).getTime() : new Date(f).getTime()) : 0;
+           return getVal(b.fecha) - getVal(a.fecha);
+        });
+        setMovimientos(filtrados);
+      } catch (error) {
+        console.error('Error al cargar movimientos:', error);
+      } finally {
+        setLoadingMovimientos(false);
+      }
+    };
+    fetchMovimientos();
+  }, [repuesto, id]);
+
   const getEstadoTag = (estado) => {
     const estados = {
       'STOCK': { color: 'blue', icon: <CheckCircleOutlined />, text: 'En Stock' },
@@ -76,6 +105,55 @@ const DetalleRepuesto = () => {
       </Tag>
     );
   };
+
+  const columnasMovimientos = [
+    {
+      title: 'Fecha',
+      dataIndex: 'fecha',
+      key: 'fecha',
+      render: (fecha) => {
+        if (!fecha) return '-';
+        if (Array.isArray(fecha)) {
+          return `${String(fecha[2]).padStart(2, '0')}/${String(fecha[1]).padStart(2, '0')}/${fecha[0]}`;
+        }
+        return new Date(fecha).toLocaleDateString();
+      }
+    },
+    {
+      title: 'Tipo',
+      dataIndex: 'tipoTransaccion',
+      key: 'tipoTransaccion',
+      render: (texto, record) => {
+        const isIngreso = record.categoria === 'INGRESO' || record.tipoTransaccion?.toLowerCase().includes('venta');
+        return <Tag color={isIngreso ? 'success' : 'error'}>{texto || record.categoria}</Tag>;
+      }
+    },
+    {
+      title: 'Referencia',
+      dataIndex: 'referencia',
+      key: 'referencia',
+      render: (text) => text || '-'
+    },
+    {
+      title: 'Descripción',
+      dataIndex: 'descripcion',
+      key: 'descripcion',
+    },
+    {
+      title: 'Monto',
+      dataIndex: 'monto',
+      key: 'monto',
+      align: 'right',
+      render: (monto, record) => {
+        const isIngreso = record.categoria === 'INGRESO' || record.tipoTransaccion?.toLowerCase().includes('venta');
+        return (
+          <Text strong style={{ color: isIngreso ? '#52c41a' : '#f5222d' }}>
+            {isIngreso ? '+' : '-'} ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(monto || 0)}
+          </Text>
+        );
+      }
+    }
+  ];
 
   if (loading) {
     return <div>Cargando...</div>;
@@ -192,9 +270,15 @@ const DetalleRepuesto = () => {
           </TabPane>
           
           <TabPane tab="Historial" key="2">
-            <Card>
-              <p>Historial de movimientos del repuesto</p>
-              {/* Aquí puedes agregar el historial de movimientos cuando lo implementes */}
+            <Card bordered={false}>
+              <Table 
+                columns={columnasMovimientos} 
+                dataSource={movimientos} 
+                rowKey="id" 
+                loading={loadingMovimientos}
+                pagination={{ defaultPageSize: 10 }}
+                locale={{ emptyText: 'No hay movimientos registrados para este repuesto.' }}
+              />
             </Card>
           </TabPane>
         </Tabs>

@@ -28,6 +28,7 @@ public class VistaTransaccionesCompletas implements Serializable {
     private String descripcion;
     private String referencia;
     private VistaTransaccionesCompletasEstado estado;
+    private Byte comisionPagada;
     private String tipoTransaccion;
     private VistaTransaccionesCompletasCategoria categoria;
     private String empleado;
@@ -49,6 +50,7 @@ public class VistaTransaccionesCompletas implements Serializable {
         this.descripcion = value.descripcion;
         this.referencia = value.referencia;
         this.estado = value.estado;
+        this.comisionPagada = value.comisionPagada;
         this.tipoTransaccion = value.tipoTransaccion;
         this.categoria = value.categoria;
         this.empleado = value.empleado;
@@ -69,6 +71,7 @@ public class VistaTransaccionesCompletas implements Serializable {
         String descripcion,
         String referencia,
         VistaTransaccionesCompletasEstado estado,
+        Byte comisionPagada,
         String tipoTransaccion,
         VistaTransaccionesCompletasCategoria categoria,
         String empleado,
@@ -87,6 +90,7 @@ public class VistaTransaccionesCompletas implements Serializable {
         this.descripcion = descripcion;
         this.referencia = referencia;
         this.estado = estado;
+        this.comisionPagada = comisionPagada;
         this.tipoTransaccion = tipoTransaccion;
         this.categoria = categoria;
         this.empleado = empleado;
@@ -231,6 +235,23 @@ public class VistaTransaccionesCompletas implements Serializable {
      */
     public VistaTransaccionesCompletas setEstado(VistaTransaccionesCompletasEstado estado) {
         this.estado = estado;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_transacciones_completas.comision_pagada</code>.
+     */
+    public Byte getComisionPagada() {
+        return this.comisionPagada;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_transacciones_completas.comision_pagada</code>.
+     */
+    public VistaTransaccionesCompletas setComisionPagada(Byte comisionPagada) {
+        this.comisionPagada = comisionPagada;
         return this;
     }
 
@@ -444,6 +465,12 @@ public class VistaTransaccionesCompletas implements Serializable {
         }
         else if (!this.estado.equals(other.estado))
             return false;
+        if (this.comisionPagada == null) {
+            if (other.comisionPagada != null)
+                return false;
+        }
+        else if (!this.comisionPagada.equals(other.comisionPagada))
+            return false;
         if (this.tipoTransaccion == null) {
             if (other.tipoTransaccion != null)
                 return false;
@@ -513,6 +540,7 @@ public class VistaTransaccionesCompletas implements Serializable {
         result = prime * result + ((this.descripcion == null) ? 0 : this.descripcion.hashCode());
         result = prime * result + ((this.referencia == null) ? 0 : this.referencia.hashCode());
         result = prime * result + ((this.estado == null) ? 0 : this.estado.hashCode());
+        result = prime * result + ((this.comisionPagada == null) ? 0 : this.comisionPagada.hashCode());
         result = prime * result + ((this.tipoTransaccion == null) ? 0 : this.tipoTransaccion.hashCode());
         result = prime * result + ((this.categoria == null) ? 0 : this.categoria.hashCode());
         result = prime * result + ((this.empleado == null) ? 0 : this.empleado.hashCode());
@@ -537,6 +565,7 @@ public class VistaTransaccionesCompletas implements Serializable {
         sb.append(", ").append(descripcion);
         sb.append(", ").append(referencia);
         sb.append(", ").append(estado);
+        sb.append(", ").append(comisionPagada);
         sb.append(", ").append(tipoTransaccion);
         sb.append(", ").append(categoria);
         sb.append(", ").append(empleado);

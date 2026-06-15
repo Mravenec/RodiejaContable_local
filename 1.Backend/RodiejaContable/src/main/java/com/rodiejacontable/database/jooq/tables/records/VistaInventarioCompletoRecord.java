@@ -10,8 +10,8 @@ import com.rodiejacontable.database.jooq.tables.VistaInventarioCompleto;
 import java.math.BigDecimal;
 
 import org.jooq.Field;
-import org.jooq.Record19;
-import org.jooq.Row19;
+import org.jooq.Record20;
+import org.jooq.Row20;
 import org.jooq.impl.TableRecordImpl;
 
 
@@ -19,7 +19,7 @@ import org.jooq.impl.TableRecordImpl;
  * VIEW
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
-public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventarioCompletoRecord> implements Record19<Integer, String, String, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> {
+public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventarioCompletoRecord> implements Record20<Integer, String, String, Integer, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> {
 
     private static final long serialVersionUID = 1L;
 
@@ -74,10 +74,27 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
 
     /**
      * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.parte_vehiculo_id</code>.
+     */
+    public VistaInventarioCompletoRecord setParteVehiculoId(Integer value) {
+        set(3, value);
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.parte_vehiculo_id</code>.
+     */
+    public Integer getParteVehiculoId() {
+        return (Integer) get(3);
+    }
+
+    /**
+     * Setter for
      * <code>sistema_vehicular.vista_inventario_completo.parte_vehiculo</code>.
      */
     public VistaInventarioCompletoRecord setParteVehiculo(String value) {
-        set(3, value);
+        set(4, value);
         return this;
     }
 
@@ -86,7 +103,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.parte_vehiculo</code>.
      */
     public String getParteVehiculo() {
-        return (String) get(3);
+        return (String) get(4);
     }
 
     /**
@@ -94,7 +111,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.descripcion</code>.
      */
     public VistaInventarioCompletoRecord setDescripcion(String value) {
-        set(4, value);
+        set(5, value);
         return this;
     }
 
@@ -103,7 +120,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.descripcion</code>.
      */
     public String getDescripcion() {
-        return (String) get(4);
+        return (String) get(5);
     }
 
     /**
@@ -111,7 +128,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.precio_costo</code>.
      */
     public VistaInventarioCompletoRecord setPrecioCosto(BigDecimal value) {
-        set(5, value);
+        set(6, value);
         return this;
     }
 
@@ -120,7 +137,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.precio_costo</code>.
      */
     public BigDecimal getPrecioCosto() {
-        return (BigDecimal) get(5);
+        return (BigDecimal) get(6);
     }
 
     /**
@@ -128,7 +145,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.precio_venta</code>.
      */
     public VistaInventarioCompletoRecord setPrecioVenta(BigDecimal value) {
-        set(6, value);
+        set(7, value);
         return this;
     }
 
@@ -137,7 +154,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.precio_venta</code>.
      */
     public BigDecimal getPrecioVenta() {
-        return (BigDecimal) get(6);
+        return (BigDecimal) get(7);
     }
 
     /**
@@ -145,7 +162,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.precio_mayoreo</code>.
      */
     public VistaInventarioCompletoRecord setPrecioMayoreo(BigDecimal value) {
-        set(7, value);
+        set(8, value);
         return this;
     }
 
@@ -154,7 +171,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.precio_mayoreo</code>.
      */
     public BigDecimal getPrecioMayoreo() {
-        return (BigDecimal) get(7);
+        return (BigDecimal) get(8);
     }
 
     /**
@@ -162,7 +179,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.formula_15</code>.
      */
     public VistaInventarioCompletoRecord setFormula_15(BigDecimal value) {
-        set(8, value);
+        set(9, value);
         return this;
     }
 
@@ -171,7 +188,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.formula_15</code>.
      */
     public BigDecimal getFormula_15() {
-        return (BigDecimal) get(8);
+        return (BigDecimal) get(9);
     }
 
     /**
@@ -179,7 +196,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.formula_30</code>.
      */
     public VistaInventarioCompletoRecord setFormula_30(BigDecimal value) {
-        set(9, value);
+        set(10, value);
         return this;
     }
 
@@ -188,7 +205,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.formula_30</code>.
      */
     public BigDecimal getFormula_30() {
-        return (BigDecimal) get(9);
+        return (BigDecimal) get(10);
     }
 
     /**
@@ -196,7 +213,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.estado</code>.
      */
     public VistaInventarioCompletoRecord setEstado(VistaInventarioCompletoEstado value) {
-        set(10, value);
+        set(11, value);
         return this;
     }
 
@@ -205,7 +222,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.estado</code>.
      */
     public VistaInventarioCompletoEstado getEstado() {
-        return (VistaInventarioCompletoEstado) get(10);
+        return (VistaInventarioCompletoEstado) get(11);
     }
 
     /**
@@ -213,7 +230,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.anio_registro</code>.
      */
     public VistaInventarioCompletoRecord setAnioRegistro(Short value) {
-        set(11, value);
+        set(12, value);
         return this;
     }
 
@@ -222,7 +239,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.anio_registro</code>.
      */
     public Short getAnioRegistro() {
-        return (Short) get(11);
+        return (Short) get(12);
     }
 
     /**
@@ -230,7 +247,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.mes_registro</code>.
      */
     public VistaInventarioCompletoRecord setMesRegistro(Byte value) {
-        set(12, value);
+        set(13, value);
         return this;
     }
 
@@ -239,7 +256,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.mes_registro</code>.
      */
     public Byte getMesRegistro() {
-        return (Byte) get(12);
+        return (Byte) get(13);
     }
 
     /**
@@ -247,7 +264,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.codigo_vehiculo</code>.
      */
     public VistaInventarioCompletoRecord setCodigoVehiculo(String value) {
-        set(13, value);
+        set(14, value);
         return this;
     }
 
@@ -256,7 +273,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.codigo_vehiculo</code>.
      */
     public String getCodigoVehiculo() {
-        return (String) get(13);
+        return (String) get(14);
     }
 
     /**
@@ -264,7 +281,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.marca</code>.
      */
     public VistaInventarioCompletoRecord setMarca(String value) {
-        set(14, value);
+        set(15, value);
         return this;
     }
 
@@ -273,7 +290,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.marca</code>.
      */
     public String getMarca() {
-        return (String) get(14);
+        return (String) get(15);
     }
 
     /**
@@ -281,7 +298,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.modelo</code>.
      */
     public VistaInventarioCompletoRecord setModelo(String value) {
-        set(15, value);
+        set(16, value);
         return this;
     }
 
@@ -290,7 +307,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.modelo</code>.
      */
     public String getModelo() {
-        return (String) get(15);
+        return (String) get(16);
     }
 
     /**
@@ -298,7 +315,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.generacion</code>.
      */
     public VistaInventarioCompletoRecord setGeneracion(String value) {
-        set(16, value);
+        set(17, value);
         return this;
     }
 
@@ -307,7 +324,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.generacion</code>.
      */
     public String getGeneracion() {
-        return (String) get(16);
+        return (String) get(17);
     }
 
     /**
@@ -315,7 +332,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.anio_vehiculo</code>.
      */
     public VistaInventarioCompletoRecord setAnioVehiculo(Integer value) {
-        set(17, value);
+        set(18, value);
         return this;
     }
 
@@ -324,7 +341,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.anio_vehiculo</code>.
      */
     public Integer getAnioVehiculo() {
-        return (Integer) get(17);
+        return (Integer) get(18);
     }
 
     /**
@@ -332,7 +349,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.clave_generacion</code>.
      */
     public VistaInventarioCompletoRecord setClaveGeneracion(String value) {
-        set(18, value);
+        set(19, value);
         return this;
     }
 
@@ -341,21 +358,21 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
      * <code>sistema_vehicular.vista_inventario_completo.clave_generacion</code>.
      */
     public String getClaveGeneracion() {
-        return (String) get(18);
+        return (String) get(19);
     }
 
     // -------------------------------------------------------------------------
-    // Record19 type implementation
+    // Record20 type implementation
     // -------------------------------------------------------------------------
 
     @Override
-    public Row19<Integer, String, String, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> fieldsRow() {
-        return (Row19) super.fieldsRow();
+    public Row20<Integer, String, String, Integer, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> fieldsRow() {
+        return (Row20) super.fieldsRow();
     }
 
     @Override
-    public Row19<Integer, String, String, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> valuesRow() {
-        return (Row19) super.valuesRow();
+    public Row20<Integer, String, String, Integer, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> valuesRow() {
+        return (Row20) super.valuesRow();
     }
 
     @Override
@@ -374,82 +391,87 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
     }
 
     @Override
-    public Field<String> field4() {
-        return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.PARTE_VEHICULO;
+    public Field<Integer> field4() {
+        return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.PARTE_VEHICULO_ID;
     }
 
     @Override
     public Field<String> field5() {
+        return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.PARTE_VEHICULO;
+    }
+
+    @Override
+    public Field<String> field6() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.DESCRIPCION;
     }
 
     @Override
-    public Field<BigDecimal> field6() {
+    public Field<BigDecimal> field7() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.PRECIO_COSTO;
     }
 
     @Override
-    public Field<BigDecimal> field7() {
+    public Field<BigDecimal> field8() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.PRECIO_VENTA;
     }
 
     @Override
-    public Field<BigDecimal> field8() {
+    public Field<BigDecimal> field9() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.PRECIO_MAYOREO;
     }
 
     @Override
-    public Field<BigDecimal> field9() {
+    public Field<BigDecimal> field10() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.FORMULA_15;
     }
 
     @Override
-    public Field<BigDecimal> field10() {
+    public Field<BigDecimal> field11() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.FORMULA_30;
     }
 
     @Override
-    public Field<VistaInventarioCompletoEstado> field11() {
+    public Field<VistaInventarioCompletoEstado> field12() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.ESTADO;
     }
 
     @Override
-    public Field<Short> field12() {
+    public Field<Short> field13() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.ANIO_REGISTRO;
     }
 
     @Override
-    public Field<Byte> field13() {
+    public Field<Byte> field14() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.MES_REGISTRO;
     }
 
     @Override
-    public Field<String> field14() {
+    public Field<String> field15() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.CODIGO_VEHICULO;
     }
 
     @Override
-    public Field<String> field15() {
+    public Field<String> field16() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.MARCA;
     }
 
     @Override
-    public Field<String> field16() {
+    public Field<String> field17() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.MODELO;
     }
 
     @Override
-    public Field<String> field17() {
+    public Field<String> field18() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.GENERACION;
     }
 
     @Override
-    public Field<Integer> field18() {
+    public Field<Integer> field19() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.ANIO_VEHICULO;
     }
 
     @Override
-    public Field<String> field19() {
+    public Field<String> field20() {
         return VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO.CLAVE_GENERACION;
     }
 
@@ -469,82 +491,87 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
     }
 
     @Override
-    public String component4() {
-        return getParteVehiculo();
+    public Integer component4() {
+        return getParteVehiculoId();
     }
 
     @Override
     public String component5() {
+        return getParteVehiculo();
+    }
+
+    @Override
+    public String component6() {
         return getDescripcion();
     }
 
     @Override
-    public BigDecimal component6() {
+    public BigDecimal component7() {
         return getPrecioCosto();
     }
 
     @Override
-    public BigDecimal component7() {
+    public BigDecimal component8() {
         return getPrecioVenta();
     }
 
     @Override
-    public BigDecimal component8() {
+    public BigDecimal component9() {
         return getPrecioMayoreo();
     }
 
     @Override
-    public BigDecimal component9() {
+    public BigDecimal component10() {
         return getFormula_15();
     }
 
     @Override
-    public BigDecimal component10() {
+    public BigDecimal component11() {
         return getFormula_30();
     }
 
     @Override
-    public VistaInventarioCompletoEstado component11() {
+    public VistaInventarioCompletoEstado component12() {
         return getEstado();
     }
 
     @Override
-    public Short component12() {
+    public Short component13() {
         return getAnioRegistro();
     }
 
     @Override
-    public Byte component13() {
+    public Byte component14() {
         return getMesRegistro();
     }
 
     @Override
-    public String component14() {
+    public String component15() {
         return getCodigoVehiculo();
     }
 
     @Override
-    public String component15() {
+    public String component16() {
         return getMarca();
     }
 
     @Override
-    public String component16() {
+    public String component17() {
         return getModelo();
     }
 
     @Override
-    public String component17() {
+    public String component18() {
         return getGeneracion();
     }
 
     @Override
-    public Integer component18() {
+    public Integer component19() {
         return getAnioVehiculo();
     }
 
     @Override
-    public String component19() {
+    public String component20() {
         return getClaveGeneracion();
     }
 
@@ -564,82 +591,87 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
     }
 
     @Override
-    public String value4() {
-        return getParteVehiculo();
+    public Integer value4() {
+        return getParteVehiculoId();
     }
 
     @Override
     public String value5() {
+        return getParteVehiculo();
+    }
+
+    @Override
+    public String value6() {
         return getDescripcion();
     }
 
     @Override
-    public BigDecimal value6() {
+    public BigDecimal value7() {
         return getPrecioCosto();
     }
 
     @Override
-    public BigDecimal value7() {
+    public BigDecimal value8() {
         return getPrecioVenta();
     }
 
     @Override
-    public BigDecimal value8() {
+    public BigDecimal value9() {
         return getPrecioMayoreo();
     }
 
     @Override
-    public BigDecimal value9() {
+    public BigDecimal value10() {
         return getFormula_15();
     }
 
     @Override
-    public BigDecimal value10() {
+    public BigDecimal value11() {
         return getFormula_30();
     }
 
     @Override
-    public VistaInventarioCompletoEstado value11() {
+    public VistaInventarioCompletoEstado value12() {
         return getEstado();
     }
 
     @Override
-    public Short value12() {
+    public Short value13() {
         return getAnioRegistro();
     }
 
     @Override
-    public Byte value13() {
+    public Byte value14() {
         return getMesRegistro();
     }
 
     @Override
-    public String value14() {
+    public String value15() {
         return getCodigoVehiculo();
     }
 
     @Override
-    public String value15() {
+    public String value16() {
         return getMarca();
     }
 
     @Override
-    public String value16() {
+    public String value17() {
         return getModelo();
     }
 
     @Override
-    public String value17() {
+    public String value18() {
         return getGeneracion();
     }
 
     @Override
-    public Integer value18() {
+    public Integer value19() {
         return getAnioVehiculo();
     }
 
     @Override
-    public String value19() {
+    public String value20() {
         return getClaveGeneracion();
     }
 
@@ -662,103 +694,109 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
     }
 
     @Override
-    public VistaInventarioCompletoRecord value4(String value) {
-        setParteVehiculo(value);
+    public VistaInventarioCompletoRecord value4(Integer value) {
+        setParteVehiculoId(value);
         return this;
     }
 
     @Override
     public VistaInventarioCompletoRecord value5(String value) {
+        setParteVehiculo(value);
+        return this;
+    }
+
+    @Override
+    public VistaInventarioCompletoRecord value6(String value) {
         setDescripcion(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value6(BigDecimal value) {
+    public VistaInventarioCompletoRecord value7(BigDecimal value) {
         setPrecioCosto(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value7(BigDecimal value) {
+    public VistaInventarioCompletoRecord value8(BigDecimal value) {
         setPrecioVenta(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value8(BigDecimal value) {
+    public VistaInventarioCompletoRecord value9(BigDecimal value) {
         setPrecioMayoreo(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value9(BigDecimal value) {
+    public VistaInventarioCompletoRecord value10(BigDecimal value) {
         setFormula_15(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value10(BigDecimal value) {
+    public VistaInventarioCompletoRecord value11(BigDecimal value) {
         setFormula_30(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value11(VistaInventarioCompletoEstado value) {
+    public VistaInventarioCompletoRecord value12(VistaInventarioCompletoEstado value) {
         setEstado(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value12(Short value) {
+    public VistaInventarioCompletoRecord value13(Short value) {
         setAnioRegistro(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value13(Byte value) {
+    public VistaInventarioCompletoRecord value14(Byte value) {
         setMesRegistro(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value14(String value) {
+    public VistaInventarioCompletoRecord value15(String value) {
         setCodigoVehiculo(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value15(String value) {
+    public VistaInventarioCompletoRecord value16(String value) {
         setMarca(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value16(String value) {
+    public VistaInventarioCompletoRecord value17(String value) {
         setModelo(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value17(String value) {
+    public VistaInventarioCompletoRecord value18(String value) {
         setGeneracion(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value18(Integer value) {
+    public VistaInventarioCompletoRecord value19(Integer value) {
         setAnioVehiculo(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord value19(String value) {
+    public VistaInventarioCompletoRecord value20(String value) {
         setClaveGeneracion(value);
         return this;
     }
 
     @Override
-    public VistaInventarioCompletoRecord values(Integer value1, String value2, String value3, String value4, String value5, BigDecimal value6, BigDecimal value7, BigDecimal value8, BigDecimal value9, BigDecimal value10, VistaInventarioCompletoEstado value11, Short value12, Byte value13, String value14, String value15, String value16, String value17, Integer value18, String value19) {
+    public VistaInventarioCompletoRecord values(Integer value1, String value2, String value3, Integer value4, String value5, String value6, BigDecimal value7, BigDecimal value8, BigDecimal value9, BigDecimal value10, BigDecimal value11, VistaInventarioCompletoEstado value12, Short value13, Byte value14, String value15, String value16, String value17, String value18, Integer value19, String value20) {
         value1(value1);
         value2(value2);
         value3(value3);
@@ -778,6 +816,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
         value17(value17);
         value18(value18);
         value19(value19);
+        value20(value20);
         return this;
     }
 
@@ -795,12 +834,13 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
     /**
      * Create a detached, initialised VistaInventarioCompletoRecord
      */
-    public VistaInventarioCompletoRecord(Integer id, String codigoRepuesto, String codigoUbicacion, String parteVehiculo, String descripcion, BigDecimal precioCosto, BigDecimal precioVenta, BigDecimal precioMayoreo, BigDecimal formula_15, BigDecimal formula_30, VistaInventarioCompletoEstado estado, Short anioRegistro, Byte mesRegistro, String codigoVehiculo, String marca, String modelo, String generacion, Integer anioVehiculo, String claveGeneracion) {
+    public VistaInventarioCompletoRecord(Integer id, String codigoRepuesto, String codigoUbicacion, Integer parteVehiculoId, String parteVehiculo, String descripcion, BigDecimal precioCosto, BigDecimal precioVenta, BigDecimal precioMayoreo, BigDecimal formula_15, BigDecimal formula_30, VistaInventarioCompletoEstado estado, Short anioRegistro, Byte mesRegistro, String codigoVehiculo, String marca, String modelo, String generacion, Integer anioVehiculo, String claveGeneracion) {
         super(VistaInventarioCompleto.VISTA_INVENTARIO_COMPLETO);
 
         setId(id);
         setCodigoRepuesto(codigoRepuesto);
         setCodigoUbicacion(codigoUbicacion);
+        setParteVehiculoId(parteVehiculoId);
         setParteVehiculo(parteVehiculo);
         setDescripcion(descripcion);
         setPrecioCosto(precioCosto);
@@ -830,6 +870,7 @@ public class VistaInventarioCompletoRecord extends TableRecordImpl<VistaInventar
             setId(value.getId());
             setCodigoRepuesto(value.getCodigoRepuesto());
             setCodigoUbicacion(value.getCodigoUbicacion());
+            setParteVehiculoId(value.getParteVehiculoId());
             setParteVehiculo(value.getParteVehiculo());
             setDescripcion(value.getDescripcion());
             setPrecioCosto(value.getPrecioCosto());

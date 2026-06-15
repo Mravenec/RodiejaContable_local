@@ -21,6 +21,7 @@ public class VistaInventarioCompleto implements Serializable {
     private Integer id;
     private String codigoRepuesto;
     private String codigoUbicacion;
+    private Integer parteVehiculoId;
     private String parteVehiculo;
     private String descripcion;
     private BigDecimal precioCosto;
@@ -44,6 +45,7 @@ public class VistaInventarioCompleto implements Serializable {
         this.id = value.id;
         this.codigoRepuesto = value.codigoRepuesto;
         this.codigoUbicacion = value.codigoUbicacion;
+        this.parteVehiculoId = value.parteVehiculoId;
         this.parteVehiculo = value.parteVehiculo;
         this.descripcion = value.descripcion;
         this.precioCosto = value.precioCosto;
@@ -66,6 +68,7 @@ public class VistaInventarioCompleto implements Serializable {
         Integer id,
         String codigoRepuesto,
         String codigoUbicacion,
+        Integer parteVehiculoId,
         String parteVehiculo,
         String descripcion,
         BigDecimal precioCosto,
@@ -86,6 +89,7 @@ public class VistaInventarioCompleto implements Serializable {
         this.id = id;
         this.codigoRepuesto = codigoRepuesto;
         this.codigoUbicacion = codigoUbicacion;
+        this.parteVehiculoId = parteVehiculoId;
         this.parteVehiculo = parteVehiculo;
         this.descripcion = descripcion;
         this.precioCosto = precioCosto;
@@ -150,6 +154,23 @@ public class VistaInventarioCompleto implements Serializable {
      */
     public VistaInventarioCompleto setCodigoUbicacion(String codigoUbicacion) {
         this.codigoUbicacion = codigoUbicacion;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.parte_vehiculo_id</code>.
+     */
+    public Integer getParteVehiculoId() {
+        return this.parteVehiculoId;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.parte_vehiculo_id</code>.
+     */
+    public VistaInventarioCompleto setParteVehiculoId(Integer parteVehiculoId) {
+        this.parteVehiculoId = parteVehiculoId;
         return this;
     }
 
@@ -452,6 +473,12 @@ public class VistaInventarioCompleto implements Serializable {
         }
         else if (!this.codigoUbicacion.equals(other.codigoUbicacion))
             return false;
+        if (this.parteVehiculoId == null) {
+            if (other.parteVehiculoId != null)
+                return false;
+        }
+        else if (!this.parteVehiculoId.equals(other.parteVehiculoId))
+            return false;
         if (this.parteVehiculo == null) {
             if (other.parteVehiculo != null)
                 return false;
@@ -558,6 +585,7 @@ public class VistaInventarioCompleto implements Serializable {
         result = prime * result + ((this.id == null) ? 0 : this.id.hashCode());
         result = prime * result + ((this.codigoRepuesto == null) ? 0 : this.codigoRepuesto.hashCode());
         result = prime * result + ((this.codigoUbicacion == null) ? 0 : this.codigoUbicacion.hashCode());
+        result = prime * result + ((this.parteVehiculoId == null) ? 0 : this.parteVehiculoId.hashCode());
         result = prime * result + ((this.parteVehiculo == null) ? 0 : this.parteVehiculo.hashCode());
         result = prime * result + ((this.descripcion == null) ? 0 : this.descripcion.hashCode());
         result = prime * result + ((this.precioCosto == null) ? 0 : this.precioCosto.hashCode());
@@ -584,6 +612,7 @@ public class VistaInventarioCompleto implements Serializable {
         sb.append(id);
         sb.append(", ").append(codigoRepuesto);
         sb.append(", ").append(codigoUbicacion);
+        sb.append(", ").append(parteVehiculoId);
         sb.append(", ").append(parteVehiculo);
         sb.append(", ").append(descripcion);
         sb.append(", ").append(precioCosto);

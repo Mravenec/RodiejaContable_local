@@ -19,7 +19,7 @@ public enum VehiculosCombustible implements EnumType {
 
     Diesel("Diesel"),
 
-    Elécrico("Elécrico");
+    Eléctrico("Eléctrico");
 
     private final String literal;
 

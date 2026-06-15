@@ -28,7 +28,7 @@ import {
 import { useMarcas } from '../../hooks/useMarcas';
 import { useModelos } from '../../hooks/useModelos';
 import { useGeneraciones } from '../../hooks/useGeneraciones';
-import { useVehiculos } from '../../hooks/useVehiculos';
+import { useVehiculosParaTransacciones } from '../../hooks/useVehiculosParaTransacciones';
 import { usePartesVehiculo } from '../../hooks/usePartesVehiculo';
 import api from '../../api/axios';
 
@@ -271,11 +271,8 @@ const NuevoRepuesto = () => {
   
   const { data: partesVehiculo = [], isLoading: loadingPartes } = usePartesVehiculo();
 
-  // Para repuestos CON vehículo: cargar vehículos solo cuando sea necesario
-  const { data: todosVehiculos = [], isLoading: loadingVehiculos } = useVehiculos(
-    {},
-    tipoRepuesto === 'con_vehiculo'
-  );
+  // Para repuestos CON vehículo: cargar vehículos con la información de marca/modelo ya procesada
+  const { vehiculos: todosVehiculos = [], loadingVehiculos } = useVehiculosParaTransacciones();
 
   // Filtrar solo vehículos DESARMADOS
   const vehiculosDesarmados = React.useMemo(() => {
@@ -287,23 +284,28 @@ const NuevoRepuesto = () => {
 
   // Función para obtener texto completo del vehículo
   const getVehiculoDisplayText = (vehiculo) => {
-    const codigo = vehiculo.codigoVehiculo || vehiculo.codigo_vehiculo || 'Sin código';
-    const anio = vehiculo.anio || '';
+    const codigo = vehiculo.codigoVehiculo || vehiculo.codigo_vehiculo || 'SIN_CODIGO';
+    const anio = vehiculo.anio || 'Año N/A';
+    const estado = vehiculo.estado || 'SIN_ESTADO';
 
-    let marca = '';
-    let modelo = '';
-    let generacion = '';
+    let marca = vehiculo.marca || 'Marca N/A';
+    let modelo = vehiculo.modelo || 'Modelo N/A';
 
-    if (vehiculo.generacion) {
-      if (typeof vehiculo.generacion === 'object') {
-        marca = vehiculo.generacion.marca || '';
-        modelo = vehiculo.generacion.modelo || '';
-        generacion = vehiculo.generacion.nombre || '';
-      }
+    if (vehiculo.generacion && typeof vehiculo.generacion === 'object') {
+      marca = vehiculo.generacion.marca || marca;
+      modelo = vehiculo.generacion.modelo || modelo;
     }
 
-    const partes = [codigo, anio, marca, modelo, generacion].filter(p => p);
-    return partes.join(' ');
+    let estadoAmigable = estado;
+    if (estado === 'DESARMADO') {
+      estadoAmigable = 'Para repuestos';
+    } else if (estado === 'REPARACION') {
+      estadoAmigable = 'Para reparar';
+    } else if (estado !== 'SIN_ESTADO') {
+      estadoAmigable = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+    }
+
+    return `${codigo} — ${marca} ${modelo} ${anio} (${estadoAmigable})`;
   };
 
   // Opciones para condicion según tipo
@@ -594,7 +596,8 @@ const NuevoRepuesto = () => {
                   placeholder="Seleccione la parte del vehículo"
                   loading={loadingPartes}
                   showSearch
-                  optionFilterProp="children"
+                  optionFilterProp="label"
+                  optionLabelProp="label"
                   dropdownRender={(menu) => (
                     <div>
                       {menu}
@@ -775,33 +778,20 @@ const NuevoRepuesto = () => {
                         optionLabelProp="label"
                       >
                         {vehiculosDesarmados.map(vehiculo => {
-                          const codigo = vehiculo.codigoVehiculo || vehiculo.codigo_vehiculo || 'Sin código';
-                          const anio = vehiculo.anio || '';
-                          let marca = '';
-                          let modelo = '';
-                          let generacion = '';
-
-                          if (vehiculo.generacion) {
-                            if (typeof vehiculo.generacion === 'object') {
-                              marca = vehiculo.generacion.marca || '';
-                              modelo = vehiculo.generacion.modelo || '';
-                              generacion = vehiculo.generacion.nombre || '';
-                            }
-                          }
-
-                          const label = `${codigo} - ${anio}${marca ? ` ${marca}` : ''}${modelo ? ` ${modelo}` : ''}${generacion ? ` ${generacion}` : ''}`;
+                          const displayText = getVehiculoDisplayText(vehiculo);
+                          const codigo = vehiculo.codigoVehiculo || vehiculo.codigo_vehiculo || 'SIN_CODIGO';
 
                           return (
                             <Option
                               key={vehiculo.id}
                               value={vehiculo.id}
-                              label={label}
+                              label={displayText}
                               vehiculo={vehiculo}
                             >
                               <div>
                                 <div style={{ fontWeight: 'bold' }}>{codigo}</div>
                                 <div style={{ fontSize: '0.9em', color: '#666' }}>
-                                  {anio}{marca ? ` | ${marca}` : ''}{modelo ? ` ${modelo}` : ''}{generacion ? ` (${generacion})` : ''}
+                                  {displayText.replace(codigo + ' — ', '')}
                                 </div>
                               </div>
                             </Option>
