@@ -303,7 +303,7 @@ function App() {
       <Route
         path="/vehiculos/nuevo"
         element={
-          <PrivateRoute roles={['admin', 'vendedor']}>
+          <PrivateRoute>
             <MainLayout>
               <NuevoVehiculo />
             </MainLayout>
@@ -313,7 +313,7 @@ function App() {
       <Route
         path="/vehiculos/editar/:id"
         element={
-          <PrivateRoute roles={['admin', 'vendedor']}>
+          <PrivateRoute>
             <MainLayout>
               <EditarVehiculo />
             </MainLayout>
@@ -345,7 +345,7 @@ function App() {
       <Route
         path="/inventario/nuevo"
         element={
-          <PrivateRoute roles={['admin', 'inventario']}>
+          <PrivateRoute>
             <MainLayout>
               <NuevoRepuesto />
             </MainLayout>
@@ -355,7 +355,7 @@ function App() {
       <Route
         path="/inventario/editar/:id"
         element={
-          <PrivateRoute roles={['admin', 'inventario']}>
+          <PrivateRoute>
             <MainLayout>
               <EditarRepuesto />
             </MainLayout>
@@ -387,7 +387,7 @@ function App() {
       <Route
         path="/finanzas/nueva"
         element={
-          <PrivateRoute roles={['admin', 'finanzas']}>
+          <PrivateRoute>
             <MainLayout>
               <NuevaTransaccion />
             </MainLayout>
@@ -397,7 +397,7 @@ function App() {
       <Route
         path="/finanzas/editar/:id"
         element={
-          <PrivateRoute roles={['admin', 'finanzas']}>
+          <PrivateRoute>
             <MainLayout>
               <EditarTransaccion />
             </MainLayout>
@@ -419,7 +419,7 @@ function App() {
       <Route
         path="/reportes"
         element={
-          <PrivateRoute roles={['admin', 'gerente']}>
+          <PrivateRoute>
             <MainLayout>
               <Reportes />
             </MainLayout>
@@ -429,7 +429,7 @@ function App() {
       <Route
         path="/reportes/ventas"
         element={
-          <PrivateRoute roles={['admin', 'gerente']}>
+          <PrivateRoute>
             <MainLayout>
               <VentasReportes />
             </MainLayout>
@@ -439,7 +439,7 @@ function App() {
       <Route
         path="/reportes/repuestos"
         element={
-          <PrivateRoute roles={['admin', 'gerente']}>
+          <PrivateRoute>
             <MainLayout>
               <ReporteRepuestos />
             </MainLayout>
@@ -447,7 +447,7 @@ function App() {
         }
       />
       <Route path="/reportes/vehiculos" element={
-          <PrivateRoute roles={['admin', 'gerente']}>
+          <PrivateRoute>
             <MainLayout>
               <ReporteVehiculos />
             </MainLayout>
@@ -456,7 +456,7 @@ function App() {
 
       {/* Rutas de configuración */}
       <Route
-        path="/perfil"
+        path="/configuracion/perfil"
         element={
           <PrivateRoute>
             <MainLayout>
@@ -468,7 +468,7 @@ function App() {
       <Route
         path="/configuracion"
         element={
-          <PrivateRoute roles={['admin']}>
+          <PrivateRoute>
             <MainLayout>
               <Configuracion />
             </MainLayout>

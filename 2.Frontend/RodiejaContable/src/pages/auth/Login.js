@@ -21,31 +21,15 @@ const Login = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      // Simular autenticación
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Llamar al backend real
+      await login({ email: values.email, password: values.password });
       
-      // En una aplicación real, aquí se haría la autenticación con el backend
-      if (values.username === 'admin' && values.password === 'admin123') {
-        const userData = {
-          id: 1,
-          nombre: 'Administrador',
-          email: 'admin@rodiejacontable.com',
-          role: 'admin',
-        };
-        
-        // Llamar a login con los datos del usuario
-        await login(userData);
-        
-        // Navegar a la página de destino o al dashboard
-        const from = location.state?.from?.pathname || '/';
-        message.success('¡Bienvenido de nuevo!');
-        navigate(from, { replace: true });
-      } else {
-        message.error('Credenciales incorrectas');
-      }
+      const from = location.state?.from?.pathname || '/';
+      message.success('¡Bienvenido!');
+      navigate(from, { replace: true });
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
-      message.error('Error al iniciar sesión. Por favor, intente nuevamente.');
+      message.error(error.message || 'Credenciales incorrectas o error en el servidor');
     } finally {
       setLoading(false);
     }
@@ -76,12 +60,15 @@ const Login = () => {
         layout="vertical"
       >
         <Form.Item
-          name="username"
-          rules={[{ required: true, message: 'Por favor ingrese su usuario' }]}
+          name="email"
+          rules={[
+            { required: true, message: 'Por favor ingrese su correo' },
+            { type: 'email', message: 'Ingrese un correo electrónico válido' }
+          ]}
         >
           <Input 
             prefix={<UserOutlined />} 
-            placeholder="Usuario" 
+            placeholder="Correo Electrónico" 
             size="large"
           />
         </Form.Item>

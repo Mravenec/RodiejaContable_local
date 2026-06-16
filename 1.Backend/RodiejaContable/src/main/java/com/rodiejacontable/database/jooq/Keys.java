@@ -4,6 +4,7 @@
 package com.rodiejacontable.database.jooq;
 
 
+import com.rodiejacontable.database.jooq.tables.Address;
 import com.rodiejacontable.database.jooq.tables.Empleados;
 import com.rodiejacontable.database.jooq.tables.Generaciones;
 import com.rodiejacontable.database.jooq.tables.HistorialRepuestos;
@@ -14,9 +15,15 @@ import com.rodiejacontable.database.jooq.tables.Marcas;
 import com.rodiejacontable.database.jooq.tables.Modelos;
 import com.rodiejacontable.database.jooq.tables.PagosComisiones;
 import com.rodiejacontable.database.jooq.tables.ParteVehiculo;
+import com.rodiejacontable.database.jooq.tables.PersonalData;
+import com.rodiejacontable.database.jooq.tables.Phones;
+import com.rodiejacontable.database.jooq.tables.Roles;
 import com.rodiejacontable.database.jooq.tables.TiposTransacciones;
 import com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras;
+import com.rodiejacontable.database.jooq.tables.UserProfilepicture;
+import com.rodiejacontable.database.jooq.tables.Users;
 import com.rodiejacontable.database.jooq.tables.Vehiculos;
+import com.rodiejacontable.database.jooq.tables.records.AddressRecord;
 import com.rodiejacontable.database.jooq.tables.records.EmpleadosRecord;
 import com.rodiejacontable.database.jooq.tables.records.GeneracionesRecord;
 import com.rodiejacontable.database.jooq.tables.records.HistorialRepuestosRecord;
@@ -27,8 +34,13 @@ import com.rodiejacontable.database.jooq.tables.records.MarcasRecord;
 import com.rodiejacontable.database.jooq.tables.records.ModelosRecord;
 import com.rodiejacontable.database.jooq.tables.records.PagosComisionesRecord;
 import com.rodiejacontable.database.jooq.tables.records.ParteVehiculoRecord;
+import com.rodiejacontable.database.jooq.tables.records.PersonalDataRecord;
+import com.rodiejacontable.database.jooq.tables.records.PhonesRecord;
+import com.rodiejacontable.database.jooq.tables.records.RolesRecord;
 import com.rodiejacontable.database.jooq.tables.records.TiposTransaccionesRecord;
 import com.rodiejacontable.database.jooq.tables.records.TransaccionesFinancierasRecord;
+import com.rodiejacontable.database.jooq.tables.records.UserProfilepictureRecord;
+import com.rodiejacontable.database.jooq.tables.records.UsersRecord;
 import com.rodiejacontable.database.jooq.tables.records.VehiculosRecord;
 
 import org.jooq.ForeignKey;
@@ -49,6 +61,7 @@ public class Keys {
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
+    public static final UniqueKey<AddressRecord> KEY_ADDRESS_PRIMARY = Internal.createUniqueKey(Address.ADDRESS, DSL.name("KEY_address_PRIMARY"), new TableField[] { Address.ADDRESS.USER_ID }, true);
     public static final UniqueKey<EmpleadosRecord> KEY_EMPLEADOS_NOMBRE = Internal.createUniqueKey(Empleados.EMPLEADOS, DSL.name("KEY_empleados_nombre"), new TableField[] { Empleados.EMPLEADOS.NOMBRE }, true);
     public static final UniqueKey<EmpleadosRecord> KEY_EMPLEADOS_PRIMARY = Internal.createUniqueKey(Empleados.EMPLEADOS, DSL.name("KEY_empleados_PRIMARY"), new TableField[] { Empleados.EMPLEADOS.ID }, true);
     public static final UniqueKey<GeneracionesRecord> KEY_GENERACIONES_PRIMARY = Internal.createUniqueKey(Generaciones.GENERACIONES, DSL.name("KEY_generaciones_PRIMARY"), new TableField[] { Generaciones.GENERACIONES.ID }, true);
@@ -66,10 +79,17 @@ public class Keys {
     public static final UniqueKey<PagosComisionesRecord> KEY_PAGOS_COMISIONES_UNIQUE_PAGO_PERIODO = Internal.createUniqueKey(PagosComisiones.PAGOS_COMISIONES, DSL.name("KEY_pagos_comisiones_unique_pago_periodo"), new TableField[] { PagosComisiones.PAGOS_COMISIONES.EMPLEADO_ID, PagosComisiones.PAGOS_COMISIONES.ANIO, PagosComisiones.PAGOS_COMISIONES.MES }, true);
     public static final UniqueKey<ParteVehiculoRecord> KEY_PARTE_VEHICULO_NOMBRE = Internal.createUniqueKey(ParteVehiculo.PARTE_VEHICULO, DSL.name("KEY_parte_vehiculo_nombre"), new TableField[] { ParteVehiculo.PARTE_VEHICULO.NOMBRE }, true);
     public static final UniqueKey<ParteVehiculoRecord> KEY_PARTE_VEHICULO_PRIMARY = Internal.createUniqueKey(ParteVehiculo.PARTE_VEHICULO, DSL.name("KEY_parte_vehiculo_PRIMARY"), new TableField[] { ParteVehiculo.PARTE_VEHICULO.ID }, true);
+    public static final UniqueKey<PersonalDataRecord> KEY_PERSONAL_DATA_PRIMARY = Internal.createUniqueKey(PersonalData.PERSONAL_DATA, DSL.name("KEY_personal_data_PRIMARY"), new TableField[] { PersonalData.PERSONAL_DATA.USER_ID }, true);
+    public static final UniqueKey<PhonesRecord> KEY_PHONES_PRIMARY = Internal.createUniqueKey(Phones.PHONES, DSL.name("KEY_phones_PRIMARY"), new TableField[] { Phones.PHONES.USER_ID }, true);
+    public static final UniqueKey<RolesRecord> KEY_ROLES_NOMBRE = Internal.createUniqueKey(Roles.ROLES, DSL.name("KEY_roles_nombre"), new TableField[] { Roles.ROLES.NOMBRE }, true);
+    public static final UniqueKey<RolesRecord> KEY_ROLES_PRIMARY = Internal.createUniqueKey(Roles.ROLES, DSL.name("KEY_roles_PRIMARY"), new TableField[] { Roles.ROLES.ID }, true);
     public static final UniqueKey<TiposTransaccionesRecord> KEY_TIPOS_TRANSACCIONES_NOMBRE = Internal.createUniqueKey(TiposTransacciones.TIPOS_TRANSACCIONES, DSL.name("KEY_tipos_transacciones_nombre"), new TableField[] { TiposTransacciones.TIPOS_TRANSACCIONES.NOMBRE }, true);
     public static final UniqueKey<TiposTransaccionesRecord> KEY_TIPOS_TRANSACCIONES_PRIMARY = Internal.createUniqueKey(TiposTransacciones.TIPOS_TRANSACCIONES, DSL.name("KEY_tipos_transacciones_PRIMARY"), new TableField[] { TiposTransacciones.TIPOS_TRANSACCIONES.ID }, true);
     public static final UniqueKey<TransaccionesFinancierasRecord> KEY_TRANSACCIONES_FINANCIERAS_CODIGO_TRANSACCION = Internal.createUniqueKey(TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, DSL.name("KEY_transacciones_financieras_codigo_transaccion"), new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.CODIGO_TRANSACCION }, true);
     public static final UniqueKey<TransaccionesFinancierasRecord> KEY_TRANSACCIONES_FINANCIERAS_PRIMARY = Internal.createUniqueKey(TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, DSL.name("KEY_transacciones_financieras_PRIMARY"), new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ID }, true);
+    public static final UniqueKey<UserProfilepictureRecord> KEY_USER_PROFILEPICTURE_PRIMARY = Internal.createUniqueKey(UserProfilepicture.USER_PROFILEPICTURE, DSL.name("KEY_user_profilePicture_PRIMARY"), new TableField[] { UserProfilepicture.USER_PROFILEPICTURE.USER_ID }, true);
+    public static final UniqueKey<UsersRecord> KEY_USERS_EMAIL = Internal.createUniqueKey(Users.USERS, DSL.name("KEY_users_email"), new TableField[] { Users.USERS.EMAIL }, true);
+    public static final UniqueKey<UsersRecord> KEY_USERS_PRIMARY = Internal.createUniqueKey(Users.USERS, DSL.name("KEY_users_PRIMARY"), new TableField[] { Users.USERS.ID }, true);
     public static final UniqueKey<VehiculosRecord> KEY_VEHICULOS_CODIGO_VEHICULO = Internal.createUniqueKey(Vehiculos.VEHICULOS, DSL.name("KEY_vehiculos_codigo_vehiculo"), new TableField[] { Vehiculos.VEHICULOS.CODIGO_VEHICULO }, true);
     public static final UniqueKey<VehiculosRecord> KEY_VEHICULOS_PRIMARY = Internal.createUniqueKey(Vehiculos.VEHICULOS, DSL.name("KEY_vehiculos_PRIMARY"), new TableField[] { Vehiculos.VEHICULOS.ID }, true);
 
@@ -77,6 +97,7 @@ public class Keys {
     // FOREIGN KEY definitions
     // -------------------------------------------------------------------------
 
+    public static final ForeignKey<AddressRecord, UsersRecord> ADDRESS_IBFK_1 = Internal.createForeignKey(Address.ADDRESS, DSL.name("address_ibfk_1"), new TableField[] { Address.ADDRESS.USER_ID }, Keys.KEY_USERS_PRIMARY, new TableField[] { Users.USERS.ID }, true);
     public static final ForeignKey<GeneracionesRecord, ModelosRecord> GENERACIONES_IBFK_1 = Internal.createForeignKey(Generaciones.GENERACIONES, DSL.name("generaciones_ibfk_1"), new TableField[] { Generaciones.GENERACIONES.MODELO_ID }, Keys.KEY_MODELOS_PRIMARY, new TableField[] { Modelos.MODELOS.ID }, true);
     public static final ForeignKey<HistorialRepuestosRecord, InventarioRepuestosRecord> HISTORIAL_REPUESTOS_IBFK_1 = Internal.createForeignKey(HistorialRepuestos.HISTORIAL_REPUESTOS, DSL.name("historial_repuestos_ibfk_1"), new TableField[] { HistorialRepuestos.HISTORIAL_REPUESTOS.REPUESTO_ID }, Keys.KEY_INVENTARIO_REPUESTOS_PRIMARY, new TableField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.ID }, true);
     public static final ForeignKey<HistorialTransaccionesRecord, TransaccionesFinancierasRecord> HISTORIAL_TRANSACCIONES_IBFK_1 = Internal.createForeignKey(HistorialTransacciones.HISTORIAL_TRANSACCIONES, DSL.name("historial_transacciones_ibfk_1"), new TableField[] { HistorialTransacciones.HISTORIAL_TRANSACCIONES.TRANSACCION_ID }, Keys.KEY_TRANSACCIONES_FINANCIERAS_PRIMARY, new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ID }, true);
@@ -85,10 +106,14 @@ public class Keys {
     public static final ForeignKey<InventarioRepuestosRecord, ParteVehiculoRecord> INVENTARIO_REPUESTOS_IBFK_2 = Internal.createForeignKey(InventarioRepuestos.INVENTARIO_REPUESTOS, DSL.name("inventario_repuestos_ibfk_2"), new TableField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.PARTE_VEHICULO_ID }, Keys.KEY_PARTE_VEHICULO_PRIMARY, new TableField[] { ParteVehiculo.PARTE_VEHICULO.ID }, true);
     public static final ForeignKey<ModelosRecord, MarcasRecord> MODELOS_IBFK_1 = Internal.createForeignKey(Modelos.MODELOS, DSL.name("modelos_ibfk_1"), new TableField[] { Modelos.MODELOS.MARCA_ID }, Keys.KEY_MARCAS_PRIMARY, new TableField[] { Marcas.MARCAS.ID }, true);
     public static final ForeignKey<PagosComisionesRecord, EmpleadosRecord> PAGOS_COMISIONES_IBFK_1 = Internal.createForeignKey(PagosComisiones.PAGOS_COMISIONES, DSL.name("pagos_comisiones_ibfk_1"), new TableField[] { PagosComisiones.PAGOS_COMISIONES.EMPLEADO_ID }, Keys.KEY_EMPLEADOS_PRIMARY, new TableField[] { Empleados.EMPLEADOS.ID }, true);
+    public static final ForeignKey<PersonalDataRecord, UsersRecord> PERSONAL_DATA_IBFK_1 = Internal.createForeignKey(PersonalData.PERSONAL_DATA, DSL.name("personal_data_ibfk_1"), new TableField[] { PersonalData.PERSONAL_DATA.USER_ID }, Keys.KEY_USERS_PRIMARY, new TableField[] { Users.USERS.ID }, true);
+    public static final ForeignKey<PhonesRecord, UsersRecord> PHONES_IBFK_1 = Internal.createForeignKey(Phones.PHONES, DSL.name("phones_ibfk_1"), new TableField[] { Phones.PHONES.USER_ID }, Keys.KEY_USERS_PRIMARY, new TableField[] { Users.USERS.ID }, true);
     public static final ForeignKey<TransaccionesFinancierasRecord, TiposTransaccionesRecord> TRANSACCIONES_FINANCIERAS_IBFK_1 = Internal.createForeignKey(TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, DSL.name("transacciones_financieras_ibfk_1"), new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.TIPO_TRANSACCION_ID }, Keys.KEY_TIPOS_TRANSACCIONES_PRIMARY, new TableField[] { TiposTransacciones.TIPOS_TRANSACCIONES.ID }, true);
     public static final ForeignKey<TransaccionesFinancierasRecord, EmpleadosRecord> TRANSACCIONES_FINANCIERAS_IBFK_2 = Internal.createForeignKey(TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, DSL.name("transacciones_financieras_ibfk_2"), new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.EMPLEADO_ID }, Keys.KEY_EMPLEADOS_PRIMARY, new TableField[] { Empleados.EMPLEADOS.ID }, true);
     public static final ForeignKey<TransaccionesFinancierasRecord, VehiculosRecord> TRANSACCIONES_FINANCIERAS_IBFK_3 = Internal.createForeignKey(TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, DSL.name("transacciones_financieras_ibfk_3"), new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.VEHICULO_ID }, Keys.KEY_VEHICULOS_PRIMARY, new TableField[] { Vehiculos.VEHICULOS.ID }, true);
     public static final ForeignKey<TransaccionesFinancierasRecord, InventarioRepuestosRecord> TRANSACCIONES_FINANCIERAS_IBFK_4 = Internal.createForeignKey(TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, DSL.name("transacciones_financieras_ibfk_4"), new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.REPUESTO_ID }, Keys.KEY_INVENTARIO_REPUESTOS_PRIMARY, new TableField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.ID }, true);
     public static final ForeignKey<TransaccionesFinancierasRecord, GeneracionesRecord> TRANSACCIONES_FINANCIERAS_IBFK_5 = Internal.createForeignKey(TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, DSL.name("transacciones_financieras_ibfk_5"), new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.GENERACION_ID }, Keys.KEY_GENERACIONES_PRIMARY, new TableField[] { Generaciones.GENERACIONES.ID }, true);
+    public static final ForeignKey<UserProfilepictureRecord, UsersRecord> USER_PROFILEPICTURE_IBFK_1 = Internal.createForeignKey(UserProfilepicture.USER_PROFILEPICTURE, DSL.name("user_profilePicture_ibfk_1"), new TableField[] { UserProfilepicture.USER_PROFILEPICTURE.USER_ID }, Keys.KEY_USERS_PRIMARY, new TableField[] { Users.USERS.ID }, true);
+    public static final ForeignKey<UsersRecord, RolesRecord> FK_USER_ROL = Internal.createForeignKey(Users.USERS, DSL.name("fk_user_rol"), new TableField[] { Users.USERS.ROL_ID }, Keys.KEY_ROLES_PRIMARY, new TableField[] { Roles.ROLES.ID }, true);
     public static final ForeignKey<VehiculosRecord, GeneracionesRecord> VEHICULOS_IBFK_1 = Internal.createForeignKey(Vehiculos.VEHICULOS, DSL.name("vehiculos_ibfk_1"), new TableField[] { Vehiculos.VEHICULOS.GENERACION_ID }, Keys.KEY_GENERACIONES_PRIMARY, new TableField[] { Generaciones.GENERACIONES.ID }, true);
 }

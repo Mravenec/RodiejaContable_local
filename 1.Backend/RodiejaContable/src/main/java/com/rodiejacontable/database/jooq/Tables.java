@@ -4,6 +4,7 @@
 package com.rodiejacontable.database.jooq;
 
 
+import com.rodiejacontable.database.jooq.tables.Address;
 import com.rodiejacontable.database.jooq.tables.Empleados;
 import com.rodiejacontable.database.jooq.tables.Generaciones;
 import com.rodiejacontable.database.jooq.tables.HistorialRepuestos;
@@ -14,8 +15,13 @@ import com.rodiejacontable.database.jooq.tables.Marcas;
 import com.rodiejacontable.database.jooq.tables.Modelos;
 import com.rodiejacontable.database.jooq.tables.PagosComisiones;
 import com.rodiejacontable.database.jooq.tables.ParteVehiculo;
+import com.rodiejacontable.database.jooq.tables.PersonalData;
+import com.rodiejacontable.database.jooq.tables.Phones;
+import com.rodiejacontable.database.jooq.tables.Roles;
 import com.rodiejacontable.database.jooq.tables.TiposTransacciones;
 import com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras;
+import com.rodiejacontable.database.jooq.tables.UserProfilepicture;
+import com.rodiejacontable.database.jooq.tables.Users;
 import com.rodiejacontable.database.jooq.tables.Vehiculos;
 import com.rodiejacontable.database.jooq.tables.VistaAnalisisFinancieroMensual;
 import com.rodiejacontable.database.jooq.tables.VistaAuditoriaCompleta;
@@ -38,6 +44,11 @@ import com.rodiejacontable.database.jooq.tables.VistaVentasPorEmpleado;
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Tables {
+
+    /**
+     * The table <code>sistema_vehicular.address</code>.
+     */
+    public static final Address ADDRESS = Address.ADDRESS;
 
     /**
      * The table <code>sistema_vehicular.empleados</code>.
@@ -90,6 +101,21 @@ public class Tables {
     public static final ParteVehiculo PARTE_VEHICULO = ParteVehiculo.PARTE_VEHICULO;
 
     /**
+     * The table <code>sistema_vehicular.personal_data</code>.
+     */
+    public static final PersonalData PERSONAL_DATA = PersonalData.PERSONAL_DATA;
+
+    /**
+     * The table <code>sistema_vehicular.phones</code>.
+     */
+    public static final Phones PHONES = Phones.PHONES;
+
+    /**
+     * The table <code>sistema_vehicular.roles</code>.
+     */
+    public static final Roles ROLES = Roles.ROLES;
+
+    /**
      * The table <code>sistema_vehicular.tipos_transacciones</code>.
      */
     public static final TiposTransacciones TIPOS_TRANSACCIONES = TiposTransacciones.TIPOS_TRANSACCIONES;
@@ -98,6 +124,16 @@ public class Tables {
      * The table <code>sistema_vehicular.transacciones_financieras</code>.
      */
     public static final TransaccionesFinancieras TRANSACCIONES_FINANCIERAS = TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS;
+
+    /**
+     * The table <code>sistema_vehicular.user_profilePicture</code>.
+     */
+    public static final UserProfilepicture USER_PROFILEPICTURE = UserProfilepicture.USER_PROFILEPICTURE;
+
+    /**
+     * The table <code>sistema_vehicular.users</code>.
+     */
+    public static final Users USERS = Users.USERS;
 
     /**
      * The table <code>sistema_vehicular.vehiculos</code>.

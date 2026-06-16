@@ -4,6 +4,7 @@
 package com.rodiejacontable.database.jooq;
 
 
+import com.rodiejacontable.database.jooq.tables.Address;
 import com.rodiejacontable.database.jooq.tables.Empleados;
 import com.rodiejacontable.database.jooq.tables.Generaciones;
 import com.rodiejacontable.database.jooq.tables.HistorialRepuestos;
@@ -14,8 +15,13 @@ import com.rodiejacontable.database.jooq.tables.Marcas;
 import com.rodiejacontable.database.jooq.tables.Modelos;
 import com.rodiejacontable.database.jooq.tables.PagosComisiones;
 import com.rodiejacontable.database.jooq.tables.ParteVehiculo;
+import com.rodiejacontable.database.jooq.tables.PersonalData;
+import com.rodiejacontable.database.jooq.tables.Phones;
+import com.rodiejacontable.database.jooq.tables.Roles;
 import com.rodiejacontable.database.jooq.tables.TiposTransacciones;
 import com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras;
+import com.rodiejacontable.database.jooq.tables.UserProfilepicture;
+import com.rodiejacontable.database.jooq.tables.Users;
 import com.rodiejacontable.database.jooq.tables.Vehiculos;
 import com.rodiejacontable.database.jooq.tables.VistaAnalisisFinancieroMensual;
 import com.rodiejacontable.database.jooq.tables.VistaAuditoriaCompleta;
@@ -52,6 +58,11 @@ public class SistemaVehicular extends SchemaImpl {
      * The reference instance of <code>sistema_vehicular</code>
      */
     public static final SistemaVehicular SISTEMA_VEHICULAR = new SistemaVehicular();
+
+    /**
+     * The table <code>sistema_vehicular.address</code>.
+     */
+    public final Address ADDRESS = Address.ADDRESS;
 
     /**
      * The table <code>sistema_vehicular.empleados</code>.
@@ -104,6 +115,21 @@ public class SistemaVehicular extends SchemaImpl {
     public final ParteVehiculo PARTE_VEHICULO = ParteVehiculo.PARTE_VEHICULO;
 
     /**
+     * The table <code>sistema_vehicular.personal_data</code>.
+     */
+    public final PersonalData PERSONAL_DATA = PersonalData.PERSONAL_DATA;
+
+    /**
+     * The table <code>sistema_vehicular.phones</code>.
+     */
+    public final Phones PHONES = Phones.PHONES;
+
+    /**
+     * The table <code>sistema_vehicular.roles</code>.
+     */
+    public final Roles ROLES = Roles.ROLES;
+
+    /**
      * The table <code>sistema_vehicular.tipos_transacciones</code>.
      */
     public final TiposTransacciones TIPOS_TRANSACCIONES = TiposTransacciones.TIPOS_TRANSACCIONES;
@@ -112,6 +138,16 @@ public class SistemaVehicular extends SchemaImpl {
      * The table <code>sistema_vehicular.transacciones_financieras</code>.
      */
     public final TransaccionesFinancieras TRANSACCIONES_FINANCIERAS = TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS;
+
+    /**
+     * The table <code>sistema_vehicular.user_profilePicture</code>.
+     */
+    public final UserProfilepicture USER_PROFILEPICTURE = UserProfilepicture.USER_PROFILEPICTURE;
+
+    /**
+     * The table <code>sistema_vehicular.users</code>.
+     */
+    public final Users USERS = Users.USERS;
 
     /**
      * The table <code>sistema_vehicular.vehiculos</code>.
@@ -204,6 +240,7 @@ public class SistemaVehicular extends SchemaImpl {
     @Override
     public final List<Table<?>> getTables() {
         return Arrays.asList(
+            Address.ADDRESS,
             Empleados.EMPLEADOS,
             Generaciones.GENERACIONES,
             HistorialRepuestos.HISTORIAL_REPUESTOS,
@@ -214,8 +251,13 @@ public class SistemaVehicular extends SchemaImpl {
             Modelos.MODELOS,
             PagosComisiones.PAGOS_COMISIONES,
             ParteVehiculo.PARTE_VEHICULO,
+            PersonalData.PERSONAL_DATA,
+            Phones.PHONES,
+            Roles.ROLES,
             TiposTransacciones.TIPOS_TRANSACCIONES,
             TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS,
+            UserProfilepicture.USER_PROFILEPICTURE,
+            Users.USERS,
             Vehiculos.VEHICULOS,
             VistaAnalisisFinancieroMensual.VISTA_ANALISIS_FINANCIERO_MENSUAL,
             VistaAuditoriaCompleta.VISTA_AUDITORIA_COMPLETA,

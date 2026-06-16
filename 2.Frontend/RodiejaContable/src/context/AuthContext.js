@@ -6,16 +6,8 @@ export const AuthContext = createContext();
 
 // Proveedor de autenticación
 export const AuthProvider = ({ children }) => {
-  // Usuario simulado para desarrollo
-  const mockUser = {
-    id: 1,
-    nombre: 'Usuario de Prueba',
-    email: 'test@example.com',
-    rol: 'admin'
-  };
-
-  const [user, setUser] = useState(mockUser); // Establecer usuario simulado por defecto
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Cargar el usuario al iniciar la aplicación
@@ -56,24 +48,24 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, [loadUser]);
 
-  // Iniciar sesión simulada
   const login = async (userData) => {
     try {
       setLoading(true);
       setError(null);
       
-      // Simular tiempo de espera
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await authService.login(userData);
       
-      // Guardar el token y el usuario en localStorage
-      const token = 'mock-jwt-token';
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      // authService.login ya guarda el token y el usuario en localStorage
+      const loggedUser = {
+        email: response.email,
+        rol: response.rol,
+        nombre: response.nombre
+      };
       
-      // Actualizar el estado del usuario
-      setUser(userData);
+      setUser(loggedUser);
+      localStorage.setItem('user', JSON.stringify(loggedUser));
       
-      return { user: userData, token };
+      return response;
     } catch (err) {
       console.error('Error en login:', err);
       setError(err.message || 'Error en la autenticación');
@@ -106,11 +98,11 @@ export const AuthProvider = ({ children }) => {
 
   // Verificar si el usuario está autenticado
   const isAuthenticated = useCallback(() => {
-    // Verificar tanto el token como que el usuario esté cargado
-    const hasToken = authService.isAuthenticated();
-    const hasUser = !!user;
-    return hasToken && hasUser;
-  }, [user]);
+    // Verificar si hay token válido. No depender estrictamente del estado 'user'
+    // porque las actualizaciones de estado de React pueden ser asíncronas y causar
+    // redirecciones prematuras a /login inmediatamente después del inicio de sesión.
+    return authService.isAuthenticated();
+  }, []);
 
   // Verificar si el usuario tiene un rol específico
   const hasRole = useCallback((role) => {
@@ -120,6 +112,7 @@ export const AuthProvider = ({ children }) => {
   // Valor del contexto
   const contextValue = {
     user,
+    setUser,
     loading,
     error,
     login,

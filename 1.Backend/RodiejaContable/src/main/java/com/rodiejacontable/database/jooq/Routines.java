@@ -10,6 +10,7 @@ import com.rodiejacontable.database.jooq.routines.RegistrarPagoComisionesEmplead
 import com.rodiejacontable.database.jooq.routines.SpActividadAuditoriaFecha;
 import com.rodiejacontable.database.jooq.routines.SpHistorialVehiculo;
 import com.rodiejacontable.database.jooq.routines.SpInsertarRepuestoConGeneracionSinVehiculo;
+import com.rodiejacontable.database.jooq.routines.Spupdateuserpassword;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -178,6 +179,21 @@ public class Routines {
         p.setPCondicion(pCondicion);
         p.setPImagenUrl(pImagenUrl);
         p.setPCantidad(pCantidad);
+
+        p.execute(configuration);
+    }
+
+    /**
+     * Call <code>sistema_vehicular.spUpdateUserPassword</code>
+     */
+    public static void spupdateuserpassword(
+          Configuration configuration
+        , String pEmail
+        , String pNewPasswordHash
+    ) {
+        Spupdateuserpassword p = new Spupdateuserpassword();
+        p.setPEmail(pEmail);
+        p.setPNewPasswordHash(pNewPasswordHash);
 
         p.execute(configuration);
     }

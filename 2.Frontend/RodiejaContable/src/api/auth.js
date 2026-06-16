@@ -6,7 +6,6 @@ export const authService = {
       const response = await api.post('/auth/login', credentials);
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       return response.data;
     } catch (error) {
@@ -34,6 +33,15 @@ export const authService = {
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
       }
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  updateProfile: async (data) => {
+    try {
+      const response = await api.put('/profile', data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
