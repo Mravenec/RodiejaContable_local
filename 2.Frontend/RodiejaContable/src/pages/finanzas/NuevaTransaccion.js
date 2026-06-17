@@ -177,32 +177,15 @@ const NuevaTransaccion = () => {
     setEditandoEmpleadoModal(true);
   };
 
+  const empleadoSeleccionadoId = Form.useWatch('empleado_id', form);
+
   // Función para calcular comisión
   const calcularComision = useCallback((montoTotal) => {
-    if (tipoTransaccion === 'INGRESO') {
-      const repuestoId = form.getFieldValue('repuesto_id');
-      const vehiculoId = form.getFieldValue('vehiculo_id');
-      
-      if (repuestoId && repuestos.length > 0) {
-        const repuesto = repuestos.find(r => r.id === repuestoId);
-        if (repuesto) {
-          const cantidad = form.getFieldValue('cantidad_repuesto') || 1;
-          const costoTotal = (repuesto.precioCosto || 0) * cantidad;
-          const ganancia = montoTotal - costoTotal;
-          return ganancia > 0 ? ganancia * 0.03 : 0;
-        }
-      } else if (vehiculoId && vehiculos.length > 0) {
-        const vehiculo = vehiculos.find(v => v.id === vehiculoId);
-        if (vehiculo) {
-          const inversionTotal = parseFloat(vehiculo.inversionTotal || vehiculo.precioCompra || 0);
-          const ganancia = montoTotal - inversionTotal;
-          return ganancia > 0 ? ganancia * 0.03 : 0;
-        }
-      }
+    if (tipoTransaccion === 'INGRESO' && empleadoSeleccionadoId) {
       return montoTotal * 0.03;
     }
     return 0;
-  }, [tipoTransaccion, form, repuestos, vehiculos]);
+  }, [tipoTransaccion, empleadoSeleccionadoId]);
 
   // Efecto para actualizar la comisión cuando cambia el monto o el tipo
   useEffect(() => {

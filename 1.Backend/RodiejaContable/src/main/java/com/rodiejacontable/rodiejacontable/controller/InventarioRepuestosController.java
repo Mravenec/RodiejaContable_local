@@ -1,6 +1,7 @@
 package com.rodiejacontable.rodiejacontable.controller;
 
 import com.rodiejacontable.database.jooq.tables.pojos.InventarioRepuestos;
+import com.rodiejacontable.database.jooq.tables.pojos.VistaInventarioCompleto;
 import com.rodiejacontable.rodiejacontable.service.InventarioRepuestosService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -96,14 +97,14 @@ public class InventarioRepuestosController {
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<List<InventarioRepuestos>> buscarPorCodigoRepuesto(
+    public ResponseEntity<List<VistaInventarioCompleto>> buscarPorCodigoRepuesto(
             @RequestParam(required = false) String codigo) {
         if (codigo == null || codigo.trim().isEmpty()) {
-            List<InventarioRepuestos> repuestos = inventarioRepuestosService.obtenerTodos();
+            List<VistaInventarioCompleto> repuestos = inventarioRepuestosService.obtenerTodos();
             return new ResponseEntity<>(repuestos, HttpStatus.OK);
         }
         
-        List<InventarioRepuestos> repuestos = inventarioRepuestosService.buscarPorCodigoRepuesto(codigo);
+        List<VistaInventarioCompleto> repuestos = inventarioRepuestosService.buscarPorCodigoRepuesto(codigo);
         if (repuestos.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
@@ -111,8 +112,8 @@ public class InventarioRepuestosController {
     }
 
     @GetMapping
-    public ResponseEntity<List<InventarioRepuestos>> obtenerTodos() {
-        List<InventarioRepuestos> repuestos = inventarioRepuestosService.obtenerTodos();
+    public ResponseEntity<List<VistaInventarioCompleto>> obtenerTodos() {
+        List<VistaInventarioCompleto> repuestos = inventarioRepuestosService.obtenerTodos();
         return ResponseEntity.ok(repuestos);
     }
 

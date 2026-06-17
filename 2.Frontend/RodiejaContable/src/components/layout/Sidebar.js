@@ -67,7 +67,7 @@ const Sidebar = ({ collapsed }) => {
       label: 'Reportes',
       children: [
         { key: '/reportes', label: 'General' },
-        { key: '/reportes/ventas', label: 'Ventas' },
+        { key: '/reportes/ventas', label: 'Ventas Empleados' },
         { key: '/reportes/vehiculos', label: 'Vehículos' },
         { key: '/reportes/repuestos', label: 'Repuestos' }
       ]

@@ -29,6 +29,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import InventarioService from '../../api/inventario';
+import { usePartesVehiculo } from '../../hooks/usePartesVehiculo';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -40,10 +41,12 @@ const Inventario = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
+  const { data: partesVehiculo = [], isLoading: loadingPartes } = usePartesVehiculo();
+
   const [filterVisible, setFilterVisible] = useState(false);
   const [filtros, setFiltros] = useState({
     estado: null,
-    categoria: null,
+    parteVehiculoId: null,
     ubicacion: null,
   });
   const [pagination, setPagination] = useState({
@@ -57,14 +60,14 @@ const Inventario = () => {
     try {
       setLoading(true);
       const { current, pageSize } = pagination;
-      const { estado, categoria, ubicacion } = filtros;
+      const { estado, parteVehiculoId, ubicacion } = filtros;
 
       // Build query params
       const queryParams = {
         page: params.pagination?.current || current,
         pageSize: params.pagination?.pageSize || pageSize,
         ...(estado && { estado }),
-        ...(categoria && { categoria }),
+        ...(parteVehiculoId && { parteVehiculoId }),
         ...(ubicacion && { ubicacion }),
         ...params,
       };
@@ -392,25 +395,30 @@ const Inventario = () => {
               value={filtros.estado}
               onChange={(value) => setFiltros({ ...filtros, estado: value })}
             >
-              <Option value="disponible">Disponible</Option>
-              <Option value="agotado">Agotado</Option>
-              <Option value="reparacion">En reparación</Option>
+              <Option value="STOCK">En Stock</Option>
+              <Option value="VENDIDO">Vendido</Option>
+              <Option value="AGOTADO">Agotado</Option>
+              <Option value="DISPONIBLE">Disponible</Option>
+              <Option value="DESARMADO">Desarmado</Option>
+              <Option value="REPARACION">En Reparación</Option>
             </Select>
           </div>
 
           <div>
-            <Text strong>Categoría</Text>
+            <Text strong>Parte del Vehículo</Text>
             <Select
               style={{ width: '100%', marginTop: 8 }}
-              placeholder="Seleccionar categoría"
+              placeholder="Seleccionar parte"
               allowClear
-              value={filtros.categoria}
-              onChange={(value) => setFiltros({ ...filtros, categoria: value })}
+              loading={loadingPartes}
+              value={filtros.parteVehiculoId}
+              onChange={(value) => setFiltros({ ...filtros, parteVehiculoId: value })}
             >
-              <Option value="motor">Motor</Option>
-              <Option value="frenos">Frenos</Option>
-              <Option value="suspension">Suspensión</Option>
-              <Option value="electrico">Eléctrico</Option>
+              {partesVehiculo.map(parte => (
+                <Option key={parte.id} value={parte.id}>
+                  {parte.nombre}
+                </Option>
+              ))}
             </Select>
           </div>
 
@@ -442,7 +450,7 @@ const Inventario = () => {
             onClick={() => {
               setFiltros({
                 estado: null,
-                categoria: null,
+                parteVehiculoId: null,
                 ubicacion: null,
               });
               fetchData();

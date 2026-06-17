@@ -1,7 +1,9 @@
 package com.rodiejacontable.rodiejacontable.service;
 
 import com.rodiejacontable.database.jooq.tables.pojos.InventarioRepuestos;
+import com.rodiejacontable.database.jooq.tables.pojos.VistaInventarioCompleto;
 import com.rodiejacontable.rodiejacontable.repository.InventarioRepuestosRepository;
+import com.rodiejacontable.rodiejacontable.repository.VistaInventarioCompletoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,10 +17,13 @@ import java.util.Optional;
 public class InventarioRepuestosService {
 
     private final InventarioRepuestosRepository inventarioRepuestosRepository;
+    private final VistaInventarioCompletoRepository vistaInventarioCompletoRepository;
 
     @Autowired
-    public InventarioRepuestosService(InventarioRepuestosRepository inventarioRepuestosRepository) {
+    public InventarioRepuestosService(InventarioRepuestosRepository inventarioRepuestosRepository,
+                                      VistaInventarioCompletoRepository vistaInventarioCompletoRepository) {
         this.inventarioRepuestosRepository = inventarioRepuestosRepository;
+        this.vistaInventarioCompletoRepository = vistaInventarioCompletoRepository;
     }
 
     @Transactional
@@ -162,6 +167,12 @@ public class InventarioRepuestosService {
         return inventarioRepuestosRepository.save(repuestoExistente);
     }
 
+    // Para obtener uno para la vista, lo sacamos de la vista. Para actualizar internamente, usamos el base.
+    public Optional<VistaInventarioCompleto> obtenerPorIdVista(Integer id) {
+        return vistaInventarioCompletoRepository.findById(id);
+    }
+    
+    // Método original para uso interno (ej. actualizar)
     public Optional<InventarioRepuestos> obtenerPorId(Integer id) {
         return inventarioRepuestosRepository.findById(id);
     }
@@ -170,12 +181,12 @@ public class InventarioRepuestosService {
         return inventarioRepuestosRepository.findByVehiculoOrigenId(vehiculoId);
     }
 
-    public List<InventarioRepuestos> buscarPorCodigoRepuesto(String codigoRepuesto) {
-        return inventarioRepuestosRepository.findByCodigoRepuesto(codigoRepuesto);
+    public List<VistaInventarioCompleto> buscarPorCodigoRepuesto(String codigoRepuesto) {
+        return vistaInventarioCompletoRepository.buscarPorCodigoODescripcion(codigoRepuesto);
     }
 
-    public List<InventarioRepuestos> obtenerTodos() {
-        return inventarioRepuestosRepository.findAll();
+    public List<VistaInventarioCompleto> obtenerTodos() {
+        return vistaInventarioCompletoRepository.findAll();
     }
 
     @Transactional

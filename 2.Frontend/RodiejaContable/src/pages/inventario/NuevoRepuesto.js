@@ -83,6 +83,20 @@ const NuevoRepuesto = () => {
   const [editingParteId, setEditingParteId] = useState(null);
   const [editingParteNombre, setEditingParteNombre] = useState('');
 
+  // Estados para editar Marca
+  const [editingMarcaId, setEditingMarcaId] = useState(null);
+  const [editingMarcaNombre, setEditingMarcaNombre] = useState('');
+
+  // Estados para editar Modelo
+  const [editingModeloId, setEditingModeloId] = useState(null);
+  const [editingModeloNombre, setEditingModeloNombre] = useState('');
+
+  // Estados para editar Generacion
+  const [editingGeneracionId, setEditingGeneracionId] = useState(null);
+  const [editingGeneracionNombre, setEditingGeneracionNombre] = useState('');
+  const [editingGeneracionAnioInicio, setEditingGeneracionAnioInicio] = useState(new Date().getFullYear());
+  const [editingGeneracionAnioFin, setEditingGeneracionAnioFin] = useState(new Date().getFullYear());
+
   // Cálculos dinámicos
   const costoTotalCalculado = precioCostoUnitario * (cantidad > 0 ? cantidad : 1);
   const precioVentaCalculado = precioCostoUnitario * 1.5;
@@ -259,15 +273,88 @@ const NuevoRepuesto = () => {
   };
 
   // Hooks para cargar datos
-  const { data: marcas = [], isLoading: loadingMarcas } = useMarcas();
-  const { data: modelos = [], isLoading: loadingModelos } = useModelos(
+  const { data: marcas = [], isLoading: loadingMarcas, updateMarca } = useMarcas();
+  const { data: modelos = [], isLoading: loadingModelos, updateModelo } = useModelos(
     marcaSeleccionada,
     tipoRepuesto === 'sin_vehiculo' && !!marcaSeleccionada
   );
-  const { data: generaciones = [], isLoading: loadingGeneraciones } = useGeneraciones(
+  const { data: generaciones = [], isLoading: loadingGeneraciones, updateGeneracion } = useGeneraciones(
     modeloSeleccionado,
     tipoRepuesto === 'sin_vehiculo' && !!modeloSeleccionado
   );
+
+  // Handlers para editar Marca
+  const handleEditarMarca = (marca) => {
+    setEditingMarcaId(marca.id);
+    setEditingMarcaNombre(marca.nombre);
+  };
+  const handleCancelarEdicionMarca = () => {
+    setEditingMarcaId(null);
+    setEditingMarcaNombre('');
+  };
+  const handleGuardarEdicionMarca = async () => {
+    if (!editingMarcaNombre.trim()) {
+      message.warning('El nombre de la marca no puede estar vacío');
+      return;
+    }
+    try {
+      await updateMarca.mutateAsync({ id: editingMarcaId, nombre: editingMarcaNombre.trim() });
+      setEditingMarcaId(null);
+      setEditingMarcaNombre('');
+    } catch (error) {
+      // El hook maneja el mensaje de error
+    }
+  };
+
+  // Handlers para editar Modelo
+  const handleEditarModelo = (modelo) => {
+    setEditingModeloId(modelo.id);
+    setEditingModeloNombre(modelo.nombre);
+  };
+  const handleCancelarEdicionModelo = () => {
+    setEditingModeloId(null);
+    setEditingModeloNombre('');
+  };
+  const handleGuardarEdicionModelo = async () => {
+    if (!editingModeloNombre.trim()) {
+      message.warning('El nombre del modelo no puede estar vacío');
+      return;
+    }
+    try {
+      await updateModelo.mutateAsync({ id: editingModeloId, nombre: editingModeloNombre.trim(), marcaId: marcaSeleccionada });
+      setEditingModeloId(null);
+      setEditingModeloNombre('');
+    } catch (error) {}
+  };
+
+  // Handlers para editar Generacion
+  const handleEditarGeneracion = (generacion) => {
+    setEditingGeneracionId(generacion.id);
+    setEditingGeneracionNombre(generacion.nombre);
+    setEditingGeneracionAnioInicio(generacion.anioInicio || new Date().getFullYear());
+    setEditingGeneracionAnioFin(generacion.anioFin || new Date().getFullYear());
+  };
+  const handleCancelarEdicionGeneracion = () => {
+    setEditingGeneracionId(null);
+    setEditingGeneracionNombre('');
+  };
+  const handleGuardarEdicionGeneracion = async () => {
+    if (!editingGeneracionNombre.trim()) {
+      message.warning('El nombre no puede estar vacío');
+      return;
+    }
+    try {
+      await updateGeneracion.mutateAsync({
+        id: editingGeneracionId,
+        nombre: editingGeneracionNombre.trim(),
+        anioInicio: editingGeneracionAnioInicio,
+        anioFin: editingGeneracionAnioFin,
+        modeloId: modeloSeleccionado
+      });
+      setEditingGeneracionId(null);
+      setEditingGeneracionNombre('');
+    } catch (error) {}
+  };
   
   const { data: partesVehiculo = [], isLoading: loadingPartes } = usePartesVehiculo();
 
@@ -815,6 +902,7 @@ const NuevoRepuesto = () => {
                       loading={loadingMarcas}
                       onChange={onMarcaChange}
                       value={marcaSeleccionada}
+                      optionLabelProp="label"
                       dropdownRender={(menu) => (
                         <div>
                           {menu}
@@ -880,7 +968,56 @@ const NuevoRepuesto = () => {
                       )}
                     >
                       {marcas.map(marca => (
-                        <Option key={marca.id} value={marca.id}>{marca.nombre}</Option>
+                        <Option key={marca.id} value={marca.id} label={marca.nombre}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            {editingMarcaId === marca.id ? (
+                              <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
+                                <Input
+                                  value={editingMarcaNombre}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingMarcaNombre(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 1 }}
+                                  autoFocus
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: 'green' }} />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGuardarEdicionMarca();
+                                  }}
+                                  size="small"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CloseOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelarEdicionMarca();
+                                  }}
+                                  size="small"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span>{marca.nombre}</span>
+                                <Button
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditarMarca(marca);
+                                  }}
+                                  size="small"
+                                />
+                              </>
+                            )}
+                          </div>
+                        </Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -896,6 +1033,7 @@ const NuevoRepuesto = () => {
                       disabled={!marcaSeleccionada}
                       onChange={onModeloChange}
                       value={modeloSeleccionado}
+                      optionLabelProp="label"
                       dropdownRender={(menu) => (
                         <div>
                           {menu}
@@ -961,7 +1099,56 @@ const NuevoRepuesto = () => {
                       )}
                     >
                       {modelos.map(modelo => (
-                        <Option key={modelo.id} value={modelo.id}>{modelo.nombre}</Option>
+                        <Option key={modelo.id} value={modelo.id} label={modelo.nombre}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            {editingModeloId === modelo.id ? (
+                              <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
+                                <Input
+                                  value={editingModeloNombre}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingModeloNombre(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 1 }}
+                                  autoFocus
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: 'green' }} />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGuardarEdicionModelo();
+                                  }}
+                                  size="small"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CloseOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelarEdicionModelo();
+                                  }}
+                                  size="small"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span>{modelo.nombre}</span>
+                                <Button
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditarModelo(modelo);
+                                  }}
+                                  size="small"
+                                />
+                              </>
+                            )}
+                          </div>
+                        </Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -977,6 +1164,7 @@ const NuevoRepuesto = () => {
                       disabled={!modeloSeleccionado}
                       onChange={onGeneracionChange}
                       value={generacionSeleccionada}
+                      optionLabelProp="label"
                       dropdownRender={(menu) => (
                         <div>
                           {menu}
@@ -1057,8 +1245,77 @@ const NuevoRepuesto = () => {
                       )}
                     >
                       {generaciones.map(generacion => (
-                        <Option key={generacion.id} value={generacion.id}>
-                          {generacion.nombre} ({generacion.anioInicio || generacion.anio_inicio}-{generacion.anioFin || generacion.anio_fin})
+                        <Option key={generacion.id} value={generacion.id} label={`${generacion.nombre} (${generacion.anioInicio || generacion.anio_inicio}-${generacion.anioFin || generacion.anio_fin})`}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            {editingGeneracionId === generacion.id ? (
+                              <div style={{ display: 'flex', width: '100%', gap: '8px', alignItems: 'center' }}>
+                                <Input
+                                  value={editingGeneracionNombre}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingGeneracionNombre(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 2 }}
+                                  autoFocus
+                                />
+                                <Input
+                                  value={editingGeneracionAnioInicio}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingGeneracionAnioInicio(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 1 }}
+                                  placeholder="Inicio"
+                                />
+                                <Input
+                                  value={editingGeneracionAnioFin}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingGeneracionAnioFin(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 1 }}
+                                  placeholder="Fin"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: 'green' }} />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGuardarEdicionGeneracion();
+                                  }}
+                                  size="small"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CloseOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelarEdicionGeneracion();
+                                  }}
+                                  size="small"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span>{generacion.nombre} ({generacion.anioInicio || generacion.anio_inicio}-{generacion.anioFin || generacion.anio_fin})</span>
+                                <Button
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditarGeneracion(generacion);
+                                  }}
+                                  size="small"
+                                />
+                              </>
+                            )}
+                          </div>
                         </Option>
                       ))}
                     </Select>

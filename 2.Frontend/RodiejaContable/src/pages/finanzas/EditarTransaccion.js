@@ -67,6 +67,23 @@ const EditarTransaccion = () => {
     });
   };
 
+  const empleadoSeleccionadoId = Form.useWatch('empleadoId', form);
+  const monto = Form.useWatch('monto', form);
+
+  // Efecto para calcular comisión automáticamente
+  useEffect(() => {
+    if (transaccion && tiposTransacciones.length > 0) {
+      const tipo = tiposTransacciones.find(t => t.id === form.getFieldValue('tipoTransaccionId'));
+      if (tipo && tipo.categoria === 'INGRESO') {
+        if (empleadoSeleccionadoId && monto > 0) {
+          form.setFieldsValue({ comisionEmpleado: monto * 0.03 });
+        } else {
+          form.setFieldsValue({ comisionEmpleado: 0 });
+        }
+      }
+    }
+  }, [empleadoSeleccionadoId, monto, transaccion, tiposTransacciones, form]);
+
   const isLoading = loadingTransaccion || loadingEmpleados || loadingVehiculos || loadingTipos;
 
   if (loadingTransaccion) {

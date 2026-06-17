@@ -503,7 +503,7 @@ const VentasReportes = () => {
         // Crear hoja
 
         // Agregar título y subtítulo
-        const titulo = `REPORTE DE VENTAS - ${primerItem.nombreMes} ${primerItem.anio}`;
+        const titulo = `REPORTE DE VENTAS EMPLEADOS - ${primerItem.nombreMes} ${primerItem.anio}`;
         const comisionFormateada = new Intl.NumberFormat('es-CR', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
@@ -719,7 +719,7 @@ const VentasReportes = () => {
           <Col>
             <Title level={3} style={{ margin: 0, color: '#262626' }}>
               <DashboardOutlined style={{ marginRight: 8, color: '#1890ff' }} />
-              Reportes de Ventas
+              Reportes de Ventas Empleados
             </Title>
             <Text type="secondary" style={{ marginTop: 4, display: 'block' }}>
               Análisis financiero, comisiones y trazabilidad de operaciones de ventas.

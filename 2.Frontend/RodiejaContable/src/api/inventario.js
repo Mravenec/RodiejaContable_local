@@ -11,17 +11,8 @@ class InventarioService {
       if (params.estado) {
         data = data.filter(item => item.estado?.toLowerCase() === params.estado.toLowerCase());
       }
-      if (params.categoria) {
-        const parteVehiculoMap = {
-          'motor': 'MOTOR',
-          'frenos': 'SISTEMA_DE_FRENOS',
-          'suspension': 'SUSPENSION_Y_AMORTIGUAMIENTO',
-          'electrico': 'SISTEMA_ELECTRICO'
-        };
-        const mappedCategoria = parteVehiculoMap[params.categoria.toLowerCase()];
-        if (mappedCategoria) {
-          data = data.filter(item => item.parteVehiculo === mappedCategoria);
-        }
+      if (params.parteVehiculoId) {
+        data = data.filter(item => item.parteVehiculoId === parseInt(params.parteVehiculoId, 10));
       }
       if (params.ubicacion) {
         const searchUbicacion = params.ubicacion.toLowerCase().replace(/\s+/g, '');
@@ -135,7 +126,7 @@ class InventarioService {
       item.estante,
       item.nivel,
       item.piso
-    ].filter(Boolean).join(' ');
+    ].filter(Boolean).join(' ') || item.codigoUbicacion || item.codigo_ubicacion;
 
     const getEstadoDisplay = (estado) => {
       const estados = {
@@ -154,6 +145,14 @@ class InventarioService {
       codigo: item.codigoRepuesto || item.codigo_repuesto,
       codigoUbicacion: item.codigoUbicacion || item.codigo_ubicacion,
       vehiculoOrigenId: item.vehiculoOrigenId || item.vehiculo_origen_id,
+      // Vehículo (si viene de vista o dto)
+      vehiculoCodigo: item.codigoVehiculo || item.codigo_vehiculo,
+      marca: item.marca,
+      modelo: item.modelo,
+      generacion: item.generacion,
+      anioVehiculo: item.anioVehiculo || item.anio_vehiculo,
+      claveGeneracion: item.claveGeneracion || item.clave_generacion,
+
       anioRegistro: item.anioRegistro || item.anio_registro,
       mesRegistro: item.mesRegistro || item.mes_registro,
       parteVehiculoId: item.parteVehiculoId || item.parte_vehiculo_id,

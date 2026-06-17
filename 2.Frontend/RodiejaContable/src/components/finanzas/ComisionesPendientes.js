@@ -8,9 +8,6 @@ import {
   message,
   Spin,
   Empty,
-  Select,
-  DatePicker,
-  Typography,
   Modal,
   Descriptions
 } from 'antd';
@@ -38,7 +35,8 @@ const ComisionesPendientes = ({ mesFiltro, anioFiltro }) => {
     loadingPagos,
     pagoModalVisible,
     empleadoSeleccionado,
-    cancelarPago
+    cancelarPago,
+    mostrarDialogoPago
   } = usePagosComisiones(empleados);
 
   // Cargar comisiones pendientes
@@ -156,7 +154,7 @@ const ComisionesPendientes = ({ mesFiltro, anioFiltro }) => {
           <Button
             type="primary"
             icon={<MoneyCollectOutlined />}
-            onClick={() => handlePagar({
+            onClick={() => mostrarDialogoPago({
               empleado: record.nombreEmpleado,
               empleadoId: record.empleadoId,
               totalComisiones: record.totalComisionesPendientes
