@@ -18,6 +18,7 @@ import { getTiposTransacciones } from '../../api/transacciones';
 import { formatCurrency } from '../../utils/formatters';
 import api from '../../api/axios';
 import HistorialVehiculo from '../../components/vehiculos/HistorialVehiculo';
+import { useAuth } from '../../context/AuthContext';
 
 // Servicio para repuestos
 const repuestosService = {
@@ -131,6 +132,7 @@ const { TabPane } = Tabs;
 const VehiculoDetalle = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   // State management
   const [vehiculo, setVehiculo] = useState(null);
@@ -502,15 +504,17 @@ const VehiculoDetalle = () => {
                     </div>
                   )}
                   <div style={{ marginTop: '16px' }}>
-                    <Button 
-                      type="primary" 
-                      icon={<EditOutlined />} 
-                      style={{ marginRight: '8px', marginBottom: '8px' }}
-                      onClick={() => navigate(`/vehiculos/editar/${vehiculo.id}`)}
-                    >
-                      Editar
-                    </Button>
-                    {vehiculo.estado === 'REPARACION' && (
+                    {user?.rol !== 'CONTADOR' && (
+                      <Button 
+                        type="primary" 
+                        icon={<EditOutlined />} 
+                        style={{ marginRight: '8px', marginBottom: '8px' }}
+                        onClick={() => navigate(`/vehiculos/editar/${vehiculo.id}`)}
+                      >
+                        Editar
+                      </Button>
+                    )}
+                    {vehiculo.estado === 'REPARACION' && user?.rol !== 'CONTADOR' && (
                       <Button 
                         type="primary" 
                         icon={<CheckOutlined />}
@@ -520,7 +524,7 @@ const VehiculoDetalle = () => {
                         Hacer Disponible
                       </Button>
                     )}
-                    {vehiculo.estado === 'DISPONIBLE' && (
+                    {vehiculo.estado === 'DISPONIBLE' && user?.rol !== 'CONTADOR' && (
                       <Button 
                         type="primary" 
                         icon={<MoneyCollectOutlined />}
@@ -696,15 +700,17 @@ const VehiculoDetalle = () => {
               <div style={{ marginTop: '16px' }}>
                 <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text strong>Repuestos extraídos de este vehículo</Text>
-                  <Button 
-                    type="primary" 
-                    size="small"
-                    disabled={vehiculo.estado !== 'DESARMADO'}
-                    title={vehiculo.estado !== 'DESARMADO' ? 'El vehículo debe estar en estado DESARMADO para agregar repuestos' : ''}
-                    onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}
-                  >
-                    Agregar Repuesto
-                  </Button>
+                  {user?.rol !== 'CONTADOR' && (
+                    <Button 
+                      type="primary" 
+                      size="small"
+                      disabled={vehiculo.estado !== 'DESARMADO'}
+                      title={vehiculo.estado !== 'DESARMADO' ? 'El vehículo debe estar en estado DESARMADO para agregar repuestos' : ''}
+                      onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}
+                    >
+                      Agregar Repuesto
+                    </Button>
+                  )}
                 </div>
 
                 {loadingRepuestos ? (
@@ -768,15 +774,17 @@ const VehiculoDetalle = () => {
                   <div style={{ textAlign: 'center', padding: '24px' }}>
                     <ToolOutlined style={{ fontSize: '32px', color: '#1890ff', marginBottom: '16px' }} />
                     <p>No hay repuestos registrados para este vehículo.</p>
-                    <Button 
-                      type="primary" 
-                      style={{ marginTop: '16px' }}
-                      disabled={vehiculo.estado !== 'DESARMADO'}
-                      title={vehiculo.estado !== 'DESARMADO' ? 'El vehículo debe estar en estado DESARMADO para agregar repuestos' : ''}
-                      onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}
-                    >
-                      Agregar Repuesto
-                    </Button>
+                    {user?.rol !== 'CONTADOR' && (
+                      <Button 
+                        type="primary" 
+                        style={{ marginTop: '16px' }}
+                        disabled={vehiculo.estado !== 'DESARMADO'}
+                        title={vehiculo.estado !== 'DESARMADO' ? 'El vehículo debe estar en estado DESARMADO para agregar repuestos' : ''}
+                        onClick={() => navigate(`/inventario/nuevo?vehiculoId=${vehiculo.id}`)}
+                      >
+                        Agregar Repuesto
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -788,13 +796,15 @@ const VehiculoDetalle = () => {
               <div style={{ marginTop: '16px' }}>
                 <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text strong>Historial de transacciones del vehículo</Text>
-                  <Button 
-                    type="primary" 
-                    size="small"
-                    onClick={() => navigate('/finanzas/nueva')}
-                  >
-                    Nueva Transacción
-                  </Button>
+                  {user?.rol !== 'CONTADOR' && (
+                    <Button 
+                      type="primary" 
+                      size="small"
+                      onClick={() => navigate('/finanzas/nueva')}
+                    >
+                      Nueva Transacción
+                    </Button>
+                  )}
                 </div>
                 
                 {loadingTransacciones ? (

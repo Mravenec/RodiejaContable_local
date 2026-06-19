@@ -295,7 +295,13 @@ const ReporteVehiculos = () => {
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Reporte Vehículos');
+    
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const nombreHoja = (filtros.mes && filtros.anio) 
+      ? `${meses[filtros.mes - 1]} ${filtros.anio}` 
+      : `Reporte ${moment().format('MMM YYYY')}`;
+      
+    XLSX.utils.book_append_sheet(wb, ws, nombreHoja.substring(0, 31));
 
     const colWidths = [
       { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }

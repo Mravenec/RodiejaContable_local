@@ -16,10 +16,8 @@ import {
   Typography, 
   Modal,
   Space,
-  Spin,
   Alert,
   Tag,
-  InputNumber,
   Descriptions,
   Progress,
   List
@@ -34,15 +32,11 @@ import {
   EditOutlined,
   CheckOutlined,
   CloseOutlined,
-  BellOutlined,
   TeamOutlined,
   SettingOutlined,
   KeyOutlined,
   ReloadOutlined,
   SaveOutlined,
-  SafetyOutlined,
-  NotificationOutlined,
-  GlobalOutlined,
   CloudUploadOutlined,
   DatabaseOutlined,
   PlusOutlined,
@@ -50,9 +44,8 @@ import {
   DownloadOutlined,
   FileTextOutlined
 } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQueryClient } from 'react-query';
 import { 
-  authService, 
   // Nota: Asegúrate de que estos servicios estén exportados en tu archivo api/index.js
   // Si no existen, deberás crearlos o importarlos desde sus respectivos archivos
   // Por ahora, los dejo comentados para evitar errores
@@ -70,7 +63,6 @@ const Configuracion = () => {
   const [form] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [activeTab, setActiveTab] = useState('perfil');
-  const [avatarFile, setAvatarFile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isChangePasswordModalVisible, setIsChangePasswordModalVisible] = useState(false);
   
@@ -143,7 +135,7 @@ const Configuracion = () => {
   };
   
   // Datos de ejemplo del usuario
-  const usuario = {
+  const usuario = React.useMemo(() => ({
     nombre: 'Usuario Ejemplo',
     email: 'usuario@ejemplo.com',
     telefono: '123-456-7890',
@@ -151,7 +143,7 @@ const Configuracion = () => {
     avatar: 'https://randomuser.me/api/portraits/men/1.jpg',
     puesto: 'Administrador',
     departamento: 'TI'
-  };
+  }), []);
   
   // Configuración de ejemplo
   const configuracion = {
@@ -168,13 +160,7 @@ const Configuracion = () => {
   const error = null;
   const isLoadingConfig = false;
   
-  // Función para manejar la actualización del perfil
-  const handleUpdateProfile = (values) => {
-    console.log('Actualizar perfil con:', values);
-    // message.success('Perfil actualizado correctamente');
-    setIsEditing(false);
-  };
-  
+
   // Función para manejar el cambio de contraseña
   const handleChangePassword = (values) => {
     console.log('Cambiar contraseña con:', values);
@@ -199,32 +185,7 @@ const Configuracion = () => {
     }
   };
   
-  // Función para manejar la carga del avatar
-  const handleAvatarChange = async (info) => {
-    if (info.file.status === 'done') {
-      try {
-        const formData = new FormData();
-        formData.append('avatar', info.file.originFileObj);
-        
-        const response = await usuarioService.uploadAvatar(formData);
-        
-        if (response.success) {
-          // Actualizar el avatar en el estado del usuario
-          queryClient.setQueryData('usuario', (oldData) => ({
-            ...oldData,
-            avatar_url: response.avatar_url
-          }));
-          
-          message.success('Avatar actualizado correctamente');
-        } else {
-          message.error(response.message || 'Error al actualizar el avatar');
-        }
-      } catch (error) {
-        console.error('Error al subir el avatar:', error);
-        message.error('Error al subir el avatar');
-      }
-    }
-  };
+
   
   // Función para manejar el guardado del perfil del usuario
   const handleSaveProfile = async () => {
@@ -272,7 +233,6 @@ const Configuracion = () => {
   // Función handleChange para manejar la carga del avatar
   const handleChange = async (info) => {
     if (info.file.status === 'done') {
-      setAvatarFile(info.file.originFileObj);
       message.success(`${info.file.name} subido correctamente`);
       
       try {

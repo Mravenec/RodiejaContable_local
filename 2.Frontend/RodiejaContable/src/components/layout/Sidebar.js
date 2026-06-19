@@ -18,7 +18,7 @@ const { Text } = Typography;
 const Sidebar = ({ collapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   
   // Para manejar responsividad interna si es necesario
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -40,8 +40,8 @@ const Sidebar = ({ collapsed }) => {
       children: [
         { key: '/vehiculos', label: 'Lista de Vehículos' },
         { key: '/vehiculos/jerarquia', label: 'Ver por Generaciones' },
-        { key: '/vehiculos/nuevo', label: 'Nuevo Vehículo' },
-      ]
+        user?.rol !== 'CONTADOR' ? { key: '/vehiculos/nuevo', label: 'Nuevo Vehículo' } : null,
+      ].filter(Boolean)
     },
     { 
       key: 'inventario', 
@@ -58,8 +58,8 @@ const Sidebar = ({ collapsed }) => {
       label: 'Finanzas',
       children: [
         { key: '/finanzas', label: 'Transacciones' },
-        { key: '/finanzas/nueva', label: 'Nueva Transacción' },
-      ]
+        user?.rol !== 'CONTADOR' ? { key: '/finanzas/nueva', label: 'Nueva Transacción' } : null,
+      ].filter(Boolean)
     },
     { 
       key: 'reportes', 

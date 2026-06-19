@@ -40,6 +40,7 @@ import { useVistaExcelMesActual, useVistaExcelMesEspecifico, useGenerarReporteVe
 import { useEmpleados } from '../../hooks/useEmpleados';
 import * as XLSX from 'xlsx';
 import ComisionesPendientes from '../../components/finanzas/ComisionesPendientes';
+import { useAuth } from '../../context/AuthContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -47,6 +48,7 @@ const { Search } = Input;
 const { Content } = Layout;
 
 const VentasReportes = () => {
+  const { user } = useAuth();
   // Estados para datos y carga
   const [ventas, setVentas] = useState([]);
   const [estadisticas, setEstadisticas] = useState({});
@@ -1056,7 +1058,7 @@ const VentasReportes = () => {
               </div>
             )
           },
-          {
+          user?.rol !== 'CONTADOR' && {
             key: '2',
             label: (
               <span style={{ fontSize: '16px', fontWeight: 500 }}>
@@ -1072,7 +1074,7 @@ const VentasReportes = () => {
               </div>
             )
           }
-        ]}
+        ].filter(Boolean)}
       />
 
       {/* Modal para ver detalles de venta */}

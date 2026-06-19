@@ -4,6 +4,7 @@ import { SearchOutlined, PlusOutlined, ReloadOutlined, CarOutlined } from '@ant-
 import { useNavigate } from 'react-router-dom';
 import { useVehiculos } from '../../hooks/useVehiculos';
 import { formatCurrency } from '../../utils/formatters';
+import { useAuth } from '../../context/AuthContext';
 import './vehiculos.css';
 
 const { Title, Text } = Typography;
@@ -12,6 +13,7 @@ const { Option } = Select;
 
 const Vehiculos = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [filtros, setFiltros] = useState({});
   const { data, isLoading, isError, refetch } = useVehiculos(filtros);
 
@@ -158,15 +160,17 @@ const Vehiculos = () => {
           >
             Ver por Generaciones
           </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/vehiculos/nuevo')}
-            size="large"
-            style={{ borderRadius: '6px' }}
-          >
-            Agregar Vehículo
-          </Button>
+          {user?.rol !== 'CONTADOR' && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/vehiculos/nuevo')}
+              size="large"
+              style={{ borderRadius: '6px' }}
+            >
+              Agregar Vehículo
+            </Button>
+          )}
         </Space>
       </div>
 

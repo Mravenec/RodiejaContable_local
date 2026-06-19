@@ -34,11 +34,13 @@ import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import { useTransaccionesCompletas } from '../../hooks/useTransacciones';
+import { useAuth } from '../../context/AuthContext';
 
 const { Option } = Select;
 const { Text } = Typography;
 
 const Finanzas = () => {
+  const { user } = useAuth();
   const [filtros, setFiltros] = useState({
     tipo: null,
     estado: null,
@@ -291,7 +293,7 @@ const Finanzas = () => {
       width: 150,
       render: (_, record) => (
         <Space size="middle">
-          {record.estado === 'COMPLETADA' && (
+          {record.estado === 'COMPLETADA' && user?.rol !== 'CONTADOR' && (
             <Button 
               type="text" 
               danger
@@ -306,19 +308,23 @@ const Finanzas = () => {
             onClick={() => verDetalle(record)}
             title="Ver detalles"
           />
-          <Button 
-            type="text" 
-            icon={<EditOutlined />} 
-            onClick={() => editarTransaccion(record)}
-            title="Editar"
-          />
-          <Button 
-            type="text" 
-            danger 
-            icon={<DeleteOutlined />} 
-            onClick={() => confirmarEliminar(record)}
-            title="Eliminar"
-          />
+          {user?.rol !== 'CONTADOR' && (
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              onClick={() => editarTransaccion(record)}
+              title="Editar"
+            />
+          )}
+          {user?.rol !== 'CONTADOR' && (
+            <Button 
+              type="text" 
+              danger 
+              icon={<DeleteOutlined />} 
+              onClick={() => confirmarEliminar(record)}
+              title="Eliminar"
+            />
+          )}
         </Space>
       ),
     },
@@ -484,15 +490,17 @@ const Finanzas = () => {
           >
             {filtrosVisibles ? 'Ocultar Filtros' : 'Mostrar Filtros'}
           </Button>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={handleNuevaTransaccion}
-            size="large"
-            style={{ borderRadius: '6px' }}
-          >
-            Nueva Transacción
-          </Button>
+          {user?.rol !== 'CONTADOR' && (
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={handleNuevaTransaccion}
+              size="large"
+              style={{ borderRadius: '6px' }}
+            >
+              Nueva Transacción
+            </Button>
+          )}
         </div>
       </div>
 

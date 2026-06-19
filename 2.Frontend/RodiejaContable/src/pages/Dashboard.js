@@ -19,6 +19,7 @@ import { Loading } from '../components/Loading';
 import { dashboardService } from '../api';
 import vehiculoService from '../api/vehiculos';
 import ventasEmpleadosService from '../api/ventasEmpleados'; // Importar como en VentasReportes.js
+import { useAuth } from '../context/AuthContext';
 
 import { formatCurrency } from '../utils/formatters';
 
@@ -33,6 +34,7 @@ const { Title, Text } = Typography;
 const Dashboard = () => {
   console.log('=== DASHBOARD COMPONENT MONTADO ===');
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({
     totalVentas: 0,
@@ -259,9 +261,13 @@ const Dashboard = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <Title level={2} style={{ margin: 0, fontSize: { xs: '20px', sm: '24px' } }}>Panel de Control</Title>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <Button type="primary" style={{ backgroundColor: '#1890ff', borderColor: '#1890ff', boxShadow: '0 2px 4px rgba(24,144,255,0.2)' }} icon={<CarOutlined />} size="middle" onClick={() => navigate('/vehiculos/nuevo')}>Nuevo Vehículo</Button>
+          {user?.rol !== 'CONTADOR' && (
+            <Button type="primary" style={{ backgroundColor: '#1890ff', borderColor: '#1890ff', boxShadow: '0 2px 4px rgba(24,144,255,0.2)' }} icon={<CarOutlined />} size="middle" onClick={() => navigate('/vehiculos/nuevo')}>Nuevo Vehículo</Button>
+          )}
           <Button type="primary" style={{ backgroundColor: '#722ed1', borderColor: '#722ed1', boxShadow: '0 2px 4px rgba(114,46,209,0.2)' }} icon={<ToolOutlined />} size="middle" onClick={() => navigate('/inventario/nuevo')}>Nuevo Repuesto</Button>
-          <Button type="primary" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 2px 4px rgba(82,196,26,0.2)' }} icon={<DollarOutlined />} size="middle" onClick={() => navigate('/finanzas/nueva')}>Transacción</Button>
+          {user?.rol !== 'CONTADOR' && (
+            <Button type="primary" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 2px 4px rgba(82,196,26,0.2)' }} icon={<DollarOutlined />} size="middle" onClick={() => navigate('/finanzas/nueva')}>Transacción</Button>
+          )}
           
           <Dropdown
             menu={{
