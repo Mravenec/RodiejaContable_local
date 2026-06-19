@@ -1,0 +1,23 @@
+# 1. Borrar la base de datos completa ya que no se esta usando en produccion aun
+python 0.BaseDeDatos/drop_db.py
+
+# 2. Instalar esquema y cargar mocks ya que de momento no se esta usando en produccion aun
+python 0.BaseDeDatos/setup_db.py; python 0.BaseDeDatos/load_mocks.py
+
+# 3. Backend — jOOQ se regenera en compile, luego levantar Spring Boot
+cd 1.Backend/RodiejaContable; mvn clean compile -DskipTests; mvn spring-boot:run
+
+# 4. Frontend — React con Axios (api/) y hooks (hooks/) en cada page
+cd 2.Frontend/RodiejaContable; npm start
+
+# 5. Login desarrollo (tras setup_db.py + load_mocks.py) — fuente: 0.BaseDeDatos/04_UsersAuth.sql
+#    Frontend: http://localhost:3000  ·  API: http://localhost:8080
+#
+#    Rol     | Email               | Contraseña
+#    --------|---------------------|------------
+#    ADMIN   | admin@rodieja.com   | Admin123!
+#
+#    Nota: solo existe el usuario admin por defecto. Rol CONTADOR disponible al registrar usuarios.
+#
+#    Docker MariaDB (compartido con otros proyectos):
+#      Contenedor: SistemaPrincipal  ·  Puerto: 3306  ·  root / 123456  ·  BD: sistema_vehicular

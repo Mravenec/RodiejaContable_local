@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 
 const { Title } = Typography;
 
@@ -90,7 +90,7 @@ const ResetPassword = () => {
         </Form>
         
         <div style={{ textAlign: 'center', marginTop: '16px' }}>
-          <a onClick={() => navigate('/login')}>Volver al inicio de sesión</a>
+          <Link to="/login">Volver al inicio de sesión</Link>
         </div>
       </Card>
     </div>

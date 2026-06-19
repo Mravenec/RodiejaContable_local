@@ -24,7 +24,7 @@ import org.jooq.types.UInteger;
  * Convenience access to all stored procedures and functions in
  * sistema_vehicular.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Routines {
 
     /**

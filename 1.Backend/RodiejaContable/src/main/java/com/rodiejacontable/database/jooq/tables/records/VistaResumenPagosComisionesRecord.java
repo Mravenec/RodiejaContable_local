@@ -20,7 +20,7 @@ import org.jooq.impl.TableRecordImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class VistaResumenPagosComisionesRecord extends TableRecordImpl<VistaResumenPagosComisionesRecord> implements Record12<Integer, Integer, Integer, String, BigDecimal, LocalDate, VistaResumenPagosComisionesEstado, String, String, LocalDateTime, Long, BigDecimal> {
 
     private static final long serialVersionUID = 1L;

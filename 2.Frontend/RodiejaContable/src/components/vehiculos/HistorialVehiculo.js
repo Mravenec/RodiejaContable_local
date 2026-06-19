@@ -1,26 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Timeline, Typography, Tag, Spin, Empty } from 'antd';
 import { 
   HistoryOutlined,
   UserOutlined,
   CalendarOutlined,
-  FileTextOutlined
 } from '@ant-design/icons';
 import api from '../../api/axios';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 const HistorialVehiculo = ({ vehiculoId }) => {
   const [historial, setHistorial] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (vehiculoId) {
-      cargarHistorial();
-    }
-  }, [vehiculoId]);
-
-  const cargarHistorial = async () => {
+  const cargarHistorial = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get(`/historial-vehiculos/vehiculo/${vehiculoId}`);
@@ -39,7 +32,13 @@ const HistorialVehiculo = ({ vehiculoId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [vehiculoId]);
+
+  useEffect(() => {
+    if (vehiculoId) {
+      cargarHistorial();
+    }
+  }, [vehiculoId, cargarHistorial]);
 
   const getAccionColor = (accion) => {
     const colores = {

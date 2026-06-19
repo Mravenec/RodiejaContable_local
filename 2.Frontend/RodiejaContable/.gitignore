@@ -72,7 +72,6 @@ Thumbs.db
 .nfs*
 
 # Archivos de configuración de npm
-package-lock.json
 yarn.lock
 
 # Archivos de configuración de IDE
@@ -119,7 +118,6 @@ vite.config.js
 vite.config.ts
 
 # Archivos de configuración de React
-craco.config.js
 
 # Archivos de configuración de Docker
 docker-compose.yml

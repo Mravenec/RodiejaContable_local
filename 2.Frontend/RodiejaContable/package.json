@@ -18,18 +18,20 @@
     "react-query": "^3.39.3",
     "react-router-dom": "^6.8.2",
     "react-scripts": "5.0.1",
+    "xlsx": "^0.18.5",
     "yup": "^0.32.11"
   },
   "msw": {
     "workerDirectory": "public"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
     "eject": "react-scripts eject",
     "msw:init": "msw init public/",
-    "msw:start": "msw start"
+    "msw:start": "msw start",
+    "update-browserslist": "npx update-browserslist-db@latest"
   },
   "eslintConfig": {
     "extends": [
@@ -50,6 +52,7 @@
     ]
   },
   "devDependencies": {
+    "@craco/craco": "^7.1.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",

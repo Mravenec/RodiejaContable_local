@@ -17,7 +17,7 @@ import org.jooq.impl.TableRecordImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class VistaAuditoriaCompletaRecord extends TableRecordImpl<VistaAuditoriaCompletaRecord> implements Record11<String, String, String, String, String, String, String, String, String, LocalDateTime, String> {
 
     private static final long serialVersionUID = 1L;

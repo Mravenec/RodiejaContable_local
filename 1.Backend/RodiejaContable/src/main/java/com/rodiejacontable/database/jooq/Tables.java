@@ -42,7 +42,7 @@ import com.rodiejacontable.database.jooq.tables.VistaVentasPorEmpleado;
 /**
  * Convenience access to all tables in sistema_vehicular.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
 
     /**

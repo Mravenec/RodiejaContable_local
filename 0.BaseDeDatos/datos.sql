@@ -1,8 +1,36 @@
 -- ========================================
 -- SCRIPT DE POBLACIÓN - SISTEMA VEHICULAR COSTA RICA
+-- Ejecutar DESPUÉS de: sistema_vehicular.sql y 04_UsersAuth.sql
+-- Recargable: limpia datos de negocio sin tocar users/auth
 -- ========================================
 
 USE sistema_vehicular;
+
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE historial_transacciones;
+TRUNCATE TABLE historial_repuestos;
+TRUNCATE TABLE historial_vehiculos;
+TRUNCATE TABLE pagos_comisiones;
+TRUNCATE TABLE transacciones_financieras;
+TRUNCATE TABLE inventario_repuestos;
+TRUNCATE TABLE parte_vehiculo;
+TRUNCATE TABLE vehiculos;
+TRUNCATE TABLE generaciones;
+TRUNCATE TABLE modelos;
+TRUNCATE TABLE marcas;
+TRUNCATE TABLE empleados;
+TRUNCATE TABLE tipos_transacciones;
+ALTER TABLE marcas AUTO_INCREMENT = 1;
+ALTER TABLE modelos AUTO_INCREMENT = 1;
+ALTER TABLE generaciones AUTO_INCREMENT = 1;
+ALTER TABLE empleados AUTO_INCREMENT = 1;
+ALTER TABLE tipos_transacciones AUTO_INCREMENT = 1;
+ALTER TABLE vehiculos AUTO_INCREMENT = 1;
+ALTER TABLE inventario_repuestos AUTO_INCREMENT = 1;
+ALTER TABLE parte_vehiculo AUTO_INCREMENT = 1;
+ALTER TABLE transacciones_financieras AUTO_INCREMENT = 1;
+ALTER TABLE pagos_comisiones AUTO_INCREMENT = 1;
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- ========================================
 -- 1. POBLAR MARCAS 
@@ -68,6 +96,36 @@ INSERT INTO tipos_transacciones (nombre, descripcion, categoria) VALUES
 
 SELECT * FROM tipos_transacciones;
 
+-- ========================================
+-- 5b. POBLAR CATÁLOGO DE PARTES DE VEHÍCULO
+-- ========================================
+INSERT INTO parte_vehiculo (nombre) VALUES
+('MOTOR'),
+('CHASIS'),
+('CARROCERIA'),
+('COMPUTADORA'),
+('CAJA DE CAMBIO'),
+('AIRBAGS O BOLSAS DE AIRE'),
+('EJES Y DIFERENCIA'),
+('SUSPENSION Y AMORTIGUAMIENTO'),
+('EMBRAGUE'),
+('SISTEMA DE FRENOS'),
+('TANQUE DE GASOLINA'),
+('DISTRIBUIDOR'),
+('RADIADOR'),
+('VENTILADOR'),
+('BOMBA DE AGUA'),
+('BATERIA'),
+('AROS Y LLANTAS'),
+('SISTEMA DE DIRECCION'),
+('SISTEMA ELECTRICO'),
+('FUSIBLES'),
+('ALTERNADOR'),
+('VÁLVULAS DE ESCAPE'),
+('TURBO');
+
+SELECT * FROM parte_vehiculo;
+
 
 -- ========================================
 -- 6. POBLAR VEHÍCULOS 
@@ -97,14 +155,14 @@ SELECT * FROM transacciones_financieras;
 -- 7. POBLAR INVENTARIO DE REPUESTOS (1 dato)
 -- ========================================
 INSERT INTO inventario_repuestos (
-    vehiculo_origen_id, parte_vehiculo, descripcion,
+    vehiculo_origen_id, parte_Vehiculo_id, descripcion,
     precio_costo, precio_venta, precio_mayoreo,
     bodega, zona, pared, malla, estante, piso,
     estado, condicion, fecha_creacion, imagen_url
 ) VALUES (
-    2,                               -- vehiculo_origen_id (Honda Civic 2018)
-    'MOTOR',                         -- parte_vehiculo
-    'Motor 1.5 L Turbo VTEC',        -- descripcion
+    2,
+    (SELECT id FROM parte_vehiculo WHERE nombre = 'MOTOR'),
+    'Motor 1.5 L Turbo VTEC',
     1200000.00,                      -- precio_costo
     1800000.00,                      -- precio_venta
     1500000.00,                      -- precio_mayoreo (ejemplo ± 25 %)
@@ -315,9 +373,9 @@ SELECT * FROM transacciones_financieras;
 
 -- A-1. Compra automática + alta en inventario
 CALL sp_insertar_repuesto_con_generacion_sin_vehiculo(
-    1, 'Toyota',                        -- p_generacion_id, p_marca_nombre
-    'BOMBA DE AGUA',                    -- p_parte_vehiculo
-    'Bomba de agua OEM Toyota Corolla', -- p_descripcion
+    1, 'Toyota',
+    (SELECT id FROM parte_vehiculo WHERE nombre = 'BOMBA DE AGUA'),
+    'Bomba de agua OEM Toyota Corolla',
     70000.00, 110000.00, 95000.00,      -- p_precio_costo, p_precio_venta, p_precio_mayoreo
     'R-', 'Z2-', 'PN-', 'V10', 'E2', 'P3-', -- p_bodega, p_zona, p_pared, p_malla, p_estante, p_piso
     'STOCK', '100%-',                   -- p_estado, p_condicion
@@ -355,10 +413,10 @@ SELECT * FROM transacciones_financieras;
 
 -- B-1. Compra automática + alta (sin vehículo origen, con código único por generación)
 CALL sp_insertar_repuesto_con_generacion_sin_vehiculo(
-    2,                -- generación_id = 2 (Civic gen10)
-    'Honda',          -- marca asociada a la generación
-    'EMBRAGUE',       -- parte del vehículo
-    'Kit embrague original Honda Civic',  -- descripción
+    2,
+    'Honda',
+    (SELECT id FROM parte_vehiculo WHERE nombre = 'EMBRAGUE'),
+    'Kit embrague original Honda Civic',
     85000.00,         -- precio_costo
     140000.00,        -- precio_venta
     120000.00,        -- precio_mayoreo
