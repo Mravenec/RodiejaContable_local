@@ -1,0 +1,43 @@
+---
+description: Linear obligatorio + checklist secuencial (un ítem por paso). Ver _linear/README.md
+alwaysApply: true
+---
+
+# Linear y checklist — obligatorio
+
+Fuente: `_linear/README.md` → **Gate LINEAR_API y checklist**. Gate previo: `linear-gate-obligatorio.mdc`. Plan HTML: `linear-plan-html-obligatorio.mdc` + `validate-plan-html.mjs`. Multi-agente: `linear-multiagente.mdc` + `AGENTS.md`.
+
+## Linear siempre
+
+- Todo sprint/issue pasa por `_linear/scripts/sprint_<nombre>.mjs` o `linear-update-state.mjs`.
+- Si `LINEAR_API_KEY` falla → **detener**. No cerrar “en local” sin Linear.
+- Comentarios Linear son opcionales; **no sustituyen** el checklist en la descripción del issue.
+
+## Checklist secuencial (enforced en `linear-lib.mjs`)
+
+Por cada ítem:
+
+1. `show ROD-N` o `--checklist-status` — ver siguiente pendiente.
+2. Implementar/probar **solo ese ítem**.
+3. `checklist ROD-N <n>` donde `<n>` es el **único** siguiente pendiente.
+4. Repetir → `Testing` → pruebas locales → `Done`.
+
+**Prohibido** (exit 1):
+
+- `checklist ROD-N 1,2,3` o `--checklist all` o `Done --check-all`
+- Marcar ítem N+2 sin haber marcado N+1
+- Varios pasos de código y marcar checklist al final
+
+## Handoff
+
+Al terminar un gate: marcar ítem propio **uno a uno**, luego `handoff ROD-DOWNSTREAM 1`, luego `state Done`.
+
+## Comandos (desde `_linear/`)
+
+```bash
+node scripts/sprint_<nombre>.mjs next
+node scripts/sprint_<nombre>.mjs show ROD-N
+node scripts/sprint_<nombre>.mjs checklist ROD-N 3
+node scripts/linear-update-state.mjs ROD-N --checklist-status
+node scripts/sprint_<nombre>.mjs state ROD-N Done
+```

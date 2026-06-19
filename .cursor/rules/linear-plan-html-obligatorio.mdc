@@ -1,0 +1,55 @@
+---
+description: Plan HTML sprint debe ser contrato Linear completo (7 fases, gates, issues, handoffs). Ver _linear/README.md Fase 2
+alwaysApply: true
+---
+
+# Plan HTML — contrato Linear obligatorio
+
+Fuente: `_linear/README.md` § Fase 2 + `AGENTS.md`. Complementa `linear-gate-obligatorio.mdc`.
+
+## Cuándo aplica
+
+Al crear o editar `_linear/plans/plan_sprint_<nombre>.html` (Fase 2). **No** aplica a `resumen_sprint_*.html` ni `_plantilla_rodieja.html`.
+
+## Origen obligatorio
+
+```bash
+copy _linear\plans\_plantilla_rodieja.html _linear\plans\plan_sprint_<nombre>.html
+```
+
+**Prohibido:** plan desde cero sin plantilla; plan solo «de producto» sin secciones Linear.
+
+## Secciones obligatorias
+
+| # | Sección | Contenido mínimo |
+|---|---------|------------------|
+| 1 | **Proceso 7 fases** | Tabla Fase 0–6 con gate y estado |
+| 2 | **Metadatos sprint** | EPIC_NAME, SPRINT_NAME, script `.mjs`, equipo `linear_rodieja` |
+| 3 | **Gates** | GATE_SQL/BD/JOOQ/HTTP/FE — **Sí** o **N/A** + comandos si BD |
+| 4 | **Tabla de issues** | Id ROD-N, rol, pts, título, blocks, archivos |
+| 5 | **Dependencias** | Diagrama `blocks` + handoff upstream→downstream ítem 1 |
+| 6 | **Ciclo por issue** | `next` → checklist ítem a ítem → Testing → handoff → Done |
+| 7 | **Comandos script** | `create`, `next`, `checklist`, `handoff`, `state`, `cleanup` |
+| 8 | **Testing por rol** | Tabla issue × comandos locales × criterio Done |
+| 9 | **Descripciones Linear** | Checklists verbatim para `.mjs create` |
+| 10 | **Fase 6 cierre** | `resumen_sprint_*.html` + epic Completed |
+| 11 | **Objetivo producto** | Problema ↔ solución |
+| 12 | **Aprobación** | PENDIENTE / APROBADO — sin `create` hasta APROBADO |
+
+Si hay capas omitidas (sin BD): pipeline con **DB/JOOQ N/A** explícito.
+
+## Validación antes de Fase 4
+
+```bash
+cd _linear
+node scripts/validate-plan-html.mjs plans/plan_sprint_<nombre>.html
+```
+
+Exit 0 → puede ejecutar `create`. Exit 1 → completar plan.
+
+## Prohibido
+
+- `create` sin plan validado.
+- Plan sin tabla gates (aunque todo sea N/A).
+- Plan sin handoff entre issues encadenados.
+- Plan con `role:database` sin documentar `drop_db` → `setup_db` → `load_mocks`.

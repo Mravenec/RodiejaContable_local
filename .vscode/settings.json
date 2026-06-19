@@ -1,4 +1,26 @@
 {
-    "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.compile.nullAnalysis.mode": "disabled",
+    "java.import.maven.enabled": true,
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.import.generatesMetadataFilesAtProjectRoot": false,
+    "java.project.importOnFirstTimeStartup": "automatic",
+    "java.errors.incompleteClasspath.severity": "ignore",
+    "java.configuration.maven.notCoveredPluginExecutionSeverity": "ignore",
+    "java.maxConcurrentBuilds": 1,
+    "java.import.exclusions": [
+        "**/node_modules/**",
+        "**/2.Frontend/**"
+    ],
+    "java.project.resourceFilters": [
+        "node_modules",
+        ".metadata",
+        "target",
+        ".git"
+    ],
+    "files.watcherExclude": {
+        "**/target/**": true,
+        "**/node_modules/**": true
+    },
+    "java.sources.organizeImports.starThreshold": 99,
+    "java.sources.organizeImports.staticStarThreshold": 99
 }

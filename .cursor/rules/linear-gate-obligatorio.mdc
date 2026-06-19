@@ -1,0 +1,54 @@
+---
+description: Gate obligatorio Linear antes de codear; coordinación multi-agente. Ver _linear/README.md
+alwaysApply: true
+---
+
+# Gate Linear — antes de tocar código de producto
+
+Fuente: `_linear/README.md` + `AGENTS.md`. Complementa `linear-checklist-secuencial.mdc`, `linear-multiagente.mdc` y `linear-plan-html-obligatorio.mdc`.
+
+## Cuándo aplica
+
+Cualquier cambio en `0.BaseDeDatos/`, `1.Backend/`, `2.Frontend/` o archivos `.http` de producto.
+
+**Excepción única:** el usuario escribe explícitamente *bypass linear*, *sin linear* o *solo local* en el mensaje actual.
+
+## Arranque obligatorio (antes de implementar)
+
+```bash
+cd _linear
+node scripts/sprint-next.mjs
+# o: node scripts/sprint_<nombre>.mjs next
+```
+
+| Resultado de `next` | Acción de la IA |
+|---------------------|-----------------|
+| Issue desbloqueado (ROD-N) | **Solo** ese issue; `show ROD-N`; primer ítem pendiente del checklist |
+| Sin issues / sin `sprint_*.mjs` | **Parar.** Fase 0→2: limpieza, `plan_sprint_<nombre>.html`, `validate-plan-html.mjs`, esperar ✅ APROBADO, luego `create` |
+| Issue bloqueado por `blocks` | **Parar.** Informar blocker; no codear en la cadena bloqueada |
+
+## Multi-agente — esperas obligatorias
+
+- **Un issue activo** por cadena `blocks`.
+- **GATE_HTTP** sin `[x]` → frontend **no** empieza.
+- **GATE_BD / JOOQ** sin `[x]` → backend que depende de schema **no** empieza.
+- Al cerrar un gate: checklist ítem a ítem → `handoff ROD-DOWNSTREAM 1` → `state Done` del upstream.
+
+## Durante la implementación
+
+1. Implementar **solo** el ítem de checklist actual.
+2. Probar ese ítem.
+3. `node scripts/sprint_<activo>.mjs checklist ROD-N <n>` (un número, secuencial).
+4. Repetir hasta Testing → pruebas locales del rol → `state Done`.
+
+**Prohibido:** varios ítems de código y marcar checklist al final; `checklist 1,2,3` o `--check-all`.
+
+## Cierre de sprint
+
+1. Todos los issues del epic en **Done** (checklist 100%).
+2. `resumen_sprint_<nombre>.html` en `_linear/plans/`.
+3. Fase 0: `cleanup` + borrar plan/resumen/script del sprint cerrado.
+
+## Si LINEAR_API_KEY falla
+
+**Detener** implementación de producto. No sustituir Linear con commits locales silenciosos.

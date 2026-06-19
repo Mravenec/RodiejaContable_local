@@ -21,3 +21,12 @@ cd 2.Frontend/RodiejaContable; npm start
 #
 #    Docker MariaDB (compartido con otros proyectos):
 #      Contenedor: SistemaPrincipal  ·  Puerto: 3306  ·  root / 123456  ·  BD: sistema_vehicular
+
+# 6. Linear / multi-agente (Fase 5 Testing y orquestación)
+#    Ver AGENTS.md y _linear/README.md
+#    cd _linear
+#    node scripts/sprint-next.mjs          # issue desbloqueado antes de codear
+#    node scripts/sprint_<nombre>.mjs status
+#    node scripts/linear-update-state.mjs ROD-N --checklist-status
+#    npm install && npm run build          # primera vez MCP
+

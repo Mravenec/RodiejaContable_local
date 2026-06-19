@@ -1,0 +1,25 @@
+{
+  "name": "linear-rodieja-mcp",
+  "version": "1.0.0",
+  "description": "MCP Server para Linear.app — proyecto linear_rodieja (Rodieja Contable)",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@linear/sdk": "^26.0.0",
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

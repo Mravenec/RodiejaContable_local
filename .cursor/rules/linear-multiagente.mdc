@@ -1,0 +1,42 @@
+---
+description: Orquestación multi-agente vía Linear + _linear MCP. Complementa linear-checklist-secuencial.
+alwaysApply: true
+---
+
+# Multi-agente — coordinación
+
+Fuente: `_linear/README.md` + `AGENTS.md`. Gate previo: `linear-gate-obligatorio.mdc` (`next` antes de codear).
+
+## Principio
+
+Linear + checklist = **quién** trabaja, **cuándo** empieza y **cuándo** pasa el testigo.
+
+## Un issue activo por cadena
+
+- Antes de codear: `next` → solo issue **desbloqueado** (`blocks` + gate ítem 1 `[x]` si aplica).
+- **No** tocar otro issue de la misma cadena en paralelo.
+
+## Roles (`role:*` en Linear)
+
+| Rol | Alcance | Testing local |
+|-----|---------|----------------|
+| `orchestrator` | `create`, `next`, `status`, Fase 6 resumen | — |
+| `database` | `0.BaseDeDatos/` — **único** agente en `drop_db` | drop → setup → load_mocks |
+| `backend` | `1.Backend/RodiejaContable/` — IREPO→REPO→ISVC→SVC→ICTRL→CTRL→`.http` | compile, spring-boot, `.http` 2xx |
+| `frontend` | `2.Frontend/RodiejaContable/` — api/, hooks/, pages | `npm start`, `npm run build` |
+
+## Paralelo permitido
+
+- **Sí:** epics distintos sin choque (archivos distintos, sin `drop_db` compartido).
+- **No:** mismo archivo, mismo epic serial, o ítem 1 downstream sin `[x]`.
+
+## Handoff entre agentes
+
+1. Upstream termina su gate → checklist propio (ítem a ítem).
+2. `handoff ROD-DOWNSTREAM 1`.
+3. `state ROD-N Done` → libera `blocks`.
+4. Downstream: `--checklist-status` → confirma ítem 1 `[x]` → empieza ítem 2.
+
+## Fallo
+
+`fail_issue` o detener si API falló. No asumir progreso no registrado en Linear.
