@@ -211,8 +211,8 @@ Marcar epic **Completed** en Linear. Comentario: `Sprint completado. Resumen: _l
 |---------|------------------|
 | Carpeta SQL | `0.BaseDeDatos/` |
 | BD | `sistema_vehicular` (una sola) |
-| Schema master | `sistema_vehicular.sql` + `04_UsersAuth.sql` vía `00_run_all.sql` |
-| Mocks | `datos.sql` vía `load_mocks.py` |
+| Schema master | `DB/01_sistema_vehicular.sql` + `DB/02_UsersAuth.sql` + `DB/03_AudatexEnvios.sql` vía `00_run_all.sql` |
+| Mocks | `DB/04_datos.sql` vía `load_mocks.py` |
 | Pipeline | `drop_db.py` → `setup_db.py` → `load_mocks.py` |
 | jOOQ | Regenera en `mvn compile` contra MariaDB viva |
 

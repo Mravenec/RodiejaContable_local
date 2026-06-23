@@ -1,6 +1,6 @@
 -- ========================================
 -- SCRIPT DE POBLACIÓN - SISTEMA VEHICULAR COSTA RICA
--- Ejecutar DESPUÉS de: sistema_vehicular.sql y 04_UsersAuth.sql
+-- Ejecutar DESPUÉS de: DB/01_sistema_vehicular.sql, DB/02_UsersAuth.sql y DB/03_AudatexEnvios.sql
 -- Recargable: limpia datos de negocio sin tocar users/auth
 -- ========================================
 

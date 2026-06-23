@@ -13,11 +13,11 @@ import java.util.function.Function;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
-import org.jooq.Function19;
+import org.jooq.Function20;
 import org.jooq.Name;
 import org.jooq.Record;
 import org.jooq.Records;
-import org.jooq.Row19;
+import org.jooq.Row20;
 import org.jooq.Schema;
 import org.jooq.SelectField;
 import org.jooq.Table;
@@ -31,7 +31,7 @@ import org.jooq.impl.TableImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRecord> {
 
     private static final long serialVersionUID = 1L;
@@ -66,6 +66,12 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
      * <code>sistema_vehicular.vista_inventario_completo.codigo_ubicacion</code>.
      */
     public final TableField<VistaInventarioCompletoRecord, String> CODIGO_UBICACION = createField(DSL.name("codigo_ubicacion"), SQLDataType.VARCHAR(100).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.parte_vehiculo_id</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, Integer> PARTE_VEHICULO_ID = createField(DSL.name("parte_vehiculo_id"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
 
     /**
      * The column
@@ -168,7 +174,7 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
     }
 
     private VistaInventarioCompleto(Name alias, Table<VistaInventarioCompletoRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_inventario_completo` as select `ir`.`id` AS `id`,`ir`.`codigo_repuesto` AS `codigo_repuesto`,`ir`.`codigo_ubicacion` AS `codigo_ubicacion`,`pv`.`nombre` AS `parte_vehiculo`,`ir`.`descripcion` AS `descripcion`,`ir`.`precio_costo` AS `precio_costo`,`ir`.`precio_venta` AS `precio_venta`,`ir`.`precio_mayoreo` AS `precio_mayoreo`,`ir`.`formula_15` AS `formula_15`,`ir`.`formula_30` AS `formula_30`,`ir`.`estado` AS `estado`,`ir`.`anio_registro` AS `anio_registro`,`ir`.`mes_registro` AS `mes_registro`,`v`.`codigo_vehiculo` AS `codigo_vehiculo`,`vvc`.`marca` AS `marca`,`vvc`.`modelo` AS `modelo`,`vvc`.`generacion` AS `generacion`,`vvc`.`anio` AS `anio_vehiculo`,`vvc`.`clave_generacion` AS `clave_generacion` from (((`sistema_vehicular`.`inventario_repuestos` `ir` left join `sistema_vehicular`.`vehiculos` `v` on(`ir`.`vehiculo_origen_id` = `v`.`id`)) left join `sistema_vehicular`.`parte_vehiculo` `pv` on(`ir`.`parte_Vehiculo_id` = `pv`.`id`)) left join `sistema_vehicular`.`vista_vehiculos_completa` `vvc` on(`v`.`id` = `vvc`.`id`))"));
+        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_inventario_completo` as select `ir`.`id` AS `id`,`ir`.`codigo_repuesto` AS `codigo_repuesto`,`ir`.`codigo_ubicacion` AS `codigo_ubicacion`,`ir`.`parte_Vehiculo_id` AS `parte_vehiculo_id`,`pv`.`nombre` AS `parte_vehiculo`,`ir`.`descripcion` AS `descripcion`,`ir`.`precio_costo` AS `precio_costo`,`ir`.`precio_venta` AS `precio_venta`,`ir`.`precio_mayoreo` AS `precio_mayoreo`,`ir`.`formula_15` AS `formula_15`,`ir`.`formula_30` AS `formula_30`,`ir`.`estado` AS `estado`,`ir`.`anio_registro` AS `anio_registro`,`ir`.`mes_registro` AS `mes_registro`,`v`.`codigo_vehiculo` AS `codigo_vehiculo`,`vvc`.`marca` AS `marca`,`vvc`.`modelo` AS `modelo`,`vvc`.`generacion` AS `generacion`,`vvc`.`anio` AS `anio_vehiculo`,`vvc`.`clave_generacion` AS `clave_generacion` from (((`sistema_vehicular`.`inventario_repuestos` `ir` left join `sistema_vehicular`.`vehiculos` `v` on(`ir`.`vehiculo_origen_id` = `v`.`id`)) left join `sistema_vehicular`.`parte_vehiculo` `pv` on(`ir`.`parte_Vehiculo_id` = `pv`.`id`)) left join `sistema_vehicular`.`vista_vehiculos_completa` `vvc` on(`v`.`id` = `vvc`.`id`))"));
     }
 
     /**
@@ -244,18 +250,18 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
     }
 
     // -------------------------------------------------------------------------
-    // Row19 type methods
+    // Row20 type methods
     // -------------------------------------------------------------------------
 
     @Override
-    public Row19<Integer, String, String, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> fieldsRow() {
-        return (Row19) super.fieldsRow();
+    public Row20<Integer, String, String, Integer, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> fieldsRow() {
+        return (Row20) super.fieldsRow();
     }
 
     /**
      * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
      */
-    public <U> SelectField<U> mapping(Function19<? super Integer, ? super String, ? super String, ? super String, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCompletoEstado, ? super Short, ? super Byte, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super String, ? extends U> from) {
+    public <U> SelectField<U> mapping(Function20<? super Integer, ? super String, ? super String, ? super Integer, ? super String, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCompletoEstado, ? super Short, ? super Byte, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super String, ? extends U> from) {
         return convertFrom(Records.mapping(from));
     }
 
@@ -263,7 +269,7 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
      * Convenience mapping calling {@link SelectField#convertFrom(Class,
      * Function)}.
      */
-    public <U> SelectField<U> mapping(Class<U> toType, Function19<? super Integer, ? super String, ? super String, ? super String, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCompletoEstado, ? super Short, ? super Byte, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super String, ? extends U> from) {
+    public <U> SelectField<U> mapping(Class<U> toType, Function20<? super Integer, ? super String, ? super String, ? super Integer, ? super String, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCompletoEstado, ? super Short, ? super Byte, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super String, ? extends U> from) {
         return convertFrom(toType, Records.mapping(from));
     }
 }

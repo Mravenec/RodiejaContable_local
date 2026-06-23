@@ -10,7 +10,7 @@ cd 1.Backend/RodiejaContable; mvn clean compile -DskipTests; mvn spring-boot:run
 # 4. Frontend — React con Axios (api/) y hooks (hooks/) en cada page
 cd 2.Frontend/RodiejaContable; npm start
 
-# 5. Login desarrollo (tras setup_db.py + load_mocks.py) — fuente: 0.BaseDeDatos/04_UsersAuth.sql
+# 5. Login desarrollo (tras setup_db.py + load_mocks.py) — fuente: 0.BaseDeDatos/DB/02_UsersAuth.sql
 #    Frontend: http://localhost:3000  ·  API: http://localhost:8080
 #
 #    Rol     | Email               | Contraseña

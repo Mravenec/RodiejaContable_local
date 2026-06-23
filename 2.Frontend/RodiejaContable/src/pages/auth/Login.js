@@ -21,8 +21,10 @@ const Login = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      // Llamar al backend real
-      await login({ email: values.email, password: values.password });
+      const email = values.email?.trim();
+      const password = values.password?.trim();
+
+      await login({ email, password });
       
       const from = location.state?.from?.pathname || '/';
       message.success('¡Bienvenido!');
@@ -61,6 +63,7 @@ const Login = () => {
       >
         <Form.Item
           name="email"
+          normalize={(value) => (typeof value === 'string' ? value.trim() : value)}
           rules={[
             { required: true, message: 'Por favor ingrese su correo' },
             { type: 'email', message: 'Ingrese un correo electrónico válido' }

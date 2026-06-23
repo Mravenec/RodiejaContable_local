@@ -7,21 +7,33 @@
 --
 -- Requiere: MariaDB 10.6+ con usuario root con todos los permisos
 -- Tiempo estimado: ~30 segundos
+--
+-- Scripts numerados en DB/:
+--   01_sistema_vehicular.sql  — esquema principal (tablas, vistas, triggers, SPs)
+--   02_UsersAuth.sql          — autenticación y usuarios
+--   03_AudatexEnvios.sql      — integración Audatex InPart
+--   04_datos.sql              — mocks (vía load_mocks.py, no incluido aquí)
 -- ============================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
 SET SQL_MODE = '';
 
 -- ─────────────────────────────────────────────────────────────────
--- PASO 1: Esquema principal (tablas, vistas, triggers, SPs)
+-- PASO 1: Esquema principal (tables, vistas, triggers, SPs)
 -- ─────────────────────────────────────────────────────────────────
-SOURCE sistema_vehicular.sql;
+SOURCE DB/01_sistema_vehicular.sql;
 
 -- ─────────────────────────────────────────────────────────────────
 -- PASO 2: Módulo de autenticación y usuarios
---         Depende de: sistema_vehicular
+--         Depende de: 01_sistema_vehicular
 -- ─────────────────────────────────────────────────────────────────
-SOURCE 04_UsersAuth.sql;
+SOURCE DB/02_UsersAuth.sql;
+
+-- ─────────────────────────────────────────────────────────────────
+-- PASO 3: Integración Audatex — envíos de cotizaciones InPart
+--         Depende de: inventario_repuestos (01)
+-- ─────────────────────────────────────────────────────────────────
+SOURCE DB/03_AudatexEnvios.sql;
 
 SET FOREIGN_KEY_CHECKS = 1;
 

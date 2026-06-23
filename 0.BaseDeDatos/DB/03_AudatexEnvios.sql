@@ -1,5 +1,5 @@
 -- ========================================
--- ROD-25: Tabla audatex_envios
+-- ROD-25: Tabla audatex_envios (03 — integración Audatex InPart)
 -- ========================================
 -- Esta tabla registra los envíos de cotizaciones a Audatex InPart
 -- Es la única tabla nueva para la integración Audatex en todo el proyecto
