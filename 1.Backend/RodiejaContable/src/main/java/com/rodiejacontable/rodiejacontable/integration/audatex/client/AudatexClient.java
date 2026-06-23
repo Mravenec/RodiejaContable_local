@@ -1,7 +1,6 @@
 package com.rodiejacontable.rodiejacontable.integration.audatex.client;
 
 import com.rodiejacontable.rodiejacontable.integration.audatex.config.AudatexProperties;
-import com.rodiejacontable.rodiejacontable.integration.audatex.dto.AudatexOportunidadDTO;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
@@ -18,6 +17,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -68,15 +68,15 @@ public class AudatexClient {
      * @return lista completa de oportunidades activas
      * @throws IOException si falla la comunicación con el portal
      */
-    public List<AudatexOportunidadDTO> buscarTodasOportunidades() throws IOException {
+    public List<Map<String, Object>> buscarTodasOportunidades() throws IOException {
         return buscarTodasOportunidades(null, null);
     }
 
     @CircuitBreaker(name = "audatexClient", fallbackMethod = "buscarTodasOportunidadesFallback")
     @Retry(name = "audatexClient")
     @TimeLimiter(name = "audatexClient")
-    public List<AudatexOportunidadDTO> buscarTodasOportunidades(String desde, String hasta) throws IOException {
-        List<AudatexOportunidadDTO> todas = new ArrayList<>();
+    public List<Map<String, Object>> buscarTodasOportunidades(String desde, String hasta) throws IOException {
+        List<Map<String, Object>> todas = new ArrayList<>();
         Map<String, String> cookies = sessionManager.getActiveCookies();
         String refererUrl = sessionManager.getCurrentPanelUrl();
 
@@ -217,7 +217,7 @@ public class AudatexClient {
         return todas;
     }
 
-    private List<AudatexOportunidadDTO> buscarTodasOportunidadesFallback(String desde, String hasta, Exception exception) throws IOException {
+    private List<Map<String, Object>> buscarTodasOportunidadesFallback(String desde, String hasta, Exception exception) throws IOException {
         log.warn("[Audatex] Circuit breaker activado para desde={}, hasta={} - propagando error: {}", desde, hasta, exception.getMessage());
         if (exception instanceof IOException) {
             throw (IOException) exception;
@@ -383,8 +383,8 @@ public class AudatexClient {
      *   0 Aseguradora | 1 CotizaciónId | 2 Taller | 3 Póliza | 4 Siniestro
      *   5 Matrícula   | 6 Armadora     | 7 Fecha   | 8 Pendientes
      */
-    private List<AudatexOportunidadDTO> parsearTablaOportunidades(Document doc) {
-        List<AudatexOportunidadDTO> lista = new ArrayList<>();
+    private List<Map<String, Object>> parsearTablaOportunidades(Document doc) {
+        List<Map<String, Object>> lista = new ArrayList<>();
 
         Element table = doc.getElementById("ctl00_cphBody_gdvResult");
         if (table == null) {
@@ -401,23 +401,23 @@ public class AudatexClient {
             Elements cols = rows.get(i).select("td");
             if (cols.size() < 9) continue;
 
-            AudatexOportunidadDTO dto = new AudatexOportunidadDTO();
-            dto.setAseguradora(cols.get(0).text().trim());
-            dto.setCotizacionId(cols.get(1).text().trim());
-            dto.setTaller(cols.get(2).text().trim());
-            dto.setPoliza(cols.get(3).text().trim());
-            dto.setSiniestro(cols.get(4).text().trim());
-            dto.setMatricula(cols.get(5).text().trim());
-            dto.setArmadora(cols.get(6).text().trim());
-            dto.setFechaCotizacion(cols.get(7).text().trim());
+            Map<String, Object> oportunidad = new LinkedHashMap<>();
+            oportunidad.put("aseguradora", cols.get(0).text().trim());
+            oportunidad.put("cotizacionId", cols.get(1).text().trim());
+            oportunidad.put("taller", cols.get(2).text().trim());
+            oportunidad.put("poliza", cols.get(3).text().trim());
+            oportunidad.put("siniestro", cols.get(4).text().trim());
+            oportunidad.put("matricula", cols.get(5).text().trim());
+            oportunidad.put("armadora", cols.get(6).text().trim());
+            oportunidad.put("fechaCotizacion", cols.get(7).text().trim());
 
             try {
-                dto.setPendientes(Integer.parseInt(cols.get(8).text().trim()));
+                oportunidad.put("pendientes", Integer.parseInt(cols.get(8).text().trim()));
             } catch (NumberFormatException e) {
-                dto.setPendientes(0);
+                oportunidad.put("pendientes", 0);
             }
 
-            lista.add(dto);
+            lista.add(oportunidad);
         }
 
         return lista;

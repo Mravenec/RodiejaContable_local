@@ -18,15 +18,15 @@ const ModalCotizarInPart = ({ visible, onClose, oportunidad, repuesto, onExito }
       const payload = {
         repuestoId: repuesto.id,
         cotizacionId: oportunidad.cotizacionId,
-        precio: values.precio,
-        tiempo: values.tiempo,
-        condicion: values.condicion,
+        precioOfrecido: values.precio,
+        tiempoEntrega: values.tiempo,
+        condicionPieza: values.condicion,
       };
 
       const response = await audatexService.enviarCotizacion(payload);
       
       // La API devuelve un booleano en el body para indicar el éxito
-      if (response.data) {
+      if (response.data?.mensaje) {
         message.success('Cotización enviada exitosamente al portal de Audatex InPart');
         if (onExito) onExito();
         onClose();

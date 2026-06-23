@@ -14,16 +14,27 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler(EmpleadoNoEncontradoException.class)
-    public ResponseEntity<Object> handleEmpleadoNoEncontradoException(
-            EmpleadoNoEncontradoException ex, WebRequest request) {
-        
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Object> handleNotFound(ResourceNotFoundException ex, WebRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "No encontrado", ex.getMessage());
+    }
+
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    public ResponseEntity<Object> handleConflict(ResourceAlreadyExistsException ex, WebRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "Conflicto", ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Object> handleGeneric(Exception ex, WebRequest request) {
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno", ex.getMessage());
+    }
+
+    private ResponseEntity<Object> buildResponse(HttpStatus status, String error, String message) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
-        body.put("status", HttpStatus.NOT_FOUND.value());
-        body.put("error", "No encontrado");
-        body.put("message", ex.getMessage());
-        
-        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+        body.put("status", status.value());
+        body.put("error", error);
+        body.put("message", message);
+        return new ResponseEntity<>(body, status);
     }
 }

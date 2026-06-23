@@ -1991,4 +1991,55 @@ FROM pagos_comisiones pc
 JOIN empleados e ON pc.empleado_id = e.id;
 
 
+-- ============================================================
+-- CATÁLOGOS DE INSTALACIÓN
+-- Datos requeridos por triggers y lógica de negocio.
+-- Son parte del esquema, no son mocks: siempre deben existir.
+-- ============================================================
 
+-- Tipos de transacción — los triggers buscan por nombre
+INSERT INTO tipos_transacciones (nombre, descripcion, categoria) VALUES
+('Venta Vehículo',     'Ingreso por venta de vehículo completo',          'INGRESO'),
+('Venta Repuesto',     'Ingreso por venta de repuesto individual',         'INGRESO'),
+('Venta Mayoreo',      'Ingreso por venta al mayoreo',                     'INGRESO'),
+('Servicios Mecánicos','Ingreso por servicios de mecánica',                'INGRESO'),
+('Alquiler Espacio',   'Ingreso por alquiler de espacio en yonke',         'INGRESO'),
+('Compra Vehículo',    'Egreso por compra de vehículo',                    'EGRESO'),
+('Compra Repuesto',    'Egreso por compra de repuesto',                    'EGRESO'),
+('Reparación Vehículo','Egreso por reparaciones de vehículo',              'EGRESO'),
+('Mantenimiento Local','Egreso por mantenimiento del local',               'EGRESO'),
+('Comisión Vendedor',  'Egreso por comisión a vendedor',                   'EGRESO'),
+('Costo Grúa',         'Egreso por servicio de grúa',                      'EGRESO'),
+('Transporte',         'Egreso por transporte de vehículos',               'EGRESO'),
+('Combustible',        'Egreso por combustible',                           'EGRESO'),
+('Servicios Públicos', 'Egreso por electricidad, agua, teléfono',          'EGRESO'),
+('Impuestos',          'Egreso por impuestos y patentes',                  'EGRESO'),
+('Salarios',           'Egreso por planillas y cargas sociales',           'EGRESO'),
+('Otros Ingresos',     'Otros ingresos diversos',                         'INGRESO'),
+('Otros Egresos',      'Otros egresos diversos',                          'EGRESO');
+
+-- Catálogo de partes de vehículo
+INSERT INTO parte_vehiculo (nombre) VALUES
+('MOTOR'),
+('CHASIS'),
+('CARROCERIA'),
+('COMPUTADORA'),
+('CAJA DE CAMBIO'),
+('AIRBAGS O BOLSAS DE AIRE'),
+('EJES Y DIFERENCIA'),
+('SUSPENSION Y AMORTIGUAMIENTO'),
+('EMBRAGUE'),
+('SISTEMA DE FRENOS'),
+('TANQUE DE GASOLINA'),
+('DISTRIBUIDOR'),
+('RADIADOR'),
+('VENTILADOR'),
+('BOMBA DE AGUA'),
+('BATERIA'),
+('AROS Y LLANTAS'),
+('SISTEMA DE DIRECCION'),
+('SISTEMA ELECTRICO'),
+('FUSIBLES'),
+('ALTERNADOR'),
+('VÁLVULAS DE ESCAPE'),
+('TURBO');

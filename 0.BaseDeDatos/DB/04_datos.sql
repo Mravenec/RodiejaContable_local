@@ -1,7 +1,8 @@
 -- ========================================
 -- SCRIPT DE POBLACIÓN - SISTEMA VEHICULAR COSTA RICA
 -- Ejecutar DESPUÉS de: DB/01_sistema_vehicular.sql, DB/02_UsersAuth.sql y DB/03_AudatexEnvios.sql
--- Recargable: limpia datos de negocio sin tocar users/auth
+-- Recargable: limpia datos de negocio sin tocar catálogos, users/auth ni audatex_envios.
+-- NOTA: tipos_transacciones y parte_vehiculo son catálogos de instalación → viven en 01_sistema_vehicular.sql
 -- ========================================
 
 USE sistema_vehicular;
@@ -13,21 +14,17 @@ TRUNCATE TABLE historial_vehiculos;
 TRUNCATE TABLE pagos_comisiones;
 TRUNCATE TABLE transacciones_financieras;
 TRUNCATE TABLE inventario_repuestos;
-TRUNCATE TABLE parte_vehiculo;
 TRUNCATE TABLE vehiculos;
 TRUNCATE TABLE generaciones;
 TRUNCATE TABLE modelos;
 TRUNCATE TABLE marcas;
 TRUNCATE TABLE empleados;
-TRUNCATE TABLE tipos_transacciones;
 ALTER TABLE marcas AUTO_INCREMENT = 1;
 ALTER TABLE modelos AUTO_INCREMENT = 1;
 ALTER TABLE generaciones AUTO_INCREMENT = 1;
 ALTER TABLE empleados AUTO_INCREMENT = 1;
-ALTER TABLE tipos_transacciones AUTO_INCREMENT = 1;
 ALTER TABLE vehiculos AUTO_INCREMENT = 1;
 ALTER TABLE inventario_repuestos AUTO_INCREMENT = 1;
-ALTER TABLE parte_vehiculo AUTO_INCREMENT = 1;
 ALTER TABLE transacciones_financieras AUTO_INCREMENT = 1;
 ALTER TABLE pagos_comisiones AUTO_INCREMENT = 1;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -72,63 +69,7 @@ INSERT INTO empleados (nombre) VALUES
 SELECT * FROM empleados;
 
 -- ========================================
--- 5. POBLAR TIPOS DE TRANSACCIONES 
--- ========================================
-INSERT INTO tipos_transacciones (nombre, descripcion, categoria) VALUES
-('Venta Vehículo', 'Ingreso por venta de vehículo completo', 'INGRESO'),
-('Venta Repuesto', 'Ingreso por venta de repuesto individual', 'INGRESO'),
-('Venta Mayoreo', 'Ingreso por venta al mayoreo', 'INGRESO'),
-('Servicios Mecánicos', 'Ingreso por servicios de mecánica', 'INGRESO'),
-('Alquiler Espacio', 'Ingreso por alquiler de espacio en yonke', 'INGRESO'),
-('Compra Vehículo', 'Egreso por compra de vehículo', 'EGRESO'),
-('Compra Repuesto', 'Egreso por compra de repuesto', 'EGRESO'),
-('Reparación Vehículo', 'Egreso por reparaciones de vehículo', 'EGRESO'),
-('Mantenimiento Local', 'Egreso por mantenimiento del local', 'EGRESO'),
-('Comisión Vendedor', 'Egreso por comisión a vendedor', 'EGRESO'),
-('Costo Grúa', 'Egreso por servicio de grúa', 'EGRESO'),
-('Transporte', 'Egreso por transporte de vehículos', 'EGRESO'),
-('Combustible', 'Egreso por combustible', 'EGRESO'),
-('Servicios Públicos', 'Egreso por electricidad, agua, teléfono', 'EGRESO'),
-('Impuestos', 'Egreso por impuestos y patentes', 'EGRESO'),
-('Salarios', 'Egreso por planillas y cargas sociales', 'EGRESO'),
-('Otros Ingresos', 'Otros ingresos diversos', 'INGRESO'),
-('Otros Egresos', 'Otros egresos diversos', 'EGRESO');
-
-SELECT * FROM tipos_transacciones;
-
--- ========================================
--- 5b. POBLAR CATÁLOGO DE PARTES DE VEHÍCULO
--- ========================================
-INSERT INTO parte_vehiculo (nombre) VALUES
-('MOTOR'),
-('CHASIS'),
-('CARROCERIA'),
-('COMPUTADORA'),
-('CAJA DE CAMBIO'),
-('AIRBAGS O BOLSAS DE AIRE'),
-('EJES Y DIFERENCIA'),
-('SUSPENSION Y AMORTIGUAMIENTO'),
-('EMBRAGUE'),
-('SISTEMA DE FRENOS'),
-('TANQUE DE GASOLINA'),
-('DISTRIBUIDOR'),
-('RADIADOR'),
-('VENTILADOR'),
-('BOMBA DE AGUA'),
-('BATERIA'),
-('AROS Y LLANTAS'),
-('SISTEMA DE DIRECCION'),
-('SISTEMA ELECTRICO'),
-('FUSIBLES'),
-('ALTERNADOR'),
-('VÁLVULAS DE ESCAPE'),
-('TURBO');
-
-SELECT * FROM parte_vehiculo;
-
-
--- ========================================
--- 6. POBLAR VEHÍCULOS 
+-- 5. POBLAR VEHÍCULOS 
 -- ========================================
 /* Vehículo 1 – Toyota Corolla gen12 */
 INSERT INTO vehiculos (
