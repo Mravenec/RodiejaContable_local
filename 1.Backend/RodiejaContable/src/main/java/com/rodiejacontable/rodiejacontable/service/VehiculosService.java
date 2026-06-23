@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 
 @Service
@@ -61,6 +62,7 @@ public class VehiculosService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public Vehiculos create(Vehiculos vehiculo) {
         // Validar que la generación existe
         generacionesRepository.findById(vehiculo.getGeneracionId())
@@ -102,6 +104,7 @@ public class VehiculosService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public Vehiculos update(Integer id, Vehiculos vehiculo) {
         // Verificar que el vehículo existe
         Vehiculos existingVehiculo = findById(id);
@@ -161,6 +164,7 @@ public class VehiculosService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public void delete(Integer id) {
         // Verificar que el vehículo existe
         findById(id);
@@ -170,6 +174,7 @@ public class VehiculosService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public Vehiculos updateEstado(Integer id, VehiculosEstado nuevoEstado) {
         Vehiculos vehiculo = findById(id);
         vehiculo.setEstado(nuevoEstado);
@@ -186,6 +191,7 @@ public class VehiculosService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public void actualizarEstado(Integer id, VehiculosEstado estado) {
         // Verificar que el vehículo existe
         findById(id);
@@ -195,6 +201,7 @@ public class VehiculosService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public void marcarComoVendido(Integer id, BigDecimal precioVenta, LocalDate fechaVenta) {
         // Verificar que el vehículo existe
         Vehiculos vehiculo = findById(id);

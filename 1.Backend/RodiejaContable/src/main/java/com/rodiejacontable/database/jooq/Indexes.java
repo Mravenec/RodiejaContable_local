@@ -4,6 +4,7 @@
 package com.rodiejacontable.database.jooq;
 
 
+import com.rodiejacontable.database.jooq.tables.AudatexEnvios;
 import com.rodiejacontable.database.jooq.tables.HistorialRepuestos;
 import com.rodiejacontable.database.jooq.tables.HistorialTransacciones;
 import com.rodiejacontable.database.jooq.tables.HistorialVehiculos;
@@ -21,7 +22,7 @@ import org.jooq.impl.Internal;
 /**
  * A class modelling indexes of tables in sistema_vehicular.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Indexes {
 
     // -------------------------------------------------------------------------
@@ -32,24 +33,30 @@ public class Indexes {
     public static final Index HISTORIAL_TRANSACCIONES_IDX_ACCION = Internal.createIndex(DSL.name("idx_accion"), HistorialTransacciones.HISTORIAL_TRANSACCIONES, new OrderField[] { HistorialTransacciones.HISTORIAL_TRANSACCIONES.ACCION }, false);
     public static final Index HISTORIAL_VEHICULOS_IDX_ACCION = Internal.createIndex(DSL.name("idx_accion"), HistorialVehiculos.HISTORIAL_VEHICULOS, new OrderField[] { HistorialVehiculos.HISTORIAL_VEHICULOS.ACCION }, false);
     public static final Index VEHICULOS_IDX_ANIO = Internal.createIndex(DSL.name("idx_anio"), Vehiculos.VEHICULOS, new OrderField[] { Vehiculos.VEHICULOS.ANIO }, false);
+    public static final Index AUDATEX_ENVIOS_IDX_COTIZACION_ID = Internal.createIndex(DSL.name("idx_cotizacion_id"), AudatexEnvios.AUDATEX_ENVIOS, new OrderField[] { AudatexEnvios.AUDATEX_ENVIOS.COTIZACION_ID }, false);
     public static final Index TRANSACCIONES_FINANCIERAS_IDX_EMPLEADO = Internal.createIndex(DSL.name("idx_empleado"), TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, new OrderField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.EMPLEADO_ID }, false);
     public static final Index PAGOS_COMISIONES_IDX_EMPLEADO_PERIODO = Internal.createIndex(DSL.name("idx_empleado_periodo"), PagosComisiones.PAGOS_COMISIONES, new OrderField[] { PagosComisiones.PAGOS_COMISIONES.EMPLEADO_ID, PagosComisiones.PAGOS_COMISIONES.ANIO, PagosComisiones.PAGOS_COMISIONES.MES }, false);
+    public static final Index AUDATEX_ENVIOS_IDX_ESTADO = Internal.createIndex(DSL.name("idx_estado"), AudatexEnvios.AUDATEX_ENVIOS, new OrderField[] { AudatexEnvios.AUDATEX_ENVIOS.ESTADO }, false);
     public static final Index INVENTARIO_REPUESTOS_IDX_ESTADO = Internal.createIndex(DSL.name("idx_estado"), InventarioRepuestos.INVENTARIO_REPUESTOS, new OrderField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.ESTADO }, false);
     public static final Index PAGOS_COMISIONES_IDX_ESTADO = Internal.createIndex(DSL.name("idx_estado"), PagosComisiones.PAGOS_COMISIONES, new OrderField[] { PagosComisiones.PAGOS_COMISIONES.ESTADO }, false);
     public static final Index TRANSACCIONES_FINANCIERAS_IDX_ESTADO = Internal.createIndex(DSL.name("idx_estado"), TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, new OrderField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ESTADO }, false);
     public static final Index VEHICULOS_IDX_ESTADO = Internal.createIndex(DSL.name("idx_estado"), Vehiculos.VEHICULOS, new OrderField[] { Vehiculos.VEHICULOS.ESTADO }, false);
     public static final Index TRANSACCIONES_FINANCIERAS_IDX_FECHA = Internal.createIndex(DSL.name("idx_fecha"), TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, new OrderField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.FECHA }, false);
+    public static final Index AUDATEX_ENVIOS_IDX_FECHA_ENVIO = Internal.createIndex(DSL.name("idx_fecha_envio"), AudatexEnvios.AUDATEX_ENVIOS, new OrderField[] { AudatexEnvios.AUDATEX_ENVIOS.FECHA_ENVIO }, false);
     public static final Index VEHICULOS_IDX_FECHA_INGRESO = Internal.createIndex(DSL.name("idx_fecha_ingreso"), Vehiculos.VEHICULOS, new OrderField[] { Vehiculos.VEHICULOS.FECHA_INGRESO }, false);
     public static final Index PAGOS_COMISIONES_IDX_FECHA_PAGO = Internal.createIndex(DSL.name("idx_fecha_pago"), PagosComisiones.PAGOS_COMISIONES, new OrderField[] { PagosComisiones.PAGOS_COMISIONES.FECHA_PAGO }, false);
     public static final Index INVENTARIO_REPUESTOS_IDX_FECHA_REGISTRO = Internal.createIndex(DSL.name("idx_fecha_registro"), InventarioRepuestos.INVENTARIO_REPUESTOS, new OrderField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.ANIO_REGISTRO, InventarioRepuestos.INVENTARIO_REPUESTOS.MES_REGISTRO }, false);
     public static final Index TRANSACCIONES_FINANCIERAS_IDX_GENERACION = Internal.createIndex(DSL.name("idx_generacion"), TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, new OrderField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.GENERACION_ID }, false);
     public static final Index VEHICULOS_IDX_GENERACION_ACTIVO = Internal.createIndex(DSL.name("idx_generacion_activo"), Vehiculos.VEHICULOS, new OrderField[] { Vehiculos.VEHICULOS.GENERACION_ID, Vehiculos.VEHICULOS.ACTIVO }, false);
     public static final Index INVENTARIO_REPUESTOS_IDX_PARTE_VEHICULO = Internal.createIndex(DSL.name("idx_parte_vehiculo"), InventarioRepuestos.INVENTARIO_REPUESTOS, new OrderField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.PARTE_VEHICULO_ID }, false);
+    public static final Index AUDATEX_ENVIOS_IDX_REPUESTO_ESTADO = Internal.createIndex(DSL.name("idx_repuesto_estado"), AudatexEnvios.AUDATEX_ENVIOS, new OrderField[] { AudatexEnvios.AUDATEX_ENVIOS.REPUESTO_ID, AudatexEnvios.AUDATEX_ENVIOS.ESTADO }, false);
     public static final Index HISTORIAL_REPUESTOS_IDX_REPUESTO_FECHA = Internal.createIndex(DSL.name("idx_repuesto_fecha"), HistorialRepuestos.HISTORIAL_REPUESTOS, new OrderField[] { HistorialRepuestos.HISTORIAL_REPUESTOS.REPUESTO_ID, HistorialRepuestos.HISTORIAL_REPUESTOS.FECHA_CAMBIO }, false);
+    public static final Index AUDATEX_ENVIOS_IDX_REPUESTO_ID = Internal.createIndex(DSL.name("idx_repuesto_id"), AudatexEnvios.AUDATEX_ENVIOS, new OrderField[] { AudatexEnvios.AUDATEX_ENVIOS.REPUESTO_ID }, false);
     public static final Index TRANSACCIONES_FINANCIERAS_IDX_TIPO_TRANSACCION = Internal.createIndex(DSL.name("idx_tipo_transaccion"), TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, new OrderField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.TIPO_TRANSACCION_ID }, false);
     public static final Index HISTORIAL_TRANSACCIONES_IDX_TRANSACCION_FECHA = Internal.createIndex(DSL.name("idx_transaccion_fecha"), HistorialTransacciones.HISTORIAL_TRANSACCIONES, new OrderField[] { HistorialTransacciones.HISTORIAL_TRANSACCIONES.TRANSACCION_ID, HistorialTransacciones.HISTORIAL_TRANSACCIONES.FECHA_CAMBIO }, false);
     public static final Index TRANSACCIONES_FINANCIERAS_IDX_VEHICULO = Internal.createIndex(DSL.name("idx_vehiculo"), TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, new OrderField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.VEHICULO_ID }, false);
     public static final Index HISTORIAL_VEHICULOS_IDX_VEHICULO_FECHA = Internal.createIndex(DSL.name("idx_vehiculo_fecha"), HistorialVehiculos.HISTORIAL_VEHICULOS, new OrderField[] { HistorialVehiculos.HISTORIAL_VEHICULOS.VEHICULO_ID, HistorialVehiculos.HISTORIAL_VEHICULOS.FECHA_CAMBIO }, false);
     public static final Index INVENTARIO_REPUESTOS_IDX_VEHICULO_ORIGEN = Internal.createIndex(DSL.name("idx_vehiculo_origen"), InventarioRepuestos.INVENTARIO_REPUESTOS, new OrderField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID }, false);
+    public static final Index AUDATEX_ENVIOS_IDX_WAN = Internal.createIndex(DSL.name("idx_wan"), AudatexEnvios.AUDATEX_ENVIOS, new OrderField[] { AudatexEnvios.AUDATEX_ENVIOS.WAN }, false);
     public static final Index TRANSACCIONES_FINANCIERAS_REPUESTO_ID = Internal.createIndex(DSL.name("repuesto_id"), TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, new OrderField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.REPUESTO_ID }, false);
 }

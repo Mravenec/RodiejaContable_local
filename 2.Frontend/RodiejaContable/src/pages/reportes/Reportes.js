@@ -3,6 +3,7 @@ import VentasEmpleadosService from '../../api/ventasEmpleados';
 import { getTransaccionesIngresos } from '../../api/transacciones';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import vehiculosService from '../../api/vehiculos';
+import reportesService from '../../api/reportes';
 import {
   Card,
   Row,
@@ -11,7 +12,12 @@ import {
   Typography,
   Statistic,
   Progress,
-  Tag
+  Tag,
+  Button,
+  DatePicker,
+  Input,
+  Space,
+  message
 } from 'antd';
 import {
   DollarOutlined,
@@ -23,8 +29,10 @@ import {
   ToolOutlined,
   BarChartOutlined,
   ArrowUpOutlined,
-  ArrowDownOutlined
+  ArrowDownOutlined,
+  FileExcelOutlined
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
@@ -41,7 +49,8 @@ const formatCurrency = (value) => {
 
 const Reportes = () => {
   const [loading, setLoading] = useState({
-    general: true
+    general: true,
+    exportarAudatex: false
   });
 
   // Estados para los datos de la API
@@ -58,6 +67,10 @@ const Reportes = () => {
     vehiculosStock: 0,
     tasaConversion: 0,
   });
+
+  // ROD-17: Estados para filtros de exportación Audatex
+  const [fechaRange, setFechaRange] = useState([null, null]);
+  const [marcaFiltro, setMarcaFiltro] = useState('');
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -248,10 +261,67 @@ const Reportes = () => {
     return Object.values(agrupado).sort((a, b) => a.mes - b.mes);
   };
 
+  // ROD-17: Función para exportar oportunidades de Audatex
+  const handleExportarAudatex = async () => {
+    try {
+      setLoading(prev => ({ ...prev, exportarAudatex: true }));
+
+      const params = {};
+      if (fechaRange && fechaRange[0]) {
+        params.desde = fechaRange[0].format('YYYY-MM-DD');
+      }
+      if (fechaRange && fechaRange[1]) {
+        params.hasta = fechaRange[1].format('YYYY-MM-DD');
+      }
+      if (marcaFiltro) {
+        params.armadora = marcaFiltro;
+      }
+
+      const blob = await reportesService.exportarOportunidadesAudatex(params);
+
+      // Generar nombre de archivo con timestamp
+      const timestamp = dayjs().format('YYYYMMDD_HHmm');
+      const filename = `oportunidades_inpart_${timestamp}.xlsx`;
+
+      reportesService.descargarArchivo(blob, filename);
+      message.success('Excel exportado exitosamente');
+    } catch (error) {
+      console.error('Error al exportar oportunidades de Audatex:', error);
+      message.error('Error al exportar el archivo Excel');
+    } finally {
+      setLoading(prev => ({ ...prev, exportarAudatex: false }));
+    }
+  };
+
   return (
     <div style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <Title level={2} style={{ margin: 0, fontSize: '24px' }}>Reportes Generales</Title>
+
+        {/* ROD-17: Botón de exportar oportunidades Audatex */}
+        <Space>
+          <DatePicker.RangePicker
+            value={fechaRange}
+            onChange={setFechaRange}
+            format="YYYY-MM-DD"
+            placeholder={['Desde', 'Hasta']}
+            style={{ marginRight: 8 }}
+          />
+          <Input
+            placeholder="Filtrar por marca/modelo"
+            value={marcaFiltro}
+            onChange={(e) => setMarcaFiltro(e.target.value)}
+            style={{ width: 200, marginRight: 8 }}
+          />
+          <Button
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={handleExportarAudatex}
+            loading={loading.exportarAudatex}
+          >
+            Exportar Oportunidades InPart
+          </Button>
+        </Space>
       </div>
 
       {/* Métricas principales */}

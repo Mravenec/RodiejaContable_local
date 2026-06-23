@@ -19,6 +19,7 @@ import { formatCurrency } from '../../utils/formatters';
 import api from '../../api/axios';
 import HistorialVehiculo from '../../components/vehiculos/HistorialVehiculo';
 import { useAuth } from '../../context/AuthContext';
+import { audatexService } from '../../api';
 
 // Servicio para repuestos
 const repuestosService = {
@@ -138,6 +139,7 @@ const VehiculoDetalle = () => {
   const [vehiculo, setVehiculo] = useState(null);
   const [transacciones, setTransacciones] = useState([]);
   const [repuestos, setRepuestos] = useState([]);
+  const [oportunidadesPorRepuesto, setOportunidadesPorRepuesto] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [loadingTransacciones, setLoadingTransacciones] = useState(false);
@@ -308,6 +310,16 @@ const VehiculoDetalle = () => {
     }
   };
 
+  // ROD-22: Cargar oportunidades de Audatex por repuesto en batch
+  const cargarOportunidadesPorRepuesto = async () => {
+    try {
+      const response = await audatexService.obtenerOportunidadesBatch();
+      setOportunidadesPorRepuesto(response.data?.counts || {});
+    } catch (error) {
+      console.error('Error cargando oportunidades por repuesto:', error);
+    }
+  };
+
   // Load data on mount
   useEffect(() => {
     if (id) {
@@ -322,6 +334,14 @@ const VehiculoDetalle = () => {
       loadRepuestos(vehiculo.id);
     }
   }, [vehiculo?.id]);
+
+  // ROD-22: Cargar oportunidades cuando se cargan los repuestos
+  useEffect(() => {
+    if (repuestos.length > 0) {
+      cargarOportunidadesPorRepuesto();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repuestos]);
 
   const refetch = () => {
     loadVehicleData();
@@ -728,6 +748,7 @@ const VehiculoDetalle = () => {
                           <th style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #f0f0f0' }}>Precio Venta</th>
                           <th style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>Estado</th>
                           <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Ubicación</th>
+                          <th style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>Oportunidades InPart</th>
                           <th style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>Acciones</th>
                         </tr>
                       </thead>
@@ -755,6 +776,15 @@ const VehiculoDetalle = () => {
                             </td>
                             <td style={{ padding: '8px', fontSize: '0.85em' }}>
                               {repuesto.codigoUbicacion || 'Sin ubicación'}
+                            </td>
+                            <td style={{ padding: '8px', textAlign: 'center' }}>
+                              {(() => {
+                                const oportunidades = oportunidadesPorRepuesto[repuesto.id] || 0;
+                                if (oportunidades > 0) {
+                                  return <Tag color="blue">{oportunidades} {oportunidades === 1 ? 'oportunidad' : 'oportunidades'}</Tag>;
+                                }
+                                return <Tag color="default">Sin oportunidades</Tag>;
+                              })()}
                             </td>
                             <td style={{ padding: '8px', textAlign: 'center' }}>
                               <Button 

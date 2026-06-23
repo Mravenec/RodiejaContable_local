@@ -30,6 +30,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import InventarioService from '../../api/inventario';
 import { usePartesVehiculo } from '../../hooks/usePartesVehiculo';
+import { audatexService } from '../../api';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -41,6 +42,7 @@ const Inventario = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
+  const [oportunidadesPorRepuesto, setOportunidadesPorRepuesto] = useState({});
   const { data: partesVehiculo = [], isLoading: loadingPartes } = usePartesVehiculo();
 
   const [filterVisible, setFilterVisible] = useState(false);
@@ -94,6 +96,24 @@ const Inventario = () => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ROD-21: Cargar oportunidades de Audatex por repuesto en batch
+  const cargarOportunidadesPorRepuesto = async () => {
+    try {
+      const response = await audatexService.obtenerOportunidadesBatch();
+      setOportunidadesPorRepuesto(response.data?.counts || {});
+    } catch (error) {
+      console.error('Error cargando oportunidades por repuesto:', error);
+    }
+  };
+
+  // Cargar oportunidades cuando se cargan los datos
+  useEffect(() => {
+    if (data.length > 0) {
+      cargarOportunidadesPorRepuesto();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   // Handle table change (pagination, filters, sorter)
   const handleTableChange = (pagination, filters, sorter) => {
@@ -277,6 +297,26 @@ const Inventario = () => {
             {estadoInfo.label}
           </Tag>
         );
+      },
+    },
+    {
+      title: 'Oportunidades InPart',
+      key: 'oportunidadesInPart',
+      width: 150,
+      filters: [
+        { text: 'Con oportunidades', value: true },
+        { text: 'Sin oportunidades', value: false },
+      ],
+      onFilter: (value, record) => {
+        const oportunidades = oportunidadesPorRepuesto[record.id] || 0;
+        return value ? oportunidades > 0 : oportunidades === 0;
+      },
+      render: (_, record) => {
+        const oportunidades = oportunidadesPorRepuesto[record.id] || 0;
+        if (oportunidades > 0) {
+          return <Tag color="blue">{oportunidades} {oportunidades === 1 ? 'oportunidad' : 'oportunidades'}</Tag>;
+        }
+        return <Tag color="default">Sin oportunidades</Tag>;
       },
     },
     {

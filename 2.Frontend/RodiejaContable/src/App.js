@@ -38,6 +38,9 @@ import VentasReportes from './pages/reportes/VentasReportes';
 import ReporteRepuestos from './pages/reportes/ReporteRepuestos';
 import ReporteVehiculos from './pages/reportes/ReporteVehiculos';
 
+// Componentes de Audatex
+import OportunidadesAudatex from './pages/audatex/OportunidadesAudatex';
+
 // Componentes de configuración
 import Perfil from './pages/configuracion/Perfil';
 import Configuracion from './pages/configuracion/Configuracion';
@@ -453,6 +456,18 @@ function App() {
             </MainLayout>
           </PrivateRoute>
         } />
+
+      {/* Rutas de Audatex */}
+      <Route
+        path="/audatex/oportunidades"
+        element={
+          <PrivateRoute>
+            <MainLayout>
+              <OportunidadesAudatex />
+            </MainLayout>
+          </PrivateRoute>
+        }
+      />
 
       {/* Rutas de configuración */}
       <Route

@@ -17,7 +17,7 @@ import org.jooq.impl.TableRecordImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class VistaDashboardEjecutivoRecord extends TableRecordImpl<VistaDashboardEjecutivoRecord> implements Record11<String, Long, Long, Long, Long, Long, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal> {
 
     private static final long serialVersionUID = 1L;

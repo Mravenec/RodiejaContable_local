@@ -5,6 +5,7 @@ package com.rodiejacontable.database.jooq;
 
 
 import com.rodiejacontable.database.jooq.tables.Address;
+import com.rodiejacontable.database.jooq.tables.AudatexEnvios;
 import com.rodiejacontable.database.jooq.tables.Empleados;
 import com.rodiejacontable.database.jooq.tables.Generaciones;
 import com.rodiejacontable.database.jooq.tables.HistorialRepuestos;
@@ -42,13 +43,18 @@ import com.rodiejacontable.database.jooq.tables.VistaVentasPorEmpleado;
 /**
  * Convenience access to all tables in sistema_vehicular.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Tables {
 
     /**
      * The table <code>sistema_vehicular.address</code>.
      */
     public static final Address ADDRESS = Address.ADDRESS;
+
+    /**
+     * The table <code>sistema_vehicular.audatex_envios</code>.
+     */
+    public static final AudatexEnvios AUDATEX_ENVIOS = AudatexEnvios.AUDATEX_ENVIOS;
 
     /**
      * The table <code>sistema_vehicular.empleados</code>.

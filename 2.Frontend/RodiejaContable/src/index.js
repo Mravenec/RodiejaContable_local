@@ -3,8 +3,6 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { ConfigProvider, message } from 'antd';
 import esES from 'antd/locale/es_ES';
-import dayjs from 'dayjs';
-import 'dayjs/locale/es';
 import moment from 'moment';
 import 'moment/locale/es';
 import { AuthProvider } from './context/AuthContext';
@@ -20,7 +18,6 @@ message.config({
 });
 
 // Configurar locales a español de forma global
-dayjs.locale('es');
 moment.locale('es');
 
 // Mensajes de depuración solo en desarrollo

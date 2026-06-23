@@ -58,6 +58,39 @@ const reportesService = {
     return response.data;
   },
 
+  // ROD-13: Obtener oportunidades de Audatex con filtros
+  obtenerOportunidadesAudatex: async (params = {}) => {
+    const response = await api.get('/audatex/oportunidades', { params });
+    return response.data;
+  },
+
+  // ROD-17: Exportar oportunidades de Audatex InPart a Excel
+  exportarOportunidadesAudatex: async (params = {}) => {
+    const response = await api.get('/audatex/oportunidades/export', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  // ROD-20: Obtener oportunidades de Audatex para un repuesto específico
+  obtenerOportunidadesPorRepuesto: async (repuestoId) => {
+    const response = await api.get(`/audatex/oportunidades/por-repuesto/${repuestoId}`);
+    return response.data;
+  },
+
+  // ROD-24: Obtener envíos de cotizaciones de Audatex para un repuesto específico
+  obtenerEnviosPorRepuesto: async (repuestoId) => {
+    const response = await api.get(`/audatex/envios/por-repuesto/${repuestoId}`);
+    return response.data;
+  },
+
+  // Invalidar caché de Audatex
+  invalidarCacheAudatex: async () => {
+    const response = await api.post('/audatex/cache/invalidar');
+    return response.data;
+  },
+
   descargarArchivo: (blob, filename) => {
     const url = window.URL.createObjectURL(new Blob([blob]));
     const link = document.createElement('a');

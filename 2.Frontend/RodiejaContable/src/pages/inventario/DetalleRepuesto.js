@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Card, 
@@ -24,6 +24,8 @@ import {
 import InventarioService from '../../api/inventario';
 import vehiculoService from '../../api/vehiculos';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
+import { audatexService } from '../../api';
+import ModalCotizarInPart from '../../components/audatex/ModalCotizarInPart';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -36,6 +38,12 @@ const DetalleRepuesto = () => {
   const [vehiculoOrigen, setVehiculoOrigen] = useState(null);
   const [movimientos, setMovimientos] = useState([]);
   const [loadingMovimientos, setLoadingMovimientos] = useState(false);
+  const [oportunidades, setOportunidades] = useState([]);
+  const [loadingOportunidades, setLoadingOportunidades] = useState(false);
+  const [envios, setEnvios] = useState([]);
+  const [loadingEnvios, setLoadingEnvios] = useState(false);
+  const [modalCotizarVisible, setModalCotizarVisible] = useState(false);
+  const [oportunidadSeleccionada, setOportunidadSeleccionada] = useState(null);
 
   useEffect(() => {
     const fetchRepuesto = async () => {
@@ -87,6 +95,44 @@ const DetalleRepuesto = () => {
     };
     fetchMovimientos();
   }, [repuesto, id]);
+
+  // ROD-23: Cargar oportunidades de Audatex por repuesto
+  const fetchOportunidades = useCallback(async () => {
+    if (!repuesto) return;
+    try {
+      setLoadingOportunidades(true);
+      const response = await audatexService.obtenerPorRepuesto(repuesto.id);
+      setOportunidades(response.data?.oportunidades || []);
+    } catch (error) {
+      console.error('Error al cargar oportunidades:', error);
+      setOportunidades([]);
+    } finally {
+      setLoadingOportunidades(false);
+    }
+  }, [repuesto]);
+
+  useEffect(() => {
+    fetchOportunidades();
+  }, [fetchOportunidades]);
+
+  // ROD-24: Cargar envíos de Audatex por repuesto
+  const fetchEnvios = useCallback(async () => {
+    if (!repuesto) return;
+    try {
+      setLoadingEnvios(true);
+      const response = await audatexService.obtenerEnviosPorRepuesto(repuesto.id);
+      setEnvios(response.data?.envios || []);
+    } catch (error) {
+      console.error('Error al cargar envíos:', error);
+      setEnvios([]);
+    } finally {
+      setLoadingEnvios(false);
+    }
+  }, [repuesto]);
+
+  useEffect(() => {
+    fetchEnvios();
+  }, [fetchEnvios]);
 
   const getEstadoTag = (estado) => {
     const estados = {
@@ -281,8 +327,164 @@ const DetalleRepuesto = () => {
               />
             </Card>
           </TabPane>
+          
+          <TabPane tab="Oportunidades InPart" key="3">
+            <Card bordered={false}>
+              <Table 
+                columns={[
+                  {
+                    title: 'Aseguradora',
+                    dataIndex: 'aseguradora',
+                    key: 'aseguradora',
+                  },
+                  {
+                    title: 'Cotización ID',
+                    dataIndex: 'cotizacionId',
+                    key: 'cotizacionId',
+                  },
+                  {
+                    title: 'Taller',
+                    dataIndex: 'taller',
+                    key: 'taller',
+                  },
+                  {
+                    title: 'Póliza',
+                    dataIndex: 'poliza',
+                    key: 'poliza',
+                  },
+                  {
+                    title: 'Siniestro',
+                    dataIndex: 'siniestro',
+                    key: 'siniestro',
+                  },
+                  {
+                    title: 'Matrícula',
+                    dataIndex: 'matricula',
+                    key: 'matricula',
+                  },
+                  {
+                    title: 'Armadora',
+                    dataIndex: 'armadora',
+                    key: 'armadora',
+                  },
+                  {
+                    title: 'Fecha',
+                    dataIndex: 'fechaCotizacion',
+                    key: 'fechaCotizacion',
+                  },
+                  {
+                    title: 'Pendientes',
+                    dataIndex: 'pendientes',
+                    key: 'pendientes',
+                    render: (pendientes) => <Tag color={pendientes > 0 ? 'orange' : 'green'}>{pendientes}</Tag>,
+                  },
+                  {
+                    title: 'Acciones',
+                    key: 'acciones',
+                    render: (_, record) => (
+                      <Button 
+                        type="primary" 
+                        size="small"
+                        disabled={repuesto.cantidad <= 0 || repuesto.estado !== 'STOCK'}
+                        onClick={() => {
+                          setOportunidadSeleccionada(record);
+                          setModalCotizarVisible(true);
+                        }}
+                      >
+                        Cotizar
+                      </Button>
+                    ),
+                  },
+                ]}
+                dataSource={oportunidades}
+                rowKey="cotizacionId"
+                loading={loadingOportunidades}
+                pagination={{ defaultPageSize: 10 }}
+                locale={{ emptyText: 'No hay oportunidades de Audatex para este repuesto.' }}
+              />
+            </Card>
+          </TabPane>
+          
+          <TabPane tab="Mis Envíos" key="4">
+            <Card bordered={false}>
+              <Table 
+                columns={[
+                  {
+                    title: 'Cotización ID',
+                    dataIndex: 'cotizacionId',
+                    key: 'cotizacionId',
+                  },
+                  {
+                    title: 'WAN',
+                    dataIndex: 'wan',
+                    key: 'wan',
+                  },
+                  {
+                    title: 'Precio Ofrecido',
+                    dataIndex: 'precioOfrecido',
+                    key: 'precioOfrecido',
+                    render: (precio) => `₡${new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(precio || 0)}`,
+                  },
+                  {
+                    title: 'Tiempo de Entrega',
+                    dataIndex: 'tiempoEntrega',
+                    key: 'tiempoEntrega',
+                  },
+                  {
+                    title: 'Condición',
+                    dataIndex: 'condicionPieza',
+                    key: 'condicionPieza',
+                  },
+                  {
+                    title: 'Estado',
+                    dataIndex: 'estado',
+                    key: 'estado',
+                    render: (estado) => {
+                      const colores = {
+                        'ENVIADA': 'blue',
+                        'GANADA': 'green',
+                        'PERDIDA': 'red',
+                        'PENDIENTE': 'orange',
+                      };
+                      return <Tag color={colores[estado] || 'default'}>{estado}</Tag>;
+                    },
+                  },
+                  {
+                    title: 'Fecha de Envío',
+                    dataIndex: 'fechaEnvio',
+                    key: 'fechaEnvio',
+                    render: (fecha) => fecha ? new Date(fecha).toLocaleString() : '-',
+                  },
+                  {
+                    title: 'Usuario',
+                    dataIndex: 'usuarioEnvio',
+                    key: 'usuarioEnvio',
+                  },
+                ]}
+                dataSource={envios}
+                rowKey="id"
+                loading={loadingEnvios}
+                pagination={{ defaultPageSize: 10 }}
+                locale={{ emptyText: 'No hay envíos de cotizaciones para este repuesto.' }}
+              />
+            </Card>
+          </TabPane>
         </Tabs>
       </Card>
+
+      <ModalCotizarInPart
+        visible={modalCotizarVisible}
+        onClose={() => {
+          setModalCotizarVisible(false);
+          setOportunidadSeleccionada(null);
+        }}
+        oportunidad={oportunidadSeleccionada}
+        repuesto={repuesto}
+        onExito={() => {
+          fetchEnvios();
+          fetchOportunidades();
+        }}
+      />
     </div>
   );
 };

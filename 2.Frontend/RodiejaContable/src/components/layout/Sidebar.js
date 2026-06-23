@@ -7,7 +7,8 @@ import {
   DollarOutlined, 
   BarChartOutlined,
   SettingOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  SendOutlined
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -70,6 +71,14 @@ const Sidebar = ({ collapsed }) => {
         { key: '/reportes/ventas', label: 'Ventas Empleados' },
         { key: '/reportes/vehiculos', label: 'Vehículos' },
         { key: '/reportes/repuestos', label: 'Repuestos' }
+      ]
+    },
+    { 
+      key: 'audatex', 
+      icon: <SendOutlined />, 
+      label: 'Cotizaciones InPart',
+      children: [
+        { key: '/audatex/oportunidades', label: 'Oportunidades' },
       ]
     },
     { 
