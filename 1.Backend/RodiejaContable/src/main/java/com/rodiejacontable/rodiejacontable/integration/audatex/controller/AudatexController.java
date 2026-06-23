@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -57,6 +58,26 @@ public class AudatexController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Portal Audatex no disponible: " + e.getMessage()));
         }
+    }
+
+    /**
+     * SSE: emite las oportunidades página a página conforme se scraping el portal.
+     * El cliente React consume con fetch() + ReadableStream para carga progresiva.
+     * Timeout: 5 minutos (300 000 ms) para portales con muchas páginas.
+     */
+    @GetMapping(value = "/oportunidades/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamOportunidades(
+            @RequestParam(required = false) String armadora,
+            @RequestParam(required = false) String aseguradora,
+            @RequestParam(required = false) String desde,
+            @RequestParam(required = false) String hasta,
+            @RequestParam(required = false) Integer minPendientes) {
+
+        SseEmitter emitter = new SseEmitter(300_000L);
+        log.info("[Audatex] SSE /oportunidades/stream — armadora={}, aseguradora={}, desde={}, hasta={}",
+                armadora, aseguradora, desde, hasta);
+        audatexService.streamOportunidades(armadora, aseguradora, desde, hasta, minPendientes, emitter);
+        return emitter;
     }
 
     @GetMapping("/oportunidades/por-repuesto/{repuestoId}")

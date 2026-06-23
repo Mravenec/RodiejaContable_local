@@ -24,10 +24,17 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.rodiejacontable.database.jooq.Tables.GENERACIONES;
@@ -49,6 +56,7 @@ public class AudatexService {
     private final ModelosRepository modelosRepository;
     private final MarcasRepository marcasRepository;
     private final DSLContext dsl;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     @Lazy
@@ -119,6 +127,118 @@ public class AudatexService {
 
         log.info("[AudatexService] buscarConFiltros - total final: {}", res.size());
         return res;
+    }
+
+    /**
+     * Versión SSE: emite cada oportunidad individualmente conforme se scrapea el portal.
+     * El caller (controller) retorna el SseEmitter antes de que arranque este hilo.
+     * Cuando finaliza emite el evento "done" con el total y completa el emitter.
+     */
+    public void streamOportunidades(
+            String armadora, String aseguradora,
+            String desde, String hasta,
+            Integer minPendientes,
+            SseEmitter emitter) {
+
+        java.time.LocalDate desdeDate = parseFilterDate(desde);
+        java.time.LocalDate hastaDate = parseFilterDate(hasta);
+
+        // Flag que el loop de scraping consulta antes de cada página.
+        // Se activa cuando el cliente cierra la conexión (onCompletion/onTimeout/onError).
+        AtomicBoolean cancelled = new AtomicBoolean(false);
+        emitter.onCompletion(() -> {
+            if (cancelled.compareAndSet(false, true))
+                log.info("[AudatexService][Stream] Emitter completado — loop de scraping se detendrá");
+        });
+        emitter.onTimeout(() -> {
+            if (cancelled.compareAndSet(false, true))
+                log.warn("[AudatexService][Stream] Emitter timeout — loop de scraping se detendrá");
+        });
+        emitter.onError(ex -> {
+            if (cancelled.compareAndSet(false, true))
+                log.warn("[AudatexService][Stream] Emitter error ({}) — loop de scraping se detendrá", ex.getMessage());
+        });
+
+        new Thread(() -> {
+            AtomicInteger totalEnviado = new AtomicInteger(0);
+            Set<String> cotizacionIdsVistos = new HashSet<>();
+            try {
+                client.buscarTodasOportunidadesStreaming(desde, hasta, pagina -> {
+                    // Si el cliente cerró la conexión, lanzar para cortar el loop de paginación
+                    if (cancelled.get()) {
+                        throw new RuntimeException("cliente desconectado");
+                    }
+
+                    List<Map<String, Object>> filtrada = pagina.stream()
+                            .filter(o -> filtroTexto(armadora, texto(o, "armadora")))
+                            .filter(o -> filtroTexto(aseguradora, texto(o, "aseguradora")))
+                            .filter(o -> minPendientes == null || pendientes(o) >= minPendientes)
+                            .filter(o -> {
+                                if (desdeDate == null) return true;
+                                java.time.LocalDate fecha = parsePortalDate(texto(o, "fechaCotizacion"));
+                                return fecha != null && !fecha.isBefore(desdeDate);
+                            })
+                            .filter(o -> {
+                                if (hastaDate == null) return true;
+                                java.time.LocalDate fecha = parsePortalDate(texto(o, "fechaCotizacion"));
+                                return fecha != null && !fecha.isAfter(hastaDate);
+                            })
+                            .filter(o -> {
+                                String id = texto(o, "cotizacionId");
+                                return id != null && cotizacionIdsVistos.add(id);
+                            })
+                            .collect(Collectors.toList());
+
+                    for (Map<String, Object> oportunidad : filtrada) {
+                        if (cancelled.get()) {
+                            throw new RuntimeException("cliente desconectado");
+                        }
+                        try {
+                            emitter.send(SseEmitter.event()
+                                    .name("oportunidad")
+                                    .data(objectMapper.writeValueAsString(oportunidad)));
+                            int total = totalEnviado.incrementAndGet();
+                            if (total % 10 == 0) {
+                                log.info("[AudatexService][Stream] {} oportunidades emitidas", total);
+                            }
+                        } catch (Exception ex) {
+                            cancelled.set(true);
+                            throw new RuntimeException("error enviando SSE: " + ex.getMessage(), ex);
+                        }
+                    }
+                });
+
+                if (!cancelled.get()) {
+                    emitter.send(SseEmitter.event()
+                            .name("done")
+                            .data("{\"total\":" + totalEnviado.get() + "}"));
+                    emitter.complete();
+                    log.info("[AudatexService][Stream] Completado. Total emitido: {}", totalEnviado.get());
+                }
+
+            } catch (RuntimeException e) {
+                if (cancelled.get()) {
+                    log.info("[AudatexService][Stream] Stream cancelado (cliente desconectado). Filas antes de cancelar: {}",
+                            totalEnviado.get());
+                } else {
+                    log.error("[AudatexService][Stream] Error durante streaming: {}", e.getMessage(), e);
+                    try {
+                        emitter.send(SseEmitter.event()
+                                .name("error")
+                                .data("{\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}"));
+                    } catch (Exception ignored) {}
+                    emitter.completeWithError(e);
+                }
+            } catch (Exception e) {
+                log.error("[AudatexService][Stream] Error durante streaming: {}", e.getMessage(), e);
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("error")
+                            .data("{\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}"));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(e);
+            }
+        }, "audatex-stream").start();
     }
 
     public Map<String, Object> obtenerOportunidadesPorRepuesto(Integer repuestoId) throws IOException {

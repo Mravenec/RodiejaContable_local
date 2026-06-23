@@ -20,6 +20,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * ROD-11 — Cliente HTTP que interactúa con el portal Audatex InPart usando Jsoup.
@@ -77,6 +81,52 @@ public class AudatexClient {
     @TimeLimiter(name = "audatexClient")
     public List<Map<String, Object>> buscarTodasOportunidades(String desde, String hasta) throws IOException {
         List<Map<String, Object>> todas = new ArrayList<>();
+        scrapeStreaming(desde, hasta, page -> todas.addAll(page));
+        log.info("[Audatex] Total oportunidades recuperadas: {}", todas.size());
+        return todas;
+    }
+
+    /**
+     * Versión streaming: invoca onPage por cada página scrapeada para que el
+     * llamador pueda emitir resultados progresivamente (SSE / SseEmitter).
+     * No lleva anotaciones de resilience4j: el manejo de errores es
+     * responsabilidad del SseEmitter que envuelve la llamada.
+     */
+    public void buscarTodasOportunidadesStreaming(String desde, String hasta,
+            Consumer<List<Map<String, Object>>> onPage) throws IOException {
+        scrapeStreaming(desde, hasta, onPage);
+    }
+
+    /**
+     * Scrapea oportunidades. Si hay rango de fechas, lo divide en ventanas de 3 días
+     * porque el portal InPart limita resultados por búsqueda amplia ("Período excedido…").
+     */
+    private void scrapeStreaming(String desde, String hasta,
+            Consumer<List<Map<String, Object>>> onPage) throws IOException {
+
+        if (desde != null && hasta != null) {
+            LocalDate start = LocalDate.parse(desde.trim());
+            LocalDate end = LocalDate.parse(hasta.trim());
+            if (!start.isAfter(end)) {
+                final int diasPorChunk = 3;
+                LocalDate cursor = start;
+                while (!cursor.isAfter(end)) {
+                    LocalDate chunkEnd = cursor.plusDays(diasPorChunk - 1);
+                    if (chunkEnd.isAfter(end)) chunkEnd = end;
+                    log.info("[Audatex] === Búsqueda chunk {} → {} ===", cursor, chunkEnd);
+                    scrapeRangoFechas(cursor.toString(), chunkEnd.toString(), onPage);
+                    cursor = chunkEnd.plusDays(1);
+                    humanDelay();
+                }
+                return;
+            }
+        }
+        scrapeRangoFechas(desde, hasta, onPage);
+    }
+
+    private void scrapeRangoFechas(String desde, String hasta,
+            Consumer<List<Map<String, Object>>> onPage) throws IOException {
+
         Map<String, String> cookies = sessionManager.getActiveCookies();
         String refererUrl = sessionManager.getCurrentPanelUrl();
 
@@ -89,7 +139,6 @@ public class AudatexClient {
         log.info("[Audatex] Referer URL: {}", refererUrl);
         log.info("[Audatex] Cookies: {}", cookies.size());
 
-        // Página 1 (GET inicial para obtener ViewState)
         Connection.Response resp = Jsoup.connect(searchUrl)
                 .cookies(cookies)
                 .header("Referer", refererUrl)
@@ -110,7 +159,6 @@ public class AudatexClient {
         log.info("[Audatex] Response URL: {}", resp.url().toString());
         log.info("[Audatex] Response Status: {}", resp.statusCode());
 
-        // Si la sesión expiró nos redirigió al login — re-autenticar una vez
         if (resp.url().toString().contains("frmLogin") || resp.url().toString().contains("AudaPartsSite")) {
             log.warn("[Audatex] Sesión expirada detectada en cliente — invalidando y reintentando");
             sessionManager.invalidate();
@@ -138,44 +186,34 @@ public class AudatexClient {
 
         Document doc = resp.parse();
 
-        // Determinar filtros finales
         String finalStartDate = formatToPortalDate(desde);
         String finalEndDate = formatToPortalDate(hasta);
-        String finalStatus = "1"; // "1" es Pendiente
+        // "" = "Todos" en el select ddlStatusQuotation del portal.
+        // SEARCH_URL_ALL ya preselecciona "Todos" en el servidor mediante IdStatus URL param.
+        String finalStatus = "";
 
         if (desde == null && hasta == null) {
-            // Extraer las fechas pre-llenadas por defecto
             Element txtStart = doc.getElementById("ctl00_cphBody_txtStartDate");
-            if (txtStart != null) {
-                finalStartDate = txtStart.attr("value");
-            }
+            if (txtStart != null) finalStartDate = txtStart.attr("value");
             Element txtEnd = doc.getElementById("ctl00_cphBody_txtEndDate");
-            if (txtEnd != null) {
-                finalEndDate = txtEnd.attr("value");
-            }
-            Element ddlStatus = doc.getElementById("ctl00_cphBody_ddlStatusQuotation");
-            if (ddlStatus != null) {
-                Element selected = ddlStatus.select("option[selected]").first();
-                if (selected != null) {
-                    finalStatus = selected.attr("value");
-                }
+            if (txtEnd != null) finalEndDate = txtEnd.attr("value");
+            Element ddlStatusEl = doc.getElementById("ctl00_cphBody_ddlStatusQuotation");
+            if (ddlStatusEl != null) {
+                Element selected = ddlStatusEl.select("option[selected]").first();
+                if (selected != null) finalStatus = selected.attr("value");
             }
         }
+        log.info("[Audatex] Status de búsqueda: '{}' (Todos)", finalStatus);
 
-        // Si se pasaron filtros de fechas explícitos, ejecutar la búsqueda vía POST
         if (desde != null || hasta != null) {
-            log.info("[Audatex] Ejecutando POST de búsqueda con fechas desde={} (portal: {}) hasta={} (portal: {})",
+            log.info("[Audatex] POST búsqueda con fechas desde={} (portal: {}) hasta={} (portal: {})",
                     desde, finalStartDate, hasta, finalEndDate);
 
-            Map<String, String> searchForm = extractHiddenInputs(doc);
+            Map<String, String> searchForm = extractFormFields(doc);
             searchForm.put("__EVENTTARGET", "");
             searchForm.put("__EVENTARGUMENT", "");
-            if (finalStartDate != null) {
-                searchForm.put("ctl00$cphBody$txtStartDate", finalStartDate);
-            }
-            if (finalEndDate != null) {
-                searchForm.put("ctl00$cphBody$txtEndDate", finalEndDate);
-            }
+            if (finalStartDate != null) searchForm.put("ctl00$cphBody$txtStartDate", finalStartDate);
+            if (finalEndDate != null)   searchForm.put("ctl00$cphBody$txtEndDate",   finalEndDate);
             searchForm.put("ctl00$cphBody$ddlStatusQuotation", finalStatus);
             searchForm.put("ctl00$cphBody$btnSearch", "Buscar");
 
@@ -190,31 +228,71 @@ public class AudatexClient {
                     .userAgent(USER_AGENT)
                     .execute();
 
+            cookies.putAll(resp.cookies());
             doc = resp.parse();
         }
 
-        // Parsear primera página de resultados
-        todas.addAll(parsearTablaOportunidades(doc));
+        List<Map<String, Object>> pag1 = parsearTablaOportunidades(doc);
+        onPage.accept(pag1);
 
-        // Obtener el total de páginas
         int totalPaginas = obtenerTotalPaginas(doc);
-        log.info("[Audatex] Total de páginas detectadas: {}", totalPaginas);
+        int totalRegistros = obtenerTotalRegistros(doc);
+        log.info("[Audatex] Total de páginas detectadas: {}, registros en portal: {}", totalPaginas, totalRegistros);
 
-        // Paginación: navegar páginas adicionales si existen
-        for (int pagina = 2; pagina <= totalPaginas; pagina++) {
+        String currentUrl = resp.url().toString();
+        List<Map<String, Object>> paginaAnterior = pag1;
+
+        // Navegación secuencial página a página (Siguiente / AJAX del paginador).
+        int pagina = 1;
+        while (pagina < totalPaginas) {
             humanDelay();
-            doc = irAPagina(doc, pagina, resp.url().toString(), cookies, finalStartDate, finalEndDate, finalStatus);
-            todas.addAll(parsearTablaOportunidades(doc));
+            PostNavigationResult nav = irSiguientePagina(doc, currentUrl, cookies,
+                    finalStartDate, finalEndDate, finalStatus);
+            if (!nav.success()) {
+                log.warn("[Audatex] Paginación detenida en página {} de {}: {}",
+                        pagina, totalPaginas, nav.message());
+                break;
+            }
+            doc = nav.document();
+            cookies.putAll(nav.cookies());
+            currentUrl = nav.url();
+            pagina++;
 
-            // Protección anti-bucle infinito
-            if (pagina > 50) {
-                log.warn("[Audatex] Se alcanzó el límite de 50 páginas, deteniendo paginación");
+            List<Map<String, Object>> filas = parsearTablaOportunidades(doc);
+            if (filas.isEmpty()) {
+                log.warn("[Audatex] Página {} sin filas — deteniendo", pagina);
+                break;
+            }
+            if (mismasFilas(filas, paginaAnterior)) {
+                log.warn("[Audatex] Página {} duplicada (mismos cotizacionId que anterior) — deteniendo", pagina);
+                break;
+            }
+            paginaAnterior = filas;
+            onPage.accept(filas);
+            log.info("[Audatex] Página {} scrapeada — {} filas (acumulado portal ~{})",
+                    pagina, filas.size(), pagina * filas.size());
+
+            if (pagina >= 300) {
+                log.warn("[Audatex] Se alcanzó el límite de 300 páginas, deteniendo paginación");
                 break;
             }
         }
+    }
 
-        log.info("[Audatex] Total oportunidades recuperadas: {}", todas.size());
-        return todas;
+    /** Resultado de un POST de navegación (paginación). */
+    private record PostNavigationResult(
+            boolean success, Document document, Map<String, String> cookies,
+            String url, String message) {}
+
+    /** Compara dos páginas por cotizacionId para detectar duplicados del portal. */
+    private boolean mismasFilas(List<Map<String, Object>> a, List<Map<String, Object>> b) {
+        if (a.size() != b.size() || a.isEmpty()) return false;
+        for (int i = 0; i < a.size(); i++) {
+            Object idA = a.get(i).get("cotizacionId");
+            Object idB = b.get(i).get("cotizacionId");
+            if (idA == null || !idA.equals(idB)) return false;
+        }
+        return true;
     }
 
     private List<Map<String, Object>> buscarTodasOportunidadesFallback(String desde, String hasta, Exception exception) throws IOException {
@@ -298,7 +376,7 @@ public class AudatexClient {
         Document doc = resp.parse();
 
         // 2. Extraer ViewState y hidden inputs
-        Map<String, String> formData = extractHiddenInputs(doc);
+        Map<String, String> formData = extractFormFields(doc);
 
         // 3. Llenar campos del formulario (nombres de campos son hipótesis - necesitan validación real)
         // Estos nombres deben ajustarse según la estructura real del formulario de Audatex
@@ -425,6 +503,304 @@ public class AudatexClient {
 
     // ── Pagination ───────────────────────────────────────────────────────────────
 
+    private static final String SCRIPT_MANAGER = "ctl00$ToolkitScriptManager1";
+    private static final String PANEL_PAGER   = "ctl00$cphBody$ucNeoPager$updPager";
+    private static final String PANEL_GDV     = "ctl00$cphBody$updGdvResult";
+
+    /**
+     * Avanza una página usando el botón Siguiente del paginador (postback AJAX real del portal).
+     */
+    private PostNavigationResult irSiguientePagina(Document currentDoc, String currentUrl,
+            Map<String, String> cookies, String startDate, String endDate, String status) throws IOException {
+
+        int paginaActual = obtenerPaginaActual(currentDoc);
+        String idAnterior = primeraCotizacionId(currentDoc);
+        int siguiente = paginaActual + 1;
+
+        Element ibtNext = currentDoc.getElementById("ctl00_cphBody_ucNeoPager_ibtNext");
+        if (ibtNext == null) {
+            ibtNext = currentDoc.select("input[type=image][name*=ucNeoPager$ibtNext]").first();
+        }
+        if (ibtNext != null && !ibtNext.hasAttr("disabled")) {
+            PostNavigationResult r = intentarPaginacionAjax(currentDoc, currentUrl, cookies,
+                    startDate, endDate, status, "next",
+                    ibtNext.attr("name"), null, paginaActual, idAnterior);
+            if (r != null) return r;
+        }
+
+        PostNavigationResult r = intentarPaginacionAjax(currentDoc, currentUrl, cookies,
+                startDate, endDate, status, "ddl",
+                "ctl00$cphBody$ucNeoPager$ddlGoToPage",
+                String.valueOf(siguiente), paginaActual, idAnterior);
+        if (r != null) return r;
+
+        r = intentarGridViewPage(currentDoc, currentUrl, cookies,
+                startDate, endDate, status, siguiente, paginaActual, idAnterior);
+        if (r != null) return r;
+
+        r = intentarPaginacionSync(currentDoc, currentUrl, cookies,
+                startDate, endDate, status, siguiente, paginaActual, idAnterior);
+        if (r != null) return r;
+
+        return new PostNavigationResult(false, currentDoc, cookies, currentUrl,
+                "ninguna estrategia avanzó desde página " + paginaActual);
+    }
+
+    /**
+     * Navega a la página N del GridView. Prueba AJAX Siguiente, ddl, GridView sync.
+     */
+    private PostNavigationResult irAPagina(Document currentDoc, String currentUrl,
+            Map<String, String> cookies, int numeroPagina,
+            String startDate, String endDate, String status) throws IOException {
+
+        int paginaActual = obtenerPaginaActual(currentDoc);
+        String idAnterior = primeraCotizacionId(currentDoc);
+
+        PostNavigationResult r = intentarGridViewPage(currentDoc, currentUrl, cookies,
+                startDate, endDate, status, numeroPagina, paginaActual, idAnterior);
+        if (r != null) return r;
+
+        r = intentarPaginacionSync(currentDoc, currentUrl, cookies,
+                startDate, endDate, status, numeroPagina, paginaActual, idAnterior);
+        if (r != null) return r;
+
+        r = intentarPaginacionAjax(currentDoc, currentUrl, cookies,
+                startDate, endDate, status, "ddl",
+                "ctl00$cphBody$ucNeoPager$ddlGoToPage",
+                String.valueOf(numeroPagina), paginaActual, idAnterior);
+        if (r != null) return r;
+
+        Element ibtNext = currentDoc.select("input[type=image][name*=ibtNext]").first();
+        if (ibtNext != null && !ibtNext.hasAttr("disabled")) {
+            r = intentarPaginacionAjax(currentDoc, currentUrl, cookies,
+                    startDate, endDate, status, "next",
+                    ibtNext.attr("name"), null, paginaActual, idAnterior);
+            if (r != null) return r;
+        }
+
+        return new PostNavigationResult(false, currentDoc, cookies, currentUrl,
+                "ninguna estrategia alcanzó página " + numeroPagina);
+    }
+
+    /** Postback síncrono estándar: __EVENTTARGET=gdvResult, __EVENTARGUMENT=Page$N */
+    private PostNavigationResult intentarGridViewPage(Document currentDoc, String currentUrl,
+            Map<String, String> cookies, String startDate, String endDate, String status,
+            int numeroPagina, int paginaActual, String idAnterior) throws IOException {
+
+        Map<String, String> form = extractFormFields(currentDoc);
+        form.put("__EVENTTARGET", "ctl00$cphBody$gdvResult");
+        form.put("__EVENTARGUMENT", "Page$" + numeroPagina);
+        form.remove("__ASYNCPOST");
+        form.remove(SCRIPT_MANAGER);
+        form.remove("ctl00$cphBody$btnSearch");
+        form.keySet().removeIf(k -> k.endsWith(".x") || k.endsWith(".y"));
+
+        Connection.Response postResp = postForm(currentUrl, cookies, form);
+        cookies.putAll(postResp.cookies());
+        return evaluarRespuestaPaginacion(currentDoc, postResp.body(), postResp.url().toString(),
+                cookies, paginaActual, idAnterior, "grid-page-" + numeroPagina);
+    }
+
+    private PostNavigationResult intentarPaginacionAjax(Document currentDoc, String currentUrl,
+            Map<String, String> cookies, String startDate, String endDate, String status,
+            String modo, String controlName, String controlValue,
+            int paginaActual, String idAnterior) throws IOException {
+
+        String[] scriptManagers = {
+                PANEL_PAGER + "|" + controlName,
+                PANEL_GDV + "|" + PANEL_PAGER + "|" + controlName,
+                PANEL_GDV + "|" + controlName
+        };
+
+        for (String scriptTarget : scriptManagers) {
+            Map<String, String> form = extractFormFields(currentDoc);
+            form.put("__EVENTTARGET", "ddl".equals(modo) ? controlName : "");
+            form.put("__EVENTARGUMENT", "");
+            form.put("__ASYNCPOST", "true");
+            form.put(SCRIPT_MANAGER, scriptTarget);
+            form.remove("ctl00$cphBody$btnSearch");
+            form.remove("__LASTFOCUS");
+            form.keySet().removeIf(k -> k.endsWith(".x") || k.endsWith(".y"));
+            if ("ddl".equals(modo)) {
+                form.put(controlName, controlValue);
+            } else {
+                form.put(controlName + ".x", "8");
+                form.put(controlName + ".y", "8");
+            }
+
+            Connection.Response postResp = postFormAjax(currentUrl, cookies, form);
+            cookies.putAll(postResp.cookies());
+            PostNavigationResult r = evaluarRespuestaPaginacion(currentDoc, postResp.body(),
+                    postResp.url().toString(), cookies, paginaActual, idAnterior,
+                    "ajax-" + modo + "-" + scriptTarget.hashCode());
+            if (r != null) return r;
+        }
+        return null;
+    }
+
+    private PostNavigationResult intentarPaginacionSync(Document currentDoc, String currentUrl,
+            Map<String, String> cookies, String startDate, String endDate, String status,
+            int numeroPagina, int paginaActual, String idAnterior) throws IOException {
+
+        Map<String, String> form = extractFormFields(currentDoc);
+        form.put("__EVENTTARGET", "ctl00$cphBody$ucNeoPager$ddlGoToPage");
+        form.put("__EVENTARGUMENT", "");
+        form.put("ctl00$cphBody$ucNeoPager$ddlGoToPage", String.valueOf(numeroPagina));
+        form.remove("__ASYNCPOST");
+        form.remove(SCRIPT_MANAGER);
+        form.remove("ctl00$cphBody$btnSearch");
+        form.keySet().removeIf(k -> k.endsWith(".x") || k.endsWith(".y"));
+
+        Connection.Response postResp = postForm(currentUrl, cookies, form);
+        cookies.putAll(postResp.cookies());
+        return evaluarRespuestaPaginacion(currentDoc, postResp.body(), postResp.url().toString(),
+                cookies, paginaActual, idAnterior, "sync-ddl");
+    }
+
+    private PostNavigationResult evaluarRespuestaPaginacion(Document currentDoc, String body, String newUrl,
+            Map<String, String> cookies, int paginaActual, String idAnterior, String estrategia) {
+
+        if (body == null || body.isBlank()) return null;
+        if (body.contains("Error.aspx") || body.contains("Error en Proceso")) {
+            log.warn("[Audatex] {} → portal devolvió Error.aspx", estrategia);
+            return null;
+        }
+        if (body.contains("pageRedirect") && body.contains("Error")) {
+            log.warn("[Audatex] {} → redirect a Error", estrategia);
+            return null;
+        }
+
+        Document merged;
+        if (body.contains("<html") || body.contains("<!DOCTYPE")) {
+            merged = Jsoup.parse(body);
+            if (merged.select("table[id*=gdvResult]").isEmpty()) return null;
+        } else {
+            merged = mergeAjaxResponse(currentDoc, body);
+        }
+        if (merged == null) {
+            log.warn("[Audatex] {} — respuesta no parseable ({} bytes)", estrategia, body.length());
+            return null;
+        }
+
+        int paginaNueva = obtenerPaginaActual(merged);
+        String idNuevo = primeraCotizacionId(merged);
+        boolean avanzo = (paginaNueva > paginaActual)
+                || (idAnterior != null && idNuevo != null && !idAnterior.equals(idNuevo));
+
+        log.info("[Audatex] {} → página {}→{}, id {}→{}, avanzó={}",
+                estrategia, paginaActual, paginaNueva, idAnterior, idNuevo, avanzo);
+
+        if (!avanzo) return null;
+        return new PostNavigationResult(true, merged, cookies, newUrl,
+                "ok " + estrategia + " página " + paginaNueva);
+    }
+
+    private String primeraCotizacionId(Document doc) {
+        List<Map<String, Object>> filas = parsearTablaOportunidades(doc);
+        return filas.isEmpty() ? null : String.valueOf(filas.get(0).get("cotizacionId"));
+    }
+
+    /**
+     * Parsea respuesta Microsoft AJAX (delta) o HTML completo y fusiona en el documento base.
+     * Retorna null si no se pudo extraer la tabla de resultados.
+     */
+    private Document mergeAjaxResponse(Document base, String body) {
+        if (body == null || body.isBlank()) return null;
+
+        // HTML completo (postback síncrono)
+        if (body.contains("<html") || body.contains("<!DOCTYPE")) {
+            Document full = Jsoup.parse(body);
+            return parsearTablaOportunidades(full).isEmpty() ? null : full;
+        }
+
+        // Delta AJAX: segmentos con longitud prefijada (1|#||4|...)
+        if (!body.matches("^\\d+\\|.*")) {
+            return null;
+        }
+
+        Map<String, String> panels = new LinkedHashMap<>();
+        Map<String, String> hidden = new LinkedHashMap<>();
+        parseAjaxDelta(body, panels, hidden);
+        log.debug("[Audatex] Delta: {} panels, {} hidden fields", panels.size(), hidden.size());
+
+        if (panels.isEmpty() && hidden.isEmpty()) {
+            return null;
+        }
+
+        Document merged = base.clone();
+
+        for (Map.Entry<String, String> e : hidden.entrySet()) {
+            String name = e.getKey();
+            Element input = merged.select("input[name='" + name.replace("'", "\\'") + "']").first();
+            if (input != null) input.attr("value", e.getValue());
+        }
+
+        for (Map.Entry<String, String> e : panels.entrySet()) {
+            String key = e.getKey();
+            String html = e.getValue();
+            String panelId = key.replace('$', '_');
+
+            if (key.contains("updGdvResult") || html.contains("gdvResult")) {
+                Document frag = Jsoup.parse("<div>" + html + "</div>");
+                Element newTable = frag.select("table[id*=gdvResult]").first();
+                Element oldTable = merged.select("table[id*=gdvResult]").first();
+                if (newTable != null && oldTable != null) {
+                    oldTable.replaceWith(newTable);
+                } else {
+                    Element panel = merged.getElementById("ctl00_cphBody_updGdvResult");
+                    if (panel != null) panel.html(html);
+                }
+            } else if (key.contains("ucNeoPager") || html.contains("ucNeoPager") || html.contains("lblPage")) {
+                Element panel = merged.select("[id*=ucNeoPager_updPager]").first();
+                if (panel != null) {
+                    Document frag = Jsoup.parse("<div>" + html + "</div>");
+                    Element inner = frag.select(".pager, [id*=pnlPager]").first();
+                    panel.html(inner != null ? inner.outerHtml() : html);
+                }
+            } else {
+                Element target = merged.getElementById(panelId);
+                if (target != null) target.html(html);
+            }
+        }
+
+        return parsearTablaOportunidades(merged).isEmpty() ? null : merged;
+    }
+
+    /** Parser de respuestas delta de Sys.WebForms.PageRequestManager. */
+    private void parseAjaxDelta(String body, Map<String, String> panels, Map<String, String> hidden) {
+        int pos = 0;
+        while (pos < body.length()) {
+            int pipe = body.indexOf('|', pos);
+            if (pipe < 0) break;
+            int len;
+            try {
+                len = Integer.parseInt(body.substring(pos, pipe).trim());
+            } catch (NumberFormatException ex) {
+                pos = pipe + 1;
+                continue;
+            }
+            pos = pipe + 1;
+            if (pos + len > body.length()) break;
+            String segment = body.substring(pos, pos + len);
+            pos += len;
+            if (pos < body.length() && body.charAt(pos) == '|') pos++;
+
+            if (segment.startsWith("updatePanel|")) {
+                String rest = segment.substring("updatePanel|".length());
+                int sep = rest.indexOf('|');
+                if (sep > 0) {
+                    panels.put(rest.substring(0, sep), rest.substring(sep + 1));
+                }
+            } else if (segment.startsWith("hiddenField|")) {
+                String rest = segment.substring("hiddenField|".length());
+                int sep = rest.indexOf('|');
+                if (sep > 0) {
+                    hidden.put(rest.substring(0, sep), rest.substring(sep + 1));
+                }
+            }
+        }
+    }
+
     /**
      * Parsea el total de páginas de la etiqueta del paginador personalizado (1 De N).
      */
@@ -435,49 +811,86 @@ public class AudatexClient {
         }
         if (lblPage != null) {
             String text = lblPage.text().trim();
-            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("De\\s+(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE);
-            java.util.regex.Matcher matcher = pattern.matcher(text);
+            Matcher matcher = Pattern.compile("(\\d+)\\s*De\\s*(\\d+)", Pattern.CASE_INSENSITIVE).matcher(text);
             if (matcher.find()) {
                 try {
-                    return Integer.parseInt(matcher.group(1));
+                    return Integer.parseInt(matcher.group(2));
                 } catch (NumberFormatException e) {
-                    log.warn("[Audatex] Error convirtiendo total de páginas '{}': {}", matcher.group(1), e.getMessage());
+                    log.warn("[Audatex] Error convirtiendo total de páginas '{}': {}", matcher.group(2), e.getMessage());
                 }
             }
         }
         return 1;
     }
 
-    /**
-     * Navega a una página específica mediante el dropdown ucNeoPager$ddlGoToPage.
-     */
-    private Document irAPagina(Document currentDoc, int numeroPagina, String currentUrl,
-                               Map<String, String> cookies, String startDate, String endDate, String status) throws IOException {
-
-        Map<String, String> formData = extractHiddenInputs(currentDoc);
-        formData.put("__EVENTTARGET", "ctl00$cphBody$ucNeoPager$ddlGoToPage");
-        formData.put("__EVENTARGUMENT", "");
-        formData.put("ctl00$cphBody$ucNeoPager$ddlGoToPage", String.valueOf(numeroPagina));
-
-        if (startDate != null) {
-            formData.put("ctl00$cphBody$txtStartDate", startDate);
+    /** Parsea "Resultado de la Búsqueda: 217 registro(s)" del legend. */
+    private int obtenerTotalRegistros(Document doc) {
+        Element legend = doc.select("#ctl00_cphBody_pnlResult legend, fieldset legend").first();
+        if (legend != null) {
+            Matcher m = Pattern.compile("(\\d+)\\s*registro", Pattern.CASE_INSENSITIVE).matcher(legend.text());
+            if (m.find()) {
+                try { return Integer.parseInt(m.group(1)); } catch (NumberFormatException ignored) {}
+            }
         }
-        if (endDate != null) {
-            formData.put("ctl00$cphBody$txtEndDate", endDate);
-        }
-        if (status != null) {
-            formData.put("ctl00$cphBody$ddlStatusQuotation", status);
-        }
+        return -1;
+    }
 
-        // Quitar el botón de búsqueda para evitar conflictos de submit
-        formData.remove("ctl00$cphBody$btnSearch");
+    /** Agrega las fechas y el status al mapa de form data, sobreescribiendo los valores del doc. */
+    private void aplicarFiltros(Map<String, String> formData, String startDate, String endDate, String status) {
+        if (startDate != null) formData.put("ctl00$cphBody$txtStartDate", startDate);
+        if (endDate   != null) formData.put("ctl00$cphBody$txtEndDate",   endDate);
+        if (status    != null) formData.put("ctl00$cphBody$ddlStatusQuotation", status);
+    }
 
-        Connection.Response resp = Jsoup.connect(currentUrl)
+    /** Retorna el número de página actual según ucNeoPager_lblPage ("1 De 10" o "1De 10" → 1). */
+    private int obtenerPaginaActual(Document doc) {
+        Element lbl = doc.getElementById("ctl00_cphBody_ucNeoPager_lblPage");
+        if (lbl == null) lbl = doc.select("span[id$=ucNeoPager_lblPage]").first();
+        if (lbl != null) {
+            Matcher m = Pattern.compile("(\\d+)\\s*De\\s*(\\d+)", Pattern.CASE_INSENSITIVE).matcher(lbl.text().trim());
+            if (m.find()) {
+                try { return Integer.parseInt(m.group(1)); } catch (NumberFormatException ignored) {}
+            }
+        }
+        return -1;
+    }
+
+    /** POST AJAX (UpdatePanel) — igual que el navegador al paginar. */
+    private Connection.Response postFormAjax(String url, Map<String, String> cookies,
+                                             Map<String, String> formData) throws IOException {
+        return Jsoup.connect(url)
                 .cookies(cookies)
                 .data(formData)
-                .header("Referer", currentUrl)
+                .header("Referer", url)
                 .header("Origin", "https://inpart-la.audatex.com.mx")
-                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .header("Accept", "*/*")
+                .header("Accept-Language", "es-419,es;q=0.9")
+                .header("Cache-Control", "no-cache")
+                .header("X-MicrosoftAjax", "Delta=true")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("sec-ch-ua", "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"")
+                .header("sec-ch-ua-mobile", "?0")
+                .header("sec-ch-ua-platform", "\"Linux\"")
+                .header("sec-fetch-dest", "empty")
+                .header("sec-fetch-mode", "cors")
+                .header("sec-fetch-site", "same-origin")
+                .followRedirects(true)
+                .timeout(60_000)
+                .method(Connection.Method.POST)
+                .userAgent(USER_AGENT)
+                .execute();
+    }
+
+    /** POST formulario completo (búsqueda inicial, envío cotización). */
+    private Connection.Response postForm(String url, Map<String, String> cookies,
+                                         Map<String, String> formData) throws IOException {
+        return Jsoup.connect(url)
+                .cookies(cookies)
+                .data(formData)
+                .header("Referer", url)
+                .header("Origin", "https://inpart-la.audatex.com.mx")
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                 .header("Accept-Language", "es-419,es;q=0.9")
                 .header("sec-ch-ua", "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"")
                 .header("sec-ch-ua-mobile", "?0")
@@ -487,12 +900,10 @@ public class AudatexClient {
                 .header("sec-fetch-site", "same-origin")
                 .header("Upgrade-Insecure-Requests", "1")
                 .followRedirects(true)
+                .timeout(60_000)
                 .method(Connection.Method.POST)
                 .userAgent(USER_AGENT)
                 .execute();
-
-        log.debug("[Audatex] Navegando a página {} — URL: {}", numeroPagina, resp.url());
-        return resp.parse();
     }
 
     private String formatToPortalDate(String isoDate) {
@@ -511,14 +922,37 @@ public class AudatexClient {
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
 
-    private java.util.Map<String, String> extractHiddenInputs(Document doc) {
+    /**
+     * Extrae todos los campos del formulario principal (hidden inputs, text inputs y selects)
+     * para que el VIEWSTATE y el estado del buscador se mantengan en los POST de paginación.
+     * Antes solo se extraían los <input> ocultos; los <select> se perdían y el portal reseteaba
+     * a página 1 en cada navegación.
+     */
+    private java.util.Map<String, String> extractFormFields(Document doc) {
         java.util.Map<String, String> data = new java.util.HashMap<>();
-        for (Element input : doc.select("form input")) {
+
+        // Solo campos del formulario principal aspnetForm
+        for (Element input : doc.select("#aspnetForm input")) {
             String name = input.attr("name");
+            if (name.isEmpty()) continue;
             String type = input.attr("type").toLowerCase();
-            if (name.isEmpty() || "submit".equals(type) || "image".equals(type)) continue;
-            data.put(name, input.attr("value"));
+            if ("submit".equals(type) || "image".equals(type) || "button".equals(type)) continue;
+            if ("checkbox".equals(type) || "radio".equals(type)) {
+                if (input.hasAttr("checked")) data.put(name, input.attr("value"));
+            } else {
+                data.put(name, input.attr("value"));
+            }
         }
+
+        // Selects: tomar la opción seleccionada (o la primera como fallback)
+        for (Element select : doc.select("#aspnetForm select")) {
+            String name = select.attr("name");
+            if (name.isEmpty()) continue;
+            Element chosen = select.select("option[selected]").first();
+            if (chosen == null) chosen = select.select("option").first();
+            if (chosen != null) data.put(name, chosen.attr("value"));
+        }
+
         return data;
     }
 
