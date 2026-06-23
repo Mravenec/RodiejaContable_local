@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
+import * as XLSX from 'xlsx';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -182,29 +183,32 @@ const OportunidadesAudatex = () => {
     }
   };
 
-  // ── Exportar Excel (usa endpoint existente, no SSE) ───────────────────────
-  const handleExportar = async () => {
-    try {
-      const params = {};
-      if (appliedFiltros.armadora)      params.armadora     = appliedFiltros.armadora;
-      if (appliedFiltros.aseguradora)   params.aseguradora  = appliedFiltros.aseguradora;
-      if (appliedFiltros.desde)         params.desde        = appliedFiltros.desde.format('YYYY-MM-DD');
-      if (appliedFiltros.hasta)         params.hasta        = appliedFiltros.hasta.format('YYYY-MM-DD');
-      if (appliedFiltros.minPendientes) params.minPendientes = appliedFiltros.minPendientes;
-
-      const response = await audatexService.exportarExcel(params);
-      const url  = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href  = url;
-      link.setAttribute('download', `oportunidades_audatex_${dayjs().format('YYYYMMDD_HHmm')}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      message.success('Archivo Excel exportado exitosamente');
-    } catch (err) {
-      console.error('Error exportando:', err);
-      message.error('Error al exportar a Excel');
+  // ── Exportar Excel (datos ya cargados en tabla, sin re-scrapear el portal) ─
+  const handleExportar = () => {
+    if (!oportunidades.length) {
+      message.warning('No hay oportunidades cargadas para exportar');
+      return;
     }
+
+    const exportData = oportunidades.map(({ _key, ...row }) => ({
+      Aseguradora: row.aseguradora ?? '',
+      'Cotización ID': row.cotizacionId ?? '',
+      Taller: row.taller ?? '',
+      Póliza: row.poliza ?? '',
+      Siniestro: row.siniestro ?? '',
+      Matrícula: row.matricula ?? '',
+      Armadora: row.armadora ?? '',
+      Fecha: row.fechaCotizacion ?? '',
+      Pendientes: row.pendientes ?? 0,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Oportunidades');
+    XLSX.writeFile(wb, `oportunidades_audatex_${dayjs().format('YYYYMMDD_HHmm')}.xlsx`);
+
+    const nota = streaming ? ' (carga aún en curso — export parcial)' : '';
+    message.success(`Excel exportado — ${oportunidades.length} filas${nota}`);
   };
 
   // ── Invalidar caché y recargar ────────────────────────────────────────────
@@ -287,7 +291,7 @@ const OportunidadesAudatex = () => {
           <Button icon={<ReloadOutlined />} onClick={handleSincronizar} disabled={streaming}>
             Sincronizar
           </Button>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} disabled={streaming}>
+          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar}>
             Exportar Excel
           </Button>
         </Space>
