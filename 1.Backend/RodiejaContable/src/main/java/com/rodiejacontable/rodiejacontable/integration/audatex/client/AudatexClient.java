@@ -99,7 +99,7 @@ public class AudatexClient {
 
     /**
      * Scrapea oportunidades. Si hay rango de fechas, lo divide en ventanas de 3 días
-     * porque el portal InPart limita resultados por búsqueda amplia ("Período excedido…").
+     * (desde hoy hacia atrás) porque el portal InPart limita búsquedas amplias.
      */
     private void scrapeStreaming(String desde, String hasta,
             Consumer<List<Map<String, Object>>> onPage) throws IOException {
@@ -109,13 +109,15 @@ public class AudatexClient {
             LocalDate end = LocalDate.parse(hasta.trim());
             if (!start.isAfter(end)) {
                 final int diasPorChunk = 3;
-                LocalDate cursor = start;
-                while (!cursor.isAfter(end)) {
-                    LocalDate chunkEnd = cursor.plusDays(diasPorChunk - 1);
-                    if (chunkEnd.isAfter(end)) chunkEnd = end;
-                    log.info("[Audatex] === Búsqueda chunk {} → {} ===", cursor, chunkEnd);
-                    scrapeRangoFechas(cursor.toString(), chunkEnd.toString(), onPage);
-                    cursor = chunkEnd.plusDays(1);
+                // Chunks del más reciente al más antiguo: primero hoy, luego hacia atrás.
+                LocalDate chunkEnd = end;
+                while (!chunkEnd.isBefore(start)) {
+                    LocalDate chunkStart = chunkEnd.minusDays(diasPorChunk - 1);
+                    if (chunkStart.isBefore(start)) chunkStart = start;
+                    log.info("[Audatex] === Búsqueda chunk {} → {} (reciente → antiguo) ===",
+                            chunkStart, chunkEnd);
+                    scrapeRangoFechas(chunkStart.toString(), chunkEnd.toString(), onPage);
+                    chunkEnd = chunkStart.minusDays(1);
                     humanDelay();
                 }
                 return;
