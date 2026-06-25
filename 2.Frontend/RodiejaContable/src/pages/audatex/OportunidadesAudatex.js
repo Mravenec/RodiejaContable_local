@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card, Table, Button, DatePicker, Input, Space, Typography,
-  message, Tag, Alert, Modal
+  message, Tag, Alert
 } from 'antd';
 import {
   SearchOutlined,
@@ -10,7 +10,6 @@ import {
   FilterOutlined,
   LoadingOutlined,
   CheckCircleOutlined,
-  EyeOutlined
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
@@ -37,9 +36,6 @@ const OportunidadesAudatex = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const [detalleModalVisible, setDetalleModalVisible] = useState(false);
-  const [detalleCotizacion, setDetalleCotizacion] = useState(null);
-  const [cargandoDetalle, setCargandoDetalle] = useState(false);
 
   const abortRef = useRef(null);
   const startedRef = useRef(false); // evita doble-mount de React StrictMode en dev
@@ -394,44 +390,6 @@ const OportunidadesAudatex = () => {
     cargarOportunidadesStream({ ...defaultFiltros });
   };
 
-  const handleVerDetalle = async (cotizacionId, record) => {
-    setCargandoDetalle(true);
-    setDetalleModalVisible(true);
-    setDetalleCotizacion(null);
-
-    // Si el record ya trae repuestos del stream, usarlos sin fetch adicional
-    if (record && record.repuestos !== undefined) {
-      const wan = record.wan || cotizacionId;
-      const repuestos = record.repuestos || [];
-      const detalle = {
-        wan,
-        tablas: repuestos.length > 0
-          ? [{ id: 'Lista de Repuestos', data: repuestos }]
-          : [],
-      };
-      setDetalleCotizacion(detalle);
-      setCargandoDetalle(false);
-      return;
-    }
-
-    // Fallback: fetch al backend (para items sin repuestos embebidos)
-    try {
-      const token = localStorage.getItem('token');
-      const wan = record?.wan || cotizacionId;
-      const response = await fetch(`http://localhost:8080/api/audatex/oportunidades/${encodeURIComponent(wan)}/detalle`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!response.ok) throw new Error('Error al obtener detalle');
-      const data = await response.json();
-      setDetalleCotizacion(data);
-    } catch (err) {
-      console.error(err);
-      message.error('No se pudo cargar el detalle de la cotización');
-      setDetalleModalVisible(false);
-    } finally {
-      setCargandoDetalle(false);
-    }
-  };
 
   useEffect(() => {
     // React StrictMode (dev) ejecuta: setup1 → cleanup1 → setup2.
@@ -485,21 +443,16 @@ const OportunidadesAudatex = () => {
         const color = typeof count === 'number' && count > 0 ? 'blue' : 'default';
         return <Tag color={color}>{typeof count === 'number' ? `${count} pza` : count}</Tag>;
       }
-    },
-    {
-      title: 'Acciones', key: 'acciones',
-      render: (_, record) => (
-        <Button
-          type="primary"
-          icon={<EyeOutlined />}
-          size="small"
-          onClick={() => handleVerDetalle(record.wan || record.cotizacionId, record)}
-        >
-          Detalle
-        </Button>
-      )
     }
   ];
+
+  const thStyle = {
+    padding: '8px 12px', textAlign: 'left', fontWeight: 600,
+    borderBottom: '2px solid #BFDBFE', whiteSpace: 'nowrap',
+  };
+  const tdStyle = {
+    padding: '7px 12px', borderBottom: '1px solid #E2E8F0', color: '#334155',
+  };
 
   return (
     <div style={{ padding: '24px' }}>
@@ -599,6 +552,40 @@ const OportunidadesAudatex = () => {
             dataSource={oportunidades}
             rowKey={(record) => record._key}
             loading={streaming && oportunidades.length === 0}
+            expandable={{
+              expandRowByClick: false,
+              rowExpandable: (record) => Array.isArray(record.repuestos) && record.repuestos.length > 0,
+              expandedRowRender: (record) => {
+                const repuestos = record.repuestos || [];
+                if (!repuestos.length) return null;
+                return (
+                  <div style={{ padding: '8px 16px 16px 40px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: '#EFF6FF', color: '#1e40af' }}>
+                          <th style={thStyle}>#</th>
+                          <th style={thStyle}>Grupo Pieza</th>
+                          <th style={thStyle}>PartNumber</th>
+                          <th style={thStyle}>Part Serial Number</th>
+                          <th style={thStyle}>Descripcion Pieza</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {repuestos.map((rep, i) => (
+                          <tr key={i} style={{ background: i % 2 === 0 ? '#F8FAFC' : '#FFFFFF' }}>
+                            <td style={tdStyle}>{i + 1}</td>
+                            <td style={tdStyle}>{rep['Grupo Pieza'] || '-'}</td>
+                            <td style={{ ...tdStyle, fontWeight: 500 }}>{rep['PartNumber'] || '-'}</td>
+                            <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}>{rep['Part Serial Number'] || '-'}</td>
+                            <td style={tdStyle}>{rep['Descripcion Pieza'] || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              },
+            }}
             pagination={{
               current: currentPage,
               pageSize,
@@ -620,94 +607,6 @@ const OportunidadesAudatex = () => {
         </div>
       </Card>
 
-      {/* Modal de Detalle */}
-      <Modal
-        title={`Detalle de Cotización`}
-        open={detalleModalVisible}
-        onCancel={() => setDetalleModalVisible(false)}
-        footer={[
-          <Button key="close" type="primary" onClick={() => setDetalleModalVisible(false)}>
-            Cerrar
-          </Button>
-        ]}
-        width={900}
-        centered
-        bodyStyle={{ maxHeight: '80vh', overflowY: 'auto', padding: '20px' }}
-      >
-        {cargandoDetalle ? (
-          <div style={{ textAlign: 'center', padding: '50px' }}>
-            <LoadingOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} spin />
-            <Title level={4}>Cargando detalles...</Title>
-            <p style={{ color: '#888' }}>Extrayendo la cotización del portal Audatex.</p>
-          </div>
-        ) : detalleCotizacion ? (
-          <div>
-            <div style={{ marginBottom: 24, textAlign: 'center' }}>
-              <Tag color="blue" style={{ fontSize: '14px', padding: '4px 12px' }}>
-                ID Audatex (WAN): {detalleCotizacion.wan}
-              </Tag>
-            </div>
-
-            {/* Repuestos Tablas */}
-            {detalleCotizacion.tablas && detalleCotizacion.tablas.map((tabla, i) => {
-              // Columnas que no queremos mostrar (inputs de formulario, selectores, precios vacíos)
-              const columnasExcluidas = [
-                'tipo pieza', 'stock actual', 'plazo de entrega *', 'precio item *',
-                'precio proveedor', 'no cotizar', 'razón', 'precio', 'tiempo entrega',
-                'seleccionar todos', 'elija', '-'
-              ];
-
-              // Limpiar columnas vacías y columnas sin nombre (col_X)
-              const rawKeys = Object.keys(tabla.data[0] || {});
-              const validKeys = rawKeys.filter(k => {
-                const kLower = k.toLowerCase().trim();
-                // Excluir si está en la lista negra
-                if (columnasExcluidas.some(ex => kLower.includes(ex) || kLower === ex)) return false;
-
-                // Excluir si es col_X y está vacía
-                if (k.startsWith('col_')) {
-                  return tabla.data.some(row => row[k] && row[k].trim() !== '' && row[k].trim().toLowerCase() !== 'elija');
-                }
-                return true;
-              });
-
-              const cols = validKeys.map(k => ({
-                title: k.startsWith('col_') ? '' : k,
-                dataIndex: k,
-                key: k,
-                render: (text) => text || '-'
-              }));
-
-              return (
-                <Card
-                  key={i}
-                  title={`Tabla de Repuestos (${tabla.id})`}
-                  size="small"
-                  style={{ marginBottom: 24, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
-                >
-                  <Table
-                    dataSource={tabla.data.map((row, idx) => ({ ...row, key: idx }))}
-                    columns={cols}
-                    pagination={{ pageSize: 15 }}
-                    size="small"
-                    bordered
-                    scroll={{ x: 'max-content' }}
-                  />
-                </Card>
-              );
-            })}
-
-            {(!detalleCotizacion.tablas || detalleCotizacion.tablas.length === 0) && (
-              <Alert
-                message="Sin repuestos"
-                description="No se encontraron tablas de repuestos en el detalle de esta cotización."
-                type="info"
-                showIcon
-              />
-            )}
-          </div>
-        ) : null}
-      </Modal>
     </div>
   );
 };
