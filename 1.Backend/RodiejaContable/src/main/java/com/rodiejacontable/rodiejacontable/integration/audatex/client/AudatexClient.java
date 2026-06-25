@@ -458,6 +458,123 @@ public class AudatexClient {
 
     // ── ROD-27b: Ver Detalle de Cotización ─────────────────────────────────────────
 
+    /**
+     * Obtiene solo la lista de repuestos de una cotización para su uso en el stream.
+     * Hace el GET a frmQuotationSupplierAnswer.aspx y parsea los repuestos.
+     * Retorna una lista vacía si hay error o no se encuentran repuestos.
+     */
+    public List<Map<String, String>> obtenerRepuestosDeCotizacion(String wan) {
+        try {
+            // Delay corto para no saturar el portal con requests simultáneos
+            // (el hilo de stream ya tiene una conexión HTTP activa)
+            Thread.sleep(500 + (long)(Math.random() * 300));
+
+            Map<String, String> cookies = sessionManager.getActiveCookies();
+            String detalleUrl = props.getQuotationSearchUrl()
+                    .replace("frmQuotationSupplierSearch.aspx", "frmQuotationSupplierAnswer.aspx")
+                    + "?IdQuotation=" + java.net.URLEncoder.encode(wan, "UTF-8")
+                    + "&CalledPage=QuotationSupplierSearch";
+
+            Connection.Response resp = Jsoup.connect(detalleUrl)
+                    .cookies(cookies)
+                    .header("Referer", props.getQuotationSearchUrl())
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .header("Accept-Language", "es-419,es;q=0.9")
+                    .header("sec-fetch-dest", "document")
+                    .header("sec-fetch-mode", "navigate")
+                    .header("sec-fetch-site", "same-origin")
+                    .header("Upgrade-Insecure-Requests", "1")
+                    .followRedirects(true)
+                    .timeout(90_000)   // 90 s — el portal puede tardar más durante scraping paralelo
+                    .method(Connection.Method.GET)
+                    .userAgent(USER_AGENT)
+                    .execute();
+
+            if (resp.url().toString().contains("frmLogin") || resp.url().toString().contains("AudaPartsSite")) {
+                log.warn("[Audatex] Sesión expirada al obtener repuestos para WAN {} - re-autenticando", wan);
+                sessionManager.invalidate();
+                cookies = sessionManager.getActiveCookies();
+                resp = Jsoup.connect(detalleUrl)
+                        .cookies(cookies)
+                        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                        .header("Accept-Language", "es-419,es;q=0.9")
+                        .followRedirects(true)
+                        .timeout(90_000)
+                        .method(Connection.Method.GET)
+                        .userAgent(USER_AGENT)
+                        .execute();
+            }
+
+            Document doc = resp.parse();
+            return parsearRepuestosDeDoc(doc);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return new ArrayList<>();
+        } catch (Exception e) {
+            log.warn("[Audatex] No se pudieron obtener repuestos para WAN {}: {}", wan, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Parsea los repuestos de un documento frmQuotationSupplierAnswer.
+     *
+     * El portal Audatex usa un ASP.NET DataList (dtlAnswerPendingItem) donde cada
+     * pieza se renderiza con spans de IDs predecibles:
+     *   dtlAnswerPendingItem_ctl<N>_lblPartNumber
+     *   dtlAnswerPendingItem_ctl<N>_lblPartDescription
+     *   dtlAnswerPendingItem_ctl<N>_lblPartSerialNumber
+     *   dtlAnswerPendingItem_ctl<N>_lblPartGroup
+     *
+     * Buscar por atributo de ID (endsWith) es inmune a cambios en tabla/estructura.
+     */
+    private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
+        List<Map<String, String>> filasRepuestos = new ArrayList<>();
+
+        // Dump HTML para diagnostico (sobrescribe en cada llamada)
+        try {
+            java.nio.file.Files.writeString(
+                java.nio.file.Paths.get("AudaPartsWebApp_Detalle.html"),
+                doc.outerHtml()
+            );
+        } catch (Exception ignored) { }
+
+        // Buscar todos los spans cuyo id termina en "_lblPartNumber"
+        // -> cada uno es un item distinto del DataList
+        Elements partNumberSpans = doc.select("span[id$=_lblPartNumber]");
+        log.info("[Audatex][ParseRepuestos] Items DataList detectados: {}", partNumberSpans.size());
+
+        for (Element pnSpan : partNumberSpans) {
+            String baseId = pnSpan.id().replace("_lblPartNumber", "");
+
+            String partNumber  = pnSpan.text().trim();
+            String descripcion = textoDe(doc, baseId + "_lblPartDescription");
+            String serial      = textoDe(doc, baseId + "_lblPartSerialNumber");
+            String grupo       = textoDe(doc, baseId + "_lblPartGroup");
+
+            if (partNumber.isEmpty() && descripcion.isEmpty()) continue;
+
+            Map<String, String> repuesto = new java.util.LinkedHashMap<>();
+            if (!grupo.isEmpty())       repuesto.put("Grupo Pieza",        grupo);
+            if (!partNumber.isEmpty())  repuesto.put("PartNumber",          partNumber);
+            if (!serial.isEmpty())      repuesto.put("Part Serial Number",  serial);
+            if (!descripcion.isEmpty()) repuesto.put("Descripcion Pieza",   descripcion);
+
+            filasRepuestos.add(repuesto);
+        }
+
+        log.info("[Audatex][ParseRepuestos] Repuestos extraidos: {}", filasRepuestos.size());
+        return filasRepuestos;
+    }
+
+    /** Extrae el texto de un elemento por su id exacto; retorna "" si no existe. */
+    private String textoDe(Document doc, String id) {
+        Element el = doc.getElementById(id);
+        return el != null ? el.text().trim() : "";
+    }
+
+
+
     public Map<String, Object> obtenerDetalleCotizacion(String wan) throws IOException {
         Map<String, String> cookies = sessionManager.getActiveCookies();
         String detalleUrl = props.getQuotationSearchUrl().replace("frmQuotationSupplierSearch.aspx", "frmQuotationSupplierAnswer.aspx") 
@@ -498,56 +615,9 @@ public class AudatexClient {
         resultado.put("wan", wan);
         resultado.put("formFields", extractFormFields(doc));
 
+        List<Map<String, String>> filasRepuestos = parsearRepuestosDeDoc(doc);
+
         List<Map<String, Object>> tablas = new ArrayList<>();
-        List<Map<String, String>> filasRepuestos = new ArrayList<>();
-        
-        for (Element table : doc.select("table")) {
-            Elements rows = table.select("> tbody > tr, > thead > tr, > tr");
-            if (rows.size() < 2) continue;
-
-            // Encontrar si esta tabla contiene la cabecera real de repuestos
-            int headerIndex = -1;
-            List<String> headerNames = new ArrayList<>();
-            for (int r = 0; r < Math.min(rows.size(), 10); r++) {
-                String rowText = rows.get(r).text();
-                // La cabecera real debe tener PartNumber y Descripción Pieza
-                if (rowText.contains("PartNumber") && rowText.contains("Descripción Pieza")) {
-                    headerIndex = r;
-                    Elements ths = rows.get(r).select("> th, > td");
-                    for (Element th : ths) {
-                        Element clone = th.clone();
-                        clone.select("select, input").remove();
-                        headerNames.add(clone.text().trim());
-                    }
-                    break;
-                }
-            }
-
-            if (headerIndex != -1) {
-                // Es la tabla correcta, procesar las filas de repuestos
-                for (int i = headerIndex + 1; i < rows.size(); i++) {
-                    Elements cols = rows.get(i).select("> td");
-                    if (cols.isEmpty() || cols.size() < 5) continue; // Una fila real tiene varias columnas
-
-                    Map<String, String> repuesto = new java.util.LinkedHashMap<>();
-                    boolean isValido = false;
-                    for (int j = 0; j < Math.min(cols.size(), headerNames.size()); j++) {
-                        String colName = headerNames.get(j);
-                        // Solo nos interesan las columnas de descripción de la pieza
-                        if (colName.contains("Pieza") || colName.contains("PartNumber") || colName.contains("Serial") || colName.contains("Grupo")) {
-                            Element cellClone = cols.get(j).clone();
-                            cellClone.select("select, input, button").remove();
-                            String val = cellClone.text().trim();
-                            repuesto.put(colName, val);
-                            if (!val.isEmpty() && !val.equals("-")) isValido = true;
-                        }
-                    }
-                    if (isValido) filasRepuestos.add(repuesto);
-                }
-                break; // Ya encontramos la tabla, no buscar más
-            }
-        }
-
         if (!filasRepuestos.isEmpty()) {
             Map<String, Object> t = new java.util.LinkedHashMap<>();
             t.put("id", "Lista de Repuestos");

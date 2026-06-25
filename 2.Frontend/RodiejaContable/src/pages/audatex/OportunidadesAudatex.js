@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card, Table, Button, DatePicker, Input, Space, Typography,
-  message, Tag, Alert, Modal, Descriptions, Divider
+  message, Tag, Alert, Modal
 } from 'antd';
 import {
   SearchOutlined,
@@ -14,7 +14,7 @@ import {
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -188,32 +188,186 @@ const OportunidadesAudatex = () => {
     }
   };
 
-  // ── Exportar Excel (datos ya cargados en tabla, sin re-scrapear el portal) ─
+  // ─ Helpers de estilo xlsx-js-style ─────────────────────────────────────
+  const hdrStyle = (bgHex) => ({
+    font:   { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+    fill:   { fgColor: { rgb: bgHex } },
+    border: {
+      top:    { style: 'thin', color: { rgb: 'CCCCCC' } },
+      bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+      left:   { style: 'thin', color: { rgb: 'CCCCCC' } },
+      right:  { style: 'thin', color: { rgb: 'CCCCCC' } },
+    },
+    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  });
+
+
+
+
+  // Estilo de bloque por cotizacionId — paleta de 4 colores alternados
+  const BLOCK_PALETTES = ['DBEAFE', 'DCFCE7', 'FEF9C3', 'F3E8FF']; // azul/verde/amarillo/lila
+  const blockRowStyle = (blockIdx) => ({
+    fill: { fgColor: { rgb: BLOCK_PALETTES[blockIdx % BLOCK_PALETTES.length] } },
+    border: {
+      top:    { style: 'hair', color: { rgb: 'C7D2DB' } },
+      bottom: { style: 'hair', color: { rgb: 'C7D2DB' } },
+      left:   { style: 'thin', color: { rgb: 'A3B4C6' } },
+      right:  { style: 'thin', color: { rgb: 'A3B4C6' } },
+    },
+    alignment: { vertical: 'center' },
+  });
+
+  // Aplica colores de bloque a la hoja de repuestos.
+  // blockMap: array de {blockIdx} con un elemento por fila de datos (longitud = totalRows)
+  const applyBlockStyles = (ws, headers, bgHex, blockMap) => {
+    // Cabecera
+    headers.forEach((_, ci) => {
+      const addr = XLSX.utils.encode_cell({ r: 0, c: ci });
+      if (ws[addr]) ws[addr].s = hdrStyle(bgHex);
+    });
+    // Filas de datos
+    blockMap.forEach((blockIdx, di) => {
+      const ri = di + 1; // fila 0 = cabecera
+      headers.forEach((_, ci) => {
+        const addr = XLSX.utils.encode_cell({ r: ri, c: ci });
+        if (ws[addr]) ws[addr].s = blockRowStyle(blockIdx);
+      });
+    });
+    ws['!rows'] = [{ hpt: 22 }];
+  };
+
+  // ── Exportar Excel — 2 hojas: Oportunidades + Repuestos ─────────────────
   const handleExportar = () => {
     if (!oportunidades.length) {
       message.warning('No hay oportunidades cargadas para exportar');
       return;
     }
 
-    const exportData = oportunidades.map(({ _key, ...row }) => ({
-      Aseguradora: row.aseguradora ?? '',
-      'Cotización ID': row.cotizacionId ?? '',
-      Taller: row.taller ?? '',
-      Póliza: row.poliza ?? '',
-      Siniestro: row.siniestro ?? '',
-      Matrícula: row.matricula ?? '',
-      Armadora: row.armadora ?? '',
-      Fecha: row.fechaCotizacion ?? '',
-      Pendientes: row.pendientes ?? 0,
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Oportunidades');
+
+    // ── Hoja 1: Oportunidades — azul corporativo ──────────────────────────
+    const oportHeaders = ['Cotizacion ID','Aseguradora','Taller','Poliza','Siniestro','Matricula','Armadora','Fecha','Pendientes','Total Repuestos'];
+    const oportData = oportunidades.map(({ _key, repuestos, ...row }) => ({
+      'Cotizacion ID':    row.cotizacionId    ?? '',
+      'Aseguradora':      row.aseguradora     ?? '',
+      'Taller':           row.taller          ?? '',
+      'Poliza':           row.poliza          ?? '',
+      'Siniestro':        row.siniestro       ?? '',
+      'Matricula':        row.matricula       ?? '',
+      'Armadora':         row.armadora        ?? '',
+      'Fecha':            row.fechaCotizacion ?? '',
+      'Pendientes':       row.pendientes      ?? 0,
+      'Total Repuestos':  Array.isArray(repuestos) ? repuestos.length : 0,
+    }));
+    const wsOport = XLSX.utils.json_to_sheet(oportData, { header: oportHeaders });
+    wsOport['!cols'] = [
+      { wch: 20 }, { wch: 22 }, { wch: 30 }, { wch: 18 }, { wch: 18 },
+      { wch: 14 }, { wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 15 },
+    ];
+    applyBlockStyles(wsOport, oportHeaders, '1D4ED8', oportData.map((_, i) => i));
+    XLSX.utils.book_append_sheet(wb, wsOport, 'Oportunidades');
+
+    // ── Hoja 2: Repuestos — con grupos desplegables por Cotizacion ID ──────
+    const repHeaders = ['Cotizacion ID','Aseguradora','Taller','#','Grupo Pieza','PartNumber','Part Serial Number','Descripcion Pieza'];
+    const repuestosData = [];
+    const repBlockMap   = [];
+    const repRowMeta    = [{ hpt: 22 }]; // fila 0 = cabecera
+
+    let blockIdx = -1;
+    let lastCotizId = null;
+
+    oportunidades.forEach(({ repuestos, cotizacionId, taller, aseguradora }) => {
+      if (!Array.isArray(repuestos) || repuestos.length === 0) return;
+      if (cotizacionId !== lastCotizId) { blockIdx++; lastCotizId = cotizacionId; }
+
+      // Fila resumen (siempre visible, muestra el +/-)
+      repuestosData.push({
+        'Cotizacion ID':      `▼ ${cotizacionId ?? ''}`,
+        'Aseguradora':        aseguradora ?? '',
+        'Taller':             taller ?? '',
+        '#':                  `${repuestos.length} pza`,
+        'Grupo Pieza':        '',
+        'PartNumber':         '',
+        'Part Serial Number': '',
+        'Descripcion Pieza':  '',
+      });
+      repBlockMap.push({ blockIdx, isSummary: true });
+      repRowMeta.push({ hpt: 20 }); // fila resumen, NO grouped
+
+      // Filas de detalle (colapsables)
+      repuestos.forEach((rep, idx) => {
+        repuestosData.push({
+          'Cotizacion ID':       '',
+          'Aseguradora':         '',
+          'Taller':              '',
+          '#':                   idx + 1,
+          'Grupo Pieza':         rep['Grupo Pieza']        ?? '',
+          'PartNumber':          rep['PartNumber']          ?? '',
+          'Part Serial Number':  rep['Part Serial Number'] ?? '',
+          'Descripcion Pieza':   rep['Descripcion Pieza']  ?? '',
+        });
+        repBlockMap.push({ blockIdx, isSummary: false });
+        repRowMeta.push({ level: 1, hpt: 18, hidden: true }); // colapsado por defecto
+      });
+    });
+
+    if (repuestosData.length > 0) {
+      const wsRep = XLSX.utils.json_to_sheet(repuestosData, { header: repHeaders });
+      wsRep['!cols'] = [
+        { wch: 24 }, { wch: 22 }, { wch: 30 }, { wch: 8 },
+        { wch: 14 }, { wch: 20 }, { wch: 32 }, { wch: 38 },
+      ];
+      // Grupos arriba del detalle (summaryBelow: false)
+      wsRep['!sheetPr'] = { outlinePr: { summaryBelow: 0, summaryRight: 0 } };
+
+      // ── Estilos por fila ─────────────────────────────────────────────────
+      // Paleta compartida con hoja Oportunidades
+      const PASTEL_LIGHT  = ['DBEAFE','DCFCE7','FEF9C3','F3E8FF']; // igual a Oportunidades
+      const PASTEL_MEDIUM = ['BFDBFE','A7F3D0','FDE68A','DDD6FE']; // tono medio para resumen
+      const summaryStyleLight = (bIdx) => ({
+        font:  { bold: false, sz: 11, color: { rgb: '1E293B' } },  // texto oscuro
+        fill:  { fgColor: { rgb: PASTEL_MEDIUM[bIdx % 4] } },
+        border: {
+          top:    { style: 'thin', color: { rgb: '94A3B8' } },
+          bottom: { style: 'thin', color: { rgb: '94A3B8' } },
+          left:   { style: 'thin', color: { rgb: '94A3B8' } },
+          right:  { style: 'thin', color: { rgb: '94A3B8' } },
+        },
+        alignment: { vertical: 'center' },
+      });
+      const detailStyle = (bIdx) => ({
+        fill:   { fgColor: { rgb: PASTEL_LIGHT[bIdx % 4] } },
+        border: {
+          top:    { style: 'hair', color: { rgb: 'D1D5DB' } },
+          bottom: { style: 'hair', color: { rgb: 'D1D5DB' } },
+          left:   { style: 'hair', color: { rgb: 'CBD5E1' } },
+          right:  { style: 'hair', color: { rgb: 'CBD5E1' } },
+        },
+        alignment: { vertical: 'center' },
+      });
+
+      // Cabecera de hoja
+      repHeaders.forEach((_, ci) => {
+        const addr = XLSX.utils.encode_cell({ r: 0, c: ci });
+        if (wsRep[addr]) wsRep[addr].s = hdrStyle('065F46');
+      });
+      // Filas de datos
+      repBlockMap.forEach(({ blockIdx: bi, isSummary }, di) => {
+        const ri = di + 1;
+        repHeaders.forEach((_, ci) => {
+          const addr = XLSX.utils.encode_cell({ r: ri, c: ci });
+          if (wsRep[addr]) wsRep[addr].s = isSummary ? summaryStyleLight(bi) : detailStyle(bi);
+        });
+      });
+
+      wsRep['!rows'] = repRowMeta;
+      XLSX.utils.book_append_sheet(wb, wsRep, 'Repuestos');
+    }
+
     XLSX.writeFile(wb, `oportunidades_audatex_${dayjs().format('YYYYMMDD_HHmm')}.xlsx`);
 
-    const nota = streaming ? ' (carga aún en curso — export parcial)' : '';
-    message.success(`Excel exportado — ${oportunidades.length} filas${nota}`);
+    const nota = streaming ? ' (carga aun en curso)' : '';
+    message.success(`Excel exportado — ${oportunidades.length} oportunidades, ${repuestosData.length} repuestos${nota}`);
   };
 
   // ── Invalidar caché y recargar ────────────────────────────────────────────
@@ -240,13 +394,31 @@ const OportunidadesAudatex = () => {
     cargarOportunidadesStream({ ...defaultFiltros });
   };
 
-  const handleVerDetalle = async (cotizacionId) => {
+  const handleVerDetalle = async (cotizacionId, record) => {
     setCargandoDetalle(true);
     setDetalleModalVisible(true);
     setDetalleCotizacion(null);
+
+    // Si el record ya trae repuestos del stream, usarlos sin fetch adicional
+    if (record && record.repuestos !== undefined) {
+      const wan = record.wan || cotizacionId;
+      const repuestos = record.repuestos || [];
+      const detalle = {
+        wan,
+        tablas: repuestos.length > 0
+          ? [{ id: 'Lista de Repuestos', data: repuestos }]
+          : [],
+      };
+      setDetalleCotizacion(detalle);
+      setCargandoDetalle(false);
+      return;
+    }
+
+    // Fallback: fetch al backend (para items sin repuestos embebidos)
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8080/api/audatex/oportunidades/${encodeURIComponent(cotizacionId)}/detalle`, {
+      const wan = record?.wan || cotizacionId;
+      const response = await fetch(`http://localhost:8080/api/audatex/oportunidades/${encodeURIComponent(wan)}/detalle`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('Error al obtener detalle');
@@ -307,13 +479,21 @@ const OportunidadesAudatex = () => {
       ),
     },
     {
+      title: 'Repuestos', key: 'repuestos',
+      render: (_, record) => {
+        const count = record.repuestos?.length ?? '…';
+        const color = typeof count === 'number' && count > 0 ? 'blue' : 'default';
+        return <Tag color={color}>{typeof count === 'number' ? `${count} pza` : count}</Tag>;
+      }
+    },
+    {
       title: 'Acciones', key: 'acciones',
       render: (_, record) => (
         <Button
           type="primary"
           icon={<EyeOutlined />}
           size="small"
-          onClick={() => handleVerDetalle(record.wan || record.cotizacionId)}
+          onClick={() => handleVerDetalle(record.wan || record.cotizacionId, record)}
         >
           Detalle
         </Button>

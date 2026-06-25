@@ -194,6 +194,17 @@ public class AudatexService {
                             throw new RuntimeException("cliente desconectado");
                         }
                         try {
+                            // Obtener repuestos inline antes de emitir
+                            String wan = texto(oportunidad, "wan");
+                            if (wan != null && !wan.isEmpty()) {
+                                java.util.List<java.util.Map<String, String>> repuestos =
+                                        client.obtenerRepuestosDeCotizacion(wan);
+                                oportunidad.put("repuestos", repuestos);
+                                log.debug("[AudatexService][Stream] WAN {} → {} repuesto(s)", wan, repuestos.size());
+                            } else {
+                                oportunidad.put("repuestos", java.util.List.of());
+                            }
+
                             emitter.send(SseEmitter.event()
                                     .name("oportunidad")
                                     .data(objectMapper.writeValueAsString(oportunidad)));
