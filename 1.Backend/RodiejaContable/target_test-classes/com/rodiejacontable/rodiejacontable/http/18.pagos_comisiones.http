@@ -1,0 +1,139 @@
+### ========================================
+### API DE PAGOS DE COMISIONES
+### ========================================
+
+### 1. Obtener todos los pagos de comisiones
+GET http://localhost:8080/api/pagos-comisiones
+
+### 2. Obtener pago por ID
+GET http://localhost:8080/api/pagos-comisiones/1
+
+### 3. Obtener pagos por empleado
+GET http://localhost:8080/api/pagos-comisiones/empleado/2
+
+### 4. Obtener pagos por período (marzo 2026)
+GET http://localhost:8080/api/pagos-comisiones/periodo/2026/4
+
+### 5. Obtener pagos por estado
+GET http://localhost:8080/api/pagos-comisiones/estado/PAGADO
+
+### 6. Listar comisiones pendientes por período (marzo 2026)
+GET http://localhost:8080/api/pagos-comisiones/pendientes/2026/3
+
+### 7. Obtener resumen completo del período
+GET http://localhost:8080/api/pagos-comisiones/resumen/2026/3
+
+### 8. Registrar pago de comisiones para empleado
+POST http://localhost:8080/api/pagos-comisiones/registrar
+Content-Type: application/json
+
+{
+  "empleadoId": 1,
+  "anio": 2026,
+  "mes": 4,
+  "fechaPago": "2026-03-25",
+  "referencia": "CHEQUE-001",
+  "notas": "Pago comisiones marzo 2026"
+}
+
+
+### 9. Registrar pago sin referencia
+POST http://localhost:8080/api/pagos-comisiones/registrar
+Content-Type: application/json
+
+{
+  "empleadoId": 2,
+  "anio": 2026,
+  "mes": 3,
+  "fechaPago": "2026-03-26",
+  "notas": "Pago transferencia bancaria"
+}
+
+### 10. Intentar registrar pago duplicado (debería dar error)
+POST http://localhost:8080/api/pagos-comisiones/registrar
+Content-Type: application/json
+
+{
+  "empleadoId": 1,
+  "anio": 2026,
+  "mes": 4,
+  "fechaPago": "2026-03-31",
+  "referencia": "CHEQUE-002",
+  "notas": "Intento de pago duplicado"
+}
+
+### 11. Intentar registrar pago sin comisiones (debería dar error)
+POST http://localhost:8080/api/pagos-comisiones/registrar
+Content-Type: application/json
+
+{
+  "empleadoId": 999,
+  "anio": 2026,
+  "mes": 3,
+  "fechaPago": "2026-03-28",
+  "referencia": "CHEQUE-003",
+  "notas": "Empleado sin comisiones"
+}
+
+### 12. Actualizar estado de un pago a CANCELADO
+PUT http://localhost:8080/api/pagos-comisiones/1/estado
+Content-Type: application/json
+
+{
+  "estado": "CANCELADO"
+}
+
+### 13. Actualizar estado de un pago a PENDIENTE
+PUT http://localhost:8080/api/pagos-comisiones/2/estado
+Content-Type: application/json
+
+{
+  "estado": "PENDIENTE"
+}
+
+### 14. Eliminar un pago (cuidado - solo para pruebas)
+DELETE http://localhost:8080/api/pagos-comisiones/3
+
+### ========================================
+### FLUJO COMPLETO DE TRABAJO
+### ========================================
+
+### Paso 1: Ver comisiones pendientes para el mes actual
+GET http://localhost:8080/api/pagos-comisiones/pendientes/2026/3
+
+### Paso 2: Registrar pago para el primer empleado con comisiones pendientes
+POST http://localhost:8080/api/pagos-comisiones/registrar
+Content-Type: application/json
+
+{
+  "empleadoId": 1,
+  "anio": 2026,
+  "mes": 3,
+  "fechaPago": "2026-03-31",
+  "referencia": "BANCO-12345",
+  "notas": "Pago mensual comisiones"
+}
+
+### Paso 3: Verificar que el empleado ya no aparezca en pendientes
+GET http://localhost:8080/api/pagos-comisiones/pendientes/2026/4
+
+### Paso 4: Ver resumen completo del período
+GET http://localhost:8080/api/pagos-comisiones/resumen/2026/3
+
+### ========================================
+### REPORTES Y CONSULTAS ÚTILES
+### ========================================
+
+### Historial de pagos de un empleado específico
+GET http://localhost:8080/api/pagos-comisiones/empleado/1
+
+### Pagos realizados en el año 2026
+GET http://localhost:8080/api/pagos-comisiones/periodo/2026/1
+GET http://localhost:8080/api/pagos-comisiones/periodo/2026/2
+GET http://localhost:8080/api/pagos-comisiones/periodo/2026/3
+
+### Pagos con estado PENDIENTE (si existen)
+GET http://localhost:8080/api/pagos-comisiones/estado/PENDIENTE
+
+### Todos los pagos ordenados por fecha
+GET http://localhost:8080/api/pagos-comisiones

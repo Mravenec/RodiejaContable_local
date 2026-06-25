@@ -1,0 +1,787 @@
+@baseUrl = http://localhost:8080/api
+
+### 1. POBLAR MARCAS 
+### ========================================
+
+### Obtener todas las marcas
+GET {{baseUrl}}/marcas
+
+### Insertar Toyota
+POST {{baseUrl}}/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Toyota"
+}
+
+### Insertar Honda
+POST {{baseUrl}}/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Honda"
+}
+
+### ========================================
+### 2. POBLAR MODELOS 
+### ========================================
+
+### Obtener todos los modelos
+GET {{baseUrl}}/modelos
+
+### Insertar Corolla (Toyota)
+POST {{baseUrl}}/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Corolla"
+}
+
+### Insertar Civic (Honda)
+POST {{baseUrl}}/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 2,
+  "nombre": "Civic"
+}
+
+### ========================================
+### 3. POBLAR GENERACIONES 
+### ========================================
+
+### Obtener todas las generaciones
+GET {{baseUrl}}/generaciones
+
+### Insertar Generación Corolla (gen12)
+POST {{baseUrl}}/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 1,
+  "nombre": "gen12",
+  "descripcion": "Duodécima generación E210",
+  "anioInicio": 2020,
+  "anioFin": 2024
+}
+
+### Insertar Generación Civic (gen10)
+POST {{baseUrl}}/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 2,
+  "nombre": "gen10",
+  "descripcion": "Décima generación FC/FK",
+  "anioInicio": 2016,
+  "anioFin": 2021
+}
+
+### ========================================
+### 4. POBLAR EMPLEADOS 
+### ========================================
+
+### Obtener todos los empleados
+GET {{baseUrl}}/empleados
+
+### Insertar empleados
+POST {{baseUrl}}/empleados
+Content-Type: application/json
+
+{
+  "nombre": "ACXEL"
+}
+
+### Insertar empleado 2
+POST {{baseUrl}}/empleados
+Content-Type: application/json
+
+{
+  "nombre": "ADRIANA"
+}
+
+### Insertar empleado 3
+POST {{baseUrl}}/empleados
+Content-Type: application/json
+
+{
+  "nombre": "AMAURIS"
+}
+
+### Insertar empleado 4
+POST {{baseUrl}}/empleados
+Content-Type: application/json
+
+{
+  "nombre": "CACHORRO"
+}
+
+### Insertar empleado 5
+POST {{baseUrl}}/empleados
+Content-Type: application/json
+
+{
+  "nombre": "DIEGO"
+}
+
+### Insertar empleado 6
+POST {{baseUrl}}/empleados
+Content-Type: application/json
+
+{
+  "nombre": "JHONATHAN"
+}
+
+### Insertar empleado 7
+POST {{baseUrl}}/empleados
+Content-Type: application/json
+
+{
+  "nombre": "LUIS MIRANDA"
+}
+
+### Insertar empleado 8
+POST {{baseUrl}}/empleados
+Content-Type: application/json
+
+{
+  "nombre": "NALLELY"
+}
+
+### Insertar empleado 9
+POST {{baseUrl}}/empleados
+Content-Type: application/json
+
+{
+  "nombre": "VICTORIA"
+}
+
+### ========================================
+### 5. POBLAR TIPOS DE TRANSACCIONES 
+### ========================================
+
+### Obtener todos los tipos de transacciones
+GET {{baseUrl}}/tipos-transacciones
+
+### Insertar tipos de transacciones
+# Ingresos
+
+### Insertar tipo de transacción 1
+POST {{baseUrl}}/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Venta Vehículo",
+  "descripcion": "Ingreso por venta de vehículo completo",
+  "categoria": "INGRESO"
+}
+### Insertar tipo de transacción 2
+POST {{baseUrl}}/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Venta Repuesto",
+  "descripcion": "Ingreso por venta de repuesto individual",
+  "categoria": "INGRESO"
+}
+### Insertar tipo de transacción 3
+POST {{baseUrl}}/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Venta Mayoreo",
+  "descripcion": "Ingreso por venta al mayoreo",
+  "categoria": "INGRESO"
+}
+### Insertar tipo de transacción 4
+POST {{baseUrl}}/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Servicios Mecánicos",
+  "descripcion": "Ingreso por servicios de mecánica",
+  "categoria": "INGRESO"
+}
+### Insertar tipo de transacción 5
+POST {{baseUrl}}/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Alquiler Espacio",
+  "descripcion": "Ingreso por alquiler de espacio en yonke",
+  "categoria": "INGRESO"
+}
+
+# Egresos
+
+### Insertar tipo de transacción 6
+POST {{baseUrl}}/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Compra Vehículo",
+  "descripcion": "Egreso por compra de vehículo",
+  "categoria": "EGRESO"
+}
+### Insertar tipo de transacción 7
+POST {{baseUrl}}/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Compra Repuesto",
+  "descripcion": "Egreso por compra de repuesto",
+  "categoria": "EGRESO"
+}
+### Insertar tipo de transacción 8
+POST {{baseUrl}}/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Reparación Vehículo",
+  "descripcion": "Egreso por reparaciones de vehículo",
+  "categoria": "EGRESO"
+}
+### Insertar tipo de transacción 9
+POST {{baseUrl}}/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Mantenimiento Local",
+  "descripcion": "Egreso por mantenimiento del local",
+  "categoria": "EGRESO"
+}
+### Insertar tipo de transacción 10
+POST {{baseUrl}}/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Comisión Vendedor",
+  "descripcion": "Egreso por comisión a vendedor",
+  "categoria": "EGRESO"
+}
+
+### ========================================
+### 6. POBLAR VEHÍCULOS 
+### ========================================
+
+### Obtener todos los vehículos
+GET {{baseUrl}}/vehiculos
+
+### Insertar Toyota Corolla 2023 (DISPONIBLE)
+POST {{baseUrl}}/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 1,
+  "anio": 2023,
+  "precioCompra": 10000000.00,
+  "costoGrua": 50000.00,
+  "comisiones": 100000.00,
+  "imagenUrl": "https://ejemplo.com/imagenes/corolla-2023.jpg",
+  "fechaIngreso": "2023-01-15",
+  "estado": "DISPONIBLE"
+}
+
+### Insertar Honda Civic 2018 (DESARMADO)
+POST {{baseUrl}}/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 2,
+  "anio": 2018,
+  "precioCompra": 6000000.00,
+  "costoGrua": 40000.00,
+  "comisiones": 80000.00,
+  "imagenUrl": "https://ejemplo.com/imagenes/civic-2018.jpg",
+  "fechaIngreso": "2023-01-15",
+  "estado": "DESARMADO"
+}
+
+### Ver vehículos insertados
+GET {{baseUrl}}/vehiculos
+
+### ========================================
+### 7. POBLAR INVENTARIO DE REPUESTOS 
+### ========================================
+
+### Obtener todo el inventario de repuestos
+GET {{baseUrl}}/inventario-repuestos
+
+### Crear un nuevo repuesto
+POST http://localhost:8080/api/inventario-repuestos
+Content-Type: application/json
+
+{
+  "vehiculoOrigenId": 2,
+  "parteVehiculo": "MOTOR",
+  "descripcion": "Motor 1.5L Turbo VTEC",
+  "precioCosto": 1200000.00,
+  "precioVenta": 1800000.00,
+  "precioMayoreo": 1500000.00,
+  "bodega": "C_",
+  "zona": "Z1_",
+  "pared": "PE_",
+  "malla": "V5",
+  "estado": "STOCK",
+  "condicion": "_50_25_",
+  "estante": "E1",
+  "nivel": "N1_",
+  "piso": "P1_",
+  "plastica": "CP1_",
+  "horizontal": "HA_"
+}
+
+### Registrar venta del repuesto (motor Civic 1.5L Turbo)
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-06-01",
+  "tipoTransaccionId": 2,
+  "empleadoId": 1,
+  "repuestoId": 1,
+  "monto": 1800000.00,
+  "comisionEmpleado": 25000.00,
+  "descripcion": "Venta Motor Civic 1.5L Turbo",
+  "referencia": "VENTA-REP-001"
+}
+
+### ========================================
+### 8. POBLAR TRANSACCIONES FINANCIERAS 
+### ========================================
+
+### Obtener todas las transacciones financieras
+GET {{baseUrl}}/transacciones-financieras
+
+### Registrar venta de repuesto
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-06-01",
+  "tipoTransaccionId": 2,  
+  "empleadoId": 1,          
+  "repuestoId": 1,          
+  "monto": 1800000.00,
+  "comisionEmpleado": 25000.00,
+  "descripcion": "Venta de motor 1.5L Turbo VTEC",
+  "referencia": "VT-001"
+}
+
+### Registrar venta de vehículo
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-06-05",
+  "tipoTransaccionId": 1,  
+  "empleadoId": 2,          
+  "vehiculoId": 1,          
+  "monto": 12000000.00,
+  "comisionEmpleado": 60000.00,
+  "descripcion": "Venta Toyota Corolla 2023",
+  "referencia": "VENTA-COROLLA-001"
+}
+
+### ========================================
+### 9. CONSULTAS DE AUDITORÍA 
+### ========================================
+
+### Ver repuestos por estado
+GET {{baseUrl}}/inventario-repuestos?estado=VENDIDO
+
+### Ver ventas por empleado
+GET {{baseUrl}}/reportes/ventas-por-empleado
+
+### Ver ventas mensuales
+GET {{baseUrl}}/reportes/ventas-mensuales?anio=2023&mes=1
+
+### ========================================
+### 10. EJEMPLO DE REPARACIÓN DE VEHÍCULO 
+### ========================================
+
+### Agregar Modelo Hilux
+POST {{baseUrl}}/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Hilux"
+}
+
+### Agregar Generación Hilux gen8
+POST {{baseUrl}}/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 3,
+  "nombre": "gen8",
+  "descripcion": "Octava generación Hilux",
+  "anioInicio": 2016,
+  "anioFin": 2023
+}
+
+### Agregar Hilux para reparación
+POST {{baseUrl}}/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 3,
+  "anio": 2020,
+  "precioCompra": 8000000.00,
+  "costoGrua": 50000.00,
+  "comisiones": 0.00,
+  "imagenUrl": "https://ejemplo.com/imagenes/hilux-2020.jpg",
+  "fechaIngreso": "2023-06-10",
+  "estado": "REPARACION"
+}
+
+### Registrar reparación del Hilux
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-06-15",
+  "tipoTransaccionId": 8,  
+  "empleadoId": 3,          
+  "vehiculoId": 3,          
+  "monto": 250000.00,
+  "descripcion": "Reparación de motor y transmisión",
+  "referencia": "REP-HILUX-001"
+}
+
+### Actualizar estado del Hilux a DISPONIBLE
+PUT {{baseUrl}}/vehiculos/3/estado?estado=DISPONIBLE
+
+### Registrar venta del Hilux reparado
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-06-20",
+  "tipoTransaccionId": 1,  
+  "empleadoId": 4,          
+  "vehiculoId": 3,          
+  "monto": 10000000.00,
+  "comisionEmpleado": 50000.00,
+  "descripcion": "Venta Toyota Hilux 2020 reparado",
+  "referencia": "VENTA-HILUX-001"
+}
+
+### ========================================
+### 11. VENTA DE REPUESTOS SIN VEHÍCULO ORIGEN 
+### ========================================
+
+### Insertar Bomba de Agua para Corolla gen12
+POST {{baseUrl}}/inventario-repuestos/crear-sin-vehiculo
+Content-Type: application/json
+
+{
+  "generacionId": 1,
+  "marca": "Toyota",
+  "parteVehiculo": "BOMBA DE AGUA",
+  "descripcion": "Bomba de agua OEM Toyota Corolla",
+  "precioCosto": 70000.00,
+  "precioVenta": 110000.00,
+  "precioMayoreo": 95000.00,
+  "bodega": "R-",
+  "zona": "Z2-",
+  "pared": "PN-",
+  "malla": "V10",
+  "estante": "E2",
+  "piso": "P3-",
+  "estado": "STOCK",
+  "condicion": "100%-"
+}
+
+### Vender Bomba de Agua (sin comisión)
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-01-21",
+  "tipoTransaccionId": 2,
+  "empleadoId": 3,
+  "repuestoId": 2,
+  "generacionId": 1,
+  "monto": 110000.00,
+  "comisionEmpleado": 0.00,
+  "descripcion": "Venta Bomba de Agua Corolla gen12",
+  "referencia": "VENTA-REP-BA-COR-001"
+}
+
+### Insertar Kit de Embrague para Civic gen10
+POST {{baseUrl}}/inventario-repuestos/crear-sin-vehiculo
+Content-Type: application/json
+
+{
+  "generacionId": 2,
+  "marca": "Honda",
+  "parteVehiculo": "EMBRAGUE",
+  "descripcion": "Kit embrague original Honda Civic",
+  "precioCosto": 85000.00,
+  "precioVenta": 140000.00,
+  "precioMayoreo": 120000.00,
+  "bodega": "R-",
+  "zona": "Z3-",
+  "pared": "PS-",
+  "malla": "V12",
+  "estante": "E3",
+  "piso": "P3-",
+  "estado": "STOCK",
+  "condicion": "100%-"
+}
+
+### Vender Kit de Embrague (con comisión)
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-01-22",
+  "tipoTransaccionId": 2,
+  "empleadoId": 4,
+  "repuestoId": 3,
+  "generacionId": 2,
+  "monto": 140000.00,
+  "comisionEmpleado": 10000.00,
+  "descripcion": "Venta Embrague Civic gen10",
+  "referencia": "VENTA-REP-EMB-CIV-001"
+}
+
+### ========================================
+### 12. GASTOS FIJOS GLOBALES (Fixed Expenses)
+### ========================================
+
+### Gasto: Patente
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-07-25",
+  "tipoTransaccionId": 15,
+  "monto": 20000.00,
+  "descripcion": "Pago de patente municipal",
+  "referencia": "EGRESO-PATENTE-JUL25"
+}
+
+### Gasto: Impuesto municipal
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-07-25",
+  "tipoTransaccionId": 15,
+  "monto": 15000.00,
+  "descripcion": "Pago de impuesto municipal julio",
+  "referencia": "EGRESO-IMP-MUN-JUL25"
+}
+
+### Gasto: Servicios públicos
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-07-25",
+  "tipoTransaccionId": 14,
+  "monto": 105000.00,
+  "descripcion": "Pago de electricidad, agua y teléfono",
+  "referencia": "EGRESO-SERVPUB-JUL25"
+}
+
+### Gasto: CCSS
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-07-25",
+  "tipoTransaccionId": 16,
+  "monto": 227000.00,
+  "descripcion": "Aporte patronal CCSS",
+  "referencia": "EGRESO-CCSS-JUL25"
+}
+
+### Gasto: Salarios
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-07-25",
+  "tipoTransaccionId": 16,
+  "monto": 2120000.00,
+  "descripcion": "Pago de salarios",
+  "referencia": "EGRESO-SALARIOS-JUL25"
+}
+
+### Gasto: Préstamo bancario
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-07-25",
+  "tipoTransaccionId": 18,
+  "monto": 1000000.00,
+  "descripcion": "Pago de préstamo bancario",
+  "referencia": "EGRESO-PRESTAMO-JUL25"
+}
+
+### Gasto: Contadora externa
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-07-25",
+  "tipoTransaccionId": 18,
+  "monto": 56500.00,
+  "descripcion": "Honorarios contadora externa",
+  "referencia": "EGRESO-CONTADORA-JUL25"
+}
+
+### Gasto: Seguro de riesgos del trabajo
+POST {{baseUrl}}/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2023-07-25",
+  "tipoTransaccionId": 18,
+  "monto": 35000.00,
+  "descripcion": "Pago seguro riesgos del trabajo",
+  "referencia": "EGRESO-CERO-RIESGOS-JUL25"
+}
+
+### ========================================
+### 13. CONSULTAS DE REPORTES FINANCIEROS
+### ========================================
+
+### Ver todas las transacciones del mes actual
+GET {{baseUrl}}/reportes/transacciones?anio=2023&mes=7
+
+### Ver solo egresos del mes actual
+GET {{baseUrl}}/reportes/transacciones?anio=2023&mes=7&categoria=EGRESO
+
+### Ver solo ingresos del mes actual
+GET {{baseUrl}}/reportes/transacciones?anio=2023&mes=7&categoria=INGRESO
+
+### Ver análisis financiero mensual
+GET {{baseUrl}}/reportes/analisis-mensual?anio=2023&mes=7
+
+### Ver resumen por generación
+GET {{baseUrl}}/reportes/resumen-generaciones
+
+### Ver transacciones de un vehículo específico
+GET {{baseUrl}}/vehiculos/1/transacciones
+
+### Ver historial de un repuesto
+GET {{baseUrl}}/inventario-repuestos/1/historial
+
+### Ver resumen de ventas por empleado
+GET {{baseUrl}}/api/v1/ventas-empleados/filtrar?anio=2023&mes=7
+
+### ========================================
+### 14. VISTAS
+### ========================================
+
+### 14.1 VISTA ANÁLISIS FINANCIERO MENSUAL
+### ========================================
+
+### Obtener todos los análisis financieros
+GET {{baseUrl}}/api/analisis-financiero
+
+### Obtener análisis financiero por año
+GET {{baseUrl}}/api/analisis-financiero/anio/2023
+
+### Obtener análisis financiero por año y mes
+GET {{baseUrl}}/api/analisis-financiero/anio/2023/mes/7
+
+### 14.2 VISTA AUDITORÍA COMPLETA
+### ========================================
+
+### Obtener todos los registros de auditoría
+GET {{baseUrl}}/api/auditoria
+
+### Obtener auditoría por tipo de entidad
+GET {{baseUrl}}/api/auditoria/tipo-entidad/VEHICULO
+
+### Obtener auditoría por ID de entidad
+GET {{baseUrl}}/api/auditoria/entidad/1
+
+### Obtener auditoría por usuario
+GET {{baseUrl}}/api/auditoria/usuario/admin
+
+### 14.3 VISTA DASHBOARD EJECUTIVO
+### ========================================
+
+### Obtener todos los datos del dashboard ejecutivo
+GET {{baseUrl}}/api/dashboard/ejecutivo
+
+### Obtener datos de una sección específica del dashboard
+GET {{baseUrl}}/api/dashboard/ejecutivo/seccion/ventas
+
+### 14.4 VISTA INVENTARIO COMPLETO
+### ========================================
+
+### Obtener todo el inventario
+GET {{baseUrl}}/api/inventario
+
+### Buscar en el inventario con filtros
+GET {{baseUrl}}/api/inventario/buscar?marca=toyota&estado=DISPONIBLE
+
+### 14.5 VISTA INVENTARIO CRÍTICO
+### ========================================
+
+### Obtener inventario crítico
+GET {{baseUrl}}/api/inventario-critico
+
+### Buscar en inventario crítico con filtros
+GET {{baseUrl}}/api/inventario-critico/buscar?estado=CRITICO
+
+### 14.6 VISTA RENTABILIDAD GENERACIONES
+### ========================================
+
+### Obtener todas las generaciones con rentabilidad
+GET {{baseUrl}}/api/rentabilidad-generaciones
+
+### Obtener generaciones por año de inicio
+GET {{baseUrl}}/api/rentabilidad-generaciones/anio-inicio/2020
+
+### 14.7 VISTA TOP PRODUCTOS VENDIDOS
+### ========================================
+
+### Obtener todos los productos vendidos
+GET {{baseUrl}}/api/v1/top-productos-vendidos
+
+### Obtener productos por tipo
+GET {{baseUrl}}/api/v1/top-productos-vendidos/tipo/REPUESTO
+
+### 14.8 VISTA TRANSACCIONES COMPLETAS
+### ========================================
+
+### Obtener todas las transacciones
+GET {{baseUrl}}/api/v1/transacciones
+
+### Obtener transacciones por rango de fechas
+GET {{baseUrl}}/api/v1/transacciones/rango-fechas?fechaInicio=2023-01-01&fechaFin=2023-12-31
+
+### 14.9 VISTA VEHÍCULOS COMPLETA
+### ========================================
+
+### Obtener todos los vehículos
+GET {{baseUrl}}/api/v1/vehiculos
+
+### Buscar vehículos con filtros
+GET {{baseUrl}}/api/v1/vehiculos/buscar?marca=toyota&estado=DISPONIBLE
+
+### 14.10 VISTA VENTAS POR EMPLEADO
+### ========================================
+
+### Obtener ventas de todos los empleados
+GET {{baseUrl}}/api/v1/ventas-empleados
+
+### Obtener ventas de un empleado específico
+GET {{baseUrl}}/api/v1/ventas-empleados/JUAN_PEREZ
+
+### Obtener top N empleados por ventas
+GET {{baseUrl}}/api/v1/ventas-empleados/top/1
+
+### Obtener lista de todos los empleados
+GET {{baseUrl}}/api/v1/ventas-empleados/empleados

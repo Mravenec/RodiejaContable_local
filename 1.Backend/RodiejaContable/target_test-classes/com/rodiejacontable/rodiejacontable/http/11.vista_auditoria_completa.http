@@ -1,0 +1,20 @@
+### Obtener todos los registros de auditoría
+GET http://localhost:8080/api/auditoria
+
+### Obtener auditoría por tipo de entidad
+GET http://localhost:8080/api/auditoria/tipo-entidad/VEHICULO
+
+### Obtener auditoría por ID de entidad
+GET http://localhost:8080/api/auditoria/entidad/1
+
+### Obtener auditoría por usuario
+GET http://localhost:8080/api/auditoria/usuario/admin
+
+### Obtener auditoría por rango de fechas
+GET http://localhost:8080/api/auditoria/actividad?fechaInicio=2023-01-01&fechaFin=2023-12-31
+
+### Obtener auditoría por acción
+GET http://localhost:8080/api/auditoria/accion/UPDATE
+
+### Obtener estadísticas de auditoría
+GET http://localhost:8080/api/auditoria/resumen

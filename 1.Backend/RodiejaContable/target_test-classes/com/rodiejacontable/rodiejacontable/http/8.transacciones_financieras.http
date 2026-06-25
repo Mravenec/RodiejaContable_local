@@ -1,0 +1,340 @@
+### Obtener todas las transacciones por vehiculo
+GET http://localhost:8080/api/transacciones-financieras/vehiculo/1
+
+
+### Obtener todas las transacciones
+GET http://localhost:8080/api/transacciones-financieras
+
+### Obtener transacciones por rango de fechas
+GET http://localhost:8080/api/transacciones-financieras/rango-fechas?fechaInicio=2023-01-01&fechaFin=2023-12-31
+
+### Venta mayoreo de repuestos a taller XYZ
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "MAYOR-001",
+  "fecha": "2023-05-18",
+  "tipoTransaccionId": 3,
+  "empleadoId": 8,
+  "monto": 2000000.00,
+  "descripcion": "Venta mayoreo de repuestos a taller XYZ",
+  "referencia": "FACT-MAY-01",
+  "estado": "COMPLETADA"
+}
+
+### Servicio mecánico cambio de motor
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "SERV-MEC-001",
+  "fecha": "2023-05-22",
+  "tipoTransaccionId": 4,
+  "empleadoId": 9,
+  "monto": 135000.00,
+  "descripcion": "Servicio mecánico cambio de motor",
+  "referencia": "SERV-MEC-01",
+  "estado": "COMPLETADA"
+}
+
+### Venta de ECU tras 4 meses en inventario
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "VENTA-ECU-001",
+  "fecha": "2023-06-05",
+  "tipoTransaccionId": 2,
+  "empleadoId": 3,
+  "repuestoId": 3,
+  "monto": 220000.00,
+  "descripcion": "Venta de ECU tras 4 meses en inventario",
+  "referencia": "FACT-ECU-01",
+  "estado": "COMPLETADA"
+}
+
+### Crear transacciones de compra de vehículos
+### Compra Corolla 2015
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "COMPRA-VEH-001",
+  "fecha": "2023-01-10",
+  "tipoTransaccionId": 1,
+  "empleadoId": 1,
+  "vehiculoId": 2,
+  "monto": 3500000.00,
+  "descripcion": "Compra Corolla 2015",
+  "referencia": "COMPRA-001",
+  "estado": "COMPLETADA"
+}
+
+### Compra Corolla 2016
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "COMPRA-VEH-002",
+  "fecha": "2023-01-20",
+  "tipoTransaccionId": 6,
+  "empleadoId": 2,
+  "vehiculoId": 2,
+  "monto": 4200000.00,
+  "descripcion": "Compra Corolla 2016",
+  "referencia": "COMPRA-002",
+  "estado": "COMPLETADA"
+}
+
+### Crear transacciones de venta de vehículos
+### Venta Toyota Corolla 2015
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "VENTA-VEH-001",
+  "fecha": "2023-02-20",
+  "tipoTransaccionId": 1,
+  "empleadoId": 1,
+  "vehiculoId": 1,
+  "monto": 4200000.00,
+  "comisionEmpleado": 40000.00,
+  "descripcion": "Venta Toyota Corolla 2015",
+  "referencia": "FACT-001",
+  "estado": "COMPLETADA"
+}
+
+### Venta Toyota Corolla 2016
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "VENTA-VEH-002",
+  "fecha": "2023-03-15",
+  "tipoTransaccionId": 1,
+  "empleadoId": 2,
+  "vehiculoId": 2,
+  "monto": 5100000.00,
+  "comisionEmpleado": 50000.00,
+  "descripcion": "Venta Toyota Corolla 2016",
+  "referencia": "FACT-002",
+  "estado": "COMPLETADA"
+}
+
+### Crear transacciones de venta de repuestos
+### Venta Motor Corolla
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "VENTA-REP-001",
+  "fecha": "2023-03-12",
+  "tipoTransaccionId": 2,
+  "empleadoId": 1,
+  "repuestoId": 1,
+  "monto": 750000.00,
+  "comisionEmpleado": 10000.00,
+  "descripcion": "Venta Motor Corolla",
+  "referencia": "FACT-011",
+  "estado": "COMPLETADA"
+}
+
+### Venta Transmisión Corolla
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "VENTA-REP-002",
+  "fecha": "2023-03-12",
+  "tipoTransaccionId": 2,
+  "empleadoId": 2,
+  "repuestoId": 2,
+  "monto": 580000.00,
+  "comisionEmpleado": 8000.00,
+  "descripcion": "Venta Transmisión Corolla",
+  "referencia": "FACT-012",
+  "estado": "COMPLETADA"
+}
+
+### Crear transacciones de compra de repuestos directos
+### Compra Batería nueva
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "COMPRA-REP-001",
+  "fecha": "2023-05-05",
+  "tipoTransaccionId": 7,
+  "empleadoId": 5,
+  "repuestoId": 33,
+  "monto": 35000.00,
+  "descripcion": "Compra Batería nueva",
+  "referencia": "COMP-REP-001",
+  "estado": "COMPLETADA"
+}
+
+### Crear gastos operativos varios
+### Pago servicio grúa
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "GASTO-OPE-001",
+  "fecha": "2023-03-05",
+  "tipoTransaccionId": 11,
+  "monto": 25000.00,
+  "vehiculoId": 1,
+  "descripcion": "Pago servicio grúa",
+  "referencia": "GRUA-001",
+  "estado": "COMPLETADA"
+}
+
+### Crear otros ingresos diversos
+### Otros ingresos por alquiler
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "codigoTransaccion": "OTR-ING-001",
+  "fecha": "2023-04-15",
+  "tipoTransaccionId": 16,
+  "empleadoId": 13,
+  "monto": 55000.00,
+  "descripcion": "Otros ingresos por alquiler",
+  "referencia": "OTR-INC-001",
+  "estado": "COMPLETADA"
+}
+### ========================================
+### ACTUALIZACIÓN DE TRANSACCIÓN (PUT)
+### ========================================
+
+PUT http://localhost:8080/api/transacciones-financieras/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "descripcion": "Descripción actualizada desde PUT",
+  "monto": 15000000.00,
+  "referencia": "REF-ACTUALIZADA-001",
+  "estado": "COMPLETADA"
+}
+
+
+### ========================================
+### CONSULTAS ADICIONALES ÚTILES
+### ========================================
+
+### ✅ Venta de repuesto SIN vehículo (mismo caso que en inventario_repuestos.http)
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2026-02-04",
+  "tipoTransaccionId": 2,
+  "repuestoId": 1,
+  "empleadoId": 1,
+  "monto": 180000.00,
+  "comisionEmpleado": 9000.00,
+  "descripcion": "Venta Motor Civic 1.5L Turbo - Venta directa sin vehículo",
+  "referencia": "VENTA-REP-DIRECTA-001",
+  "estado": "COMPLETADA"
+}
+
+### ✅ Venta de repuesto sin vehículo (ejemplo 2 - alternador)
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2026-02-04",
+  "tipoTransaccionId": 2,
+  "repuestoId": 4,
+  "empleadoId": 3,
+  "monto": 95000.00,
+  "comisionEmpleado": 4750.00,
+  "descripcion": "Venta Alternador Honda Civic - Stock directo",
+  "referencia": "VENTA-REP-ALT-001",
+  "estado": "COMPLETADA"
+}
+
+### ✅ Venta de vehículo con comisión alta (ejemplo 10%)
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2026-02-04",
+  "tipoTransaccionId": 1,
+  "vehiculoId": 1,
+  "empleadoId": 2,
+  "monto": 1500000.00,
+  "comisionEmpleado": 150000.00,
+  "descripcion": "Venta Toyota Hilux 2020 - Comisión especial 10%",
+  "referencia": "VENTA-ESP-001",
+  "estado": "COMPLETADA"
+}
+
+### ✅ Compra de repuesto sin vehículo (compra directa)
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2026-02-04",
+  "tipoTransaccionId": 7,
+  "repuestoId": 5,
+  "empleadoId": 4,
+  "monto": 75000.00,
+  "descripcion": "Compra Batería Toyota - Directa",
+  "referencia": "COMPRA-REP-DIR-001",
+  "estado": "COMPLETADA"
+}
+
+### ✅ Gasto operativo sin comisión
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2026-02-04",
+  "tipoTransaccionId": 9,
+  "empleadoId": 6,
+  "monto": 85000.00,
+  "descripcion": "Mantenimiento local - Pago electricidad",
+  "referencia": "MANT-LOCAL-001",
+  "estado": "COMPLETADA"
+}
+
+### ✅ Transacción con todos los campos (completa)
+POST http://localhost:8080/api/transacciones-financieras
+Content-Type: application/json
+
+{
+  "fecha": "2026-02-04",
+  "tipoTransaccionId": 1,
+  "vehiculoId": 1,
+  "repuestoId": null,
+  "empleadoId": 1,
+  "generacionId": 1,
+  "monto": 1200000.00,
+  "comisionEmpleado": 60000.00,
+  "descripcion": "Venta Toyota Corolla 2023 - Todos los campos",
+  "referencia": "VENTA-COMP-001",
+  "estado": "COMPLETADA"
+}
+
+### ========================================
+### CONSULTAS DE BÚSQUEDA Y FILTRADO
+### ========================================
+
+### Buscar transacciones por empleado
+GET http://localhost:8080/api/transacciones-financieras/empleado/1
+
+### Buscar transacciones por tipo específico
+GET http://localhost:8080/api/transacciones-financieras/tipo/1
+
+### Buscar transacciones por rango de fechas y empleado
+GET http://localhost:8080/api/transacciones-financieras/buscar?fechaInicio=2023-01-01&fechaFin=2023-12-31&empleadoId=1
+
+### Buscar transacciones con monto mayor a
+GET http://localhost:8080/api/transacciones-financieras/buscar?montoMinimo=100000
+
+### Obtener resumen financiero por mes
+GET http://localhost:8080/api/transacciones-financieras/resumen?mes=2&anio=2023

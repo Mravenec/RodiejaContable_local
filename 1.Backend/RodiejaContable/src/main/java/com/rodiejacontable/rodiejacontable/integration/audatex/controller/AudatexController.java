@@ -155,6 +155,19 @@ public class AudatexController {
                 .body(Map.of("error", "Demasiados envíos. Por favor espere un momento antes de intentar nuevamente."));
     }
 
+    @GetMapping("/oportunidades/{wan}/detalle")
+    public ResponseEntity<?> obtenerDetalleOportunidad(@PathVariable String wan) {
+        try {
+            log.info("[Audatex] GET /oportunidades/{}/detalle", wan);
+            Map<String, Object> detalle = audatexService.obtenerDetalleOportunidad(wan);
+            return ResponseEntity.ok(detalle);
+        } catch (Exception e) {
+            log.error("[Audatex] Error obteniendo detalle de oportunidad {}: {}", wan, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error consultando detalle en Audatex: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/envios/por-repuesto/{repuestoId}")
     public ResponseEntity<?> obtenerEnviosPorRepuesto(@PathVariable Integer repuestoId) {
         try {

@@ -1,0 +1,34 @@
+### Obtener todo el inventario crítico
+GET http://localhost:8080/api/inventario-critico
+
+### Buscar en inventario crítico con filtros básicos
+### Valores válidos para estado: STOCK, VENDIDO, AGOTADO, DAÑADO, USADO_INTERNO
+GET http://localhost:8080/api/inventario-critico/buscar?estado=AGOTADO
+
+### Búsqueda avanzada con múltiples filtros
+GET http://localhost:8080/api/inventario-critico/buscar?parteVehiculo=MOTOR&clasificacionMargen=BAJO&diasMinimos=90
+
+### Obtener inventario crítico por estado
+### Valores válidos: STOCK, VENDIDO, AGOTADO, DAÑADO, USADO_INTERNO
+GET http://localhost:8080/api/inventario-critico/estado/AGOTADO
+
+### Obtener inventario por parte de vehículo
+GET http://localhost:8080/api/inventario-critico/parte-vehiculo/MOTOR
+
+### Obtener inventario por clasificación de margen
+GET http://localhost:8080/api/inventario-critico/clasificacion-margen/BAJO
+
+### Obtener inventario por clasificación de rotación
+GET http://localhost:8080/api/inventario-critico/clasificacion-rotacion/LENTA
+
+### Obtener inventario crítico por vehículo de origen
+### Nota: El parámetro es sensible a mayúsculas/minúsculas y debe coincidir exactamente con los valores en la base de datos
+GET http://localhost:8080/api/inventario-critico/vehiculo/Toyota%20Corolla
+
+### Obtener inventario crítico por año de vehículo
+### Nota: El año debe ser un número entero válido (ej. 2020, 2021, etc.)
+GET http://localhost:8080/api/inventario-critico/anio-vehiculo/2020
+
+### Obtener resumen de inventario crítico
+### Este endpoint devuelve un resumen con estadísticas del inventario crítico
+GET http://localhost:8080/api/inventario-critico/resumen

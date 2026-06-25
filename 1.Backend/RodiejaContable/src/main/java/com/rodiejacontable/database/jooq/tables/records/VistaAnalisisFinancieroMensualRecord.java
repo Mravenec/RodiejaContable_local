@@ -17,7 +17,7 @@ import org.jooq.impl.TableRecordImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class VistaAnalisisFinancieroMensualRecord extends TableRecordImpl<VistaAnalisisFinancieroMensualRecord> implements Record15<Integer, Integer, String, Long, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, Long, Long, BigDecimal, BigDecimal, BigDecimal, BigDecimal> {
 
     private static final long serialVersionUID = 1L;

@@ -1,0 +1,32 @@
+### Obtener resumen de todas las generaciones
+GET http://localhost:8080/api/v1/resumen-generaciones
+
+### Obtener una generación por ID
+GET http://localhost:8080/api/v1/resumen-generaciones/1
+
+### Obtener generaciones por marca
+GET http://localhost:8080/api/v1/resumen-generaciones/marca/Toyota
+
+### Obtener generaciones por modelo
+GET http://localhost:8080/api/v1/resumen-generaciones/modelo/Corolla
+
+### Obtener generaciones por año de inicio
+GET http://localhost:8080/api/v1/resumen-generaciones/anio-inicio/2015
+
+### Obtener generaciones por rango de años
+GET http://localhost:8080/api/v1/resumen-generaciones/rango-anios?anioInicio=2015&anioFin=2020
+
+### Obtener generaciones por motor
+GET http://localhost:8080/api/v1/resumen-generaciones/motor/2ZR-FE
+
+### Obtener generaciones por transmisión
+GET http://localhost:8080/api/v1/resumen-generaciones/transmision/Automatica
+
+### Obtener generaciones por tipo de combustible
+GET http://localhost:8080/api/v1/resumen-generaciones/combustible/Gasolina
+
+### Obtener estadísticas de generaciones
+GET http://localhost:8080/api/v1/resumen-generaciones/estadisticas
+
+### Buscar generaciones con filtros
+GET http://localhost:8080/api/v1/resumen-generaciones/buscar?marca=Toyota&modelo=Corolla&anioInicio=2015&anioFin=2020

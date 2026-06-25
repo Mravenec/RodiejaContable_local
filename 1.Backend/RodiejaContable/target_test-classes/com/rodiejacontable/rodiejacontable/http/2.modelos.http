@@ -1,0 +1,769 @@
+### Obtener todos los modelos
+GET http://localhost:8080/api/modelos
+
+### Obtener modelos por ID de marca (ejemplo con Toyota - ID: 1)
+GET http://localhost:8080/api/modelos/marca/1
+
+### Obtener modelos activos por ID de marca (ejemplo con Toyota - ID: 1)
+GET http://localhost:8080/api/modelos/marca/1/activos
+
+#############################################
+### 1. TOYOTA
+#############################################
+
+### Toyota - Corolla
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Corolla"
+}
+
+### Toyota - Camry
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Camry"
+}
+
+### Toyota - Yaris
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Yaris"
+}
+
+### Toyota - RAV4
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "RAV4"
+}
+
+### Toyota - Prius
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Prius"
+}
+
+### Toyota - Highlander
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Highlander"
+}
+
+### Toyota - Hilux
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Hilux"
+}
+
+### Toyota - Land Cruiser
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Land Cruiser"
+}
+
+### Toyota - Sienna
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Sienna"
+}
+
+### Toyota - Tacoma
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Tacoma"
+}
+
+#############################################
+### 2. HONDA
+#############################################
+
+### Honda - Civic
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 2,
+  "nombre": "Civic"
+}
+
+### Honda - Accord
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 2,
+  "nombre": "Accord"
+}
+
+### Honda - CR-V
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 2,
+  "nombre": "CR-V"
+}
+
+### Honda - Fit
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 2,
+  "nombre": "Fit"
+}
+
+### Honda - Pilot
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 2,
+  "nombre": "Pilot"
+}
+
+### Honda - Odyssey
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 2,
+  "nombre": "Odyssey"
+}
+
+### Honda - HR-V
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 2,
+  "nombre": "HR-V"
+}
+
+### Honda - Ridgeline
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 2,
+  "nombre": "Ridgeline"
+}
+
+#############################################
+### 3. NISSAN
+#############################################
+
+### Nissan - Sentra
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 3,
+  "nombre": "Sentra"
+}
+
+### Nissan - Altima
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 3,
+  "nombre": "Altima"
+}
+
+### Nissan - Versa
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 3,
+  "nombre": "Versa"
+}
+
+### Nissan - X-Trail
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 3,
+  "nombre": "X-Trail"
+}
+
+### Nissan - Pathfinder
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 3,
+  "nombre": "Pathfinder"
+}
+
+### Nissan - Frontier
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 3,
+  "nombre": "Frontier"
+}
+
+### Nissan - Kicks
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 3,
+  "nombre": "Kicks"
+}
+
+### Nissan - Murano
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 3,
+  "nombre": "Murano"
+}
+
+### Nissan - Tiida
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 3,
+  "nombre": "Tiida"
+}
+
+#############################################
+### 4. HYUNDAI
+#############################################
+
+### Hyundai - Elantra
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 4,
+  "nombre": "Elantra"
+}
+
+### Hyundai - Accent
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 4,
+  "nombre": "Accent"
+}
+
+### Hyundai - Tucson
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 4,
+  "nombre": "Tucson"
+}
+
+### Hyundai - Santa Fe
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 4,
+  "nombre": "Santa Fe"
+}
+
+### Hyundai - Sonata
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 4,
+  "nombre": "Sonata"
+}
+
+### Hyundai - Grand i10
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 4,
+  "nombre": "Grand i10"
+}
+
+### Hyundai - Venue
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 4,
+  "nombre": "Venue"
+}
+
+### Hyundai - Creta
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 4,
+  "nombre": "Creta"
+}
+
+#############################################
+### 5. CHEVROLET
+#############################################
+
+### Chevrolet - Spark
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 5,
+  "nombre": "Spark"
+}
+
+### Chevrolet - Aveo
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 5,
+  "nombre": "Aveo"
+}
+
+### Chevrolet - Cruze
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 5,
+  "nombre": "Cruze"
+}
+
+### Chevrolet - Equinox
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 5,
+  "nombre": "Equinox"
+}
+
+### Chevrolet - Tahoe
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 5,
+  "nombre": "Tahoe"
+}
+
+### Chevrolet - Silverado
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 5,
+  "nombre": "Silverado"
+}
+
+### Chevrolet - Traverse
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 5,
+  "nombre": "Traverse"
+}
+
+### Chevrolet - Malibu
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 5,
+  "nombre": "Malibu"
+}
+
+#############################################
+### 6. FORD
+#############################################
+
+### Ford - Focus
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 6,
+  "nombre": "Focus"
+}
+
+### Ford - Fiesta
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 6,
+  "nombre": "Fiesta"
+}
+
+### Ford - Escape
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 6,
+  "nombre": "Escape"
+}
+
+### Ford - Explorer
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 6,
+  "nombre": "Explorer"
+}
+
+### Ford - F-150
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 6,
+  "nombre": "F-150"
+}
+
+### Ford - Mustang
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 6,
+  "nombre": "Mustang"
+}
+
+### Ford - Edge
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 6,
+  "nombre": "Edge"
+}
+
+### Ford - Ranger
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 6,
+  "nombre": "Ranger"
+}
+
+#############################################
+### 7. MAZDA
+#############################################
+
+### Mazda - Mazda3
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 7,
+  "nombre": "Mazda3"
+}
+
+### Mazda - Mazda6
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 7,
+  "nombre": "Mazda6"
+}
+
+### Mazda - CX-5
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 7,
+  "nombre": "CX-5"
+}
+
+### Mazda - CX-3
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 7,
+  "nombre": "CX-3"
+}
+
+### Mazda - CX-9
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 7,
+  "nombre": "CX-9"
+}
+
+### Mazda - MX-5
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 7,
+  "nombre": "MX-5"
+}
+
+### Mazda - BT-50
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 7,
+  "nombre": "BT-50"
+}
+
+#############################################
+### 8. VOLKSWAGEN
+#############################################
+
+### Volkswagen - Jetta
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 8,
+  "nombre": "Jetta"
+}
+
+### Volkswagen - Golf
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 8,
+  "nombre": "Golf"
+}
+
+### Volkswagen - Passat
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 8,
+  "nombre": "Passat"
+}
+
+### Volkswagen - Tiguan
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 8,
+  "nombre": "Tiguan"
+}
+
+### Volkswagen - Touareg
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 8,
+  "nombre": "Touareg"
+}
+
+### Volkswagen - Atlas
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 8,
+  "nombre": "Atlas"
+}
+
+### Volkswagen - Polo
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 8,
+  "nombre": "Polo"
+}
+
+#############################################
+### 9. KIA
+#############################################
+
+### Kia - Rio
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 9,
+  "nombre": "Rio"
+}
+
+### Kia - Forte
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 9,
+  "nombre": "Forte"
+}
+
+### Kia - Optima
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 9,
+  "nombre": "Optima"
+}
+
+### Kia - Sportage
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 9,
+  "nombre": "Sportage"
+}
+
+### Kia - Sorento
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 9,
+  "nombre": "Sorento"
+}
+
+### Kia - Soul
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 9,
+  "nombre": "Soul"
+}
+
+### Kia - Stinger
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 9,
+  "nombre": "Stinger"
+}
+
+### Kia - Picanto
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 9,
+  "nombre": "Picanto"
+}
+
+#############################################
+### 10. SUZUKI
+#############################################
+
+### Suzuki - Swift
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 10,
+  "nombre": "Swift"
+}
+
+### Suzuki - Vitara
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 10,
+  "nombre": "Vitara"
+}
+
+### Suzuki - Jimny
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 10,
+  "nombre": "Jimny"
+}
+
+### Suzuki - Baleno
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 10,
+  "nombre": "Baleno"
+}
+
+### Suzuki - Ertiga
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 10,
+  "nombre": "Ertiga"
+}
+
+### Suzuki - Grand Vitara
+POST http://localhost:8080/api/modelos
+Content-Type: application/json
+
+{
+  "marcaId": 10,
+  "nombre": "Grand Vitara"
+}
+
+### Actualizar modelo
+PUT http://localhost:8080/api/modelos/1
+Content-Type: application/json
+
+{
+  "marcaId": 1,
+  "nombre": "Corolla Cross",
+  "activo": 1
+}

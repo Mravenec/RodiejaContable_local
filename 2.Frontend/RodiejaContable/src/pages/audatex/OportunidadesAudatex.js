@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card, Table, Button, DatePicker, Input, Space, Typography,
-  message, Tag, Alert
+  message, Tag, Alert, Modal, Descriptions, Divider
 } from 'antd';
 import {
   SearchOutlined,
@@ -10,6 +10,7 @@ import {
   FilterOutlined,
   LoadingOutlined,
   CheckCircleOutlined,
+  EyeOutlined
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
@@ -27,18 +28,22 @@ const defaultFiltros = {
 };
 
 const OportunidadesAudatex = () => {
-  const [oportunidades, setOportunidades]   = useState([]);
-  const [streaming, setStreaming]           = useState(false);
-  const [streamDone, setStreamDone]         = useState(false);
-  const [totalCargado, setTotalCargado]     = useState(0);
-  const [filtros, setFiltros]               = useState({ ...defaultFiltros });
+  const [oportunidades, setOportunidades] = useState([]);
+  const [streaming, setStreaming] = useState(false);
+  const [streamDone, setStreamDone] = useState(false);
+  const [totalCargado, setTotalCargado] = useState(0);
+  const [filtros, setFiltros] = useState({ ...defaultFiltros });
   const [appliedFiltros, setAppliedFiltros] = useState({ ...defaultFiltros });
-  const [currentPage, setCurrentPage]       = useState(1);
-  const [pageSize, setPageSize]             = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
-  const abortRef   = useRef(null);
+  const [detalleModalVisible, setDetalleModalVisible] = useState(false);
+  const [detalleCotizacion, setDetalleCotizacion] = useState(null);
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
+
+  const abortRef = useRef(null);
   const startedRef = useRef(false); // evita doble-mount de React StrictMode en dev
-  const tableRef   = useRef(null);
+  const tableRef = useRef(null);
   const pendingQueueRef = useRef([]);
   const drainActiveRef = useRef(false);
   const keyCounterRef = useRef(0);
@@ -99,10 +104,10 @@ const OportunidadesAudatex = () => {
     streamReaderDoneRef.current = false;
 
     const params = new URLSearchParams();
-    if (currentFilters.armadora)     params.set('armadora', currentFilters.armadora);
-    if (currentFilters.aseguradora)  params.set('aseguradora', currentFilters.aseguradora);
-    if (currentFilters.desde)        params.set('desde', currentFilters.desde.format('YYYY-MM-DD'));
-    if (currentFilters.hasta)        params.set('hasta', currentFilters.hasta.format('YYYY-MM-DD'));
+    if (currentFilters.armadora) params.set('armadora', currentFilters.armadora);
+    if (currentFilters.aseguradora) params.set('aseguradora', currentFilters.aseguradora);
+    if (currentFilters.desde) params.set('desde', currentFilters.desde.format('YYYY-MM-DD'));
+    if (currentFilters.hasta) params.set('hasta', currentFilters.hasta.format('YYYY-MM-DD'));
     if (currentFilters.minPendientes) params.set('minPendientes', currentFilters.minPendientes);
 
     const token = localStorage.getItem('token');
@@ -121,10 +126,10 @@ const OportunidadesAudatex = () => {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const reader  = response.body.getReader();
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let   buffer  = '';
-      let   eventName = '';
+      let buffer = '';
+      let eventName = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -157,7 +162,7 @@ const OportunidadesAudatex = () => {
                 message.error(`Error del portal: ${parsed.error}`);
               }
               eventName = '';
-            } catch (_) {}
+            } catch (_) { }
           }
         }
       }
@@ -235,6 +240,27 @@ const OportunidadesAudatex = () => {
     cargarOportunidadesStream({ ...defaultFiltros });
   };
 
+  const handleVerDetalle = async (cotizacionId) => {
+    setCargandoDetalle(true);
+    setDetalleModalVisible(true);
+    setDetalleCotizacion(null);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8080/api/audatex/oportunidades/${encodeURIComponent(cotizacionId)}/detalle`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Error al obtener detalle');
+      const data = await response.json();
+      setDetalleCotizacion(data);
+    } catch (err) {
+      console.error(err);
+      message.error('No se pudo cargar el detalle de la cotización');
+      setDetalleModalVisible(false);
+    } finally {
+      setCargandoDetalle(false);
+    }
+  };
+
   useEffect(() => {
     // React StrictMode (dev) ejecuta: setup1 → cleanup1 → setup2.
     // startedRef evita que setup1 y setup2 abran dos streams simultáneos.
@@ -256,17 +282,23 @@ const OportunidadesAudatex = () => {
 
   // ── Columnas ──────────────────────────────────────────────────────────────
   const columns = [
-    { title: 'Aseguradora',   dataIndex: 'aseguradora',    key: 'aseguradora',
-      sorter: (a, b) => (a.aseguradora || '').localeCompare(b.aseguradora || '') },
-    { title: 'Cotización ID', dataIndex: 'cotizacionId',   key: 'cotizacionId' },
-    { title: 'Taller',        dataIndex: 'taller',         key: 'taller' },
-    { title: 'Póliza',        dataIndex: 'poliza',         key: 'poliza' },
-    { title: 'Siniestro',     dataIndex: 'siniestro',      key: 'siniestro' },
-    { title: 'Matrícula',     dataIndex: 'matricula',      key: 'matricula' },
-    { title: 'Armadora',      dataIndex: 'armadora',       key: 'armadora',
-      sorter: (a, b) => (a.armadora || '').localeCompare(b.armadora || '') },
-    { title: 'Fecha',         dataIndex: 'fechaCotizacion', key: 'fechaCotizacion',
-      sorter: (a, b) => (a.fechaCotizacion || '').localeCompare(b.fechaCotizacion || '') },
+    {
+      title: 'Aseguradora', dataIndex: 'aseguradora', key: 'aseguradora',
+      sorter: (a, b) => (a.aseguradora || '').localeCompare(b.aseguradora || '')
+    },
+    { title: 'Cotización ID', dataIndex: 'cotizacionId', key: 'cotizacionId' },
+    { title: 'Taller', dataIndex: 'taller', key: 'taller' },
+    { title: 'Póliza', dataIndex: 'poliza', key: 'poliza' },
+    { title: 'Siniestro', dataIndex: 'siniestro', key: 'siniestro' },
+    { title: 'Matrícula', dataIndex: 'matricula', key: 'matricula' },
+    {
+      title: 'Armadora', dataIndex: 'armadora', key: 'armadora',
+      sorter: (a, b) => (a.armadora || '').localeCompare(b.armadora || '')
+    },
+    {
+      title: 'Fecha', dataIndex: 'fechaCotizacion', key: 'fechaCotizacion',
+      sorter: (a, b) => (a.fechaCotizacion || '').localeCompare(b.fechaCotizacion || '')
+    },
     {
       title: 'Pendientes', dataIndex: 'pendientes', key: 'pendientes',
       sorter: (a, b) => (a.pendientes || 0) - (b.pendientes || 0),
@@ -274,6 +306,19 @@ const OportunidadesAudatex = () => {
         <Tag color={v > 0 ? 'orange' : 'green'} style={{ fontWeight: 'bold' }}>{v}</Tag>
       ),
     },
+    {
+      title: 'Acciones', key: 'acciones',
+      render: (_, record) => (
+        <Button
+          type="primary"
+          icon={<EyeOutlined />}
+          size="small"
+          onClick={() => handleVerDetalle(record.wan || record.cotizacionId)}
+        >
+          Detalle
+        </Button>
+      )
+    }
   ];
 
   return (
@@ -394,6 +439,95 @@ const OportunidadesAudatex = () => {
           />
         </div>
       </Card>
+
+      {/* Modal de Detalle */}
+      <Modal
+        title={`Detalle de Cotización`}
+        open={detalleModalVisible}
+        onCancel={() => setDetalleModalVisible(false)}
+        footer={[
+          <Button key="close" type="primary" onClick={() => setDetalleModalVisible(false)}>
+            Cerrar
+          </Button>
+        ]}
+        width={900}
+        centered
+        bodyStyle={{ maxHeight: '80vh', overflowY: 'auto', padding: '20px' }}
+      >
+        {cargandoDetalle ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <LoadingOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 16 }} spin />
+            <Title level={4}>Cargando detalles...</Title>
+            <p style={{ color: '#888' }}>Extrayendo la cotización del portal Audatex.</p>
+          </div>
+        ) : detalleCotizacion ? (
+          <div>
+            <div style={{ marginBottom: 24, textAlign: 'center' }}>
+              <Tag color="blue" style={{ fontSize: '14px', padding: '4px 12px' }}>
+                ID Audatex (WAN): {detalleCotizacion.wan}
+              </Tag>
+            </div>
+
+            {/* Repuestos Tablas */}
+            {detalleCotizacion.tablas && detalleCotizacion.tablas.map((tabla, i) => {
+              // Columnas que no queremos mostrar (inputs de formulario, selectores, precios vacíos)
+              const columnasExcluidas = [
+                'tipo pieza', 'stock actual', 'plazo de entrega *', 'precio item *',
+                'precio proveedor', 'no cotizar', 'razón', 'precio', 'tiempo entrega',
+                'seleccionar todos', 'elija', '-'
+              ];
+
+              // Limpiar columnas vacías y columnas sin nombre (col_X)
+              const rawKeys = Object.keys(tabla.data[0] || {});
+              const validKeys = rawKeys.filter(k => {
+                const kLower = k.toLowerCase().trim();
+                // Excluir si está en la lista negra
+                if (columnasExcluidas.some(ex => kLower.includes(ex) || kLower === ex)) return false;
+
+                // Excluir si es col_X y está vacía
+                if (k.startsWith('col_')) {
+                  return tabla.data.some(row => row[k] && row[k].trim() !== '' && row[k].trim().toLowerCase() !== 'elija');
+                }
+                return true;
+              });
+
+              const cols = validKeys.map(k => ({
+                title: k.startsWith('col_') ? '' : k,
+                dataIndex: k,
+                key: k,
+                render: (text) => text || '-'
+              }));
+
+              return (
+                <Card
+                  key={i}
+                  title={`Tabla de Repuestos (${tabla.id})`}
+                  size="small"
+                  style={{ marginBottom: 24, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
+                >
+                  <Table
+                    dataSource={tabla.data.map((row, idx) => ({ ...row, key: idx }))}
+                    columns={cols}
+                    pagination={{ pageSize: 15 }}
+                    size="small"
+                    bordered
+                    scroll={{ x: 'max-content' }}
+                  />
+                </Card>
+              );
+            })}
+
+            {(!detalleCotizacion.tablas || detalleCotizacion.tablas.length === 0) && (
+              <Alert
+                message="Sin repuestos"
+                description="No se encontraron tablas de repuestos en el detalle de esta cotización."
+                type="info"
+                showIcon
+              />
+            )}
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 };

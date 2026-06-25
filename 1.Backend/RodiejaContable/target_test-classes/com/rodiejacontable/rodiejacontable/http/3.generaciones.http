@@ -1,0 +1,333 @@
+### Obtener todas las generaciones
+GET http://localhost:8080/api/generaciones
+
+### Obtener generaciones por ID de modelo (ejemplo con Toyota Corolla - ID: 1)
+GET http://localhost:8080/api/generaciones/modelo/1
+
+#############################################
+### TOYOTA COROLLA (ID: 1)
+#############################################
+
+### Generación 10 - Corolla
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 1,
+  "nombre": "gen10",
+  "descripcion": "Décima generación E140/E150",
+  "anioInicio": 2006,
+  "anioFin": 2013
+}
+
+### Generación 11 - Corolla
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 1,
+  "nombre": "gen11",
+  "descripcion": "Undécima generación E160/E170",
+  "anioInicio": 2014,
+  "anioFin": 2019
+}
+
+### Generación 12 - Corolla
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 1,
+  "nombre": "gen12",
+  "descripcion": "Duodécima generación E210",
+  "anioInicio": 2020,
+  "anioFin": 2024
+}
+
+#############################################
+### TOYOTA CAMRY (ID: 2)
+#############################################
+
+### Generación 7 - Camry
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 2,
+  "nombre": "gen7",
+  "descripcion": "Séptima generación XV50",
+  "anioInicio": 2012,
+  "anioFin": 2017
+}
+
+### Generación 8 - Camry
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 2,
+  "nombre": "gen8",
+  "descripcion": "Octava generación XV70",
+  "anioInicio": 2018,
+  "anioFin": 2023
+}
+
+#############################################
+### TOYOTA YARIS (ID: 3)
+#############################################
+
+### Generación 3 - Yaris
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 3,
+  "nombre": "gen3",
+  "descripcion": "Tercera generación XP130",
+  "anioInicio": 2011,
+  "anioFin": 2019
+}
+
+### Generación 4 - Yaris
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 3,
+  "nombre": "gen4",
+  "descripcion": "Cuarta generación XP210",
+  "anioInicio": 2020,
+  "anioFin": 2024
+}
+
+#############################################
+### HONDA CIVIC (ID: 9)
+#############################################
+
+### Generación 9 - Civic
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 9,
+  "nombre": "gen9",
+  "descripcion": "Novena generación FB/FG",
+  "anioInicio": 2012,
+  "anioFin": 2015
+}
+
+### Generación 10 - Civic
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 9,
+  "nombre": "gen10",
+  "descripcion": "Décima generación FC/FK",
+  "anioInicio": 2016,
+  "anioFin": 2021
+}
+
+### Generación 11 - Civic
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 9,
+  "nombre": "gen11",
+  "descripcion": "Undécima generación FE",
+  "anioInicio": 2022,
+  "anioFin": 2024
+}
+
+#############################################
+### HONDA CR-V (ID: 11)
+#############################################
+
+### Generación 4 - CR-V
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 11,
+  "nombre": "gen4",
+  "descripcion": "Cuarta generación RM",
+  "anioInicio": 2012,
+  "anioFin": 2016
+}
+
+### Generación 5 - CR-V
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 11,
+  "nombre": "gen5",
+  "descripcion": "Quinta generación RW",
+  "anioInicio": 2017,
+  "anioFin": 2022
+}
+
+### Generación 6 - CR-V
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 11,
+  "nombre": "gen6",
+  "descripcion": "Sexta generación RT",
+  "anioInicio": 2023,
+  "anioFin": 2024
+}
+
+#############################################
+### NISSAN SENTRA (ID: 17)
+#############################################
+
+### Generación 7 - Sentra
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 17,
+  "nombre": "gen7",
+  "descripcion": "Séptima generación B17",
+  "anioInicio": 2013,
+  "anioFin": 2019
+}
+
+### Generación 8 - Sentra
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 17,
+  "nombre": "gen8",
+  "descripcion": "Octava generación B18",
+  "anioInicio": 2020,
+  "anioFin": 2024
+}
+
+#############################################
+### HYUNDAI ELANTRA (ID: 26)
+#############################################
+
+### Generación 5 - Elantra
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 26,
+  "nombre": "gen5",
+  "descripcion": "Quinta generación MD/UD",
+  "anioInicio": 2011,
+  "anioFin": 2015
+}
+
+### Generación 6 - Elantra
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 26,
+  "nombre": "gen6",
+  "descripcion": "Sexta generación AD",
+  "anioInicio": 2016,
+  "anioFin": 2020
+}
+
+### Generación 7 - Elantra
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 26,
+  "nombre": "gen7",
+  "descripcion": "Séptima generación CN7",
+  "anioInicio": 2021,
+  "anioFin": 2024
+}
+
+#############################################
+### CHEVROLET SPARK (ID: 34)
+#############################################
+
+### Generación 3 - Spark
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 34,
+  "nombre": "gen3",
+  "descripcion": "Tercera generación M300",
+  "anioInicio": 2010,
+  "anioFin": 2015
+}
+
+### Generación 4 - Spark
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 34,
+  "nombre": "gen4",
+  "descripcion": "Cuarta generación M400",
+  "anioInicio": 2016,
+  "anioFin": 2022
+}
+
+#############################################
+### FORD FOCUS (ID: 42)
+#############################################
+
+### Generación 3 - Focus
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 42,
+  "nombre": "gen3",
+  "descripcion": "Tercera generación",
+  "anioInicio": 2011,
+  "anioFin": 2018
+}
+
+### Generación 4 - Focus
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 42,
+  "nombre": "gen4",
+  "descripcion": "Cuarta generación",
+  "anioInicio": 2019,
+  "anioFin": 2022
+}
+
+#############################################
+### MAZDA3 (ID: 50)
+#############################################
+
+### Generación 3 - Mazda3
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 50,
+  "nombre": "gen3",
+  "descripcion": "Tercera generación BM/BN",
+  "anioInicio": 2014,
+  "anioFin": 2018
+}
+
+### Generación 4 - Mazda3
+POST http://localhost:8080/api/generaciones
+Content-Type: application/json
+
+{
+  "modeloId": 50,
+  "nombre": "gen4",
+  "descripcion": "Cuarta generación BP",
+  "anioInicio": 2019,
+  "anioFin": 2024
+}

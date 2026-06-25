@@ -1,0 +1,175 @@
+### Obtener todos los empleados
+GET http://localhost:8080/api/empleados
+
+### Obtener un empleado por ID (ejemplo con ID: 1)
+GET http://localhost:8080/api/empleados/1
+
+### Crear empleados
+
+### Empleado 1
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "JHONATHAN VARGAS"
+}
+
+### Empleado 2
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "LUIS MIRANDA SOLANO"
+}
+
+### Empleado 3
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "CACHORRO GONZÁLEZ"
+}
+
+### Empleado 4
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "ACXEL RODRÍGUEZ"
+}
+
+### Empleado 5
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "ADRIANA JIMÉNEZ"
+}
+
+### Empleado 6
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "AMAURIS CASTRO"
+}
+
+### Empleado 7
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "DIEGO HERNÁNDEZ"
+}
+
+### Empleado 8
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "NALLELY MORALES"
+}
+
+### Empleado 9
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "VICTORIA UGALDE"
+}
+
+### Empleado 10
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "EQUIPO DE VENTAS"
+}
+
+### Empleado 11
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "CARLOS MÉNDEZ"
+}
+
+### Empleado 12
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "MARÍA FERNÁNDEZ"
+}
+
+### Empleado 13
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "JOSÉ RAMÍREZ"
+}
+
+### Empleado 14
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "ANA PATRICIA VEGA"
+}
+
+### Empleado 15
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "MIGUEL ÁNGEL ROJAS"
+}
+
+### Empleado 16
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "STEPHANIE CHACÓN"
+}
+
+### Empleado 17
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "PABLO ALVARADO"
+}
+
+### Empleado 18
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "SILVIA MONGE"
+}
+
+### Empleado 19
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "RICARDO QUESADA"
+}
+
+### Empleado 20
+POST http://localhost:8080/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "DANIELA TORRES"
+}
+
+### Editar empleado (PUT)
+PUT http://localhost:8080/api/empleados/9
+Content-Type: application/json
+
+{
+  "nombre": "DANIELA ACTUALIZADA"
+}

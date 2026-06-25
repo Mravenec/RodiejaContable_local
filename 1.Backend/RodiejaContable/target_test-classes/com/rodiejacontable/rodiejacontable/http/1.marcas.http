@@ -1,0 +1,130 @@
+### Obtener todas las marcas
+GET http://localhost:8080/api/marcas
+
+### Insertar Toyota
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Toyota"
+}
+
+### Insertar Honda
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Honda"
+}
+
+### Insertar Nissan
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Nissan"
+}
+
+### Insertar Hyundai
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Hyundai"
+}
+
+### Insertar Chevrolet
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Chevrolet"
+}
+
+### Insertar Ford
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Ford"
+}
+
+### Insertar Mazda
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Mazda"
+}
+
+### Insertar Volkswagen
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Volkswagen"
+}
+
+### Insertar Kia
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Kia"
+}
+
+### Insertar Suzuki
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Suzuki"
+}
+
+### Insertar Mitsubishi
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Mitsubishi"
+}
+
+### Insertar Subaru
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Subaru"
+}
+
+### Actualizar una marca existente
+PUT http://localhost:8080/api/marcas/1
+Content-Type: application/json
+
+{
+  "nombre": "Toyota Actualizado"
+}
+
+### Insertar Isuzu
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Isuzu"
+}
+
+### Insertar Daihatsu
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Daihatsu"
+}
+
+### Insertar Peugeot
+POST http://localhost:8080/api/marcas
+Content-Type: application/json
+
+{
+  "nombre": "Peugeot"
+}

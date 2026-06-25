@@ -1,0 +1,182 @@
+### Obtener todos los tipos de transacciones
+GET http://localhost:8080/api/tipos-transacciones
+
+### Obtener tipos de transacciones por categoría (INGRESO o EGRESO)
+GET http://localhost:8080/api/tipos-transacciones/categoria/INGRESO
+
+### Obtener solo los tipos de transacciones activos
+GET http://localhost:8080/api/tipos-transacciones/activos
+
+### Crear tipos de transacciones
+
+### Ingresos
+
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Venta Vehículo",
+  "descripcion": "Ingreso por venta de vehículo completo",
+  "categoria": "INGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Venta Repuesto",
+  "descripcion": "Ingreso por venta de repuesto individual",
+  "categoria": "INGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Venta Mayoreo",
+  "descripcion": "Ingreso por venta al mayoreo",
+  "categoria": "INGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Servicios Mecánicos",
+  "descripcion": "Ingreso por servicios de mecánica",
+  "categoria": "INGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Alquiler Espacio",
+  "descripcion": "Ingreso por alquiler de espacio en yonke",
+  "categoria": "INGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Otros Ingresos",
+  "descripcion": "Otros ingresos diversos",
+  "categoria": "INGRESO"
+}
+
+### Egresos
+
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Compra Vehículo",
+  "descripcion": "Egreso por compra de vehículo",
+  "categoria": "EGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Compra Repuesto",
+  "descripcion": "Egreso por compra de repuesto",
+  "categoria": "EGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Reparación Vehículo",
+  "descripcion": "Egreso por reparaciones de vehículo",
+  "categoria": "EGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Mantenimiento Local",
+  "descripcion": "Egreso por mantenimiento del local",
+  "categoria": "EGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Comisión Vendedor",
+  "descripcion": "Egreso por comisión a vendedor",
+  "categoria": "EGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Costo Grúa",
+  "descripcion": "Egreso por servicio de grúa",
+  "categoria": "EGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Transporte",
+  "descripcion": "Egreso por transporte de vehículos",
+  "categoria": "EGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Combustible",
+  "descripcion": "Egreso por combustible",
+  "categoria": "EGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Servicios Públicos",
+  "descripcion": "Egreso por electricidad, agua, teléfono",
+  "categoria": "EGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Impuestos",
+  "descripcion": "Egreso por impuestos y patentes",
+  "categoria": "EGRESO"
+}
+
+###
+POST http://localhost:8080/api/tipos-transacciones
+Content-Type: application/json
+
+{
+  "nombre": "Otros Egresos",
+  "descripcion": "Otros egresos diversos",
+  "categoria": "EGRESO"
+}

@@ -321,6 +321,10 @@ public class AudatexService {
         return counts;
     }
 
+    public Map<String, Object> obtenerDetalleOportunidad(String wan) throws IOException {
+        return client.obtenerDetalleCotizacion(wan);
+    }
+
     public List<AudatexEnvios> obtenerEnviosPorRepuesto(Integer repuestoId) {
         return audatexEnviosRepository.findByRepuestoId(repuestoId);
     }

@@ -1,0 +1,35 @@
+### Obtener todo el inventario
+GET http://localhost:8080/api/inventario
+
+### Obtener un ítem de inventario por ID
+GET http://localhost:8080/api/inventario/1
+
+### Buscar en inventario con filtros básicos
+### Estados disponibles: STOCK, VENDIDO, AGOTADO, DAÑADO, USADO_INTERNO
+GET http://localhost:8080/api/inventario/buscar?marca=Toyota&estado=STOCK
+
+### Búsqueda avanzada con múltiples filtros
+GET http://localhost:8080/api/inventario/buscar?marca=Toyota&modelo=Corolla&anio=2020&parte=MOTOR&precioMin=1000&precioMax=5000
+
+### Obtener inventario por estado
+### Estados válidos: STOCK, VENDIDO, AGOTADO, DAÑADO, USADO_INTERNO
+GET http://localhost:8080/api/inventario/estado/STOCK
+
+### Obtener inventario por parte de vehículo
+### Partes válidas: MOTOR, CHASIS, CARROCERIA, COMPUTADORA, "CAJA DE CAMBIO", "AIRBAGS O BOLSAS DE AIRE",
+### "EJES Y DIFERENCIA", "SUSPENSION Y AMORTIGUAMIENTO", EMBRAGUE, "SISTEMA DE FRENOS",
+### "TANQUE DE GASOLINA", DISTRIBUIDOR, RADIADOR, VENTILADOR, "BOMBA DE AGUA", BATERIA, "AROS Y LLANTAS"
+GET http://localhost:8080/api/inventario/parte-vehiculo/MOTOR
+
+### Obtener inventario por año de vehículo
+GET http://localhost:8080/api/inventario/anio/2020
+
+### Obtener inventario por rango de precios
+### Usa el endpoint de búsqueda con los parámetros precioMin y precioMax
+GET http://localhost:8080/api/inventario/buscar?precioMin=1000&precioMax=5000
+
+### Obtener estadísticas de vehículos
+GET http://localhost:8080/api/dashboard/ejecutivo/estadisticas-vehiculos
+
+### Obtener estadísticas de repuestos
+GET http://localhost:8080/api/dashboard/ejecutivo/estadisticas-repuestos

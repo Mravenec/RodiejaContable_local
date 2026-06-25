@@ -1,0 +1,44 @@
+### ========================================
+### MÓDULO: PARTES DE VEHÍCULO
+### ========================================
+
+### 1. Obtener todas las partes activas (Para llenar selects)
+GET http://localhost:8080/api/partes-vehiculo/activos
+
+### 2. Obtener TODAS las partes (Activas e inactivas)
+GET http://localhost:8080/api/partes-vehiculo
+
+### 3. Obtener parte de vehículo por ID
+GET http://localhost:8080/api/partes-vehiculo/1
+
+### ========================================
+### MANTENIMIENTO (CRUD)
+### ========================================
+
+### 4. Crear nueva parte de vehículo
+POST http://localhost:8080/api/partes-vehiculo
+Content-Type: application/json
+
+{
+  "nombre": "NUEVA PARTE DE PRUEBA",
+  "activo": 1
+}
+
+### 5. Actualizar parte de vehículo (Cambiar nombre)
+PUT http://localhost:8080/api/partes-vehiculo/1
+Content-Type: application/json
+
+{
+  "nombre": "MOTOR ACTUALIZADO"
+}
+
+### 6. Eliminar parte de vehículo (Borrado lógico, activo = 0)
+DELETE http://localhost:8080/api/partes-vehiculo/1
+
+### 7. Restaurar parte de vehículo eliminada
+PUT http://localhost:8080/api/partes-vehiculo/1
+Content-Type: application/json
+
+{
+  "activo": 1
+}

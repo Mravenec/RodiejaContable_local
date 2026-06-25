@@ -332,7 +332,8 @@ public class AudatexClient {
         Map<String, String> cookies = sessionManager.getActiveCookies();
 
         // URL de detalle de cotización (ejemplo basado en estructura típica de ASP.NET)
-        String detalleUrl = props.getQuotationSearchUrl().replace("frmQuotationSupplierSearch.aspx", "frmQuotationDetail.aspx") + "?WAN=" + wan;
+        String detalleUrl = props.getQuotationSearchUrl().replace("frmQuotationSupplierSearch.aspx", "frmQuotationSupplierAnswer.aspx") 
+                + "?IdQuotation=" + java.net.URLEncoder.encode(wan, "UTF-8") + "&CalledPage=QuotationSupplierSearch";
         log.info("[Audatex] Enviando cotización para WAN {} - URL: {}", wan, detalleUrl);
 
         // 1. Navegar a la página de detalle
@@ -455,6 +456,109 @@ public class AudatexClient {
         return false;
     }
 
+    // ── ROD-27b: Ver Detalle de Cotización ─────────────────────────────────────────
+
+    public Map<String, Object> obtenerDetalleCotizacion(String wan) throws IOException {
+        Map<String, String> cookies = sessionManager.getActiveCookies();
+        String detalleUrl = props.getQuotationSearchUrl().replace("frmQuotationSupplierSearch.aspx", "frmQuotationSupplierAnswer.aspx") 
+                + "?IdQuotation=" + java.net.URLEncoder.encode(wan, "UTF-8") + "&CalledPage=QuotationSupplierSearch";
+        
+        log.info("[Audatex] Obteniendo detalles para WAN {} - URL: {}", wan, detalleUrl);
+
+        Connection.Response resp = Jsoup.connect(detalleUrl)
+                .cookies(cookies)
+                .header("Referer", props.getQuotationSearchUrl())
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+                .header("Accept-Language", "es-419,es;q=0.9")
+                .header("sec-fetch-dest", "document")
+                .header("sec-fetch-mode", "navigate")
+                .header("sec-fetch-site", "same-origin")
+                .header("Upgrade-Insecure-Requests", "1")
+                .followRedirects(true)
+                .method(Connection.Method.GET)
+                .userAgent(USER_AGENT)
+                .execute();
+
+        if (resp.url().toString().contains("frmLogin") || resp.url().toString().contains("AudaPartsSite")) {
+            log.warn("[Audatex] Sesión expirada al intentar ver detalle - re-autenticando");
+            sessionManager.invalidate();
+            cookies = sessionManager.getActiveCookies();
+            resp = Jsoup.connect(detalleUrl)
+                    .cookies(cookies)
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+                    .header("Accept-Language", "es-419,es;q=0.9")
+                    .followRedirects(true)
+                    .method(Connection.Method.GET)
+                    .userAgent(USER_AGENT)
+                    .execute();
+        }
+
+        Document doc = resp.parse();
+        Map<String, Object> resultado = new java.util.LinkedHashMap<>();
+        resultado.put("wan", wan);
+        resultado.put("formFields", extractFormFields(doc));
+
+        List<Map<String, Object>> tablas = new ArrayList<>();
+        List<Map<String, String>> filasRepuestos = new ArrayList<>();
+        
+        for (Element table : doc.select("table")) {
+            Elements rows = table.select("> tbody > tr, > thead > tr, > tr");
+            if (rows.size() < 2) continue;
+
+            // Encontrar si esta tabla contiene la cabecera real de repuestos
+            int headerIndex = -1;
+            List<String> headerNames = new ArrayList<>();
+            for (int r = 0; r < Math.min(rows.size(), 10); r++) {
+                String rowText = rows.get(r).text();
+                // La cabecera real debe tener PartNumber y Descripción Pieza
+                if (rowText.contains("PartNumber") && rowText.contains("Descripción Pieza")) {
+                    headerIndex = r;
+                    Elements ths = rows.get(r).select("> th, > td");
+                    for (Element th : ths) {
+                        Element clone = th.clone();
+                        clone.select("select, input").remove();
+                        headerNames.add(clone.text().trim());
+                    }
+                    break;
+                }
+            }
+
+            if (headerIndex != -1) {
+                // Es la tabla correcta, procesar las filas de repuestos
+                for (int i = headerIndex + 1; i < rows.size(); i++) {
+                    Elements cols = rows.get(i).select("> td");
+                    if (cols.isEmpty() || cols.size() < 5) continue; // Una fila real tiene varias columnas
+
+                    Map<String, String> repuesto = new java.util.LinkedHashMap<>();
+                    boolean isValido = false;
+                    for (int j = 0; j < Math.min(cols.size(), headerNames.size()); j++) {
+                        String colName = headerNames.get(j);
+                        // Solo nos interesan las columnas de descripción de la pieza
+                        if (colName.contains("Pieza") || colName.contains("PartNumber") || colName.contains("Serial") || colName.contains("Grupo")) {
+                            Element cellClone = cols.get(j).clone();
+                            cellClone.select("select, input, button").remove();
+                            String val = cellClone.text().trim();
+                            repuesto.put(colName, val);
+                            if (!val.isEmpty() && !val.equals("-")) isValido = true;
+                        }
+                    }
+                    if (isValido) filasRepuestos.add(repuesto);
+                }
+                break; // Ya encontramos la tabla, no buscar más
+            }
+        }
+
+        if (!filasRepuestos.isEmpty()) {
+            Map<String, Object> t = new java.util.LinkedHashMap<>();
+            t.put("id", "Lista de Repuestos");
+            t.put("data", filasRepuestos);
+            tablas.add(t);
+        }
+        resultado.put("tablas", tablas);
+
+        return resultado;
+    }
+
     // ── Parsing ─────────────────────────────────────────────────────────────────
 
     /**
@@ -497,7 +601,37 @@ public class AudatexClient {
                 oportunidad.put("pendientes", 0);
             }
 
+            // Extract the actual base64 ID from anywhere in the row's HTML
+            String base64Wan = null;
+            String rowHtml = rows.get(i).outerHtml();
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?:IdQuotation|WAN)=([^&\"'>]+)").matcher(rowHtml);
+            if (m.find()) {
+                base64Wan = m.group(1);
+            } else {
+                // Respaldo agresivo: buscar una cadena Base64 válida (min 10 caracteres, puede terminar en =)
+                m = java.util.regex.Pattern.compile("['\"]([A-Za-z0-9+/]{10,60}=*)['\"]").matcher(rowHtml);
+                if (m.find()) {
+                    base64Wan = m.group(1);
+                }
+            }
+            
+            if (base64Wan != null) {
+                oportunidad.put("wan", base64Wan);
+            } else {
+                oportunidad.put("wan", oportunidad.get("cotizacionId")); // fallback
+            }
+
             lista.add(oportunidad);
+        }
+
+        // Dump HTML for debugging
+        try {
+            java.nio.file.Files.writeString(
+                java.nio.file.Paths.get("AudaPartsWebApp_Search.html"),
+                table.outerHtml()
+            );
+        } catch (Exception e) {
+            log.error("Failed to dump HTML", e);
         }
 
         return lista;

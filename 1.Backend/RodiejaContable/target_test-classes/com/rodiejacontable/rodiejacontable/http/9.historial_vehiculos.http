@@ -1,0 +1,59 @@
+### Obtener todo el historial de vehículos
+GET http://localhost:8080/api/historial-vehiculos
+
+### Obtener un registro de historial por ID
+GET http://localhost:8080/api/historial-vehiculos/2
+
+### Obtener historial por ID de vehículo
+GET http://localhost:8080/api/historial-vehiculos/vehiculo/2
+
+### Obtener historial con observaciones por ID de vehículo
+GET http://localhost:8080/api/historial-vehiculos/vehiculo/1
+
+### Registrar cambio de estado de vehículo
+POST http://localhost:8080/api/historial-vehiculos
+Content-Type: application/json
+
+{
+  "vehiculoId": 1,
+  "accion": "UPDATE",
+  "campoModificado": "estado",
+  "valorAnterior": "DISPONIBLE",
+  "valorNuevo": "VENDIDO",
+  "usuario": "admin",
+  "ipUsuario": "192.168.1.100",
+  "observaciones": "Cambio por venta directa"
+}
+
+### Registrar cambio de precio de venta
+POST http://localhost:8080/api/historial-vehiculos
+Content-Type: application/json
+
+{
+  "vehiculoId": 2,
+  "accion": "UPDATE",
+  "campoModificado": "precio_venta",
+  "valorAnterior": "4900000.00",
+  "valorNuevo": "5100000.00",
+  "usuario": "lmiranda",
+  "ipUsuario": "192.168.1.101",
+  "observaciones": "Ajuste por negociación final"
+}
+
+### Obtener todo el historial de vehículos
+GET http://localhost:8080/api/historial-vehiculos
+
+### Obtener un registro de historial por ID
+GET http://localhost:8080/api/historial-vehiculos/1
+
+### Obtener historial por ID de vehículo
+GET http://localhost:8080/api/historial-vehiculos/vehiculo/1
+
+### Registrar cambio de precio de venta
+POST http://localhost:8080/api/historial-vehiculos?vehiculoId=2&accion=UPDATE&campoModificado=precio_venta&valorAnterior=4900000.00&valorNuevo=5100000.00&usuario=lmiranda&ipUsuario=192.168.1.101&observaciones=Ajuste por negociación final
+
+### Registrar venta de repuesto (Nota: Este sería para historial_repuestos, no para vehículos)
+# POST http://localhost:8080/api/historial-repuestos?repuestoId=2&accion=UPDATE&campoModificado=estado&valorAnterior=STOCK&valorNuevo=VENDIDO&usuario=jvargas&ipUsuario=192.168.1.102&observaciones=Venta a cliente mayorista
+
+### Registrar cancelación de transacción (Nota: Este sería para historial_transacciones, no para vehículos)
+# POST http://localhost:8080/api/historial-transacciones?transaccionId=18&accion=UPDATE&campoModificado=estado&valorAnterior=COMPLETADA&valorNuevo=CANCELADA&usuario=admin&ipUsuario=192.168.1.100&observaciones=Error en registro de pago

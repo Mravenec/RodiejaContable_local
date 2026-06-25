@@ -1,0 +1,664 @@
+### Obtener todos los vehículos
+GET http://localhost:8080/api/vehiculos
+
+### Obtener un vehículo por ID (ejemplo con ID: 1)
+GET http://localhost:8080/api/vehiculos/1
+
+### Obtener vehículos por estado (DISPONIBLE, VENDIDO, REPARACION, DESARMADO)
+GET http://localhost:8080/api/vehiculos/estado/DISPONIBLE
+
+### Crear vehículos
+
+### Toyota Corolla gen11 (2014-2019)
+
+### Vehículo 1 - Corolla 2015
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 1,
+  "anio": 2015,
+  "precioCompra": 3500000.00,
+  "costoGrua": 25000.00,
+  "comisiones": 50000.00,
+  "imagenUrl": "https://ejemplo.com/imagenes/corolla-2015.jpg",
+  "fechaIngreso": "2023-01-15",
+  "estado": "REPARACION",
+  "precioVenta": 4200000.00,
+  "fechaVenta": "2023-02-20",
+  "notas": "Excelente estado, un solo dueño"
+}
+
+### Vehículo 2 - Corolla 2016
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 1,
+  "anio": 2016,
+  "precioCompra": 4200000.00,
+  "costoGrua": 30000.00,
+  "comisiones": 60000.00,
+  "fechaIngreso": "2023-01-20",
+  "estado": "VENDIDO",
+  "precioVenta": 5100000.00,
+  "fechaVenta": "2023-03-15",
+  "notas": "Automático, full equipo"
+}
+
+### Vehículo 3 - Corolla 2017
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 1,
+  "anio": 2017,
+  "precioCompra": 4800000.00,
+  "costoGrua": 35000.00,
+  "comisiones": 70000.00,
+  "fechaIngreso": "2023-02-10",
+  "estado": "REPARACION",
+  "notas": "Mecánico, aire acondicionado"
+}
+
+### Vehículo 4 - Corolla 2018
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 1,
+  "anio": 2018,
+  "precioCompra": 5500000.00,
+  "costoGrua": 40000.00,
+  "comisiones": 80000.00,
+  "fechaIngreso": "2023-02-25",
+  "estado": "DESARMADO",
+  "precioVenta": 6300000.00,
+  "fechaVenta": "2023-04-10",
+  "notas": "Híbrido, excelente consumo"
+}
+
+### Vehículo 5 - Corolla 2019
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 1,
+  "anio": 2019,
+  "precioCompra": 6200000.00,
+  "costoGrua": 45000.00,
+  "comisiones": 90000.00,
+  "fechaIngreso": "2023-03-05",
+  "estado": "DESARMADO",
+  "notas": "Recién llegado, impecable"
+}
+
+### Toyota Corolla gen12 (2020-2024)
+
+### Vehículo 6 - Corolla 2020
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 3,
+  "anio": 2020,
+  "precioCompra": 7500000.00,
+  "costoGrua": 50000.00,
+  "comisiones": 100000.00,
+  "fechaIngreso": "2023-03-12",
+  "estado": "VENDIDO",
+  "precioVenta": 8800000.00,
+  "fechaVenta": "2023-05-18",
+  "notas": "Modelo nuevo, garantía vigente"
+}
+
+### Vehículo 7 - Corolla 2021
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 3,
+  "anio": 2021,
+  "precioCompra": 8200000.00,
+  "costoGrua": 55000.00,
+  "comisiones": 110000.00,
+  "fechaIngreso": "2023-03-20",
+  "estado": "DISPONIBLE",
+  "notas": "Sensores de parqueo, cámara trasera"
+}
+
+### Vehículo 8 - Corolla 2022
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 3,
+  "anio": 2022,
+  "precioCompra": 9100000.00,
+  "costoGrua": 60000.00,
+  "comisiones": 120000.00,
+  "fechaIngreso": "2023-04-01",
+  "estado": "REPARACION",
+  "notas": "Necesita cambio de transmisión"
+}
+
+### Vehículo 9 - Corolla 2023
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 3,
+  "anio": 2023,
+  "precioCompra": 10500000.00,
+  "costoGrua": 65000.00,
+  "comisiones": 130000.00,
+  "fechaIngreso": "2023-04-15",
+  "estado": "DISPONIBLE",
+  "notas": "Último modelo, cero kilómetros"
+}
+
+### Honda Civic gen10 (2016-2021)
+
+### Vehículo 10 - Civic 2017
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 4,
+  "anio": 2017,
+  "precioCompra": 5200000.00,
+  "costoGrua": 40000.00,
+  "comisiones": 75000.00,
+  "fechaIngreso": "2023-01-25",
+  "estado": "VENDIDO",
+  "precioVenta": 6100000.00,
+  "fechaVenta": "2023-03-08",
+  "notas": "Turbo, excelente rendimiento"
+}
+
+### Vehículo 11 - Civic 2018
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 4,
+  "anio": 2018,
+  "precioCompra": 5800000.00,
+  "costoGrua": 45000.00,
+  "comisiones": 85000.00,
+  "fechaIngreso": "2023-02-15",
+  "estado": "VENDIDO",
+  "precioVenta": 6900000.00,
+  "fechaVenta": "2023-04-22",
+  "notas": "Sedán, aire acondicionado"
+}
+
+### Vehículo 12 - Civic 2019
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 4,
+  "anio": 2019,
+  "precioCompra": 6400000.00,
+  "costoGrua": 50000.00,
+  "comisiones": 95000.00,
+  "fechaIngreso": "2023-03-08",
+  "estado": "DISPONIBLE",
+  "notas": "Hatchback, muy deportivo"
+}
+
+### Vehículo 13 - Civic 2020
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 4,
+  "anio": 2020,
+  "precioCompra": 7200000.00,
+  "costoGrua": 55000.00,
+  "comisiones": 105000.00,
+  "fechaIngreso": "2023-03-25",
+  "estado": "DISPONIBLE",
+  "notas": "Sensing, tecnología avanzada"
+}
+
+### Vehículo 14 - Civic 2021
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 4,
+  "anio": 2021,
+  "precioCompra": 8000000.00,
+  "costoGrua": 60000.00,
+  "comisiones": 115000.00,
+  "fechaIngreso": "2023-04-12",
+  "estado": "DESARMADO",
+  "notas": "Accidentado, solo para repuestos"
+}
+
+### Honda CR-V gen5 (2017-2022)
+
+### Vehículo 15 - CR-V 2018
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 6,
+  "anio": 2018,
+  "precioCompra": 8500000.00,
+  "costoGrua": 70000.00,
+  "comisiones": 125000.00,
+  "fechaIngreso": "2023-02-20",
+  "estado": "VENDIDO",
+  "precioVenta": 10200000.00,
+  "fechaVenta": "2023-04-30",
+  "notas": "SUV familiar, 7 pasajeros"
+}
+
+### Vehículo 16 - CR-V 2019
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 6,
+  "anio": 2019,
+  "precioCompra": 9200000.00,
+  "costoGrua": 75000.00,
+  "comisiones": 135000.00,
+  "fechaIngreso": "2023-03-15",
+  "estado": "DISPONIBLE",
+  "notas": "Tracción integral, como nueva"
+}
+
+### Vehículo 17 - CR-V 2020
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 6,
+  "anio": 2020,
+  "precioCompra": 10100000.00,
+  "costoGrua": 80000.00,
+  "comisiones": 145000.00,
+  "fechaIngreso": "2023-04-05",
+  "estado": "DISPONIBLE",
+  "notas": "Turbo, excelente para familia"
+}
+
+### Nissan Sentra gen7 (2013-2019)
+
+### Vehículo 18 - Sentra 2015
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 7,
+  "anio": 2015,
+  "precioCompra": 3200000.00,
+  "costoGrua": 30000.00,
+  "comisiones": 45000.00,
+  "fechaIngreso": "2023-01-10",
+  "estado": "VENDIDO",
+  "precioVenta": 3800000.00,
+  "fechaVenta": "2023-02-25",
+  "notas": "Económico, ideal para trabajo",
+  "imagenUrl": "https://ejemplo.com/imagenes/sentra-2015.jpg"
+}
+
+### Vehículo 19 - Sentra 2016
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 7,
+  "anio": 2016,
+  "precioCompra": 3600000.00,
+  "costoGrua": 35000.00,
+  "comisiones": 50000.00,
+  "fechaIngreso": "2023-02-05",
+  "estado": "VENDIDO",
+  "precioVenta": 4300000.00,
+  "fechaVenta": "2023-03-20",
+  "notas": "Automático, muy cómodo",
+  "imagenUrl": "https://ejemplo.com/imagenes/sentra-2016.jpg"
+}
+
+### Vehículo 20 - Sentra 2017
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 7,
+  "anio": 2017,
+  "precioCompra": 4000000.00,
+  "costoGrua": 40000.00,
+  "comisiones": 55000.00,
+  "fechaIngreso": "2023-02-18",
+  "estado": "DISPONIBLE",
+  "notas": "Bajo kilometraje"
+}
+
+### Vehículo 21 - Sentra 2018
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 7,
+  "anio": 2018,
+  "precioCompra": 4500000.00,
+  "costoGrua": 45000.00,
+  "comisiones": 60000.00,
+  "fechaIngreso": "2023-03-10",
+  "estado": "DISPONIBLE",
+  "notas": "Recién llegado"
+}
+
+### Vehículo 22 - Sentra 2019
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 7,
+  "anio": 2019,
+  "precioCompra": 5000000.00,
+  "costoGrua": 50000.00,
+  "comisiones": 65000.00,
+  "fechaIngreso": "2023-03-28",
+  "estado": "REPARACION",
+  "notas": "Necesita trabajo en motor"
+}
+
+### Hyundai Elantra gen6 (2016-2020)
+
+### Vehículo 23 - Elantra 2017
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 9,
+  "anio": 2017,
+  "precioCompra": 4300000.00,
+  "costoGrua": 35000.00,
+  "comisiones": 60000.00,
+  "fechaIngreso": "2023-01-30",
+  "estado": "VENDIDO",
+  "precioVenta": 5200000.00,
+  "fechaVenta": "2023-03-12",
+  "notas": "Garantía extendida"
+}
+
+### Vehículo 24 - Elantra 2018
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 9,
+  "anio": 2018,
+  "precioCompra": 4800000.00,
+  "costoGrua": 40000.00,
+  "comisiones": 70000.00,
+  "fechaIngreso": "2023-02-22",
+  "estado": "DISPONIBLE",
+  "notas": "Muy bien cuidado"
+}
+
+### Vehículo 25 - Elantra 2019
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 9,
+  "anio": 2019,
+  "precioCompra": 5300000.00,
+  "costoGrua": 45000.00,
+  "comisiones": 75000.00,
+  "fechaIngreso": "2023-03-18",
+  "estado": "DISPONIBLE",
+  "notas": "Excelente estado"
+}
+
+### Vehículo 26 - Elantra 2020
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 9,
+  "anio": 2020,
+  "precioCompra": 5800000.00,
+  "costoGrua": 50000.00,
+  "comisiones": 80000.00,
+  "fechaIngreso": "2023-04-08",
+  "estado": "VENDIDO",
+  "precioVenta": 6700000.00,
+  "fechaVenta": "2023-05-25",
+  "notas": "Último año de generación"
+}
+
+### Chevrolet Spark gen4 (2016-2022)
+
+### Vehículo 27 - Spark 2017
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 10,
+  "anio": 2017,
+  "precioCompra": 2800000.00,
+  "costoGrua": 20000.00,
+  "comisiones": 35000.00,
+  "fechaIngreso": "2023-01-12",
+  "estado": "VENDIDO",
+  "precioVenta": 3400000.00,
+  "fechaVenta": "2023-02-28",
+  "notas": "Ideal para ciudad"
+}
+
+### Vehículo 28 - Spark 2018
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 10,
+  "anio": 2018,
+  "precioCompra": 3200000.00,
+  "costoGrua": 25000.00,
+  "comisiones": 40000.00,
+  "fechaIngreso": "2023-02-08",
+  "estado": "VENDIDO",
+  "precioVenta": 3900000.00,
+  "fechaVenta": "2023-03-22",
+  "notas": "Automático, muy económico"
+}
+
+### Vehículo 29 - Spark 2019
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 10,
+  "anio": 2019,
+  "precioCompra": 3600000.00,
+  "costoGrua": 30000.00,
+  "comisiones": 45000.00,
+  "fechaIngreso": "2023-03-02",
+  "estado": "DISPONIBLE",
+  "notas": "Bajo consumo de combustible"
+}
+
+### Vehículo 30 - Spark 2020
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 10,
+  "anio": 2020,
+  "precioCompra": 4000000.00,
+  "costoGrua": 35000.00,
+  "comisiones": 50000.00,
+  "fechaIngreso": "2023-03-20",
+  "estado": "DISPONIBLE",
+  "notas": "Perfecto para principiantes"
+}
+
+### Ejemplo completo con todos los campos incluyendo CILINDRAJE
+### Vehículo 31 - Corolla 2021 con cilindraje
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 1,
+  "anio": 2021,
+  "precioCompra": 150000.00,
+  "costoGrua": 5000.00,
+  "comisiones": 2000.00,
+  "imagenUrl": "https://mi-servidor/vehiculos/TOCO-001.jpg",
+  "fechaIngreso": "2025-09-18",
+  "estado": "DESARMADO",
+  "precioVenta": null,
+  "fechaVenta": null,
+  "cilindraje": "1.8L",
+  "notas": "Vehículo en buen estado, recuperado de aseguradora, llantas al 80%."
+}
+
+### Prueba CREATE con diferentes formatos de cilindraje
+### Vehículo 32 - Honda Civic con cilindraje en cc
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 4,
+  "anio": 2019,
+  "precioCompra": 6400000.00,
+  "costoGrua": 50000.00,
+  "comisiones": 95000.00,
+  "fechaIngreso": "2023-03-08",
+  "estado": "DISPONIBLE",
+  "cilindraje": "1600cc",
+  "notas": "Hatchback, muy deportivo, motor 1.6L"
+}
+
+### Vehículo 33 - CR-V con cilindraje V6
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 6,
+  "anio": 2019,
+  "precioCompra": 9200000.00,
+  "costoGrua": 75000.00,
+  "comisiones": 135000.00,
+  "fechaIngreso": "2023-03-15",
+  "estado": "DISPONIBLE",
+  "traccion": "4x4",
+  "transmision": "Automatico",
+  "combustible": "Gasolina",
+  "cilindraje": "V6 3.5L",
+  "notas": "SUV familiar, tracción integral"
+}
+
+### Vehículo 34 - Eléctrico
+POST http://localhost:8080/api/vehiculos
+Content-Type: application/json
+
+{
+  "generacionId": 4,
+  "anio": 2021,
+  "precioCompra": 12000000.00,
+  "costoGrua": 80000.00,
+  "comisiones": 150000.00,
+  "fechaIngreso": "2023-04-12",
+  "estado": "DISPONIBLE",
+  "combustible": "Elécrico",
+  "cilindraje": "Eléctrico",
+  "notas": "Honda Civic eléctrico, cero emisiones"
+}
+
+### Actualizar vehículo (PUT test)
+PUT http://localhost:8080/api/vehiculos/2
+Content-Type: application/json
+
+{
+  "generacionId": 2,
+  "anio": 2018,
+  "precioCompra": 6000000.00,
+  "costoGrua": 40000.00,
+  "comisiones": 80000.00,
+  "precioVenta": null,
+  "imagenUrl": "",
+  "fechaIngreso": "2023-01-31",
+  "fechaVenta": null,
+  "estado": "DESARMADO",
+  "notas": "Test de actualización - PUT endpoint funcionando correctamente"
+}
+
+### Actualizar vehículo con imagen real (PUT test)
+PUT http://localhost:8080/api/vehiculos/2
+Content-Type: application/json
+
+{
+  "generacionId": 2,
+  "anio": 2018,
+  "precioCompra": 6000000.00,
+  "costoGrua": 40000.00,
+  "comisiones": 80000.00,
+  "precioVenta": null,
+  "imagenUrl": "https://www.autosactual.mx/wp-content/uploads/2018/01/honda-civic-sedan-2018-00.jpg",
+  "fechaIngreso": "2023-01-31",
+  "fechaVenta": null,
+  "estado": "DISPONIBLE",
+  "notas": "Test con imagen real de Honda Civic 2018 desde URL externa"
+}
+
+### Actualizar solo imagen (PUT test)
+PUT http://localhost:8080/api/vehiculos/2
+Content-Type: application/json
+
+{
+  "imagenUrl": "https://www.autosactual.mx/wp-content/uploads/2018/01/honda-civic-sedan-2018-00.jpg",
+  "notas": "Actualizando solo la imagen del vehículo con URL real"
+}
+
+### Actualizar solo notas (PUT test simple)
+PUT http://localhost:8080/api/vehiculos/2
+Content-Type: application/json
+
+{
+  "notas": "Solo actualizando las notas - prueba simple del PUT endpoint"
+}
+
+### Verificar vehículo existe (GET test)
+GET http://localhost:8080/api/vehiculos/2
+
+### Actualizar solo notas (PUT test minimal)
+PUT http://localhost:8080/api/vehiculos/2
+Content-Type: application/json
+
+{
+  "notas": "Test minimal - solo notas"
+}
+
+### Pruebas UPDATE con CILINDRAJE
+### Actualizar solo cilindraje (PUT test)
+PUT http://localhost:8080/api/vehiculos/2
+Content-Type: application/json
+
+{
+  "cilindraje": "2.0L Turbo"
+}
+
+### Actualizar múltiples campos incluyendo cilindraje
+PUT http://localhost:8080/api/vehiculos/2
+Content-Type: application/json
+
+{
+  "precioVenta": 7500000.00,
+  "fechaVenta": "2023-06-15",
+  "estado": "VENDIDO",
+  "cilindraje": "2.0L Turbo",
+  "notas": "Vendido con cilindraje actualizado - motor turbo"
+}
+
+### Verificar vehículo con cilindraje actualizado
+GET http://localhost:8080/api/vehiculos/2

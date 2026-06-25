@@ -22,7 +22,7 @@ import org.jooq.impl.Internal;
 /**
  * A class modelling indexes of tables in sistema_vehicular.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Indexes {
 
     // -------------------------------------------------------------------------

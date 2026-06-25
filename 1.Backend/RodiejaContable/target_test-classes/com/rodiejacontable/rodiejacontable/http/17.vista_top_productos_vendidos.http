@@ -1,0 +1,29 @@
+### Obtener todos los productos más vendidos
+GET http://localhost:8080/api/v1/top-productos-vendidos
+
+### Obtener productos por tipo
+GET http://localhost:8080/api/v1/top-productos-vendidos/tipo/repuesto
+
+### Obtener los N productos más vendidos
+GET http://localhost:8080/api/v1/top-productos-vendidos/top/10
+
+### Obtener tipos de productos disponibles
+GET http://localhost:8080/api/v1/top-productos-vendidos/tipos
+
+### Obtener estadísticas de productos vendidos
+GET http://localhost:8080/api/v1/top-productos-vendidos/estadisticas
+
+### Obtener productos por rango de fechas
+GET http://localhost:8080/api/v1/top-productos-vendidos/rango-fechas?fechaInicio=2023-01-01&fechaFin=2023-12-31
+
+### Obtener productos por marca
+GET http://localhost:8080/api/v1/top-productos-vendidos/marca/Toyota
+
+### Obtener productos por modelo
+GET http://localhost:8080/api/v1/top-productos-vendidos/modelo/Corolla
+
+### Obtener productos por categoría
+GET http://localhost:8080/api/v1/top-productos-vendidos/categoria/motor
+
+### Buscar productos con filtros
+GET http://localhost:8080/api/v1/top-productos-vendidos/buscar?tipo=repuesto&marca=Toyota&categoria=motor&limit=5

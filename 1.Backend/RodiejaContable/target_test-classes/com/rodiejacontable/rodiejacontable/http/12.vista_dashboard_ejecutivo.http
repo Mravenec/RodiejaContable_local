@@ -1,0 +1,27 @@
+### 1. Obtener todos los datos del dashboard ejecutivo
+GET http://localhost:8080/api/dashboard/ejecutivo
+
+### 2. Obtener datos del dashboard por sección
+###    Primero verifica las secciones disponibles con:
+GET http://localhost:8080/api/dashboard/ejecutivo/secciones
+
+###    Luego usa una sección específica:
+GET http://localhost:8080/api/dashboard/ejecutivo/seccion/vehiculos
+
+### 3. Obtener resumen general del dashboard
+GET http://localhost:8080/api/dashboard/ejecutivo/resumen
+
+### 4. Obtener métricas detalladas por sección
+GET http://localhost:8080/api/dashboard/ejecutivo/metricas-por-seccion
+
+### 5. Obtener ROI promedio
+GET http://localhost:8080/api/dashboard/ejecutivo/roi-promedio
+
+### 6. Obtener margen de beneficio
+GET http://localhost:8080/api/dashboard/ejecutivo/margen-beneficio
+
+### 7. Obtener estadísticas de vehículos
+GET http://localhost:8080/api/dashboard/ejecutivo/estadisticas-vehiculos
+
+### 8. Obtener estadísticas de repuestos
+GET http://localhost:8080/api/dashboard/ejecutivo/estadisticas-repuestos

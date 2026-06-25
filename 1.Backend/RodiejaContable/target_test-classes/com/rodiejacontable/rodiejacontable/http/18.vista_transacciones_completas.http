@@ -1,0 +1,35 @@
+### Obtener todas las transacciones
+GET http://localhost:8080/api/v1/transacciones
+
+### Obtener transacciones por rango de fechas
+GET http://localhost:8080/api/v1/transacciones/rango-fechas?fechaInicio=2023-01-01&fechaFin=2023-12-31
+
+### Obtener transacciones por categoría
+GET http://localhost:8080/api/v1/transacciones/categoria/INGRESO
+
+### Obtener transacciones por estado
+GET http://localhost:8080/api/v1/transacciones/estado/COMPLETADA
+
+### Obtener transacciones por empleado
+GET http://localhost:8080/api/v1/transacciones/empleado/Juan%20Perez
+
+### Obtener transacciones por tipo de transacción
+GET http://localhost:8080/api/v1/transacciones/tipo/COMPRA
+
+### Obtener transacciones por vehículo
+GET http://localhost:8080/api/v1/transacciones/vehiculo/ABC123
+
+### Obtener transacciones por cliente
+GET http://localhost:8080/api/v1/transacciones/cliente/1
+
+### Obtener transacciones por monto mínimo
+GET http://localhost:8080/api/v1/transacciones/monto-minimo/1000
+
+### Obtener transacciones por monto máximo
+GET http://localhost:8080/api/v1/transacciones/monto-maximo/5000
+
+### Obtener estadísticas de transacciones
+GET http://localhost:8080/api/v1/transacciones/estadisticas
+
+### Buscar transacciones con múltiples filtros
+GET http://localhost:8080/api/v1/transacciones/buscar?categoria=REPUESTO&estado=COMPLETADA&fechaInicio=2023-01-01&fechaFin=2023-12-31

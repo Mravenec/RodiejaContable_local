@@ -1,0 +1,35 @@
+### Obtener todos los vehículos
+GET http://localhost:8080/api/v1/vehiculos
+
+### Obtener un vehículo por ID
+GET http://localhost:8080/api/v1/vehiculos/1
+
+### Obtener vehículos por estado
+GET http://localhost:8080/api/v1/vehiculos/estado/REPARACION
+
+### Obtener vehículos por marca
+GET http://localhost:8080/api/v1/vehiculos/marca/Toyota
+
+### Obtener vehículos por modelo
+GET http://localhost:8080/api/v1/vehiculos/modelo/Corolla
+
+### Obtener vehículos por año
+GET http://localhost:8080/api/v1/vehiculos/anio/2020
+
+### Obtener vehículos por tipo de vehículo
+GET http://localhost:8080/api/v1/vehiculos/tipo-vehiculo/SEDAN
+
+### Obtener vehículos por tipo de transmisión
+GET http://localhost:8080/api/v1/vehiculos/tipo-transmision/AUTOMATICA
+
+### Obtener vehículos por rango de precios
+GET http://localhost:8080/api/v1/vehiculos/rango-precios?min=10000&max=30000
+
+### Obtener vehículos por rango de fechas de adquisición
+GET http://localhost:8080/api/v1/vehiculos/rango-fechas?fechaInicio=2023-01-01&fechaFin=2023-12-31
+
+### Búsqueda avanzada con múltiples filtros
+GET http://localhost:8080/api/v1/vehiculos/buscar?marca=Toyota&modelo=Corolla&anio=2020&tipoVehiculo=SEDAN&estado=DISPONIBLE&precioMin=10000&precioMax=30000
+
+### Obtener estadísticas de vehículos
+GET http://localhost:8080/api/v1/vehiculos/estadisticas
