@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card, Table, Button, DatePicker, Input, Space, Typography,
   message, Tag, Alert
-} from 'antd';
+, Tabs, Descriptions, Row, Col, Divider} from 'antd';
 import {
   SearchOutlined,
   DownloadOutlined,
@@ -420,10 +420,20 @@ const OportunidadesAudatex = () => {
     { title: 'Taller', dataIndex: 'taller', key: 'taller' },
     { title: 'Póliza', dataIndex: 'poliza', key: 'poliza' },
     { title: 'Siniestro', dataIndex: 'siniestro', key: 'siniestro' },
-    { title: 'Matrícula', dataIndex: 'matricula', key: 'matricula' },
     {
-      title: 'Armadora', dataIndex: 'armadora', key: 'armadora',
-      sorter: (a, b) => (a.armadora || '').localeCompare(b.armadora || '')
+      title: 'Vehículo', key: 'vehiculo',
+      render: (_, record) => {
+        const marca = record.marca || record.armadora || 'Desc.';
+        const modelo = record.modelo || '';
+        const anio = record.anio || '';
+        const matricula = record.matricula || '';
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontWeight: 500 }}>{marca} {modelo} <span style={{ color: '#888', fontSize: '0.85em' }}>{anio}</span></span>
+            {matricula && <Tag color="blue" style={{ width: 'fit-content', margin: 0 }}>{matricula}</Tag>}
+          </div>
+        );
+      }
     },
     {
       title: 'Fecha', dataIndex: 'fechaCotizacion', key: 'fechaCotizacion',
@@ -437,12 +447,15 @@ const OportunidadesAudatex = () => {
       ),
     },
     {
-      title: 'Repuestos', key: 'repuestos',
-      render: (_, record) => {
-        const count = record.repuestos?.length ?? '…';
-        const color = typeof count === 'number' && count > 0 ? 'blue' : 'default';
-        return <Tag color={color}>{typeof count === 'number' ? `${count} pza` : count}</Tag>;
-      }
+      title: 'Acciones', key: 'acciones',
+      render: (_, record) => (
+        <Button type="primary" size="small" onClick={(e) => {
+          e.stopPropagation(); // Evita que se despliegue la fila al clickear el botón
+          message.info(`Cotizar oportunidad ${record.cotizacionId || ''}`);
+        }}>
+          Cotizar
+        </Button>
+      )
     }
   ];
 
@@ -557,31 +570,93 @@ const OportunidadesAudatex = () => {
               rowExpandable: (record) => Array.isArray(record.repuestos) && record.repuestos.length > 0,
               expandedRowRender: (record) => {
                 const repuestos = record.repuestos || [];
-                if (!repuestos.length) return null;
-                return (
-                  <div style={{ padding: '8px 16px 16px 40px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ background: '#EFF6FF', color: '#1e40af' }}>
-                          <th style={thStyle}>#</th>
-                          <th style={thStyle}>Grupo Pieza</th>
-                          <th style={thStyle}>PartNumber</th>
-                          <th style={thStyle}>Part Serial Number</th>
-                          <th style={thStyle}>Descripcion Pieza</th>
+                const datos = record.datosCotizacion || {};
+                
+                const repuestosTab = (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: '#EFF6FF', color: '#1e40af' }}>
+                        <th style={thStyle}>#</th>
+                        <th style={thStyle}>Grupo Pieza</th>
+                        <th style={thStyle}>PartNumber</th>
+                        <th style={thStyle}>Part Serial Number</th>
+                        <th style={thStyle}>Descripcion Pieza</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {repuestos.map((rep, i) => (
+                        <tr key={i} style={{ background: i % 2 === 0 ? '#F8FAFC' : '#FFFFFF' }}>
+                          <td style={tdStyle}>{i + 1}</td>
+                          <td style={tdStyle}>{rep['Grupo Pieza'] || '-'}</td>
+                          <td style={{ ...tdStyle, fontWeight: 500 }}>{rep['PartNumber'] || '-'}</td>
+                          <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}>{rep['Part Serial Number'] || '-'}</td>
+                          <td style={tdStyle}>{rep['Descripcion Pieza'] || '-'}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {repuestos.map((rep, i) => (
-                          <tr key={i} style={{ background: i % 2 === 0 ? '#F8FAFC' : '#FFFFFF' }}>
-                            <td style={tdStyle}>{i + 1}</td>
-                            <td style={tdStyle}>{rep['Grupo Pieza'] || '-'}</td>
-                            <td style={{ ...tdStyle, fontWeight: 500 }}>{rep['PartNumber'] || '-'}</td>
-                            <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}>{rep['Part Serial Number'] || '-'}</td>
-                            <td style={tdStyle}>{rep['Descripcion Pieza'] || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      ))}
+                      {repuestos.length === 0 && <tr><td colSpan={5} style={{textAlign: 'center', padding: 16}}>No hay repuestos disponibles</td></tr>}
+                    </tbody>
+                  </table>
+                );
+
+                // Omitir Número Cotización y organizar por categorías
+                const filteredDatos = { ...datos };
+                delete filteredDatos['Número Cotización'];
+                
+                const grupoVehiculo = ['Descripción', 'Armadora', 'Marca', 'Modelo', 'Color', 'Matricula', 'Chasis', 'Año Modelo', 'Año Fabricación', 'KM', 'Características Vehículo'];
+                const grupoTaller = ['Nombre Taller', 'RFC', 'Inscripción Estadual', 'País', 'Estado', 'Ciudad', 'Codigo Postal', 'Calle', 'Colonia', 'Nombre Contacto', 'Teléfono', 'E-mail'];
+                
+                const vehiculoDatos = Object.entries(filteredDatos).filter(([k]) => grupoVehiculo.includes(k));
+                const tallerDatos = Object.entries(filteredDatos).filter(([k]) => grupoTaller.includes(k));
+                const generalDatos = Object.entries(filteredDatos).filter(([k]) => !grupoVehiculo.includes(k) && !grupoTaller.includes(k));
+
+                const renderDesc = (arr) => (
+                  <Descriptions bordered size="small" column={2}>
+                    {arr.map(([key, value]) => (
+                      <Descriptions.Item label={<span style={{color: '#64748b'}}>{key}</span>} key={key} span={key === 'Descripción' || key === 'Características Vehículo' ? 2 : 1}>
+                        <strong style={{color: '#334155'}}>{value}</strong>
+                      </Descriptions.Item>
+                    ))}
+                  </Descriptions>
+                );
+
+                const datosTab = (
+                  <div style={{ padding: '8px 0' }}>
+                    <Row gutter={[24, 24]}>
+                      <Col xs={24} lg={12}>
+                        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+                          <Typography.Title level={5} style={{ marginTop: 0, color: '#1e40af' }}>Información del Siniestro</Typography.Title>
+                          {generalDatos.length > 0 ? renderDesc(generalDatos) : <p style={{color: '#94a3b8'}}>No hay datos de siniestro</p>}
+                        </div>
+                      </Col>
+                      <Col xs={24} lg={12}>
+                        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+                          <Typography.Title level={5} style={{ marginTop: 0, color: '#1e40af' }}>Detalles del Vehículo</Typography.Title>
+                          {vehiculoDatos.length > 0 ? renderDesc(vehiculoDatos) : <p style={{color: '#94a3b8'}}>No hay datos del vehículo</p>}
+                        </div>
+                      </Col>
+                      <Col xs={24}>
+                        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+                          <Typography.Title level={5} style={{ marginTop: 0, color: '#1e40af' }}>Lugar de Entrega / Taller</Typography.Title>
+                          <Descriptions bordered size="small" column={{ xxl: 4, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
+                            {tallerDatos.map(([key, value]) => (
+                              <Descriptions.Item label={<span style={{color: '#64748b'}}>{key}</span>} key={key}>
+                                <strong style={{color: '#334155'}}>{value}</strong>
+                              </Descriptions.Item>
+                            ))}
+                          </Descriptions>
+                          {tallerDatos.length === 0 && <p style={{color: '#94a3b8'}}>No hay datos del taller</p>}
+                        </div>
+                      </Col>
+                    </Row>
+                  </div>
+                );
+                
+                return (
+                  <div style={{ padding: '8px 16px 16px 40px', background: '#fafafa', borderRadius: '4px' }}>
+                    <Tabs defaultActiveKey="1" items={[
+                      { key: '1', label: 'Repuestos', children: repuestosTab },
+                      { key: '2', label: 'Datos de Cotización', children: Object.keys(datos).length > 0 ? datosTab : <div style={{padding: 16}}>No hay datos de cotización extra disponibles.</div> }
+                    ]} />
                   </div>
                 );
               },

@@ -463,7 +463,12 @@ public class AudatexClient {
      * Hace el GET a frmQuotationSupplierAnswer.aspx y parsea los repuestos.
      * Retorna una lista vacía si hay error o no se encuentran repuestos.
      */
-    public List<Map<String, String>> obtenerRepuestosDeCotizacion(String wan) {
+    public Map<String, Object> obtenerDetallesDeCotizacion(String wan) {
+        Map<String, Object> result = new java.util.HashMap<>();
+        List<Map<String, String>> repuestos = new ArrayList<>();
+        Map<String, String> datosCotizacion = new java.util.LinkedHashMap<>();
+        result.put("repuestos", repuestos);
+        result.put("datosCotizacion", datosCotizacion);
         try {
             // Delay corto para no saturar el portal con requests simultáneos
             // (el hilo de stream ya tiene una conexión HTTP activa)
@@ -506,13 +511,52 @@ public class AudatexClient {
             }
 
             Document doc = resp.parse();
-            return parsearRepuestosDeDoc(doc);
+            repuestos.addAll(parsearRepuestosDeDoc(doc));
+            
+            // Extracción inicial por si acaso
+            datosCotizacion.putAll(parsearDatosCotizacion(doc));
+            
+            // Si la pestaña de datos viene vacía (AJAX TabContainer de ASP.NET) simulamos el clic en la pestaña
+            if (datosCotizacion.getOrDefault("Marca", "").isEmpty() && datosCotizacion.getOrDefault("Matricula", "").isEmpty()) {
+                String vs = ""; String vsg = ""; String ev = "";
+                org.jsoup.select.Elements vsEl = doc.select("input[name=__VIEWSTATE]");
+                if (!vsEl.isEmpty()) vs = vsEl.first().val();
+                org.jsoup.select.Elements vsgEl = doc.select("input[name=__VIEWSTATEGENERATOR]");
+                if (!vsgEl.isEmpty()) vsg = vsgEl.first().val();
+                org.jsoup.select.Elements evEl = doc.select("input[name=__EVENTVALIDATION]");
+                if (!evEl.isEmpty()) ev = evEl.first().val();
+                
+                try {
+                    Connection.Response postResp = Jsoup.connect(detalleUrl)
+                            .cookies(cookies)
+                            .method(Connection.Method.POST)
+                            .data("__EVENTTARGET", "ctl00$cphBody$tbcAnswerQuotation")
+                            .data("__EVENTARGUMENT", "activeTabChanged:1")
+                            .data("__VIEWSTATE", vs)
+                            .data("__VIEWSTATEGENERATOR", vsg)
+                            .data("__EVENTVALIDATION", ev)
+                            .data("ctl00$cphBody$tbcAnswerQuotation_ClientState", "{\"ActiveTabIndex\":1,\"TabState\":[true,true,true]}")
+                            .execute();
+                    
+                    Document postDoc = postResp.parse();
+                    java.util.Map<String, String> datosPost = parsearDatosCotizacion(postDoc);
+                    for (java.util.Map.Entry<String, String> entry : datosPost.entrySet()) {
+                        if (entry.getValue() != null && !entry.getValue().isEmpty() && !entry.getValue().equals("-")) {
+                            datosCotizacion.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                } catch (Exception postEx) {
+                    log.warn("[Audatex] Error al hacer POST para tab de datos: {}", postEx.getMessage());
+                }
+            }
+            
+            return result;
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            return new ArrayList<>();
+            return result;
         } catch (Exception e) {
             log.warn("[Audatex] No se pudieron obtener repuestos para WAN {}: {}", wan, e.getMessage());
-            return new ArrayList<>();
+            return result;
         }
     }
 
@@ -528,7 +572,69 @@ public class AudatexClient {
      *
      * Buscar por atributo de ID (endsWith) es inmune a cambios en tabla/estructura.
      */
-    private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
+    
+    private Map<String, String> parsearDatosCotizacion(Document doc) {
+        Map<String, String> datos = new java.util.LinkedHashMap<>();
+        try {
+            // Mapa de Labels hacia sus sufijos de ID correspondientes en ASP.NET
+            java.util.Map<String, String> idMap = new java.util.LinkedHashMap<>();
+            idMap.put("Número Cotización", "lblQuotationNumber");
+            idMap.put("Fecha de Creación", "lblDateOfQuotationBegin");
+            idMap.put("Referencia Interna", "lblInternalReference");
+            idMap.put("Número Siniestro", "lblClaimNumber");
+            idMap.put("RFC Asegurado", "lblInsuredRN");
+            idMap.put("Nombre Asegurado", "lblInsuredName");
+            idMap.put("Número Póliza/Documento", "lblPolicyDocumentNumber");
+            idMap.put("RFC Tercero", "lblThirdPartyRN");
+            idMap.put("Nombre Tercero", "lblThirdPartName");
+            idMap.put("RFC Valuador", "lblSurveyorEIN");
+            idMap.put("Nombre Valuador", "lblNameEvaluator");
+            idMap.put("Aseguradora", "lblInsurerName");
+            idMap.put("Descripción", "lblVehicleDescription");
+            idMap.put("Armadora", "lblVehicleManufacturer");
+            idMap.put("Marca", "lblVehicleBranch");
+            idMap.put("Modelo", "lblVehicleModel");
+            idMap.put("Color", "lblVehicleColor");
+            idMap.put("Matricula", "lblLicensePlate");
+            idMap.put("Chasis", "lblVIN");
+            idMap.put("Año Modelo", "lblYearModel");
+            idMap.put("Año Fabricación", "lblYearManufacture");
+            idMap.put("KM", "lblKM");
+            idMap.put("Características Vehículo", "lblVehicleFeatures"); // Generalmente no tiene un lbl específico simple o es vacío
+            
+            // Datos del Taller
+            idMap.put("Nombre Taller", "lblBodyshop"); // El nombre principal suele estar aquí
+            idMap.put("RFC", "lblEIN");
+            idMap.put("Inscripción Estadual", "lblStateResgistration");
+            idMap.put("País", "lblCountry");
+            idMap.put("Estado", "lblState");
+            idMap.put("Ciudad", "lblCity");
+            idMap.put("Codigo Postal", "lblZipCode");
+            idMap.put("Calle", "lblStreet");
+            idMap.put("Colonia", "lblNeighbourhood");
+            idMap.put("Nombre Contacto", "lblContactName");
+            idMap.put("Teléfono", "lblPhone");
+            idMap.put("E-mail", "lblEmail");
+
+            for (java.util.Map.Entry<String, String> entry : idMap.entrySet()) {
+                String label = entry.getKey();
+                String partialId = entry.getValue();
+                
+                // Usamos un selector CSS que busque elementos cuyo ID termine en el partialId (para lidiar con el ctl00_...)
+                org.jsoup.select.Elements elems = doc.select("[id$=" + partialId + "]");
+                if (!elems.isEmpty()) {
+                    String value = elems.first().text().trim();
+                    if (!value.isEmpty() && !value.equals("-")) {
+                        datos.put(label, value);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("[Audatex] Error parseando datos de cotizacion", e);
+        }
+        return datos;
+    }
+private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
         List<Map<String, String>> filasRepuestos = new ArrayList<>();
 
         // Dump HTML para diagnostico (sobrescribe en cada llamada)

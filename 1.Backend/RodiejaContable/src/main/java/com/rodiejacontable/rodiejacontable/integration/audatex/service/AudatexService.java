@@ -197,9 +197,20 @@ public class AudatexService {
                             // Obtener repuestos inline antes de emitir
                             String wan = texto(oportunidad, "wan");
                             if (wan != null && !wan.isEmpty()) {
-                                java.util.List<java.util.Map<String, String>> repuestos =
-                                        client.obtenerRepuestosDeCotizacion(wan);
+                                java.util.Map<String, Object> detalles = client.obtenerDetallesDeCotizacion(wan);
+                                java.util.List<java.util.Map<String, String>> repuestos = (java.util.List<java.util.Map<String, String>>) detalles.get("repuestos");
                                 oportunidad.put("repuestos", repuestos);
+                                oportunidad.put("datosCotizacion", detalles.get("datosCotizacion"));
+                                
+                                if (detalles.get("datosCotizacion") instanceof java.util.Map) {
+                                    java.util.Map<String, String> dt = (java.util.Map<String, String>) detalles.get("datosCotizacion");
+                                    if (dt.containsKey("Marca")) oportunidad.put("marca", dt.get("Marca"));
+                                    if (dt.containsKey("Modelo")) oportunidad.put("modelo", dt.get("Modelo"));
+                                    if (dt.containsKey("Año Modelo")) oportunidad.put("anio", dt.get("Año Modelo"));
+                                    if (dt.containsKey("Matricula")) oportunidad.put("matricula", dt.get("Matricula"));
+                                    if (dt.containsKey("Chasis")) oportunidad.put("chasis", dt.get("Chasis"));
+                                }
+                                
                                 log.debug("[AudatexService][Stream] WAN {} → {} repuesto(s)", wan, repuestos.size());
                             } else {
                                 oportunidad.put("repuestos", java.util.List.of());
