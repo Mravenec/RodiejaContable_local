@@ -116,3 +116,16 @@ VALUES (
 
 -- Actualizar el nombre del administrador por defecto
 UPDATE personal_data SET full_name = 'Administrador del Sistema' WHERE user_id = (SELECT id FROM users WHERE email = 'admin@rodieja.com');
+
+-- 4. Insertar un usuario contador por defecto
+-- La contraseña es 'Contador123!' encriptada con BCrypt (Costo 10)
+INSERT INTO users (email, password_hash, rol_id, is_active) 
+VALUES (
+    'contador@rodieja.com', 
+    '$2a$10$Mhs/gXgxWKAZrKTS4iXuEuhfmFbcbi/0FJWzm5O3P8B3Ff5/9muW2', -- BCrypt hash para 'Contador123!'
+    (SELECT id FROM roles WHERE nombre = 'CONTADOR'),
+    TRUE
+);
+
+-- Actualizar el nombre del contador por defecto
+UPDATE personal_data SET full_name = 'Contador' WHERE user_id = (SELECT id FROM users WHERE email = 'contador@rodieja.com');
