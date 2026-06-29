@@ -20,7 +20,7 @@ const ForgotPassword = () => {
         <p style={{ textAlign: 'center', marginBottom: '24px' }}>
           Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
         </p>
-        
+
         <Form
           name="forgotPassword"
           onFinish={onFinish}
@@ -33,9 +33,9 @@ const ForgotPassword = () => {
               { type: 'email', message: 'Ingrese un correo válido' }
             ]}
           >
-            <Input 
-              prefix={<MailOutlined />} 
-              placeholder="Correo electrónico" 
+            <Input
+              prefix={<MailOutlined />}
+              placeholder="Correo electrónico"
               size="large"
             />
           </Form.Item>
@@ -46,7 +46,7 @@ const ForgotPassword = () => {
             </Button>
           </Form.Item>
         </Form>
-        
+
         <div style={{ textAlign: 'center', marginTop: '16px' }}>
           <Link to="/login">Volver al inicio de sesión</Link>
         </div>
