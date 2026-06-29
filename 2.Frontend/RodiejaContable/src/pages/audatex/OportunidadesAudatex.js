@@ -26,7 +26,7 @@ const defaultFiltros = {
   armadora: '',
   aseguradora: '',
   desde: dayjs().subtract(30, 'day'),
-  hasta: dayjs(),
+  hasta: dayjs(), //today
   minPendientes: null,
 };
 
@@ -88,7 +88,7 @@ const OportunidadesAudatex = () => {
     }
   }, [drenarSiguiente]);
 
-  // ── Streaming con fetch + ReadableStream ──────────────────────────────────
+  // ── Sincronización Avanzada (Instantánea + Deltas) ──────────────────────────────────
   const cargarOportunidadesStream = useCallback(async (currentFilters = appliedFiltros) => {
     // Cancelar stream anterior si existe
     if (abortRef.current) abortRef.current.abort();
@@ -104,14 +104,31 @@ const OportunidadesAudatex = () => {
     streamReaderDoneRef.current = false;
 
     const params = new URLSearchParams();
-    // Los filtros de marca y anio ahora se aplican de forma local en el frontend
     if (currentFilters.aseguradora) params.set('aseguradora', currentFilters.aseguradora);
     if (currentFilters.desde) params.set('desde', currentFilters.desde.format('YYYY-MM-DD'));
     if (currentFilters.hasta) params.set('hasta', currentFilters.hasta.format('YYYY-MM-DD'));
     if (currentFilters.minPendientes) params.set('minPendientes', currentFilters.minPendientes);
 
     const token = localStorage.getItem('token');
-    const url = `http://localhost:8080/api/audatex/oportunidades/stream?${params.toString()}`;
+    
+    // 1. Carga inicial instantánea desde la Base de Datos (Vista Materializada)
+    try {
+      const getResponse = await fetch(`http://localhost:8080/api/audatex/oportunidades/sync?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (getResponse.ok) {
+        const data = await getResponse.json();
+        const bdOportunidades = data.oportunidades || [];
+        setOportunidades(bdOportunidades);
+        setTotalCargado(bdOportunidades.length);
+        // Si hay un mapa de "nuevos" IDs podemos inyectarlos acá.
+      }
+    } catch (e) {
+      console.warn("Fallo en GET inicial de sync", e);
+    }
+
+    // 2. Conexión SSE para escuchar Deltas (Nuevas oportunidades en vivo)
+    const url = `http://localhost:8080/api/audatex/oportunidades/sync/stream?${params.toString()}`;
 
     try {
       const response = await fetch(url, {
@@ -146,7 +163,8 @@ const OportunidadesAudatex = () => {
             const raw = line.slice(5).trim();
             try {
               const parsed = JSON.parse(raw);
-              if (eventName === 'oportunidad') {
+              if (eventName === 'oportunidad' || eventName === 'delta') {
+                // Inyección delta en vivo sin recargar
                 encolarOportunidad(parsed);
               } else if (eventName === 'pagina') {
                 const lote = Array.isArray(parsed) ? parsed : [parsed];
@@ -247,26 +265,26 @@ const OportunidadesAudatex = () => {
     const wb = XLSX.utils.book_new();
 
     // ── Hoja 1: Oportunidades — azul corporativo ──────────────────────────
-    const oportHeaders = ['Marca', 'Modelo', 'Año', 'Cotizacion ID','Aseguradora','Taller','Poliza','Siniestro','Matricula','Armadora','Fecha','Pendientes','Total Repuestos'];
+    const oportHeaders = ['Marca', 'Modelo', 'Año', 'Cotizacion ID', 'Aseguradora', 'Taller', 'Poliza', 'Siniestro', 'Matricula', 'Armadora', 'Fecha', 'Pendientes', 'Total Repuestos'];
     const oportData = oportunidades.map(({ _key, repuestos, ...row }) => {
       const vMarca = row.marca || row.armadora || (row.datosCotizacion && (row.datosCotizacion['Marca'] || row.datosCotizacion['Armadora'])) || 'Desc.';
       const vModelo = (row.datosCotizacion && (row.datosCotizacion['Descripción'] || row.datosCotizacion['Modelo'])) || '-';
       const vAnio = row.anio || (row.datosCotizacion && (row.datosCotizacion['Año Modelo'] || row.datosCotizacion['Año Fabricación'])) || '-';
 
       return {
-        'Marca':            vMarca,
-        'Modelo':           vModelo,
-        'Año':              vAnio,
-        'Cotizacion ID':    row.cotizacionId    ?? '',
-        'Aseguradora':      row.aseguradora     ?? '',
-        'Taller':           row.taller          ?? '',
-        'Poliza':           row.poliza          ?? '',
-        'Siniestro':        row.siniestro       ?? '',
-        'Matricula':        row.matricula       ?? '',
-        'Armadora':         row.armadora        ?? '',
-        'Fecha':            row.fechaCotizacion ?? '',
-        'Pendientes':       row.pendientes      ?? 0,
-        'Total Repuestos':  Array.isArray(repuestos) ? repuestos.length : 0,
+        'Marca': vMarca,
+        'Modelo': vModelo,
+        'Año': vAnio,
+        'Cotizacion ID': row.cotizacionId ?? '',
+        'Aseguradora': row.aseguradora ?? '',
+        'Taller': row.taller ?? '',
+        'Poliza': row.poliza ?? '',
+        'Siniestro': row.siniestro ?? '',
+        'Matricula': row.matricula ?? '',
+        'Armadora': row.armadora ?? '',
+        'Fecha': row.fechaCotizacion ?? '',
+        'Pendientes': row.pendientes ?? 0,
+        'Total Repuestos': Array.isArray(repuestos) ? repuestos.length : 0,
       };
     });
     const wsOport = XLSX.utils.json_to_sheet(oportData, { header: oportHeaders });
@@ -279,10 +297,10 @@ const OportunidadesAudatex = () => {
     XLSX.utils.book_append_sheet(wb, wsOport, 'Oportunidades');
 
     // ── Hoja 2: Repuestos — con grupos desplegables por Cotizacion ID ──────
-    const repHeaders = ['Cotizacion ID','Aseguradora','Taller','#','Grupo Pieza','PartNumber','Part Serial Number','Descripcion Pieza'];
+    const repHeaders = ['Cotizacion ID', 'Aseguradora', 'Taller', '#', 'Grupo Pieza', 'PartNumber', 'Part Serial Number', 'Descripcion Pieza'];
     const repuestosData = [];
-    const repBlockMap   = [];
-    const repRowMeta    = [{ hpt: 22 }]; // fila 0 = cabecera
+    const repBlockMap = [];
+    const repRowMeta = [{ hpt: 22 }]; // fila 0 = cabecera
 
     let blockIdx = -1;
     let lastCotizId = null;
@@ -293,14 +311,14 @@ const OportunidadesAudatex = () => {
 
       // Fila resumen (siempre visible, muestra el +/-)
       repuestosData.push({
-        'Cotizacion ID':      `▼ ${cotizacionId ?? ''}`,
-        'Aseguradora':        aseguradora ?? '',
-        'Taller':             taller ?? '',
-        '#':                  `${repuestos.length} pza`,
-        'Grupo Pieza':        '',
-        'PartNumber':         '',
+        'Cotizacion ID': `▼ ${cotizacionId ?? ''}`,
+        'Aseguradora': aseguradora ?? '',
+        'Taller': taller ?? '',
+        '#': `${repuestos.length} pza`,
+        'Grupo Pieza': '',
+        'PartNumber': '',
         'Part Serial Number': '',
-        'Descripcion Pieza':  '',
+        'Descripcion Pieza': '',
       });
       repBlockMap.push({ blockIdx, isSummary: true });
       repRowMeta.push({ hpt: 20 }); // fila resumen, NO grouped
@@ -308,14 +326,14 @@ const OportunidadesAudatex = () => {
       // Filas de detalle (colapsables)
       repuestos.forEach((rep, idx) => {
         repuestosData.push({
-          'Cotizacion ID':       '',
-          'Aseguradora':         '',
-          'Taller':              '',
-          '#':                   idx + 1,
-          'Grupo Pieza':         rep['Grupo Pieza']        ?? '',
-          'PartNumber':          rep['PartNumber']          ?? '',
-          'Part Serial Number':  rep['Part Serial Number'] ?? '',
-          'Descripcion Pieza':   rep['Descripcion Pieza']  ?? '',
+          'Cotizacion ID': '',
+          'Aseguradora': '',
+          'Taller': '',
+          '#': idx + 1,
+          'Grupo Pieza': rep['Grupo Pieza'] ?? '',
+          'PartNumber': rep['PartNumber'] ?? '',
+          'Part Serial Number': rep['Part Serial Number'] ?? '',
+          'Descripcion Pieza': rep['Descripcion Pieza'] ?? '',
         });
         repBlockMap.push({ blockIdx, isSummary: false });
         repRowMeta.push({ level: 1, hpt: 18, hidden: true }); // colapsado por defecto
@@ -333,26 +351,26 @@ const OportunidadesAudatex = () => {
 
       // ── Estilos por fila ─────────────────────────────────────────────────
       // Paleta compartida con hoja Oportunidades
-      const PASTEL_LIGHT  = ['DBEAFE','DCFCE7','FEF9C3','F3E8FF']; // igual a Oportunidades
-      const PASTEL_MEDIUM = ['BFDBFE','A7F3D0','FDE68A','DDD6FE']; // tono medio para resumen
+      const PASTEL_LIGHT = ['DBEAFE', 'DCFCE7', 'FEF9C3', 'F3E8FF']; // igual a Oportunidades
+      const PASTEL_MEDIUM = ['BFDBFE', 'A7F3D0', 'FDE68A', 'DDD6FE']; // tono medio para resumen
       const summaryStyleLight = (bIdx) => ({
-        font:  { bold: false, sz: 11, color: { rgb: '1E293B' } },  // texto oscuro
-        fill:  { fgColor: { rgb: PASTEL_MEDIUM[bIdx % 4] } },
+        font: { bold: false, sz: 11, color: { rgb: '1E293B' } },  // texto oscuro
+        fill: { fgColor: { rgb: PASTEL_MEDIUM[bIdx % 4] } },
         border: {
-          top:    { style: 'thin', color: { rgb: '94A3B8' } },
+          top: { style: 'thin', color: { rgb: '94A3B8' } },
           bottom: { style: 'thin', color: { rgb: '94A3B8' } },
-          left:   { style: 'thin', color: { rgb: '94A3B8' } },
-          right:  { style: 'thin', color: { rgb: '94A3B8' } },
+          left: { style: 'thin', color: { rgb: '94A3B8' } },
+          right: { style: 'thin', color: { rgb: '94A3B8' } },
         },
         alignment: { vertical: 'center' },
       });
       const detailStyle = (bIdx) => ({
-        fill:   { fgColor: { rgb: PASTEL_LIGHT[bIdx % 4] } },
+        fill: { fgColor: { rgb: PASTEL_LIGHT[bIdx % 4] } },
         border: {
-          top:    { style: 'hair', color: { rgb: 'D1D5DB' } },
+          top: { style: 'hair', color: { rgb: 'D1D5DB' } },
           bottom: { style: 'hair', color: { rgb: 'D1D5DB' } },
-          left:   { style: 'hair', color: { rgb: 'CBD5E1' } },
-          right:  { style: 'hair', color: { rgb: 'CBD5E1' } },
+          left: { style: 'hair', color: { rgb: 'CBD5E1' } },
+          right: { style: 'hair', color: { rgb: 'CBD5E1' } },
         },
         alignment: { vertical: 'center' },
       });
@@ -411,15 +429,23 @@ const OportunidadesAudatex = () => {
 
 
   useEffect(() => {
-    // Al montar no iniciamos el stream automáticamente,
-    // esperamos a que el usuario presione Sincronizar o Filtrar.
+    // React StrictMode (dev) ejecuta: setup1 → cleanup1 → setup2.
+    // startedRef evita que setup1 y setup2 abran dos streams simultáneos.
+    // El cleanup resetea el flag para que setup2 pueda arrancar el stream real.
+    // Flujo real:
+    //   setup1 → startedRef=true → abre stream1
+    //   cleanup1 → startedRef=false → aborta stream1 (servidor lo detecta y sale limpio)
+    //   setup2 → startedRef=false → startedRef=true → abre stream2 (este es el real)
+    if (startedRef.current) return;
+    startedRef.current = true;
+    cargarOportunidadesStream();
     return () => {
+      startedRef.current = false;
       if (abortRef.current) abortRef.current.abort();
       detenerCola();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
   // ── Columnas ──────────────────────────────────────────────────────────────
   const columns = [
     {
@@ -545,21 +571,44 @@ const OportunidadesAudatex = () => {
     <div style={{ padding: '24px' }}>
 
       {/* Encabezado */}
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title level={2} style={{ margin: 0 }}>Oportunidades Audatex InPart</Title>
+      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>🛒 Cotizaciones InPart · Vista Global</Title>
+          <div style={{ color: '#8c8c8c', fontSize: '14px', marginTop: '4px' }}>Todas las oportunidades abiertas en Audatex que matchean con tu inventario</div>
+        </div>
         <Space>
           {streaming && (
             <Button danger onClick={handleDetener} icon={<LoadingOutlined spin />}>
               Detener
             </Button>
           )}
-          <Button icon={<ReloadOutlined />} onClick={handleSincronizar} disabled={streaming}>
-            Sincronizar
+          <Button type="default" icon={<ReloadOutlined />} onClick={handleSincronizar} disabled={streaming} style={{ color: '#1890ff', borderColor: '#1890ff' }}>
+            Refrescar
           </Button>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar}>
-            Exportar Excel
+          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} style={{ background: '#52c41a', borderColor: '#52c41a' }}>
+            Exportar Excel del rango
           </Button>
         </Space>
+      </div>
+
+      {/* Stats Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ background: '#f6ffed', border: '1px solid #b7eb8f', padding: '16px', borderRadius: '8px' }}>
+          <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, letterSpacing: '0.05em' }}>TOTAL ACTIVAS</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#52c41a' }}>{oportunidades.length}</div>
+        </div>
+        <div style={{ background: '#fff7e6', border: '1px solid #ffd591', padding: '16px', borderRadius: '8px' }}>
+          <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, letterSpacing: '0.05em' }}>CON MATCH EN TU INV.</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#faad14' }}>0</div>
+        </div>
+        <div style={{ background: '#fff1f0', border: '1px solid #ffa39e', padding: '16px', borderRadius: '8px' }}>
+          <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, letterSpacing: '0.05em' }}>VENCEN ≤ 3 DÍAS</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#ff4d4f' }}>0</div>
+        </div>
+        <div style={{ background: '#e6f7ff', border: '1px solid #91d5ff', padding: '16px', borderRadius: '8px' }}>
+          <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, letterSpacing: '0.05em' }}>VALOR ESTIMADO</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#1890ff' }}>₡0</div>
+        </div>
       </div>
 
       {/* Barra de progreso mientras carga */}

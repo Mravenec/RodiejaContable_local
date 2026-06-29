@@ -105,8 +105,9 @@ public class AudatexClient {
             Consumer<List<Map<String, Object>>> onPage) throws IOException {
 
         if (desde != null && hasta != null) {
-            LocalDate start = LocalDate.parse(desde.trim());
-            LocalDate end = LocalDate.parse(hasta.trim());
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            LocalDate start = LocalDate.parse(desde.trim(), formatter);
+            LocalDate end = LocalDate.parse(hasta.trim(), formatter);
             if (!start.isAfter(end)) {
                 final int diasPorChunk = 3;
                 // Chunks del más reciente al más antiguo: primero hoy, luego hacia atrás.
@@ -1026,7 +1027,7 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
         }
 
         // Delta AJAX: segmentos con longitud prefijada (1|#||4|...)
-        if (!body.matches("^\\d+\\|.*")) {
+        if (!body.matches("(?s)^\\d+\\|.*")) {
             return null;
         }
 
@@ -1044,7 +1045,14 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
         for (Map.Entry<String, String> e : hidden.entrySet()) {
             String name = e.getKey();
             Element input = merged.select("input[name='" + name.replace("'", "\\'") + "']").first();
-            if (input != null) input.attr("value", e.getValue());
+            if (input != null) {
+                input.attr("value", e.getValue());
+            } else {
+                Element form = merged.select("form").first();
+                if (form != null) {
+                    form.appendElement("input").attr("type", "hidden").attr("name", name).attr("value", e.getValue());
+                }
+            }
         }
 
         for (Map.Entry<String, String> e : panels.entrySet()) {

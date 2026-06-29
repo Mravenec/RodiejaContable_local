@@ -6,6 +6,7 @@ package com.rodiejacontable.database.jooq;
 
 import com.rodiejacontable.database.jooq.tables.Address;
 import com.rodiejacontable.database.jooq.tables.AudatexEnvios;
+import com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync;
 import com.rodiejacontable.database.jooq.tables.Empleados;
 import com.rodiejacontable.database.jooq.tables.Generaciones;
 import com.rodiejacontable.database.jooq.tables.HistorialRepuestos;
@@ -26,6 +27,7 @@ import com.rodiejacontable.database.jooq.tables.Users;
 import com.rodiejacontable.database.jooq.tables.Vehiculos;
 import com.rodiejacontable.database.jooq.tables.records.AddressRecord;
 import com.rodiejacontable.database.jooq.tables.records.AudatexEnviosRecord;
+import com.rodiejacontable.database.jooq.tables.records.AudatexOportunidadesSyncRecord;
 import com.rodiejacontable.database.jooq.tables.records.EmpleadosRecord;
 import com.rodiejacontable.database.jooq.tables.records.GeneracionesRecord;
 import com.rodiejacontable.database.jooq.tables.records.HistorialRepuestosRecord;
@@ -65,6 +67,7 @@ public class Keys {
 
     public static final UniqueKey<AddressRecord> KEY_ADDRESS_PRIMARY = Internal.createUniqueKey(Address.ADDRESS, DSL.name("KEY_address_PRIMARY"), new TableField[] { Address.ADDRESS.USER_ID }, true);
     public static final UniqueKey<AudatexEnviosRecord> KEY_AUDATEX_ENVIOS_PRIMARY = Internal.createUniqueKey(AudatexEnvios.AUDATEX_ENVIOS, DSL.name("KEY_audatex_envios_PRIMARY"), new TableField[] { AudatexEnvios.AUDATEX_ENVIOS.ID }, true);
+    public static final UniqueKey<AudatexOportunidadesSyncRecord> KEY_AUDATEX_OPORTUNIDADES_SYNC_PRIMARY = Internal.createUniqueKey(AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC, DSL.name("KEY_audatex_oportunidades_sync_PRIMARY"), new TableField[] { AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.WAN }, true);
     public static final UniqueKey<EmpleadosRecord> KEY_EMPLEADOS_NOMBRE = Internal.createUniqueKey(Empleados.EMPLEADOS, DSL.name("KEY_empleados_nombre"), new TableField[] { Empleados.EMPLEADOS.NOMBRE }, true);
     public static final UniqueKey<EmpleadosRecord> KEY_EMPLEADOS_PRIMARY = Internal.createUniqueKey(Empleados.EMPLEADOS, DSL.name("KEY_empleados_PRIMARY"), new TableField[] { Empleados.EMPLEADOS.ID }, true);
     public static final UniqueKey<GeneracionesRecord> KEY_GENERACIONES_PRIMARY = Internal.createUniqueKey(Generaciones.GENERACIONES, DSL.name("KEY_generaciones_PRIMARY"), new TableField[] { Generaciones.GENERACIONES.ID }, true);

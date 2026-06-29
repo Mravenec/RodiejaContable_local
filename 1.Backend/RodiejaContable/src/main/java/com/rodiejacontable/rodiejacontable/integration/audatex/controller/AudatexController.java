@@ -28,10 +28,24 @@ public class AudatexController {
 
     private final AudatexService audatexService;
     private final AudatexExcelExportService excelService;
+    private final com.rodiejacontable.rodiejacontable.integration.audatex.service.AudatexSyncWorker syncWorker;
 
-    public AudatexController(AudatexService audatexService, AudatexExcelExportService excelService) {
+    public AudatexController(AudatexService audatexService, AudatexExcelExportService excelService, com.rodiejacontable.rodiejacontable.integration.audatex.service.AudatexSyncWorker syncWorker) {
         this.audatexService = audatexService;
         this.excelService = excelService;
+        this.syncWorker = syncWorker;
+    }
+
+    @GetMapping("/oportunidades/sync/force")
+    public org.springframework.http.ResponseEntity<String> forceSync() {
+        new Thread(() -> {
+            try {
+                syncWorker.syncHotZone();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+        return org.springframework.http.ResponseEntity.ok("Sincronización forzada en segundo plano iniciada.");
     }
 
     @GetMapping("/oportunidades")
@@ -60,6 +74,49 @@ public class AudatexController {
         }
     }
 
+    @GetMapping("/oportunidades/sync")
+    public ResponseEntity<?> obtenerOportunidadesSync() {
+        try {
+            List<Map<String, Object>> resultado = audatexService.getOportunidadesFromDb();
+            log.info("[Audatex] GET /oportunidades/sync → {} resultados desde BD local", resultado.size());
+            return ResponseEntity.ok(Map.of(
+                    "total", resultado.size(),
+                    "oportunidades", resultado
+            ));
+        } catch (Exception e) {
+            log.error("[Audatex] Error leyendo oportunidades BD: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno: " + e.getMessage()));
+        }
+    }
+
+    private static final java.util.List<SseEmitter> deltaEmitters = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    @GetMapping("/oportunidades/sync/stream")
+    public SseEmitter streamSyncDeltas() {
+        SseEmitter emitter = new SseEmitter(3600_000L); // 1 hora de timeout
+        deltaEmitters.add(emitter);
+        emitter.onCompletion(() -> deltaEmitters.remove(emitter));
+        emitter.onTimeout(() -> deltaEmitters.remove(emitter));
+        emitter.onError((e) -> deltaEmitters.remove(emitter));
+        
+        return emitter;
+    }
+
+    public static void emitirDelta(Map<String, Object> oportunidad) {
+        if (deltaEmitters.isEmpty()) return;
+        
+        java.util.List<SseEmitter> muertos = new java.util.ArrayList<>();
+        for (SseEmitter emitter : deltaEmitters) {
+            try {
+                emitter.send(SseEmitter.event().name("delta").data(oportunidad));
+            } catch (Exception e) {
+                muertos.add(emitter);
+            }
+        }
+        deltaEmitters.removeAll(muertos);
+    }
+
     /**
      * SSE: emite las oportunidades página a página conforme se scraping el portal.
      * El cliente React consume con fetch() + ReadableStream para carga progresiva.
@@ -73,7 +130,9 @@ public class AudatexController {
             @RequestParam(required = false) String hasta,
             @RequestParam(required = false) Integer minPendientes) {
 
-        SseEmitter emitter = new SseEmitter(300_000L);
+        // El streaming de múltiples días puede tomar bastante tiempo en Audatex. 
+        // 3600_000L = 1 hora de timeout para la conexión SSE.
+        SseEmitter emitter = new SseEmitter(3600_000L);
         log.info("[Audatex] SSE /oportunidades/stream — armadora={}, aseguradora={}, desde={}, hasta={}",
                 armadora, aseguradora, desde, hasta);
         audatexService.streamOportunidades(armadora, aseguradora, desde, hasta, minPendientes, emitter);

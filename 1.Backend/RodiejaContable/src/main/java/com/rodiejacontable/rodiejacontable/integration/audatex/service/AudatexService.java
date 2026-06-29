@@ -440,4 +440,136 @@ public class AudatexService {
         }
         return null;
     }
+
+    public void syncRange(String desde, String hasta) {
+        log.info("[AudatexService] Sincronizando rango desde={} hasta={}...", desde, hasta);
+        try {
+            List<Map<String, Object>> ops = client.buscarTodasOportunidades(desde, hasta);
+            int insertadas = 0;
+            int actualizadas = 0;
+            
+            for (Map<String, Object> op : ops) {
+                String wan = texto(op, "wan");
+                if (wan == null || wan.isEmpty()) continue;
+                
+                String armadora = texto(op, "armadora");
+                String aseguradora = texto(op, "aseguradora");
+                String cotizacionId = texto(op, "cotizacionId");
+                String taller = texto(op, "taller");
+                String poliza = texto(op, "poliza");
+                String siniestro = texto(op, "siniestro");
+                String matricula = texto(op, "matricula");
+                String fechaCotizacion = texto(op, "fechaCotizacion");
+                Integer pendientes = pendientes(op);
+                
+                // Fetch detalle para modelo y año (opcional para sync rápido)
+                java.util.Map<String, Object> detalles = client.obtenerDetallesDeCotizacion(wan);
+                String modelo = null;
+                String anio = null;
+                String repuestosJson = null;
+                
+                if (detalles != null) {
+                    if (detalles.get("datosCotizacion") instanceof java.util.Map) {
+                        java.util.Map<String, String> dt = (java.util.Map<String, String>) detalles.get("datosCotizacion");
+                        if (dt.containsKey("Modelo")) modelo = dt.get("Modelo");
+                        if (dt.containsKey("Año Modelo")) anio = dt.get("Año Modelo");
+                    }
+                    try {
+                        repuestosJson = objectMapper.writeValueAsString(detalles);
+                    } catch (Exception e) {}
+                }
+
+                // JOOQ Upsert
+                int affected = dsl.insertInto(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.WAN, wan)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ASEGURADORA, aseguradora)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.COTIZACION_ID, cotizacionId)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.TALLER, taller)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.POLIZA, poliza)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.SINIESTRO, siniestro)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.MATRICULA, matricula)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ARMADORA, armadora)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.MODELO, modelo)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ANIO, anio)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.FECHA_COTIZACION, fechaCotizacion)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.PENDIENTES, pendientes)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ESTADO, com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO, java.time.LocalDateTime.now())
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.DETALLE_JSON, repuestosJson)
+                    .onDuplicateKeyUpdate()
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO, java.time.LocalDateTime.now())
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.PENDIENTES, pendientes)
+                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.DETALLE_JSON, repuestosJson)
+                    .execute();
+                
+                if (affected == 1) insertadas++;
+                else if (affected == 2) actualizadas++;
+                
+                if (affected > 0) {
+                    java.util.Map<String, Object> delta = new java.util.HashMap<>(op);
+                    delta.put("modelo", modelo);
+                    delta.put("anio", anio);
+                    if (detalles != null && detalles.get("repuestos") != null) {
+                        delta.put("repuestos", detalles.get("repuestos"));
+                    }
+                    com.rodiejacontable.rodiejacontable.integration.audatex.controller.AudatexController.emitirDelta(delta);
+                }
+            }
+            log.info("[AudatexService] Sync finalizado. Insertadas: {}, Actualizadas: {}", insertadas, actualizadas);
+        } catch (Exception e) {
+            log.error("[AudatexService] Error en syncRange: {}", e.getMessage(), e);
+        }
+    }
+
+    public int markStaleAsClosed(int hours) {
+        return dsl.update(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ESTADO, com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.CERRADA)
+            .where(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ESTADO.eq(com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA))
+            .and(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO.lt(java.time.LocalDateTime.now().minusHours(hours)))
+            .execute();
+    }
+
+    public List<Map<String, Object>> getOportunidadesFromDb() {
+        List<Map<String, Object>> records = dsl.selectFrom(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC)
+            .where(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ESTADO.eq(com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA))
+            .orderBy(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO.desc())
+            .fetchMaps();
+            
+        List<Map<String, Object>> mapped = new java.util.ArrayList<>();
+        for (Map<String, Object> r : records) {
+            Map<String, Object> m = new java.util.HashMap<>();
+            m.put("wan", r.get("wan"));
+            m.put("aseguradora", r.get("aseguradora"));
+            m.put("cotizacionId", r.get("cotizacion_id"));
+            m.put("taller", r.get("taller"));
+            m.put("poliza", r.get("poliza"));
+            m.put("siniestro", r.get("siniestro"));
+            m.put("matricula", r.get("matricula"));
+            m.put("armadora", r.get("armadora"));
+            m.put("marca", r.get("armadora")); // fallback for frontend
+            m.put("modelo", r.get("modelo"));
+            m.put("anio", r.get("anio"));
+            m.put("fechaCotizacion", r.get("fecha_cotizacion"));
+            m.put("pendientes", r.get("pendientes"));
+            m.put("estado", r.get("estado") != null ? r.get("estado").toString() : null);
+            m.put("ultima_vez_visto", r.get("ultima_vez_visto"));
+            
+            Object json = r.get("detalle_json");
+            if (json != null) {
+                try {
+                    Map<String, Object> detalles = objectMapper.readValue(json.toString(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                    m.put("repuestos", detalles.get("repuestos"));
+                    m.put("datosCotizacion", detalles.get("datosCotizacion"));
+                } catch(Exception e) {
+                    m.put("repuestos", java.util.List.of());
+                    m.put("datosCotizacion", java.util.Map.of());
+                }
+            } else {
+                m.put("repuestos", java.util.List.of());
+                m.put("datosCotizacion", java.util.Map.of());
+            }
+            mapped.add(m);
+        }
+        return mapped;
+    }
 }

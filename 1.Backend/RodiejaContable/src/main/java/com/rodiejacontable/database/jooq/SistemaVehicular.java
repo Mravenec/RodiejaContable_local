@@ -6,6 +6,7 @@ package com.rodiejacontable.database.jooq;
 
 import com.rodiejacontable.database.jooq.tables.Address;
 import com.rodiejacontable.database.jooq.tables.AudatexEnvios;
+import com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync;
 import com.rodiejacontable.database.jooq.tables.Empleados;
 import com.rodiejacontable.database.jooq.tables.Generaciones;
 import com.rodiejacontable.database.jooq.tables.HistorialRepuestos;
@@ -69,6 +70,11 @@ public class SistemaVehicular extends SchemaImpl {
      * The table <code>sistema_vehicular.audatex_envios</code>.
      */
     public final AudatexEnvios AUDATEX_ENVIOS = AudatexEnvios.AUDATEX_ENVIOS;
+
+    /**
+     * The table <code>sistema_vehicular.audatex_oportunidades_sync</code>.
+     */
+    public final AudatexOportunidadesSync AUDATEX_OPORTUNIDADES_SYNC = AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC;
 
     /**
      * The table <code>sistema_vehicular.empleados</code>.
@@ -248,6 +254,7 @@ public class SistemaVehicular extends SchemaImpl {
         return Arrays.asList(
             Address.ADDRESS,
             AudatexEnvios.AUDATEX_ENVIOS,
+            AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC,
             Empleados.EMPLEADOS,
             Generaciones.GENERACIONES,
             HistorialRepuestos.HISTORIAL_REPUESTOS,
