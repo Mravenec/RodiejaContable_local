@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card, Table, Button, DatePicker, Input, Space, Typography,
   message, Tag, Alert
-, Tabs, Descriptions, Row, Col, Divider} from 'antd';
+  , Tabs, Descriptions, Row, Col, Divider
+} from 'antd';
 import {
   SearchOutlined,
   DownloadOutlined,
@@ -20,6 +21,7 @@ const { RangePicker } = DatePicker;
 
 const defaultFiltros = {
   marca: '',
+  modelo: '',
   anio: '',
   armadora: '',
   aseguradora: '',
@@ -188,13 +190,13 @@ const OportunidadesAudatex = () => {
 
   // ─ Helpers de estilo xlsx-js-style ─────────────────────────────────────
   const hdrStyle = (bgHex) => ({
-    font:   { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
-    fill:   { fgColor: { rgb: bgHex } },
+    font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+    fill: { fgColor: { rgb: bgHex } },
     border: {
-      top:    { style: 'thin', color: { rgb: 'CCCCCC' } },
+      top: { style: 'thin', color: { rgb: 'CCCCCC' } },
       bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
-      left:   { style: 'thin', color: { rgb: 'CCCCCC' } },
-      right:  { style: 'thin', color: { rgb: 'CCCCCC' } },
+      left: { style: 'thin', color: { rgb: 'CCCCCC' } },
+      right: { style: 'thin', color: { rgb: 'CCCCCC' } },
     },
     alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
   });
@@ -207,10 +209,10 @@ const OportunidadesAudatex = () => {
   const blockRowStyle = (blockIdx) => ({
     fill: { fgColor: { rgb: BLOCK_PALETTES[blockIdx % BLOCK_PALETTES.length] } },
     border: {
-      top:    { style: 'hair', color: { rgb: 'C7D2DB' } },
+      top: { style: 'hair', color: { rgb: 'C7D2DB' } },
       bottom: { style: 'hair', color: { rgb: 'C7D2DB' } },
-      left:   { style: 'thin', color: { rgb: 'A3B4C6' } },
-      right:  { style: 'thin', color: { rgb: 'A3B4C6' } },
+      left: { style: 'thin', color: { rgb: 'A3B4C6' } },
+      right: { style: 'thin', color: { rgb: 'A3B4C6' } },
     },
     alignment: { vertical: 'center' },
   });
@@ -234,7 +236,7 @@ const OportunidadesAudatex = () => {
     ws['!rows'] = [{ hpt: 22 }];
   };
 
-  // ── Exportar Excel — 2 hojas: Oportunidades + Repuestos ─────────────────
+  // ── Exportar Excel ────────────────────────────────────────────────────────
   const handleExportar = () => {
     if (!oportunidades.length) {
       message.warning('No hay oportunidades cargadas para exportar');
@@ -244,128 +246,30 @@ const OportunidadesAudatex = () => {
     const wb = XLSX.utils.book_new();
 
     // ── Hoja 1: Oportunidades — azul corporativo ──────────────────────────
-    const oportHeaders = ['Cotizacion ID','Aseguradora','Taller','Poliza','Siniestro','Matricula','Armadora','Fecha','Pendientes','Total Repuestos'];
+    const oportHeaders = ['Cotizacion ID', 'Aseguradora', 'Taller', 'Poliza', 'Siniestro', 'Matricula', 'Armadora', 'Fecha', 'Pendientes', 'Total Repuestos'];
     const oportData = oportunidades.map(({ _key, repuestos, ...row }) => ({
-      'Cotizacion ID':    row.cotizacionId    ?? '',
-      'Aseguradora':      row.aseguradora     ?? '',
-      'Taller':           row.taller          ?? '',
-      'Poliza':           row.poliza          ?? '',
-      'Siniestro':        row.siniestro       ?? '',
-      'Matricula':        row.matricula       ?? '',
-      'Armadora':         row.armadora        ?? '',
-      'Fecha':            row.fechaCotizacion ?? '',
-      'Pendientes':       row.pendientes      ?? 0,
-      'Total Repuestos':  Array.isArray(repuestos) ? repuestos.length : 0,
+      'Cotizacion ID': row.cotizacionId ?? '',
+      'Aseguradora': row.aseguradora ?? '',
+      'Taller': row.taller ?? '',
+      'Poliza': row.poliza ?? '',
+      'Siniestro': row.siniestro ?? '',
+      'Matricula': row.matricula ?? '',
+      'Armadora': row.armadora ?? '',
+      'Fecha': row.fechaCotizacion ?? '',
+      'Pendientes': row.pendientes ?? 0,
+      'Total Repuestos': Array.isArray(repuestos) ? repuestos.length : 0,
     }));
     const wsOport = XLSX.utils.json_to_sheet(oportData, { header: oportHeaders });
     wsOport['!cols'] = [
-      { wch: 20 }, { wch: 22 }, { wch: 30 }, { wch: 18 }, { wch: 18 },
-      { wch: 14 }, { wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 15 },
+      { wch: 30 }, { wch: 40 }, { wch: 15 },
     ];
     applyBlockStyles(wsOport, oportHeaders, '1D4ED8', oportData.map((_, i) => i));
     XLSX.utils.book_append_sheet(wb, wsOport, 'Oportunidades');
 
-    // ── Hoja 2: Repuestos — con grupos desplegables por Cotizacion ID ──────
-    const repHeaders = ['Cotizacion ID','Aseguradora','Taller','#','Grupo Pieza','PartNumber','Part Serial Number','Descripcion Pieza'];
-    const repuestosData = [];
-    const repBlockMap   = [];
-    const repRowMeta    = [{ hpt: 22 }]; // fila 0 = cabecera
-
-    let blockIdx = -1;
-    let lastCotizId = null;
-
-    oportunidades.forEach(({ repuestos, cotizacionId, taller, aseguradora }) => {
-      if (!Array.isArray(repuestos) || repuestos.length === 0) return;
-      if (cotizacionId !== lastCotizId) { blockIdx++; lastCotizId = cotizacionId; }
-
-      // Fila resumen (siempre visible, muestra el +/-)
-      repuestosData.push({
-        'Cotizacion ID':      `▼ ${cotizacionId ?? ''}`,
-        'Aseguradora':        aseguradora ?? '',
-        'Taller':             taller ?? '',
-        '#':                  `${repuestos.length} pza`,
-        'Grupo Pieza':        '',
-        'PartNumber':         '',
-        'Part Serial Number': '',
-        'Descripcion Pieza':  '',
-      });
-      repBlockMap.push({ blockIdx, isSummary: true });
-      repRowMeta.push({ hpt: 20 }); // fila resumen, NO grouped
-
-      // Filas de detalle (colapsables)
-      repuestos.forEach((rep, idx) => {
-        repuestosData.push({
-          'Cotizacion ID':       '',
-          'Aseguradora':         '',
-          'Taller':              '',
-          '#':                   idx + 1,
-          'Grupo Pieza':         rep['Grupo Pieza']        ?? '',
-          'PartNumber':          rep['PartNumber']          ?? '',
-          'Part Serial Number':  rep['Part Serial Number'] ?? '',
-          'Descripcion Pieza':   rep['Descripcion Pieza']  ?? '',
-        });
-        repBlockMap.push({ blockIdx, isSummary: false });
-        repRowMeta.push({ level: 1, hpt: 18, hidden: true }); // colapsado por defecto
-      });
-    });
-
-    if (repuestosData.length > 0) {
-      const wsRep = XLSX.utils.json_to_sheet(repuestosData, { header: repHeaders });
-      wsRep['!cols'] = [
-        { wch: 24 }, { wch: 22 }, { wch: 30 }, { wch: 8 },
-        { wch: 14 }, { wch: 20 }, { wch: 32 }, { wch: 38 },
-      ];
-      // Grupos arriba del detalle (summaryBelow: false)
-      wsRep['!sheetPr'] = { outlinePr: { summaryBelow: 0, summaryRight: 0 } };
-
-      // ── Estilos por fila ─────────────────────────────────────────────────
-      // Paleta compartida con hoja Oportunidades
-      const PASTEL_LIGHT  = ['DBEAFE','DCFCE7','FEF9C3','F3E8FF']; // igual a Oportunidades
-      const PASTEL_MEDIUM = ['BFDBFE','A7F3D0','FDE68A','DDD6FE']; // tono medio para resumen
-      const summaryStyleLight = (bIdx) => ({
-        font:  { bold: false, sz: 11, color: { rgb: '1E293B' } },  // texto oscuro
-        fill:  { fgColor: { rgb: PASTEL_MEDIUM[bIdx % 4] } },
-        border: {
-          top:    { style: 'thin', color: { rgb: '94A3B8' } },
-          bottom: { style: 'thin', color: { rgb: '94A3B8' } },
-          left:   { style: 'thin', color: { rgb: '94A3B8' } },
-          right:  { style: 'thin', color: { rgb: '94A3B8' } },
-        },
-        alignment: { vertical: 'center' },
-      });
-      const detailStyle = (bIdx) => ({
-        fill:   { fgColor: { rgb: PASTEL_LIGHT[bIdx % 4] } },
-        border: {
-          top:    { style: 'hair', color: { rgb: 'D1D5DB' } },
-          bottom: { style: 'hair', color: { rgb: 'D1D5DB' } },
-          left:   { style: 'hair', color: { rgb: 'CBD5E1' } },
-          right:  { style: 'hair', color: { rgb: 'CBD5E1' } },
-        },
-        alignment: { vertical: 'center' },
-      });
-
-      // Cabecera de hoja
-      repHeaders.forEach((_, ci) => {
-        const addr = XLSX.utils.encode_cell({ r: 0, c: ci });
-        if (wsRep[addr]) wsRep[addr].s = hdrStyle('065F46');
-      });
-      // Filas de datos
-      repBlockMap.forEach(({ blockIdx: bi, isSummary }, di) => {
-        const ri = di + 1;
-        repHeaders.forEach((_, ci) => {
-          const addr = XLSX.utils.encode_cell({ r: ri, c: ci });
-          if (wsRep[addr]) wsRep[addr].s = isSummary ? summaryStyleLight(bi) : detailStyle(bi);
-        });
-      });
-
-      wsRep['!rows'] = repRowMeta;
-      XLSX.utils.book_append_sheet(wb, wsRep, 'Repuestos');
-    }
-
     XLSX.writeFile(wb, `oportunidades_audatex_${dayjs().format('YYYYMMDD_HHmm')}.xlsx`);
 
     const nota = streaming ? ' (carga aun en curso)' : '';
-    message.success(`Excel exportado — ${oportunidades.length} oportunidades, ${repuestosData.length} repuestos${nota}`);
+    message.success(`Excel exportado — ${oportunidades.length} oportunidades${nota}`);
   };
 
   // ── Invalidar caché y recargar ────────────────────────────────────────────
@@ -419,6 +323,15 @@ const OportunidadesAudatex = () => {
       render: (_, record) => record.marca || record.armadora || (record.datosCotizacion && (record.datosCotizacion['Marca'] || record.datosCotizacion['Armadora'])) || 'Desc.'
     },
     {
+      title: 'Modelo', key: 'modelo',
+      sorter: (a, b) => {
+        const modeloA = (a.datosCotizacion && a.datosCotizacion['Descripción']) || '';
+        const modeloB = (b.datosCotizacion && b.datosCotizacion['Descripción']) || '';
+        return modeloA.localeCompare(modeloB);
+      },
+      render: (_, record) => (record.datosCotizacion && record.datosCotizacion['Descripción']) || '-'
+    },
+    {
       title: 'Año', key: 'anio',
       sorter: (a, b) => {
         const anioA = (a.anio || (a.datosCotizacion && (a.datosCotizacion['Año Modelo'] || a.datosCotizacion['Año Fabricación'])) || '').toString();
@@ -441,8 +354,8 @@ const OportunidadesAudatex = () => {
       title: 'Matrícula', key: 'vehiculo',
       render: (_, record) => {
         const matricula = record.matricula || '';
-        return matricula 
-          ? <Tag color="blue" style={{ width: 'fit-content', margin: 0 }}>{matricula}</Tag> 
+        return matricula
+          ? <Tag color="blue" style={{ width: 'fit-content', margin: 0 }}>{matricula}</Tag>
           : <span style={{ color: '#888' }}>N/A</span>;
       }
     },
@@ -476,12 +389,15 @@ const OportunidadesAudatex = () => {
 
     return oportunidades.filter(op => {
       const mMarca = normalize(appliedFiltros.marca);
+      const mModelo = normalize(appliedFiltros.modelo);
       const mAnio = normalize(appliedFiltros.anio);
-      
+
       const vMarca = normalize(op.marca || op.armadora || (op.datosCotizacion && (op.datosCotizacion['Marca'] || op.datosCotizacion['Armadora'])));
+      const vModelo = normalize(op.datosCotizacion && (op.datosCotizacion['Descripción'] || op.datosCotizacion['Modelo']));
       const vAnio = normalize(op.anio || (op.datosCotizacion && (op.datosCotizacion['Año Modelo'] || op.datosCotizacion['Año Fabricación'])));
 
       const matchMarca = !mMarca || vMarca.includes(mMarca);
+      const matchModelo = !mModelo || vModelo.includes(mModelo);
       const matchAnio = !mAnio || vAnio.includes(mAnio);
 
       let matchDesde = true;
@@ -504,9 +420,9 @@ const OportunidadesAudatex = () => {
         }
       }
 
-      return matchMarca && matchAnio && matchDesde && matchHasta;
+      return matchMarca && matchModelo && matchAnio && matchDesde && matchHasta;
     });
-  }, [oportunidades, appliedFiltros.marca, appliedFiltros.anio, appliedFiltros.desde, appliedFiltros.hasta]);
+  }, [oportunidades, appliedFiltros.marca, appliedFiltros.modelo, appliedFiltros.anio, appliedFiltros.desde, appliedFiltros.hasta]);
 
   const thStyle = {
     padding: '8px 12px', textAlign: 'left', fontWeight: 600,
@@ -574,6 +490,13 @@ const OportunidadesAudatex = () => {
             prefix={<FilterOutlined />}
           />
           <Input
+            placeholder="Filtrar por modelo"
+            value={filtros.modelo}
+            onChange={(e) => setFiltros({ ...filtros, modelo: e.target.value })}
+            style={{ width: 150 }}
+            prefix={<FilterOutlined />}
+          />
+          <Input
             placeholder="Filtrar por año"
             value={filtros.anio}
             onChange={(e) => setFiltros({ ...filtros, anio: e.target.value })}
@@ -627,7 +550,7 @@ const OportunidadesAudatex = () => {
               expandedRowRender: (record) => {
                 const repuestos = record.repuestos || [];
                 const datos = record.datosCotizacion || {};
-                
+
                 const repuestosTab = (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
@@ -649,7 +572,7 @@ const OportunidadesAudatex = () => {
                           <td style={tdStyle}>{rep['Descripcion Pieza'] || '-'}</td>
                         </tr>
                       ))}
-                      {repuestos.length === 0 && <tr><td colSpan={5} style={{textAlign: 'center', padding: 16}}>No hay repuestos disponibles</td></tr>}
+                      {repuestos.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', padding: 16 }}>No hay repuestos disponibles</td></tr>}
                     </tbody>
                   </table>
                 );
@@ -657,10 +580,10 @@ const OportunidadesAudatex = () => {
                 // Omitir Número Cotización y organizar por categorías
                 const filteredDatos = { ...datos };
                 delete filteredDatos['Número Cotización'];
-                
+
                 const grupoVehiculo = ['Descripción', 'Armadora', 'Marca', 'Modelo', 'Color', 'Matricula', 'Chasis', 'Año Modelo', 'Año Fabricación', 'KM', 'Características Vehículo'];
                 const grupoTaller = ['Nombre Taller', 'RFC', 'Inscripción Estadual', 'País', 'Estado', 'Ciudad', 'Codigo Postal', 'Calle', 'Colonia', 'Nombre Contacto', 'Teléfono', 'E-mail'];
-                
+
                 const vehiculoDatos = Object.entries(filteredDatos).filter(([k]) => grupoVehiculo.includes(k));
                 const tallerDatos = Object.entries(filteredDatos).filter(([k]) => grupoTaller.includes(k));
                 const generalDatos = Object.entries(filteredDatos).filter(([k]) => !grupoVehiculo.includes(k) && !grupoTaller.includes(k));
@@ -668,8 +591,8 @@ const OportunidadesAudatex = () => {
                 const renderDesc = (arr) => (
                   <Descriptions bordered size="small" column={2}>
                     {arr.map(([key, value]) => (
-                      <Descriptions.Item label={<span style={{color: '#64748b'}}>{key}</span>} key={key} span={key === 'Descripción' || key === 'Características Vehículo' ? 2 : 1}>
-                        <strong style={{color: '#334155'}}>{value}</strong>
+                      <Descriptions.Item label={<span style={{ color: '#64748b' }}>{key}</span>} key={key} span={key === 'Descripción' || key === 'Características Vehículo' ? 2 : 1}>
+                        <strong style={{ color: '#334155' }}>{value}</strong>
                       </Descriptions.Item>
                     ))}
                   </Descriptions>
@@ -681,13 +604,13 @@ const OportunidadesAudatex = () => {
                       <Col xs={24} lg={12}>
                         <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
                           <Typography.Title level={5} style={{ marginTop: 0, color: '#1e40af' }}>Información del Siniestro</Typography.Title>
-                          {generalDatos.length > 0 ? renderDesc(generalDatos) : <p style={{color: '#94a3b8'}}>No hay datos de siniestro</p>}
+                          {generalDatos.length > 0 ? renderDesc(generalDatos) : <p style={{ color: '#94a3b8' }}>No hay datos de siniestro</p>}
                         </div>
                       </Col>
                       <Col xs={24} lg={12}>
                         <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
                           <Typography.Title level={5} style={{ marginTop: 0, color: '#1e40af' }}>Detalles del Vehículo</Typography.Title>
-                          {vehiculoDatos.length > 0 ? renderDesc(vehiculoDatos) : <p style={{color: '#94a3b8'}}>No hay datos del vehículo</p>}
+                          {vehiculoDatos.length > 0 ? renderDesc(vehiculoDatos) : <p style={{ color: '#94a3b8' }}>No hay datos del vehículo</p>}
                         </div>
                       </Col>
                       <Col xs={24}>
@@ -695,23 +618,23 @@ const OportunidadesAudatex = () => {
                           <Typography.Title level={5} style={{ marginTop: 0, color: '#1e40af' }}>Lugar de Entrega / Taller</Typography.Title>
                           <Descriptions bordered size="small" column={{ xxl: 4, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
                             {tallerDatos.map(([key, value]) => (
-                              <Descriptions.Item label={<span style={{color: '#64748b'}}>{key}</span>} key={key}>
-                                <strong style={{color: '#334155'}}>{value}</strong>
+                              <Descriptions.Item label={<span style={{ color: '#64748b' }}>{key}</span>} key={key}>
+                                <strong style={{ color: '#334155' }}>{value}</strong>
                               </Descriptions.Item>
                             ))}
                           </Descriptions>
-                          {tallerDatos.length === 0 && <p style={{color: '#94a3b8'}}>No hay datos del taller</p>}
+                          {tallerDatos.length === 0 && <p style={{ color: '#94a3b8' }}>No hay datos del taller</p>}
                         </div>
                       </Col>
                     </Row>
                   </div>
                 );
-                
+
                 return (
                   <div style={{ padding: '8px 16px 16px 40px', background: '#fafafa', borderRadius: '4px' }}>
                     <Tabs defaultActiveKey="1" items={[
                       { key: '1', label: 'Repuestos', children: repuestosTab },
-                      { key: '2', label: 'Datos de Cotización', children: Object.keys(datos).length > 0 ? datosTab : <div style={{padding: 16}}>No hay datos de cotización extra disponibles.</div> }
+                      { key: '2', label: 'Datos de Cotización', children: Object.keys(datos).length > 0 ? datosTab : <div style={{ padding: 16 }}>No hay datos de cotización extra disponibles.</div> }
                     ]} />
                   </div>
                 );
