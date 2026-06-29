@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RodiejaContable × Audatex InPart — v3: Pantallas y Sprints</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+    --border: #2e3248; --accent: #5b8af5; --accent2: #38d9a9;
+    --warn: #f5a623; --danger: #e05c5c; --success: #52c41a;
+    --text: #e8eaf0; --text2: #9aa0b8; --text3: #5e6484;
+    --radius: 10px; --mono: 'Fira Code', 'Consolas', monospace;
+
+    /* Tokens del mockup — emulan Ant Design del frontend real */
+    --ant-bg: #ffffff;
+    --ant-bg-soft: #fafafa;
+    --ant-border: #e8e8e8;
+    --ant-text: #262626;
+    --ant-text2: #595959;
+    --ant-text3: #8c8c8c;
+    --ant-blue: #1890ff;
+    --ant-green: #52c41a;
+    --ant-red: #ff4d4f;
+    --ant-yellow: #faad14;
+    --ant-purple: #722ed1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; }
+  .sidebar { position: fixed; top: 0; left: 0; width: 280px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 24px 0; z-index: 100; }
+  .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .sidebar-logo h2 { font-size: 13px; color: var(--accent); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .sidebar-logo p { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .sidebar-logo .ver { display: inline-block; margin-top: 6px; font-size: 10px; padding: 2px 8px; background: rgba(56,217,169,.15); color: var(--accent2); border-radius: 10px; font-weight: 700; letter-spacing: 0.05em; }
+  .nav-section { padding: 10px 20px 4px; font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+  .nav-link { display: block; padding: 6px 20px; color: var(--text2); text-decoration: none; font-size: 13px; border-left: 2px solid transparent; transition: all .15s; }
+  .nav-link:hover, .nav-link.active { color: var(--text); border-left-color: var(--accent); background: rgba(91,138,245,.07); }
+  .main { margin-left: 280px; padding: 48px 56px; max-width: 1180px; }
+  h1 { font-size: 30px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+  h2 { font-size: 22px; font-weight: 700; color: var(--text); margin: 48px 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 16px; font-weight: 700; color: var(--accent); margin: 28px 0 12px; }
+  h4 { font-size: 13px; font-weight: 600; color: var(--text2); margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  p { color: var(--text2); margin-bottom: 14px; }
+  strong { color: var(--text); }
+  em { color: var(--text); font-style: italic; }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--surface2); padding: 1px 6px; border-radius: 4px; color: #c9d1d9; }
+  ul { color: var(--text2); padding-left: 20px; line-height: 1.9; margin-bottom: 14px; }
+  li { margin-bottom: 4px; }
+  .hero { background: linear-gradient(135deg, rgba(91,138,245,.1), rgba(56,217,169,.05)); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; margin-bottom: 40px; }
+  .hero p { font-size: 16px; color: var(--text); margin: 0; }
+  .hero p + p { margin-top: 14px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
+  .badge-green { background: rgba(82,196,26,.15); color: var(--success); border: 1px solid rgba(82,196,26,.3); }
+  .badge-red { background: rgba(224,92,92,.15); color: var(--danger); border: 1px solid rgba(224,92,92,.3); }
+  .badge-yellow { background: rgba(245,166,35,.15); color: var(--warn); border: 1px solid rgba(245,166,35,.3); }
+  .badge-blue { background: rgba(91,138,245,.15); color: var(--accent); border: 1px solid rgba(91,138,245,.3); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+  .card-success { border-left: 3px solid var(--success); }
+  .card-warn { border-left: 3px solid var(--warn); }
+  .card-danger { border-left: 3px solid var(--danger); }
+  .card-accent { border-left: 3px solid var(--accent); }
+  .code-block { background: #0a0c14; border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin: 14px 0; overflow-x: auto; }
+  .code-block pre { font-family: var(--mono); font-size: 12.5px; color: #c9d1d9; line-height: 1.6; }
+  .code-block .kw { color: #ff7b72; }
+  .code-block .str { color: #a5d6ff; }
+  .code-block .cm { color: #3c4c5e; font-style: italic; }
+  .code-block .fn { color: #d2a8ff; }
+  .code-block .var { color: #ffa657; }
+  .code-block .tag { color: #7ee787; }
+  .alert { border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-start; }
+  .alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .alert-warn { background: rgba(245,166,35,.1); border: 1px solid rgba(245,166,35,.3); }
+  .alert-info { background: rgba(91,138,245,.1); border: 1px solid rgba(91,138,245,.3); }
+  .alert-success { background: rgba(82,196,26,.1); border: 1px solid rgba(82,196,26,.3); }
+  .alert-danger { background: rgba(224,92,92,.1); border: 1px solid rgba(224,92,92,.3); }
+  .verdict { border-radius: 10px; padding: 20px 24px; margin: 16px 0; }
+  .verdict-yes { background: rgba(82,196,26,.08); border: 2px solid rgba(82,196,26,.3); }
+  .verdict-no { background: rgba(224,92,92,.08); border: 2px solid rgba(224,92,92,.3); }
+  .verdict-maybe { background: rgba(245,166,35,.08); border: 2px solid rgba(245,166,35,.3); }
+  .verdict-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; }
+  .table-wrap { overflow-x: auto; }
+  th { background: var(--surface2); color: var(--text2); font-weight: 600; padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+  tr:hover td { background: rgba(91,138,245,.04); }
+  .section-anchor { display: block; position: relative; top: -80px; visibility: hidden; }
+
+  /* ═══════════ MOCKUP STYLES — emulan AntD ═══════════ */
+  .mockup-wrap {
+    background: #0d0f17;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0 32px;
+  }
+  .mockup-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 8px 14px;
+    background: var(--surface2);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .mockup-label .where { color: var(--accent); }
+  .mockup-label .sprint-pill { background: rgba(56,217,169,.2); color: var(--accent2); padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 800; }
+
+  .mock {
+    background: var(--ant-bg);
+    border-radius: 8px;
+    color: var(--ant-text);
+    font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  }
+  .mock-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--ant-bg-soft);
+    border-bottom: 1px solid var(--ant-border);
+    font-size: 12px;
+    color: var(--ant-text3);
+  }
+  .mock-bar .breadcrumb { color: var(--ant-text2); }
+  .mock-bar .breadcrumb b { color: var(--ant-text); font-weight: 600; }
+  .mock-bar .sep { opacity: .5; }
+  .mock-body { padding: 18px; }
+
+  .ant-title { font-size: 18px; font-weight: 600; color: var(--ant-text); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+  .ant-subtitle { font-size: 12px; color: var(--ant-text3); margin-bottom: 18px; }
+  .ant-btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 4px; font-size: 13px; font-weight: 500; border: 1px solid var(--ant-border); background: var(--ant-bg); color: var(--ant-text2); cursor: default; }
+  .ant-btn-primary { background: var(--ant-blue); color: white; border-color: var(--ant-blue); }
+  .ant-btn-success { background: var(--ant-green); color: white; border-color: var(--ant-green); }
+  .ant-btn-ghost-blue { background: white; color: var(--ant-blue); border-color: var(--ant-blue); }
+  .ant-btn-ghost-green { background: white; color: var(--ant-green); border-color: var(--ant-green); }
+  .ant-tag { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; line-height: 18px; }
+  .ant-tag-blue { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+  .ant-tag-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+  .ant-tag-red { background: #fff1f0; color: #ff4d4f; border: 1px solid #ffa39e; }
+  .ant-tag-yellow { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+  .ant-tag-purple { background: #f9f0ff; color: #722ed1; border: 1px solid #d3adf7; }
+
+  .ant-table { width: 100%; border-collapse: collapse; }
+  .ant-table th { background: var(--ant-bg-soft); padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ant-text2); border-bottom: 1px solid var(--ant-border); text-transform: none; letter-spacing: normal; }
+  .ant-table td { padding: 10px 14px; border-bottom: 1px solid var(--ant-border); color: var(--ant-text2); font-size: 12.5px; vertical-align: middle; }
+  .ant-table .row-hl { background: #fffbe6; }
+  .ant-table .row-hl-blue { background: #e6f7ff; }
+
+  .ant-tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--ant-border); margin-bottom: 16px; }
+  .ant-tab { padding: 10px 0; font-size: 13px; color: var(--ant-text2); cursor: default; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 8px; }
+  .ant-tab.active { color: var(--ant-blue); border-bottom-color: var(--ant-blue); font-weight: 500; }
+  .ant-tab .new-pill { display: inline-block; padding: 0 6px; background: var(--ant-green); color: white; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .ant-tab .count-badge { display: inline-block; padding: 0 6px; background: var(--ant-red); color: white; border-radius: 10px; font-size: 10px; font-weight: 700; }
+
+  .ant-card { background: var(--ant-bg); border: 1px solid var(--ant-border); border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+  .ant-card-hl { border-color: #91d5ff; background: #e6f7ff20; }
+
+  .ant-modal-mock { background: var(--ant-bg); border: 1px solid var(--ant-border); border-radius: 8px; padding: 20px; max-width: 480px; margin: 12px auto; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+  .ant-form-item { margin-bottom: 14px; }
+  .ant-form-label { font-size: 12px; color: var(--ant-text2); margin-bottom: 4px; display: block; }
+  .ant-input { background: var(--ant-bg); border: 1px solid var(--ant-border); border-radius: 4px; padding: 5px 10px; font-size: 13px; color: var(--ant-text); display: inline-block; }
+  .ant-input-full { display: block; width: 100%; }
+
+  .ant-tree { font-size: 12.5px; color: var(--ant-text); }
+  .ant-tree-node {
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 4px;
+    position: relative;
+  }
+  .ant-tree-node:hover { background: rgba(24,144,255,.05); }
+  .ant-tree-node .caret {
+    color: var(--ant-text3);
+    width: 14px;
+    display: inline-flex;
+    justify-content: center;
+    font-size: 11px;
+  }
+  .ant-tree-node .label { flex: 1; }
+  .ant-tree-node .meta { font-size: 11px; color: var(--ant-text3); margin-left: 6px; }
+  .ant-tree-level-1 { padding-left: 0; }
+  .ant-tree-level-2 { padding-left: 26px; border-left: 1px dashed #d9d9d9; margin-left: 8px; }
+  .ant-tree-level-3 { padding-left: 46px; border-left: 1px dashed #d9d9d9; margin-left: 8px; }
+  .ant-tree-level-4 { padding-left: 66px; border-left: 1px dashed #d9d9d9; margin-left: 8px; }
+  .ant-tree-level-5 { padding-left: 86px; border-left: 1px dashed #d9d9d9; margin-left: 8px; }
+  .ant-tree-node .node-icon { width: 16px; display: inline-flex; justify-content: center; font-size: 13px; }
+  .ant-tree-node-marca { font-weight: 600; color: var(--ant-text); }
+  .ant-tree-node-modelo { font-weight: 500; color: var(--ant-text); }
+  .ant-tree-node-vehiculo { color: var(--ant-text2); font-size: 12px; }
+  .ant-tree-rhs { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+
+  /* Annotaciones internas a los mockups blancos — usan texto OSCURO para legibilidad */
+  .annot {
+    background: #fff7e6;
+    border-left: 4px solid #faad14;
+    padding: 12px 16px;
+    font-size: 12.5px;
+    color: #1f2937;
+    margin-top: 14px;
+    border-radius: 4px;
+    line-height: 1.7;
+  }
+  .annot strong { color: #b45309; font-weight: 700; }
+  .annot ol, .annot ul { color: #1f2937; }
+  .annot ol li, .annot ul li { color: #1f2937; }
+  .annot-blue {
+    background: #e6f4ff;
+    border-left: 4px solid #1890ff;
+    color: #1f2937;
+    padding: 12px 16px;
+    font-size: 12.5px;
+    margin-top: 14px;
+    border-radius: 4px;
+    line-height: 1.7;
+  }
+  .annot-blue strong { color: #1d4ed8; font-weight: 700; }
+  .annot-green {
+    background: #ecfdf5;
+    border-left: 4px solid #10b981;
+    color: #1f2937;
+    padding: 12px 16px;
+    font-size: 12.5px;
+    margin-top: 14px;
+    border-radius: 4px;
+    line-height: 1.7;
+  }
+  .annot-green strong { color: #047857; font-weight: 700; }
+
+  .arrow-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--ant-yellow);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
+  .arrow-icon.green { background: var(--ant-green); }
+  .arrow-icon.blue { background: var(--ant-blue); }
+  .arrow-icon.red { background: var(--ant-red); }
+
+  /* Linear-style sprint tickets */
+  .linear-cycle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .linear-cycle-header {
+    padding: 14px 20px;
+    background: linear-gradient(90deg, rgba(91,138,245,.1), transparent);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .linear-cycle-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--surface2);
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 12px;
+  }
+  .linear-cycle-title { font-weight: 600; color: var(--text); font-size: 14px; }
+  .linear-cycle-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .linear-cycle-body { padding: 4px 0; }
+  .linear-issue {
+    display: grid;
+    grid-template-columns: 90px 24px 1fr 100px;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .linear-issue:last-child { border-bottom: none; }
+  .linear-issue:hover { background: rgba(91,138,245,.04); }
+  .linear-id {
+    font-family: var(--mono);
+    color: var(--text3);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .linear-status {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid;
+  }
+  .linear-status-todo { border-color: var(--text3); }
+  .linear-status-backlog { border-color: var(--text3); opacity: .5; }
+  .linear-title { color: var(--text); }
+  .linear-title small { color: var(--text3); font-size: 11px; display: block; margin-top: 2px; }
+  .linear-label {
+    text-align: right;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .linear-label-feat { color: var(--accent); }
+  .linear-label-chore { color: var(--text2); }
+  .linear-label-spike { color: var(--warn); }
+  .linear-label-bug { color: var(--danger); }
+  .linear-label-design { color: var(--accent2); }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  @media (max-width: 900px) { .sidebar { display: none; } .main { margin-left: 0; padding: 24px; } }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h2>RodiejaContable</h2>
+    <p>× Audatex InPart Integration</p>
+    <span class="ver">v4 · COLONES + DESARMADO</span>
+  </div>
+  <div class="nav-section">Confirmaciones</div>
+  <a class="nav-link" href="#top">Intro · Necesidad ↔ Solución</a>
+  <a class="nav-link" href="#soap-resp">¿SOAP del proveedor?</a>
+  <a class="nav-link" href="#credenciales">Credenciales (.env)</a>
+  <div class="nav-section">Pantallas Existentes (modificadas)</div>
+  <a class="nav-link" href="#p1-inventario">P1 · Inventario (lista)</a>
+  <a class="nav-link" href="#p2-vehiculo">P2 · Detalle de Vehículo</a>
+  <a class="nav-link" href="#p3-jerarquia">P3 · Jerarquía Marcas/Modelos</a>
+  <a class="nav-link" href="#p4-repuesto">P4 · Detalle del Repuesto ⭐</a>
+  <div class="nav-section">Pantallas Nuevas</div>
+  <a class="nav-link" href="#p5-cotizacion">P5 · Modal Cotizar</a>
+  <a class="nav-link" href="#p6-global">P6 · Cotizaciones InPart (global)</a>
+  <a class="nav-link" href="#p7-config">P7 · Configuración Audatex</a>
+  <a class="nav-link" href="#p8-reportes">P8 · Reportes / Excel</a>
+  <div class="nav-section">Plan</div>
+  <a class="nav-link" href="#flujo">Flujo end-to-end</a>
+  <a class="nav-link" href="#sprints">Sprints en Linear</a>
+  <a class="nav-link" href="#cuadro">Cuadro final</a>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <a class="section-anchor" id="top"></a>
+  <div style="margin-bottom: 32px;">
+    <span class="badge badge-green" style="margin-bottom: 12px;">v4 — Colones (CRC) · Solo vehículos DESARMADO</span>
+    <h1>Pantallas, Flujos y Sprints</h1>
+    <p style="font-size: 16px; color: var(--text2);">Cada pantalla del repo <code>Mravenec/RodiejaContable</code> que toca la integración, qué cambia, qué sprint la entrega.</p>
+    <div style="margin-top: 14px; padding: 12px 16px; background: rgba(56,217,169,.08); border-left: 3px solid var(--accent2); border-radius: 4px; font-size: 13px; color: var(--text);">
+      <strong style="color: var(--accent2);">Alcance acotado:</strong> esta integración aplica <strong>únicamente a vehículos en estado <code>DESARMADO</code></strong>. Los demás estados (DISPONIBLE, EN_PROCESO, VENDIDO, etc.) no tienen piezas en inventario que vender en InPart. Todos los montos en este documento están en <strong>colones costarricenses (CRC, ₡)</strong> — la divisa nativa del sistema según el contexto del proyecto en Heredia, Costa Rica.
+    </div>
+    <div style="margin-top: 10px; padding: 12px 16px; background: rgba(245,166,35,.08); border-left: 3px solid var(--warn); border-radius: 4px; font-size: 13px; color: var(--text);">
+      <strong style="color: var(--warn);">Nota de transparencia sobre el repo:</strong> en este momento el repositorio <code>github.com/Mravenec/RodiejaContable</code> responde 404 a peticiones anónimas desde el entorno donde se generó este documento (probado con <code>git clone</code>, <code>curl</code> con varios <em>user agents</em> y URLs alternativas — todas rechazadas). Otros repos públicos sí responden, así que es un bloqueo específico (posiblemente el repo se hizo privado, o GitHub aplica restricciones por IP). Como resultado, los nombres exactos de componentes (<code>Inventario.js</code>, <code>DetalleRepuesto.js</code>, <code>JerarquiaVehiculos.js</code>, etc.) se basan en lo documentado en la <strong>v1 de esta serie</strong>, donde el agente sí pudo clonar. La estructura general del repo (<code>0.BaseDeDatos</code>, <code>1.Backend</code>, <code>2.Frontend</code>) sí está confirmada. Si los nombres reales difieren, son ajustes triviales en los issues de Linear.
+    </div>
+  </div>
+
+  <!-- ══════ INTRODUCCIÓN: necesidad ↔ solución ══════ -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 36px;">
+    <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--warn); border-radius: 10px; padding: 22px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(245,166,35,.15); color: var(--warn); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">?</div>
+        <div style="font-size: 15px; font-weight: 700; color: var(--text);">Lo que se necesita</div>
+      </div>
+      <ul style="margin: 0; padding-left: 18px; color: var(--text2); line-height: 1.85; font-size: 13px;">
+        <li>Al ingresar una pieza al inventario desde un vehículo desarmado, ver <strong>automáticamente</strong> las cotizaciones abiertas en Audatex InPart que aplican.</li>
+        <li>Ver el <strong>modelo completo</strong> en la lista sin tener que entrar uno por uno — diferenciar variantes específicas dentro de una misma marca (ej: Chery Tigo 4 vs Tigo 2 vs Tigo 8 Pro, Hyundai Tucson vs Santa Fe, Toyota Corolla vs Yaris) <span style="color: var(--text3);">— aplica a <em>cualquier</em> marca, modelo, generación y año que exista en tu inventario.</span></li>
+        <li><strong>Exportar a Excel</strong> todas las oportunidades de un rango de fechas (1 año atrás, por ejemplo).</li>
+        <li><strong>Enviar la cotización desde el sistema</strong> con las credenciales del proveedor, que aparezca en el portal como si la pusiera el humano.</li>
+        <li>Solo para vehículos en estado <code>DESARMADO</code>; todo en <strong>colones (CRC)</strong>.</li>
+        <li><strong>No duplicar</strong> datos de Audatex en la BD propia (la BD es para datos del taller, no réplica del portal).</li>
+        <li>Saber si Audatex provee un MCP / SOAP / API cómoda — y si no, qué hay que construir.</li>
+      </ul>
+    </div>
+
+    <div style="background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent2); border-radius: 10px; padding: 22px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(56,217,169,.15); color: var(--accent2); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">→</div>
+        <div style="font-size: 15px; font-weight: 700; color: var(--text);">Cómo lo abordamos</div>
+      </div>
+      <ul style="margin: 0; padding-left: 18px; color: var(--text2); line-height: 1.85; font-size: 13px;">
+        <li>Cliente integrado al <strong>backend Spring Boot</strong> que se autentica en <code>inpart-la.audatex.com.mx</code> con las credenciales del <code>.env</code> cifrado (Jasypt). El SOAP del proveedor <em>no existe</em>; se automatiza el portal.</li>
+        <li>Caché en memoria (Caffeine, TTL 5 min) en el backend. <strong>Cero tablas nuevas</strong> para datos efímeros de Audatex.</li>
+        <li>Solo <strong>1 tabla nueva</strong>: <code>audatex_envios</code> — registro de las cotizaciones que tú envías (auditoría + métricas), opcional en MVP.</li>
+        <li><strong>8 pantallas</strong> tocadas: 4 modificadas (Inventario, Detalle Vehículo, Jerarquía, Reportes) + 4 nuevas (tab "Oportunidades InPart" en Detalle del Repuesto, modal Cotizar, vista global, configuración).</li>
+        <li>Plan en <strong>4 cycles de Linear</strong> con 30 issues <code>ROD-01</code> a <code>ROD-37</code>: 1 semana de discovery + 5 de implementación.</li>
+        <li>Decisión técnica clave (<strong>Java HTTP directo</strong> vs <strong>Node.js + Playwright</strong>) sale del SPIKE-01 del cycle 0, no se decide a priori.</li>
+        <li>Excel export como <strong>quick win</strong> del Sprint 1 — entregable demostrable en 3 semanas.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="hero">
+    <p><strong>Lo que confirmo de entrada (sin rodeos):</strong></p>
+    <p>🔴 <strong>El SOAP <code>AssessmentService.asmx</code> NO sirve para ti como proveedor.</strong> Lo verifiqué: la lista de métodos del WSDL (<code>GetInpartInfo</code>, <code>GetTotsAndManufacturerForInpart</code>, <code>GetPartSuppliersForCompany</code>, <code>SaveInpartInfo</code>, <code>ExecuteInpartCalculation</code>, etc.) son <em>todos</em> para el lado comprador — talleres y aseguradoras. Ninguno permite a un proveedor consultar sus cotizaciones pendientes ni enviar una respuesta. Todos requieren un <code>sessionId</code> de AudaClaimsGold que como proveedor de refacciones no tienes ni puedes obtener.</p>
+    <p>🟢 <strong>El portal <code>inpart-la.audatex.com.mx</code> SÍ se puede automatizar.</strong> Iniciar sesión, listar las cotizaciones abiertas con marca+modelo específico (lo que tú haces dando clic uno por uno) y enviar tu cotización — son acciones replicables programáticamente desde el backend usando tus credenciales (<code>dvenegas</code> / <code>Inpart26/</code>) guardadas en un archivo <code>.env</code> cifrado. No es vía SOAP, es vía automatización del portal HTTP.</p>
+    <p>🟡 <strong>La cotización se envía con tus credenciales y aparece en el portal como si tú la hubieras puesto.</strong> El sistema actúa como tu sesión iniciada — para Audatex es indistinguible si lo hizo un humano o el backend, mientras el ritmo de envío sea razonable.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="soap-resp"></a>
+  <h2>1. La Confirmación que Pediste, Explicada</h2>
+
+  <h3>Por qué el SOAP no funciona — método por método</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Método SOAP</th><th>¿Para quién?</th><th>¿Sirve al proveedor?</th></tr>
+      <tr>
+        <td><code>GetInpartInfo(sessionId, wan)</code></td>
+        <td>Taller/aseguradora consulta un siniestro suyo</td>
+        <td><span class="badge badge-red">NO</span> — requiere sessionId del lado comprador</td>
+      </tr>
+      <tr>
+        <td><code>SaveInpartInfo(sessionId, parts)</code></td>
+        <td>Taller envía piezas necesarias a InPart</td>
+        <td><span class="badge badge-red">NO</span> — esto <em>genera</em> las cotizaciones que tú recibes</td>
+      </tr>
+      <tr>
+        <td><code>GetPartSuppliersForCompany(...)</code></td>
+        <td>Sistema interno: lista proveedores aprobados</td>
+        <td><span class="badge badge-red">NO</span> — InPart lo usa internamente para asignarte cotizaciones</td>
+      </tr>
+      <tr>
+        <td><code>ExecuteInpartCalculation(sessionId)</code></td>
+        <td>Taller dispara el matching automático</td>
+        <td><span class="badge badge-red">NO</span> — lado comprador</td>
+      </tr>
+      <tr>
+        <td><code>GetInfoWorkProviderToSendInpart(...)</code></td>
+        <td>Datos del proveedor de trabajo (taller)</td>
+        <td><span class="badge badge-red">NO</span> — confunde "proveedor de trabajo" con "proveedor de refacciones"</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="alert alert-danger">
+    <div class="alert-icon">🚫</div>
+    <div><strong>No existe en el WSDL ningún método tipo</strong> <code>GetMyPendingQuoteRequests(providerCredentials)</code>, <code>GetVehicleDetailsForRequest(itemId)</code>, ni <code>SubmitProviderQuote(itemId, price)</code>. Es un hecho objetivo verificable inspeccionando el WSDL en <code>https://acg-prod-mx.audatex.com.mx/WebEnterpriseServer/AssessmentService.asmx?wsdl</code>. Si Audatex algún día publica un endpoint para proveedores, este documento se actualiza. Hoy no existe.</div>
+  </div>
+
+  <h3>Lo que sí se puede hacer — y cómo</h3>
+  <div class="verdict verdict-yes">
+    <div class="verdict-title" style="color: var(--success);">✓ Automatización del portal con tus credenciales</div>
+    <p>El backend Spring Boot llama a un módulo de integración (Java directo si SPIKE-01 encuentra endpoints AJAX/JSON, o Node.js+Playwright si solo hay postbacks ViewState). Ese módulo:</p>
+    <ol style="color: var(--text); padding-left: 22px; margin-top: 10px;">
+      <li>Lee <code>AUDATEX_USER</code> y <code>AUDATEX_PASS</code> del <code>.env</code> cifrado.</li>
+      <li>Hace <code>POST</code> al endpoint de login del portal (<code>frmLogin.aspx</code>) y captura la cookie de sesión.</li>
+      <li>Mantiene esa cookie viva en memoria del backend (no en BD).</li>
+      <li>Para cada request de RodiejaContable, navega a la sección de cotizaciones, filtra, extrae datos del modelo completo del vehículo (no solo la marca como ves en la lista), y devuelve JSON al frontend.</li>
+      <li>Para enviar una cotización: navega al formulario, llena precio + tiempo + condición, hace POST, captura la confirmación.</li>
+    </ol>
+    <p>Para Audatex, ese tráfico es indistinguible de tu sesión manual mientras imite ritmo humano (delays entre acciones, no más de 1 envío cada pocos segundos, sin bursts).</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="credenciales"></a>
+  <h2>2. Manejo de Credenciales — Dónde Van</h2>
+
+  <p>Las credenciales de Audatex no se piden al usuario cada vez ni se hardcodean. Van en variables de entorno del backend, cifradas, fuera del control de Git.</p>
+
+  <h3>Estructura del archivo <code>.env</code></h3>
+  <div class="code-block"><pre><span class="cm"># 1.Backend/RodiejaContable/.env  (NO commitear; agregar a .gitignore)</span>
+
+<span class="cm"># Credenciales del portal inpart-la.audatex.com.mx</span>
+AUDATEX_PORTAL_URL=<span class="str">https://inpart-la.audatex.com.mx/audapartswebapp/frmLogin.aspx</span>
+AUDATEX_USER=<span class="str">dvenegas</span>
+AUDATEX_PASS=<span class="str">Inpart26/</span>
+
+<span class="cm"># Configuración de comportamiento del bridge</span>
+AUDATEX_SESSION_TTL_MIN=<span class="str">30</span>
+AUDATEX_CACHE_TTL_MIN=<span class="str">5</span>
+AUDATEX_MAX_REQUESTS_PER_MIN=<span class="str">30</span>
+AUDATEX_HUMAN_DELAY_MS=<span class="str">800</span>
+
+<span class="cm"># Divisa del sistema — todos los precios se envían y reciben en CRC</span>
+APP_CURRENCY=<span class="str">CRC</span>
+APP_CURRENCY_SYMBOL=<span class="str">₡</span>
+APP_LOCALE=<span class="str">es-CR</span>
+
+<span class="cm"># Clave de cifrado Jasypt (rotable cuando se quiera)</span>
+JASYPT_ENCRYPTOR_PASSWORD=<span class="str">una_clave_larga_e_irrepetible_que_no_se_publica</span></pre></div>
+
+  <div class="annot-green" style="margin: 14px 0;">
+    <strong>Sobre la divisa:</strong> el sistema actual <code>RodiejaContable</code> opera nativamente en colones costarricenses. Toda la integración con Audatex InPart envía y recibe precios en <code>CRC (₡)</code>. Si en el futuro Audatex sirviera un siniestro en otra moneda (raro en operaciones locales), el backend lo detectaría por el campo de divisa del WAN y convertiría con el tipo de cambio del BCCR antes de mostrar.
+  </div>
+
+  <h3>Cómo lo lee Spring Boot</h3>
+  <div class="code-block"><pre><span class="cm">// 1.Backend/RodiejaContable/src/main/resources/application.yml</span>
+audatex:
+  portal-url: <span class="str">${AUDATEX_PORTAL_URL}</span>
+  user: <span class="str">ENC(${AUDATEX_USER})</span>
+  pass: <span class="str">ENC(${AUDATEX_PASS})</span>
+  session-ttl-min: <span class="str">${AUDATEX_SESSION_TTL_MIN:30}</span>
+  cache-ttl-min: <span class="str">${AUDATEX_CACHE_TTL_MIN:5}</span>
+
+<span class="cm">// AudatexProperties.java — binding type-safe</span>
+<span class="tag">@ConfigurationProperties</span>(prefix = <span class="str">"audatex"</span>)
+<span class="kw">public class</span> <span class="fn">AudatexProperties</span> {
+    <span class="kw">private</span> String portalUrl;
+    <span class="kw">private</span> String user;       <span class="cm">// Jasypt lo descifra al cargar</span>
+    <span class="kw">private</span> String pass;
+    <span class="kw">private</span> <span class="var">int</span> sessionTtlMin;
+    <span class="kw">private</span> <span class="var">int</span> cacheTtlMin;
+    <span class="cm">// getters/setters</span>
+}</pre></div>
+
+  <div class="card-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 24px;">
+    <div class="card card-success">
+      <h4>✓ DO</h4>
+      <ul style="margin: 0; padding-left: 18px; color: var(--text2); font-size: 13px;">
+        <li>Credenciales en <code>.env</code></li>
+        <li><code>.env</code> en <code>.gitignore</code></li>
+        <li>Cifrar con Jasypt (no texto plano)</li>
+        <li>Una sola credencial de servicio (la del admin)</li>
+        <li>Permisos del archivo: <code>chmod 600</code></li>
+      </ul>
+    </div>
+    <div class="card card-danger">
+      <h4>✕ DON'T</h4>
+      <ul style="margin: 0; padding-left: 18px; color: var(--text2); font-size: 13px;">
+        <li>Credenciales en código fuente</li>
+        <li>Credenciales en BD en texto plano</li>
+        <li>Credenciales en frontend (React)</li>
+        <li>Pedirlas al usuario cada vez (mala UX)</li>
+        <li>Cada empleado con su propia credencial Audatex (mantenimiento imposible)</li>
+      </ul>
+    </div>
+    <div class="card card-warn">
+      <h4>⚠ ALTERNATIVA (futura)</h4>
+      <ul style="margin: 0; padding-left: 18px; color: var(--text2); font-size: 13px;">
+        <li>UI en <strong>Configuración → Audatex</strong> donde el admin actualice usuario/contraseña sin tocar el <code>.env</code> (se guardan cifradas en BD)</li>
+        <li>Implementable en Sprint 3 como mejora; no bloquea el MVP</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <h2>3. Las Pantallas Existentes que Cambian + las Nuevas</h2>
+
+  <p>Repaso de cada pantalla del proyecto que toca la integración. Para cada una: <strong>qué se ve</strong>, <strong>qué hace</strong>, y <strong>en qué sprint se entrega</strong>. Las pantallas existentes se modifican; las marcadas como NUEVA se crean.</p>
+
+  <div class="alert alert-warn">
+    <div class="alert-icon">📌</div>
+    <div>
+      <strong>Los datos en los mockups son ilustrativos.</strong> Los mockups usan <strong>Chery Tigo 4 / Tigo 2 / Tigo 8 Pro</strong> consistentemente porque facilita seguir el flujo visual de extremo a extremo (es la misma pieza navegando por varias pantallas). <strong>La integración cubre cualquier marca, modelo, generación, año o variante</strong> que exista en tu inventario y en Audatex: Hyundai Tucson, Toyota Corolla, Mazda 3, Nissan Versa, KIA Sportage, Suzuki Swift, Mitsubishi L200, etc. — sin códigos hardcoded por marca. La lógica de matching toma <code>marca</code> + <code>modelo</code> + opcionalmente <code>generación/año</code> directamente del vehículo origen de la pieza en tu BD y los pasa a Audatex como filtros. <em>Funciona igual con un Lamborghini que con un Lada</em> si están en tu inventario.
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    <div class="alert-icon">📐</div>
+    <div>Los mockups siguen el lenguaje visual de Ant Design (que es el framework del frontend actual en <code>2.Frontend/RodiejaContable</code>). No son pixel-perfect — son <em>esquemáticos</em> para clarificar qué cambia. La implementación real reutiliza componentes AntD ya importados.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="p1-inventario"></a>
+  <h3>P1 · <code>Inventario.js</code> — Lista de Repuestos <span class="badge badge-yellow" style="margin-left: 8px;">MODIFICADA</span></h3>
+
+  <p>Es la pantalla donde se ven todos los repuestos en stock sin filtrar por vehículo. <strong>Cambio:</strong> se agrega una columna nueva, un filtro nuevo, y un botón en la barra superior.</p>
+
+  <div class="mockup-wrap">
+    <div class="mockup-label">
+      <span>Ruta: <span class="where">/inventario</span> · Archivo: <code style="color: var(--accent);">Inventario.js</code></span>
+      <span class="sprint-pill">Sprint 2 · ROD-21</span>
+    </div>
+    <div class="mock">
+      <div class="mock-bar">
+        <div class="breadcrumb"><b>Home</b> <span class="sep">/</span> <b>Inventario</b></div>
+      </div>
+      <div class="mock-body">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+          <div>
+            <div class="ant-title">📦 Inventario de Repuestos</div>
+            <div class="ant-subtitle">Listado completo de piezas en stock</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span class="ant-btn ant-btn-ghost-green">📥 Exportar Oportunidades a Excel</span>
+            <span class="ant-btn ant-btn-primary">+ Nuevo Repuesto</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+          <span class="ant-input">🔍 Buscar...</span>
+          <span class="ant-input">Marca: Todas ▾</span>
+          <span class="ant-input">Estado: STOCK ▾</span>
+          <span class="ant-input" style="background:#f6ffed; border-color:#52c41a; color:#52c41a;">⚡ Solo con oportunidades activas ▾</span>
+        </div>
+
+        <table class="ant-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Descripción</th>
+              <th>Vehículo origen</th>
+              <th>Parte</th>
+              <th>Precio venta</th>
+              <th>Estado</th>
+              <th style="background:#e6f7ff; color:#1890ff;">Oportunidades InPart ⭐</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-hl-blue">
+              <td>#1042</td>
+              <td>Motor completo 1.5L</td>
+              <td>Chery Tigo 4 · 2021</td>
+              <td><span class="ant-tag ant-tag-blue">MOTOR</span></td>
+              <td><strong>₡850.000</strong></td>
+              <td><span class="ant-tag ant-tag-green">STOCK</span></td>
+              <td><span class="ant-tag ant-tag-red" style="font-weight:700;">🔥 3 activas</span> <small style="color:var(--ant-text3);">vence en 2d</small></td>
+            </tr>
+            <tr>
+              <td>#1039</td>
+              <td>Faro delantero derecho</td>
+              <td>Hyundai Tucson · 2020</td>
+              <td><span class="ant-tag ant-tag-blue">CARROCERÍA</span></td>
+              <td>₡45.000</td>
+              <td><span class="ant-tag ant-tag-green">STOCK</span></td>
+              <td><span class="ant-tag ant-tag-yellow">1 activa</span></td>
+            </tr>
+            <tr>
+              <td>#1031</td>
+              <td>Caja transmisión auto</td>
+              <td>Chery Tigo 8 Pro · 2022</td>
+              <td><span class="ant-tag ant-tag-blue">TRANSMISIÓN</span></td>
+              <td>₡425.000</td>
+              <td><span class="ant-tag ant-tag-green">STOCK</span></td>
+              <td><span style="color: var(--ant-text3);">—</span></td>
+            </tr>
+            <tr>
+              <td>#1028</td>
+              <td>Tablero completo</td>
+              <td>Mazda 3 · 2019</td>
+              <td><span class="ant-tag ant-tag-blue">INTERIOR</span></td>
+              <td>₡85.000</td>
+              <td><span class="ant-tag ant-tag-green">STOCK</span></td>
+              <td><span class="ant-tag ant-tag-green">2 activas</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="annot-blue">
+          <strong>Qué hace la nueva columna:</strong> al cargar la tabla, el backend consulta a Audatex en lote (con caché de 5 min) y devuelve cuántas oportunidades activas existen para cada combinación marca+modelo. Si hay <code>≥1</code>, aparece el tag rojo/amarillo/verde según urgencia. Al hacer clic en el número, navega al detalle del repuesto con el tab "Oportunidades InPart" preseleccionado.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="p2-vehiculo"></a>
+  <h3>P2 · <code>DetalleVehiculo.js</code> — Repuestos del Vehículo Desarmado <span class="badge badge-yellow" style="margin-left: 8px;">MODIFICADA</span></h3>
+
+  <p>Cuando un vehículo está en estado <code>DESARMADO</code>, su detalle muestra las piezas que se le han ido sacando. <strong>Cambio:</strong> en cada fila de la lista de repuestos, se muestra el badge de oportunidades.</p>
+
+  <div class="mockup-wrap">
+    <div class="mockup-label">
+      <span>Ruta: <span class="where">/vehiculos/:id</span> · Archivo: <code style="color: var(--accent);">DetalleVehiculo.js</code></span>
+      <span class="sprint-pill">Sprint 2 · ROD-22</span>
+    </div>
+    <div class="mock">
+      <div class="mock-bar">
+        <div class="breadcrumb"><b>Home</b> <span class="sep">/</span> <b>Vehículos</b> <span class="sep">/</span> <b>Chery Tigo 4 — 2021 — VIN 3CZ...4M</b></div>
+      </div>
+      <div class="mock-body">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+          <div>
+            <div class="ant-title">🚗 Chery Tigo 4 · 2021 <span class="ant-tag ant-tag-yellow">DESARMADO</span></div>
+            <div class="ant-subtitle">VIN: 3CZRU5H38NM... · Adquirido: 12 Mar 2026 · Precio compra (siniestro): ₡5.800.000</div>
+          </div>
+        </div>
+
+        <div class="ant-tabs">
+          <span class="ant-tab">Información</span>
+          <span class="ant-tab active">Repuestos (12)</span>
+          <span class="ant-tab">Historial</span>
+          <span class="ant-tab">Documentos</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="font-size: 13px; color: var(--ant-text2);">
+            12 piezas en inventario · <span style="color:#52c41a; font-weight:600;">8 disponibles</span> · 3 vendidas · 1 dañada
+          </div>
+          <div style="display:flex; gap:8px;">
+            <span class="ant-btn ant-btn-ghost-blue">🔄 Sincronizar oportunidades</span>
+            <span class="ant-btn ant-btn-primary">+ Agregar pieza</span>
+          </div>
+        </div>
+
+        <table class="ant-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Descripción</th>
+              <th>Parte</th>
+              <th>Condición</th>
+              <th>Precio venta</th>
+              <th>Estado</th>
+              <th style="background:#e6f7ff; color:#1890ff;">InPart ⭐</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-hl-blue">
+              <td>#1042</td>
+              <td>Motor completo 1.5L</td>
+              <td><span class="ant-tag ant-tag-blue">MOTOR</span></td>
+              <td>50%-</td>
+              <td><strong>₡850.000</strong></td>
+              <td><span class="ant-tag ant-tag-green">STOCK</span></td>
+              <td><span class="ant-tag ant-tag-red">🔥 3</span></td>
+              <td><span class="ant-btn ant-btn-ghost-blue" style="font-size:11px; padding:2px 8px;">Ver →</span></td>
+            </tr>
+            <tr>
+              <td>#1043</td>
+              <td>Radiador</td>
+              <td><span class="ant-tag ant-tag-blue">MOTOR</span></td>
+              <td>100%-</td>
+              <td>₡22.000</td>
+              <td><span class="ant-tag ant-tag-green">STOCK</span></td>
+              <td><span class="ant-tag ant-tag-yellow">1</span></td>
+              <td><span class="ant-btn ant-btn-ghost-blue" style="font-size:11px; padding:2px 8px;">Ver →</span></td>
+            </tr>
+            <tr>
+              <td>#1044</td>
+              <td>Bomba de gasolina</td>
+              <td><span class="ant-tag ant-tag-blue">MOTOR</span></td>
+              <td>100%-</td>
+              <td>₡12.500</td>
+              <td><span class="ant-tag ant-tag-green">STOCK</span></td>
+              <td><span style="color: var(--ant-text3);">—</span></td>
+              <td><span class="ant-btn ant-btn-ghost-blue" style="font-size:11px; padding:2px 8px;">Ver →</span></td>
+            </tr>
+            <tr>
+              <td>#1045</td>
+              <td>Faro derecho</td>
+              <td><span class="ant-tag ant-tag-blue">CARROCERÍA</span></td>
+              <td>50%-</td>
+              <td>₡38.000</td>
+              <td><span class="ant-tag ant-tag-green">STOCK</span></td>
+              <td><span class="ant-tag ant-tag-green">2</span></td>
+              <td><span class="ant-btn ant-btn-ghost-blue" style="font-size:11px; padding:2px 8px;">Ver →</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="annot-green">
+          <strong>Lógica:</strong> como todas las piezas de este vehículo comparten marca+modelo (Chery Tigo 4 2021), una sola llamada al backend trae el conteo de oportunidades de Audatex para esa combinación — luego se distribuye por tipo de parte. <strong>El botón "Sincronizar oportunidades"</strong> fuerza limpiar el caché y refetchar (útil si el usuario quiere ver datos frescos sin esperar los 5 min del TTL).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="p3-jerarquia"></a>
+  <h3>P3 · <code>JerarquiaVehiculos.js</code> — Vista de Marcas/Modelos/Generaciones <span class="badge badge-yellow" style="margin-left: 8px;">MODIFICADA</span></h3>
+
+  <p>La vista en árbol de marca → modelo → generación → vehículo. <strong>Cambio:</strong> al lado de cada nodo, se muestra un contador agregado de oportunidades InPart activas para esa combinación.</p>
+
+  <div class="alert alert-info">
+    <div class="alert-icon">ℹ️</div>
+    <div>
+      <strong>Este mockup es ilustrativo, no normativo.</strong> No pude clonar el repo para ver el formato exacto de la jerarquía existente, así que el estilo visual (espaciado, iconos, tipografía, colores específicos) es solo un ejemplo conceptual. <strong>Lo que sí importa</strong> es lo nuevo que se añade: el contador agregado de oportunidades InPart por nivel (marca / modelo / generación), el valor de stock en colones, y el filtro <code>DESARMADO</code> siempre activo. El diseño final debe seguir el lenguaje visual ya establecido en el componente real de <code>JerarquiaVehiculos.js</code> — solo se agregan los elementos nuevos respetando la estética existente.
+    </div>
+  </div>
+
+  <div class="mockup-wrap">
+    <div class="mockup-label">
+      <span>Ruta: <span class="where">/vehiculos/jerarquia</span> · Archivo: <code style="color: var(--accent);">JerarquiaVehiculos.js</code></span>
+      <span class="sprint-pill">Sprint 3 · ROD-31</span>
+    </div>
+    <div class="mock">
+      <div class="mock-bar">
+        <div class="breadcrumb"><b>Home</b> <span class="sep">/</span> <b>Vehículos</b> <span class="sep">/</span> <b>Jerarquía</b></div>
+      </div>
+      <div class="mock-body">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px;">
+          <div>
+            <div class="ant-title">🌳 Jerarquía de Vehículos · Marcas / Modelos / Generaciones</div>
+            <div class="ant-subtitle">Las oportunidades InPart se agregan por nivel. Solo se muestran vehículos en estado <strong>DESARMADO</strong> porque son los únicos con piezas en inventario.</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span class="ant-input" style="background:#fff;">🔍 Buscar marca/modelo...</span>
+            <span class="ant-input" style="background:#fff7e6; border-color:#faad14; color:#d48806;">Estado: DESARMADO ▾</span>
+          </div>
+        </div>
+
+        <div class="ant-tree" style="background:#fafafa; padding:16px; border-radius:6px; border:1px solid #e8e8e8;">
+          <!-- Marca: Chery -->
+          <div class="ant-tree-node ant-tree-level-1">
+            <span class="caret">▾</span>
+            <span class="node-icon">🏭</span>
+            <span class="ant-tree-node-marca">Chery</span>
+            <span class="meta">3 modelos · 8 vehículos DESARMADO · 47 piezas en stock</span>
+            <span class="ant-tree-rhs">
+              <span class="ant-tag" style="background:#fff7e6; color:#d48806; border:1px solid #ffd591;">Stock: ₡18.4M</span>
+              <span class="ant-tag ant-tag-red" style="font-weight:700;">🔥 18 oportunidades</span>
+            </span>
+          </div>
+
+          <!-- Modelo: Tigo 4 -->
+          <div class="ant-tree-node ant-tree-level-2">
+            <span class="caret">▾</span>
+            <span class="node-icon">🚙</span>
+            <span class="ant-tree-node-modelo">Tigo 4</span>
+            <span class="meta">2 generaciones · 3 vehículos · 21 piezas</span>
+            <span class="ant-tree-rhs">
+              <span class="ant-tag" style="background:#fff7e6; color:#d48806; border:1px solid #ffd591;">₡9.8M</span>
+              <span class="ant-tag ant-tag-red" style="font-weight:700;">🔥 9 oportunidades</span>
+            </span>
+          </div>
+
+          <!-- Generación 2 -->
+          <div class="ant-tree-node ant-tree-level-3">
+            <span class="caret">▾</span>
+            <span class="node-icon">📅</span>
+            <span>Gen 2 (2020-2023)</span>
+            <span class="meta">2 vehículos · 15 piezas</span>
+            <span class="ant-tree-rhs">
+              <span class="ant-tag" style="background:#fff7e6; color:#d48806; border:1px solid #ffd591;">₡7.2M</span>
+              <span class="ant-tag ant-tag-red" style="font-weight:700;">🔥 7 oportunidades</span>
+            </span>
+          </div>
+
+          <!-- Vehículos específicos -->
+          <div class="ant-tree-node ant-tree-level-4">
+            <span class="caret">›</span>
+            <span class="node-icon">🚗</span>
+            <span class="ant-tree-node-vehiculo">2021 · VIN 3CZRU5H38N... · Placa SJB-432</span>
+            <span class="ant-tree-rhs">
+              <span class="ant-tag ant-tag-yellow" style="font-weight:600;">DESARMADO</span>
+              <span class="meta" style="margin-left:0;">12 piezas · ₡4.1M</span>
+            </span>
+          </div>
+          <div class="ant-tree-node ant-tree-level-4">
+            <span class="caret">›</span>
+            <span class="node-icon">🚗</span>
+            <span class="ant-tree-node-vehiculo">2022 · VIN 8B7XU2H99M... · Placa BMG-118</span>
+            <span class="ant-tree-rhs">
+              <span class="ant-tag ant-tag-yellow" style="font-weight:600;">DESARMADO</span>
+              <span class="meta" style="margin-left:0;">3 piezas · ₡3.1M</span>
+            </span>
+          </div>
+
+          <!-- Generación 1 -->
+          <div class="ant-tree-node ant-tree-level-3">
+            <span class="caret">›</span>
+            <span class="node-icon">📅</span>
+            <span>Gen 1 (2017-2019)</span>
+            <span class="meta">1 vehículo · 6 piezas</span>
+            <span class="ant-tree-rhs">
+              <span class="ant-tag" style="background:#fff7e6; color:#d48806; border:1px solid #ffd591;">₡2.6M</span>
+              <span class="ant-tag ant-tag-yellow" style="font-weight:600;">2 oportunidades</span>
+            </span>
+          </div>
+
+          <!-- Modelo: Tigo 8 Pro -->
+          <div class="ant-tree-node ant-tree-level-2">
+            <span class="caret">▾</span>
+            <span class="node-icon">🚙</span>
+            <span class="ant-tree-node-modelo">Tigo 8 Pro</span>
+            <span class="meta">1 generación · 4 vehículos · 22 piezas</span>
+            <span class="ant-tree-rhs">
+              <span class="ant-tag" style="background:#fff7e6; color:#d48806; border:1px solid #ffd591;">₡6.8M</span>
+              <span class="ant-tag ant-tag-yellow" style="font-weight:600;">5 oportunidades</span>
+            </span>
+          </div>
+
+          <!-- Modelo: Tigo 2 -->
+          <div class="ant-tree-node ant-tree-level-2">
+            <span class="caret">›</span>
+            <span class="node-icon">🚙</span>
+            <span class="ant-tree-node-modelo">Tigo 2</span>
+            <span class="meta">1 vehículo · 4 piezas</span>
+            <span class="ant-tree-rhs">
+              <span class="ant-tag" style="background:#fff7e6; color:#d48806; border:1px solid #ffd591;">₡1.8M</span>
+              <span class="ant-tag ant-tag-green" style="font-weight:600;">4 oportunidades</span>
+            </span>
+          </div>
+
+          <!-- Marca: Hyundai -->
+          <div class="ant-tree-node ant-tree-level-1" style="margin-top: 12px;">
+            <span class="caret">›</span>
+            <span class="node-icon">🏭</span>
+            <span class="ant-tree-node-marca">Hyundai</span>
+            <span class="meta">2 modelos · 5 vehículos DESARMADO · 28 piezas</span>
+            <span class="ant-tree-rhs">
+              <span class="ant-tag" style="background:#fff7e6; color:#d48806; border:1px solid #ffd591;">Stock: ₡8.5M</span>
+              <span class="ant-tag ant-tag-yellow" style="font-weight:600;">6 oportunidades</span>
+            </span>
+          </div>
+
+          <!-- Marca: Mazda -->
+          <div class="ant-tree-node ant-tree-level-1">
+            <span class="caret">›</span>
+            <span class="node-icon">🏭</span>
+            <span class="ant-tree-node-marca">Mazda</span>
+            <span class="meta">1 modelo · 2 vehículos DESARMADO · 14 piezas</span>
+            <span class="ant-tree-rhs">
+              <span class="ant-tag" style="background:#fff7e6; color:#d48806; border:1px solid #ffd591;">Stock: ₡3.2M</span>
+              <span class="ant-tag ant-tag-green" style="font-weight:600;">2 oportunidades</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="annot-blue">
+          <strong>Para qué sirve esta vista:</strong> en una sola pantalla detectas dónde tu inventario tiene <em>demanda activa</em>. Si Chery Tigo 4 Gen 2 tiene 7 oportunidades abiertas y tienes 15 piezas en stock de ese vehículo (₡7.2M en valor de venta), sabes dónde concentrar esfuerzos de cotización. <strong>Los conteos vienen de una sola llamada agregada al backend</strong> que devuelve un mapa <code>{marca+modelo+gen → count}</code>; no pide pieza por pieza. <strong>Filtro DESARMADO siempre activo</strong> porque solo esos vehículos tienen piezas vendibles.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="p4-repuesto"></a>
+  <h3>P4 · <code>DetalleRepuesto.js</code> — Pantalla Central de la Integración <span class="badge badge-green" style="margin-left: 8px;">MODIFICADA + TAB NUEVO</span></h3>
+
+  <p>Es <strong>donde converge toda la integración</strong>. Es la pantalla que se abre desde P1, P2 o P3 al dar clic en una pieza. <strong>Cambio mayor:</strong> se agrega el tab "Oportunidades InPart" con badge de conteo, y un sub-tab para tu historial de envíos.</p>
+
+  <div class="mockup-wrap">
+    <div class="mockup-label">
+      <span>Ruta: <span class="where">/repuestos/:id</span> · Archivo: <code style="color: var(--accent);">DetalleRepuesto.js</code></span>
+      <span class="sprint-pill">Sprint 2 · ROD-23, ROD-24, ROD-25</span>
+    </div>
+    <div class="mock">
+      <div class="mock-bar">
+        <div class="breadcrumb"><b>Home</b> <span class="sep">/</span> <b>Inventario</b> <span class="sep">/</span> <b>#1042 Motor completo 1.5L</b></div>
+      </div>
+      <div class="mock-body">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+          <div>
+            <div class="ant-title">🔧 Motor completo 1.5L <span class="ant-tag ant-tag-green">STOCK</span></div>
+            <div class="ant-subtitle">#1042 · Chery Tigo 4 · 2021 · Condición 50%- · Bodega A / Zona 3 / Pared B / Malla 12</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span class="ant-btn">✎ Editar</span>
+            <span class="ant-btn ant-btn-success">💰 Marcar como Vendido</span>
+          </div>
+        </div>
+
+        <div class="ant-tabs">
+          <span class="ant-tab">Información General</span>
+          <span class="ant-tab">Historial</span>
+          <span class="ant-tab active">🛒 Oportunidades InPart <span class="count-badge">3</span></span>
+          <span class="ant-tab">📤 Mis Envíos <span style="background:#f0f0f0; color:#595959; padding:0 6px; border-radius:10px; font-size:10px; font-weight:600;">2</span></span>
+        </div>
+
+        <!-- TAB CONTENT: Oportunidades InPart -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <div style="font-size: 13px; color: var(--ant-text2);">
+            Cotizaciones abiertas en InPart que coinciden con <strong>Chery Tigo 4</strong> + parte <strong>MOTOR</strong>
+            <div style="font-size: 11px; color: var(--ant-text3); margin-top: 2px;">⚡ Datos en vivo · sincronizado hace 2 min · caché 5 min</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span class="ant-btn ant-btn-ghost-blue">🔄 Refrescar</span>
+            <span class="ant-btn ant-btn-ghost-green">📥 Exportar a Excel</span>
+          </div>
+        </div>
+
+        <!-- Card 1 -->
+        <div class="ant-card ant-card-hl">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+            <div style="flex: 1;">
+              <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 600; font-size: 14px;">Chery Tigo 4 — 2021</span>
+                <span class="ant-tag ant-tag-purple">INS</span>
+                <span class="ant-tag ant-tag-blue">Taller Rojas (San José)</span>
+              </div>
+              <div style="font-size: 12px; color: var(--ant-text3);">WAN: AUDA-2026-118734 · VIN: 3CZRU5H38NM084123</div>
+              <div style="font-size: 12.5px; color: var(--ant-text2); margin-top: 8px;">
+                <strong>Pieza requerida:</strong> Motor completo 1.5L MPI · Cantidad: 1 · Código: AUDA-MOT-CHE15-021
+              </div>
+              <div style="font-size: 12px; color: var(--ant-text3); margin-top: 6px;">
+                Solicitado: 16 Jun 2026 · Aseguradora pide: <strong style="color: var(--ant-text);">Original o Genérico equivalente</strong>
+              </div>
+            </div>
+            <div style="text-align: right; min-width: 140px;">
+              <div style="font-size: 10px; color: var(--ant-text3); text-transform: uppercase;">Vence en</div>
+              <div style="font-size: 22px; color: var(--ant-red); font-weight: 700;">2d 5h</div>
+              <div style="margin-top: 12px;">
+                <span class="ant-btn ant-btn-success" style="display:block; text-align:center;">💸 Enviar cotización</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="ant-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+            <div style="flex: 1;">
+              <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 600; font-size: 14px;">Chery Tigo 4 — 2020</span>
+                <span class="ant-tag ant-tag-purple">MAPFRE CR</span>
+                <span class="ant-tag ant-tag-blue">AutoCenter Heredia</span>
+              </div>
+              <div style="font-size: 12px; color: var(--ant-text3);">WAN: AUDA-2026-118201 · VIN: 8B7XU2H99M0...</div>
+              <div style="font-size: 12.5px; color: var(--ant-text2); margin-top: 8px;">
+                <strong>Pieza requerida:</strong> Motor completo · Cantidad: 1
+              </div>
+              <div style="font-size: 12px; color: var(--ant-text3); margin-top: 6px;">
+                Solicitado: 14 Jun 2026 · Aseguradora pide: <strong style="color: var(--ant-text);">Usado en buen estado</strong>
+              </div>
+            </div>
+            <div style="text-align: right; min-width: 140px;">
+              <div style="font-size: 10px; color: var(--ant-text3); text-transform: uppercase;">Vence en</div>
+              <div style="font-size: 22px; color: var(--ant-yellow); font-weight: 700;">5d</div>
+              <div style="margin-top: 12px;">
+                <span class="ant-btn ant-btn-success" style="display:block; text-align:center;">💸 Enviar cotización</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="ant-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+            <div style="flex: 1;">
+              <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 600; font-size: 14px;">Chery Tigo 4 Pro — 2022</span>
+                <span class="ant-tag ant-tag-purple">ASSA</span>
+                <span class="ant-tag ant-tag-blue">Servicio Express Alajuela</span>
+              </div>
+              <div style="font-size: 12px; color: var(--ant-text3);">WAN: AUDA-2026-117998 · VIN: 3CZRU5H42P...</div>
+              <div style="font-size: 12.5px; color: var(--ant-text2); margin-top: 8px;">
+                <strong>Pieza requerida:</strong> Motor 1.5L · Cantidad: 1
+              </div>
+              <div style="font-size: 12px; color: var(--ant-text3); margin-top: 6px;">
+                Solicitado: 10 Jun 2026 · Aseguradora pide: <strong style="color: var(--ant-text);">Cualquier condición aceptable</strong>
+              </div>
+            </div>
+            <div style="text-align: right; min-width: 140px;">
+              <div style="font-size: 10px; color: var(--ant-text3); text-transform: uppercase;">Vence en</div>
+              <div style="font-size: 22px; color: var(--ant-green); font-weight: 700;">8d</div>
+              <div style="margin-top: 12px;">
+                <span class="ant-btn ant-btn-success" style="display:block; text-align:center;">💸 Enviar cotización</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="annot-green">
+          <strong>Punto de dolor resuelto:</strong> ya no es <em>"Chery"</em> sin más. Cada card muestra <strong>marca + modelo específico + año + variante</strong>. Te das cuenta de inmediato si la pieza fisicamente puede ir o no. <strong>Click en "Enviar cotización"</strong> abre el modal de la pantalla P5 (siguiente sección).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="p5-cotizacion"></a>
+  <h3>P5 · Modal "Enviar Cotización" <span class="badge badge-green" style="margin-left: 8px;">NUEVA</span></h3>
+
+  <p>Componente modal que se abre desde cualquier card de oportunidad. Llena el precio, tiempo de entrega y condición; envía a Audatex con tus credenciales y guarda el envío en <code>audatex_envios</code>.</p>
+
+  <div class="mockup-wrap">
+    <div class="mockup-label">
+      <span>Componente: <code style="color: var(--accent);">ModalCotizarInPart.js</code> (overlay sobre P4)</span>
+      <span class="sprint-pill">Sprint 2 · ROD-26</span>
+    </div>
+    <div class="mock">
+      <div class="mock-body" style="background: rgba(0,0,0,.4); padding: 30px;">
+        <div class="ant-modal-mock">
+          <div style="border-bottom: 1px solid var(--ant-border); padding-bottom: 12px; margin-bottom: 16px;">
+            <div style="font-size: 16px; font-weight: 600; color: var(--ant-text);">💸 Enviar cotización a Audatex InPart</div>
+            <div style="font-size: 12px; color: var(--ant-text3); margin-top: 2px;">WAN AUDA-2026-118734 · Chery Tigo 4 2021 · INS</div>
+          </div>
+
+          <div style="background: #fafafa; padding: 10px 12px; border-radius: 6px; margin-bottom: 16px; font-size: 12px; color: var(--ant-text2);">
+            <strong style="color: var(--ant-text);">Tu pieza:</strong> #1042 Motor completo 1.5L · Condición 50%- · Bodega A/Z3/PB/M12<br>
+            <strong style="color: var(--ant-text);">Precio sugerido por tu sistema:</strong> ₡850.000 <span style="color: var(--ant-text3);">(precio_venta del inventario)</span>
+          </div>
+
+          <div class="ant-form-item">
+            <span class="ant-form-label">Precio ofertado (CRC ₡) *</span>
+            <span class="ant-input ant-input-full" style="background:#fff;">₡850.000</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="ant-form-item">
+              <span class="ant-form-label">Tiempo de entrega *</span>
+              <span class="ant-input ant-input-full">24 horas ▾</span>
+            </div>
+            <div class="ant-form-item">
+              <span class="ant-form-label">Condición *</span>
+              <span class="ant-input ant-input-full">Usado en buen estado ▾</span>
+            </div>
+          </div>
+
+          <div class="ant-form-item">
+            <span class="ant-form-label">Notas internas (opcional)</span>
+            <span class="ant-input ant-input-full" style="height: 50px; vertical-align:top;">Incluye garantía de 30 días</span>
+          </div>
+
+          <div style="background: #e6f7ff; border: 1px solid #91d5ff; padding: 10px; border-radius: 4px; font-size: 12px; color: var(--ant-text); margin-bottom: 16px;">
+            <strong>⚡ Se enviará usando tu sesión activa de Audatex.</strong> Aparecerá en el portal como si la hubieras puesto tú manualmente. Se guarda copia en tu historial (<em>Mis Envíos</em>).
+          </div>
+
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <span class="ant-btn">Cancelar</span>
+            <span class="ant-btn ant-btn-success">✓ Confirmar y enviar</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="annot">
+    <strong>Comportamiento al hacer "Confirmar":</strong>
+    <ol style="margin: 6px 0 0 18px; color: var(--text2);">
+      <li>Frontend → <code>POST /api/audatex/oportunidades/{wan}/cotizar</code> con el body del formulario</li>
+      <li>Backend lee la sesión Audatex activa, navega al ítem y rellena el form</li>
+      <li>Captura la confirmación (HTML o JSON) y registra en <code>audatex_envios</code> el resultado</li>
+      <li>Devuelve éxito o error específico al frontend</li>
+      <li>Si éxito: el modal se cierra, aparece toast "✓ Cotización enviada", y se invalida el caché de la oportunidad</li>
+      <li>Si error: se muestra el motivo (sesión expirada, validación de Audatex, etc.) y se mantiene el form para reintentar</li>
+    </ol>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="p6-global"></a>
+  <h3>P6 · <code>CotizacionesInPart.js</code> — Vista Global <span class="badge badge-green" style="margin-left: 8px;">NUEVA</span></h3>
+
+  <p>Una página entera dedicada a ver <strong>todas</strong> las oportunidades activas, no las asociadas a una pieza específica. Útil para escanear el mercado, exportar el Excel completo, y descubrir piezas que <em>deberías</em> tener pero no tienes.</p>
+
+  <div class="mockup-wrap">
+    <div class="mockup-label">
+      <span>Ruta: <span class="where">/cotizaciones-inpart</span> · Archivo nuevo: <code style="color: var(--accent);">CotizacionesInPart.js</code></span>
+      <span class="sprint-pill">Sprint 3 · ROD-32, ROD-33</span>
+    </div>
+    <div class="mock">
+      <div class="mock-bar">
+        <div class="breadcrumb"><b>Home</b> <span class="sep">/</span> <b>Cotizaciones InPart</b></div>
+      </div>
+      <div class="mock-body">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+          <div>
+            <div class="ant-title">🛒 Cotizaciones InPart · Vista Global</div>
+            <div class="ant-subtitle">Todas las oportunidades abiertas en Audatex que matchean con tu inventario</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span class="ant-btn ant-btn-ghost-blue">🔄 Refrescar</span>
+            <span class="ant-btn ant-btn-ghost-green">📥 Exportar Excel del rango</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+          <span class="ant-input">📅 Desde: 18 Jun 2025</span>
+          <span class="ant-input">📅 Hasta: 18 Jun 2026</span>
+          <span class="ant-input">🏷 Marca: Todas ▾</span>
+          <span class="ant-input">🔧 Parte: Todas ▾</span>
+          <span class="ant-input">📦 Solo con stock propio ▾</span>
+          <span class="ant-input">⏰ Vence en ≤ 3 días ▾</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px;">
+          <div style="background: #f6ffed; border: 1px solid #b7eb8f; padding: 12px; border-radius: 6px;">
+            <div style="font-size: 11px; color: var(--ant-text3);">TOTAL ACTIVAS</div>
+            <div style="font-size: 22px; font-weight: 700; color: var(--ant-green);">47</div>
+          </div>
+          <div style="background: #fff7e6; border: 1px solid #ffd591; padding: 12px; border-radius: 6px;">
+            <div style="font-size: 11px; color: var(--ant-text3);">CON MATCH EN TU INV.</div>
+            <div style="font-size: 22px; font-weight: 700; color: var(--ant-yellow);">12</div>
+          </div>
+          <div style="background: #fff1f0; border: 1px solid #ffa39e; padding: 12px; border-radius: 6px;">
+            <div style="font-size: 11px; color: var(--ant-text3);">VENCEN ≤ 3 DÍAS</div>
+            <div style="font-size: 22px; font-weight: 700; color: var(--ant-red);">5</div>
+          </div>
+          <div style="background: #e6f7ff; border: 1px solid #91d5ff; padding: 12px; border-radius: 6px;">
+            <div style="font-size: 11px; color: var(--ant-text3);">VALOR ESTIMADO</div>
+            <div style="font-size: 22px; font-weight: 700; color: var(--ant-blue);">₡42M</div>
+          </div>
+        </div>
+
+        <table class="ant-table">
+          <thead>
+            <tr>
+              <th>WAN</th>
+              <th>Vehículo</th>
+              <th>Pieza</th>
+              <th>Aseguradora</th>
+              <th>Tu stock</th>
+              <th>Vence</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-hl">
+              <td>AUDA-2026-118734</td>
+              <td>Chery Tigo 4 · 2021</td>
+              <td>Motor 1.5L</td>
+              <td><span class="ant-tag ant-tag-purple">INS</span></td>
+              <td><span class="ant-tag ant-tag-green">✓ #1042</span></td>
+              <td style="color: var(--ant-red); font-weight: 600;">2d 5h</td>
+              <td><span class="ant-btn ant-btn-ghost-blue" style="font-size:11px; padding:2px 8px;">Ver pieza →</span></td>
+            </tr>
+            <tr>
+              <td>AUDA-2026-118721</td>
+              <td>Hyundai Tucson · 2020</td>
+              <td>Faro der.</td>
+              <td><span class="ant-tag ant-tag-purple">ASSA</span></td>
+              <td><span class="ant-tag ant-tag-green">✓ #1039</span></td>
+              <td style="color: var(--ant-yellow); font-weight: 600;">3d</td>
+              <td><span class="ant-btn ant-btn-ghost-blue" style="font-size:11px; padding:2px 8px;">Ver pieza →</span></td>
+            </tr>
+            <tr>
+              <td>AUDA-2026-118201</td>
+              <td>Chery Tigo 4 · 2020</td>
+              <td>Motor</td>
+              <td><span class="ant-tag ant-tag-purple">MAPFRE CR</span></td>
+              <td><span class="ant-tag ant-tag-green">✓ #1042</span></td>
+              <td style="color: var(--ant-yellow); font-weight: 600;">5d</td>
+              <td><span class="ant-btn ant-btn-ghost-blue" style="font-size:11px; padding:2px 8px;">Ver pieza →</span></td>
+            </tr>
+            <tr>
+              <td>AUDA-2026-118102</td>
+              <td>Nissan Versa · 2019</td>
+              <td>Caja transmisión</td>
+              <td><span class="ant-tag ant-tag-purple">OCEÁNICA</span></td>
+              <td><span style="color: var(--ant-text3); font-style: italic;">Sin stock</span></td>
+              <td style="color: var(--ant-green); font-weight: 600;">6d</td>
+              <td><span class="ant-btn" style="font-size:11px; padding:2px 8px;">Solo info</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="annot-blue">
+          <strong>Diferencia clave vs P4:</strong> P4 muestra oportunidades <em>para una pieza específica que ya tienes</em>; P6 muestra <em>todo el mercado</em>, incluyendo cotizaciones de piezas que no tienes (útil para decidir qué desarmar a continuación o qué reposición priorizar). El botón "Exportar Excel del rango" resuelve directamente tu primera pregunta: 1 año atrás hasta hoy en un solo archivo.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="p7-config"></a>
+  <h3>P7 · Sección "Audatex" en <code>Configuracion.js</code> <span class="badge badge-green" style="margin-left: 8px;">NUEVA</span></h3>
+
+  <p>Sub-página dentro de Configuración donde el admin gestiona la integración: credenciales, comportamiento de caché, estado de la sesión.</p>
+
+  <div class="mockup-wrap">
+    <div class="mockup-label">
+      <span>Ruta: <span class="where">/configuracion/audatex</span> · Archivo: <code style="color: var(--accent);">ConfiguracionAudatex.js</code></span>
+      <span class="sprint-pill">Sprint 3 · ROD-34</span>
+    </div>
+    <div class="mock">
+      <div class="mock-bar">
+        <div class="breadcrumb"><b>Home</b> <span class="sep">/</span> <b>Configuración</b> <span class="sep">/</span> <b>Audatex InPart</b></div>
+      </div>
+      <div class="mock-body">
+        <div class="ant-title">⚙ Configuración de Audatex InPart</div>
+        <div class="ant-subtitle">Credenciales y comportamiento de la integración. Solo visible para administradores.</div>
+
+        <div style="background: #fafafa; padding: 14px; border-radius: 6px; margin: 18px 0;">
+          <div style="font-weight: 600; color: var(--ant-text); margin-bottom: 10px;">🔌 Estado de la conexión</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; font-size: 12px;">
+            <div>
+              <div style="color: var(--ant-text3); text-transform: uppercase; font-size: 10px;">Sesión Audatex</div>
+              <div><span class="ant-tag ant-tag-green">✓ ACTIVA</span> hace 4 min</div>
+            </div>
+            <div>
+              <div style="color: var(--ant-text3); text-transform: uppercase; font-size: 10px;">Última sincronización</div>
+              <div>Hace 2 min — 47 oportunidades</div>
+            </div>
+            <div>
+              <div style="color: var(--ant-text3); text-transform: uppercase; font-size: 10px;">Llamadas hoy</div>
+              <div>23 / 1000 ilimitado portal</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-weight: 600; color: var(--ant-text); margin: 18px 0 8px;">🔐 Credenciales</div>
+        <div class="ant-form-item">
+          <span class="ant-form-label">Usuario</span>
+          <span class="ant-input ant-input-full" style="background:#fff;">dvenegas</span>
+        </div>
+        <div class="ant-form-item">
+          <span class="ant-form-label">Contraseña</span>
+          <span class="ant-input ant-input-full" style="background:#fff;">••••••••</span>
+        </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 18px;">
+          <span class="ant-btn ant-btn-primary">💾 Guardar credenciales</span>
+          <span class="ant-btn ant-btn-ghost-blue">🔄 Probar conexión</span>
+        </div>
+        <div style="font-size: 11px; color: var(--ant-text3); margin-bottom: 18px;">
+          ℹ Las credenciales se cifran con AES-256 antes de guardarse. Si no las cambias aquí, se usan las del <code>.env</code> del backend.
+        </div>
+
+        <div style="font-weight: 600; color: var(--ant-text); margin: 18px 0 8px;">⏱ Comportamiento</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="ant-form-item">
+            <span class="ant-form-label">TTL del caché (minutos)</span>
+            <span class="ant-input ant-input-full">5</span>
+          </div>
+          <div class="ant-form-item">
+            <span class="ant-form-label">TTL de la sesión (minutos)</span>
+            <span class="ant-input ant-input-full">30</span>
+          </div>
+          <div class="ant-form-item">
+            <span class="ant-form-label">Delay humano entre acciones (ms)</span>
+            <span class="ant-input ant-input-full">800</span>
+          </div>
+          <div class="ant-form-item">
+            <span class="ant-form-label">Max requests por minuto</span>
+            <span class="ant-input ant-input-full">30</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="p8-reportes"></a>
+  <h3>P8 · Botón "Exportar Excel de Cotizaciones" en <code>Reportes.js</code> <span class="badge badge-yellow" style="margin-left: 8px;">MODIFICADA</span></h3>
+
+  <p>El Excel ya aparece en P1 y P6 con un botón, pero también se debe poder generar como reporte estándar desde la sección de Reportes existente, con todas las opciones de filtro disponibles. Esta es la <strong>resolución directa de tu primera pregunta</strong> del chat inicial.</p>
+
+  <div class="mockup-wrap">
+    <div class="mockup-label">
+      <span>Ruta: <span class="where">/reportes</span> · Archivo: <code style="color: var(--accent);">Reportes.js</code></span>
+      <span class="sprint-pill">Sprint 1 · ROD-14</span>
+    </div>
+    <div class="mock">
+      <div class="mock-bar">
+        <div class="breadcrumb"><b>Home</b> <span class="sep">/</span> <b>Reportes</b></div>
+      </div>
+      <div class="mock-body">
+        <div class="ant-title">📊 Reportes</div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px;">
+          <div class="ant-card">
+            <div style="font-weight: 600; margin-bottom: 4px;">📦 Inventario actual</div>
+            <div style="font-size: 12px; color: var(--ant-text3); margin-bottom: 10px;">Todas las piezas en stock</div>
+            <span class="ant-btn ant-btn-ghost-blue">Descargar XLSX</span>
+          </div>
+          <div class="ant-card">
+            <div style="font-weight: 600; margin-bottom: 4px;">💰 Transacciones financieras</div>
+            <div style="font-size: 12px; color: var(--ant-text3); margin-bottom: 10px;">Movimientos por período</div>
+            <span class="ant-btn ant-btn-ghost-blue">Descargar XLSX</span>
+          </div>
+
+          <div class="ant-card ant-card-hl">
+            <div style="font-weight: 600; margin-bottom: 4px;">🛒 Cotizaciones InPart por rango ⭐ <span class="ant-tag ant-tag-green" style="margin-left: 4px;">NUEVO</span></div>
+            <div style="font-size: 12px; color: var(--ant-text3); margin-bottom: 10px;">Todas las oportunidades activas y cerradas en un rango de fechas — resuelve directamente la necesidad inicial</div>
+            <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+              <span class="ant-input" style="font-size:11px; padding:3px 8px;">Desde 18 Jun 2025</span>
+              <span class="ant-input" style="font-size:11px; padding:3px 8px;">Hasta 18 Jun 2026</span>
+            </div>
+            <span class="ant-btn ant-btn-success">📥 Descargar XLSX</span>
+          </div>
+
+          <div class="ant-card">
+            <div style="font-weight: 600; margin-bottom: 4px;">📤 Mis envíos a Audatex <span class="ant-tag ant-tag-green" style="margin-left: 4px;">NUEVO</span></div>
+            <div style="font-size: 12px; color: var(--ant-text3); margin-bottom: 10px;">Historial de cotizaciones enviadas con tasa de éxito</div>
+            <span class="ant-btn ant-btn-ghost-blue">Descargar XLSX</span>
+          </div>
+        </div>
+
+        <div class="annot-green">
+          <strong>Resolución de tu primera pregunta:</strong> "Se podra obtener un excel completo por fecha de todo lo que hay?" — Sí, exactamente este botón. El backend toma las oportunidades del rango directamente desde Audatex (caché de 5 min como mencioné), las consolida con el modelo específico de cada vehículo, las pone en un XLSX vía Apache POI, y lo entrega como descarga.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="flujo"></a>
+  <h2>4. Flujo End-to-End del Usuario</h2>
+
+  <p>Un solo recorrido típico, paso a paso, mostrando cómo las pantallas se conectan.</p>
+
+  <div class="code-block" style="background: var(--surface); padding: 20px;"><pre style="color: var(--text); font-size: 13px; line-height: 1.9;"><span class="var">1.</span> Llega un vehículo desarmado (Chery Tigo 4 2021) → <span style="color: var(--accent);">DetalleVehiculo (P2)</span>
+   ↓
+<span class="var">2.</span> Saco el motor → "Agregar pieza" → <span style="color: var(--accent);">NuevoRepuesto</span> → POST <span style="color: var(--accent2);">/inventario-repuestos</span>
+   ↓
+<span class="var">3.</span> Pieza queda en stock con vehiculo_origen_id apuntando al Tigo 4
+   ↓
+<span class="var">4.</span> Voy a <span style="color: var(--accent);">Inventario (P1)</span> y veo en la nueva columna "InPart: 🔥 3 activas"
+   ↓
+<span class="var">5.</span> Click en el número → navego a <span style="color: var(--accent);">DetalleRepuesto (P4)</span> · tab "Oportunidades InPart"
+   ↓
+<span class="var">6.</span> Backend llamó a Audatex en background, devolvió 3 cards con
+      modelo completo + aseguradora + fecha límite (caché 5 min, vivo)
+   ↓
+<span class="var">7.</span> Click "Enviar cotización" en la card de INS → abre <span style="color: var(--accent);">Modal (P5)</span>
+   ↓
+<span class="var">8.</span> Confirmo precio ₡850.000, tiempo 24h, condición "Usado en buen estado"
+   ↓
+<span class="var">9.</span> Backend usa la sesión Audatex activa (cookies del .env, login automático)
+      → navega al ítem en el portal → llena form → submit
+   ↓
+<span class="var">10.</span> Audatex confirma con HTML/JSON → backend guarda en <span style="color: var(--accent2);">audatex_envios</span>
+   ↓
+<span class="var">11.</span> Modal se cierra · toast "✓ Cotización enviada" · caché se invalida
+   ↓
+<span class="var">12.</span> Tab "Mis Envíos" ahora muestra +1 con estado ENVIADA, ganador pendiente
+   ↓
+<span class="var">13.</span> Días después, el sync periódico detecta si Audatex la marcó GANADA/PERDIDA
+      → actualiza <span style="color: var(--accent2);">audatex_envios.estado</span>
+      → métricas en <span style="color: var(--accent);">Dashboard InPart (P6)</span> se actualizan</pre></div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="sprints"></a>
+  <h2>5. Sprints en Linear · Estructura Tipo Cycle + Issues</h2>
+
+  <p>El plan está organizado como ciclos de Linear con prefijo <code>ROD-</code> (RodiejaContable). Cada issue tiene labels: <strong>feat</strong> (feature), <strong>chore</strong> (configuración/infra), <strong>spike</strong> (investigación), <strong>design</strong> (UI/UX), <strong>bug</strong> (corrección). Los identificadores son secuenciales para que al crearlos en Linear queden ordenados.</p>
+
+  <div class="alert alert-info">
+    <div class="alert-icon">📋</div>
+    <div>Cada cycle es de <strong>2 semanas</strong>. Total MVP: <strong>6 semanas + Sprint 0 de discovery</strong>. Las estimaciones en horas son del rango de un desarrollador full-stack senior.</div>
+  </div>
+
+  <!-- Cycle 0 -->
+  <div class="linear-cycle">
+    <div class="linear-cycle-header">
+      <div class="linear-cycle-num">0</div>
+      <div>
+        <div class="linear-cycle-title">Cycle 0 — Discovery y decisiones técnicas</div>
+        <div class="linear-cycle-meta">Semana 1 · 5 issues · 10h estimadas</div>
+      </div>
+    </div>
+    <div class="linear-cycle-body">
+      <div class="linear-issue">
+        <div class="linear-id">ROD-01</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Inspección de red del portal inpart-la.audatex.com.mx<small>DevTools→Network. Documentar endpoints, headers, formato. Decidir A (HTTP directo) vs B (Playwright)</small></div>
+        <div class="linear-label linear-label-spike">spike · 4h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-02</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Verificar si InPart tiene export Excel nativo<small>Si existe, Sprint 1 se simplifica enormemente</small></div>
+        <div class="linear-label linear-label-spike">spike · 1h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-03</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Mapear estructura HTML / selectores del portal<small>Selectores CSS para login form, lista cotizaciones, detalle vehículo, form cotizar</small></div>
+        <div class="linear-label linear-label-spike">spike · 2h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-04</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Definir tipo de autenticación y manejo de sesión<small>Cookie/JWT/Basic. TTL. Detección de expiración. Renovación automática</small></div>
+        <div class="linear-label linear-label-spike">spike · 2h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-05</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">ADR-001: Decisión Escenario A vs B + arquitectura final<small>Documento de 1 página firmado, en el repo</small></div>
+        <div class="linear-label linear-label-chore">chore · 1h</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cycle 1 -->
+  <div class="linear-cycle">
+    <div class="linear-cycle-header">
+      <div class="linear-cycle-num" style="color: var(--accent2);">1</div>
+      <div>
+        <div class="linear-cycle-title">Cycle 1 — Backend + Excel (Quick Win)</div>
+        <div class="linear-cycle-meta">Semanas 2-3 · 9 issues · 50h estimadas · Entregable: Excel descargable por rango</div>
+      </div>
+    </div>
+    <div class="linear-cycle-body">
+      <div class="linear-issue">
+        <div class="linear-id">ROD-10</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Configurar archivo .env y Jasypt en Spring Boot<small>Cifrado de credenciales Audatex. Documentar setup</small></div>
+        <div class="linear-label linear-label-chore">chore · 3h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-11</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">AudatexProperties + AudatexClient (HTTP o Playwright)<small>Métodos: login(), buscarOportunidades(marca,modelo,desde,hasta), getDetalleVehiculo(wan)</small></div>
+        <div class="linear-label linear-label-feat">feat · 12h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-12</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">AudatexService + cache Caffeine (TTL 5min)<small>Spring @Cacheable wrapping del client. Configurable por properties</small></div>
+        <div class="linear-label linear-label-feat">feat · 4h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-13</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">AudatexController: GET /api/audatex/oportunidades<small>REST controller con filtros marca, modelo, fechas. JWT security. DTOs</small></div>
+        <div class="linear-label linear-label-feat">feat · 4h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-14</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Endpoint export Excel: /api/audatex/oportunidades/export<small>Apache POI. Filtros fechas+marca. Headers Content-Disposition. Resuelve la primera pregunta del usuario</small></div>
+        <div class="linear-label linear-label-feat">feat · 5h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-15</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Manejo de errores y resilience<small>Resilience4j: retry, circuit breaker, timeouts. Logs estructurados</small></div>
+        <div class="linear-label linear-label-chore">chore · 4h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-16</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">SessionManager: login automático y renovación<small>Mantener cookie viva. Re-login si expira. Lock para evitar logins paralelos</small></div>
+        <div class="linear-label linear-label-feat">feat · 6h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-17</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">UI: botón "Exportar Excel" en Reportes (P8)<small>Date range picker, filtro marca. Llama al endpoint, descarga el blob</small></div>
+        <div class="linear-label linear-label-design">design · 5h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-18</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Tests E2E del flujo de export<small>WireMock simulando InPart. Verificar Excel generado tiene columnas correctas</small></div>
+        <div class="linear-label linear-label-chore">chore · 4h</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cycle 2 -->
+  <div class="linear-cycle">
+    <div class="linear-cycle-header">
+      <div class="linear-cycle-num" style="color: var(--success);">2</div>
+      <div>
+        <div class="linear-cycle-title">Cycle 2 — UI en DetalleRepuesto + Envío de cotizaciones</div>
+        <div class="linear-cycle-meta">Semanas 4-5 · 9 issues · 55h estimadas · Entregable: integración visible en cada repuesto + envío funcional</div>
+      </div>
+    </div>
+    <div class="linear-cycle-body">
+      <div class="linear-issue">
+        <div class="linear-id">ROD-20</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Endpoint /api/audatex/oportunidades/por-repuesto/{id}<small>Infiere marca+modelo del vehiculo_origen, normaliza, devuelve lista de oportunidades</small></div>
+        <div class="linear-label linear-label-feat">feat · 4h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-21</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">P1 · Inventario: columna "Oportunidades InPart" + filtro<small>Llamada en batch al backend. Tags por urgencia. Filtro "solo con oportunidades"</small></div>
+        <div class="linear-label linear-label-design">design · 6h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-22</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">P2 · DetalleVehiculo: badge InPart en cada pieza<small>1 llamada agregada por vehículo. Distribución por tipo de parte</small></div>
+        <div class="linear-label linear-label-design">design · 4h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-23</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">P4 · Nuevo tab "Oportunidades InPart" en DetalleRepuesto<small>React Query hook. Badge numérico. Lista de cards con modelo completo</small></div>
+        <div class="linear-label linear-label-design">design · 10h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-24</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">P4 · Tab "Mis Envíos" en DetalleRepuesto<small>Historial de envíos hechos para esta pieza. Estado, precio, fecha, ganador</small></div>
+        <div class="linear-label linear-label-design">design · 5h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-25</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Tabla audatex_envios + migración SQL<small>Schema mínimo. FK a inventario_repuestos. Índices. Solo 1 tabla nueva en todo el proyecto</small></div>
+        <div class="linear-label linear-label-chore">chore · 3h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-26</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">P5 · Modal "Enviar Cotización" + endpoint POST cotizar<small>AntD Modal. Form con precio sugerido, tiempo, condición. Llama POST /cotizar</small></div>
+        <div class="linear-label linear-label-feat">feat · 8h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-27</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">AudatexClient.enviarCotizacion(wan, precio, tiempo, condicion)<small>Lo más arriesgado del proyecto. Form submit con ViewState si aplica</small></div>
+        <div class="linear-label linear-label-feat">feat · 10h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-28</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Rate limiting + human-delay en envíos<small>Max N envíos/min. Delays aleatorios entre acciones. Logs de auditoría</small></div>
+        <div class="linear-label linear-label-chore">chore · 5h</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cycle 3 -->
+  <div class="linear-cycle">
+    <div class="linear-cycle-header">
+      <div class="linear-cycle-num" style="color: var(--warn);">3</div>
+      <div>
+        <div class="linear-cycle-title">Cycle 3 — Vista global + Jerarquía + Polish</div>
+        <div class="linear-cycle-meta">Semana 6 · 7 issues · 38h estimadas · Entregable: producto completo, métricas, deploy</div>
+      </div>
+    </div>
+    <div class="linear-cycle-body">
+      <div class="linear-issue">
+        <div class="linear-id">ROD-31</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">P3 · Jerarquía: conteos agregados de oportunidades por nodo<small>Endpoint /aggregated. Cache por nivel. UI con tags rojo/amarillo/verde</small></div>
+        <div class="linear-label linear-label-design">design · 6h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-32</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">P6 · Página global /cotizaciones-inpart<small>Tabla con todas las activas. Stats cards. Filtros. Export inline</small></div>
+        <div class="linear-label linear-label-design">design · 8h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-33</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Matching automático con inventario propio<small>Para cada oportunidad de P6, indica si tienes la pieza (columna "Tu stock")</small></div>
+        <div class="linear-label linear-label-feat">feat · 5h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-34</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">P7 · ConfiguracionAudatex.js<small>Credenciales editables (cifrar), TTLs ajustables, botón "probar conexión"</small></div>
+        <div class="linear-label linear-label-design">design · 6h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-35</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Job sync: actualizar estado de envíos (ENVIADA→GANADA/PERDIDA)<small>@Scheduled cada 1h. Polling de estado de los envíos abiertos</small></div>
+        <div class="linear-label linear-label-feat">feat · 4h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-36</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Monitoreo: métricas Micrometer + alertas<small>Hit rate caché, latencia, % errores, envíos exitosos. Dashboard Grafana</small></div>
+        <div class="linear-label linear-label-chore">chore · 5h</div>
+      </div>
+      <div class="linear-issue">
+        <div class="linear-id">ROD-37</div>
+        <div class="linear-status linear-status-todo"></div>
+        <div class="linear-title">Deploy a producción + smoke tests<small>Docker compose actualizado. Variables de entorno verificadas. Tests post-deploy</small></div>
+        <div class="linear-label linear-label-chore">chore · 4h</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <a class="section-anchor" id="cuadro"></a>
+  <h2>6. Cuadro Final · Qué Cubre Cada Pantalla y Cada Sprint</h2>
+
+  <h3>Pantallas vs Necesidades</h3>
+  <div class="table-wrap">
+    <table>
+      <tr>
+        <th>Pantalla</th>
+        <th>Estado</th>
+        <th>Necesidades del usuario que resuelve</th>
+        <th>Sprint</th>
+      </tr>
+      <tr>
+        <td><strong>P1 · Inventario</strong> (Inventario.js)</td>
+        <td><span class="badge badge-yellow">Modificada</span></td>
+        <td>Ver de un vistazo qué piezas tienen demanda activa. Filtrar solo con oportunidades. Exportar Excel</td>
+        <td>Sprint 2</td>
+      </tr>
+      <tr>
+        <td><strong>P2 · Detalle de Vehículo</strong> (DetalleVehiculo.js)</td>
+        <td><span class="badge badge-yellow">Modificada</span></td>
+        <td>Ver oportunidades para cada pieza del vehículo desarmado. 1 vehículo, N piezas, contadores individuales</td>
+        <td>Sprint 2</td>
+      </tr>
+      <tr>
+        <td><strong>P3 · Jerarquía</strong> (JerarquiaVehiculos.js)</td>
+        <td><span class="badge badge-yellow">Modificada</span></td>
+        <td>Vista estratégica: dónde concentrar esfuerzo. Conteos agregados por marca/modelo/generación</td>
+        <td>Sprint 3</td>
+      </tr>
+      <tr>
+        <td><strong>P4 · Detalle del Repuesto</strong> (DetalleRepuesto.js)</td>
+        <td><span class="badge badge-green">Tab nuevo</span></td>
+        <td><strong>El corazón.</strong> Ver modelo completo, año, aseguradora, fecha límite. Iniciar envío de cotización</td>
+        <td>Sprint 2</td>
+      </tr>
+      <tr>
+        <td><strong>P5 · Modal Cotizar</strong></td>
+        <td><span class="badge badge-green">Nueva</span></td>
+        <td>Enviar la cotización a Audatex con tus credenciales sin abrir el portal</td>
+        <td>Sprint 2</td>
+      </tr>
+      <tr>
+        <td><strong>P6 · Cotizaciones InPart Global</strong></td>
+        <td><span class="badge badge-green">Nueva</span></td>
+        <td>Vista de mercado: todas las cotizaciones, incluso las que no tienes en stock. Stats. Excel</td>
+        <td>Sprint 3</td>
+      </tr>
+      <tr>
+        <td><strong>P7 · Configuración Audatex</strong></td>
+        <td><span class="badge badge-green">Nueva</span></td>
+        <td>Admin gestiona credenciales, comportamiento de caché, estado de la sesión</td>
+        <td>Sprint 3</td>
+      </tr>
+      <tr>
+        <td><strong>P8 · Reportes</strong> (Reportes.js)</td>
+        <td><span class="badge badge-yellow">Modificada</span></td>
+        <td>Resuelve directamente "Excel completo por fecha de todo lo que hay"</td>
+        <td>Sprint 1</td>
+      </tr>
+    </table>
+  </div>
+
+  <h3>Necesidades originales · Cobertura final</h3>
+  <div class="table-wrap">
+    <table>
+      <tr>
+        <th>Necesidad</th>
+        <th>¿Cubierta?</th>
+        <th>Pantalla(s)</th>
+        <th>Sprint(s)</th>
+      </tr>
+      <tr>
+        <td>Excel completo por rango de fecha</td>
+        <td><span class="badge badge-green">SÍ</span></td>
+        <td>P8 (principal), también P1 y P6</td>
+        <td>1</td>
+      </tr>
+      <tr>
+        <td>Ver modelo completo (Tigo 4 vs Tigo 2) sin entrar uno por uno</td>
+        <td><span class="badge badge-green">SÍ</span></td>
+        <td>P4 (cards), P6 (tabla)</td>
+        <td>2, 3</td>
+      </tr>
+      <tr>
+        <td>¿Audatex tiene MCP o API cómoda?</td>
+        <td><span class="badge badge-red">NO existe</span></td>
+        <td>—</td>
+        <td>— (construimos integración propia)</td>
+      </tr>
+      <tr>
+        <td>Búsqueda automática al meter pieza al inventario</td>
+        <td><span class="badge badge-green">SÍ</span></td>
+        <td>P4 tab "Oportunidades", endpoint /por-repuesto/{id}</td>
+        <td>2</td>
+      </tr>
+      <tr>
+        <td>Ver oportunidades en DetalleRepuesto.js</td>
+        <td><span class="badge badge-green">SÍ</span></td>
+        <td>P4</td>
+        <td>2</td>
+      </tr>
+      <tr>
+        <td>Enviar cotización desde el sistema con mis credenciales</td>
+        <td><span class="badge badge-green">SÍ</span> <span class="badge badge-yellow">con caveat</span></td>
+        <td>P5 (modal)</td>
+        <td>2</td>
+      </tr>
+      <tr>
+        <td>SOAP del proveedor (lo que preguntaste)</td>
+        <td><span class="badge badge-red">NO existe</span></td>
+        <td>— (el SOAP de Audatex es solo para compradores)</td>
+        <td>— (vía portal en su lugar)</td>
+      </tr>
+      <tr>
+        <td>Credenciales en .env (no en código, no en BD plana)</td>
+        <td><span class="badge badge-green">SÍ</span></td>
+        <td>.env + Jasypt + P7 admin UI</td>
+        <td>1, 3</td>
+      </tr>
+      <tr>
+        <td>No duplicar datos de Audatex en mi BD</td>
+        <td><span class="badge badge-green">SÍ</span></td>
+        <td>Caché en memoria (Caffeine). Solo 1 tabla nueva: audatex_envios (tus envíos)</td>
+        <td>1, 2</td>
+      </tr>
+      <tr>
+        <td>Jerarquía marca/modelo/generación con oportunidades</td>
+        <td><span class="badge badge-green">SÍ</span></td>
+        <td>P3</td>
+        <td>3</td>
+      </tr>
+    </table>
+  </div>
+
+  <h3>Lo que se propone (no pediste pero ayuda)</h3>
+  <div class="table-wrap">
+    <table>
+      <tr>
+        <th>Propuesta adicional</th>
+        <th>Pantalla</th>
+        <th>Por qué</th>
+        <th>Sprint</th>
+      </tr>
+      <tr>
+        <td>Stats cards en vista global</td>
+        <td>P6</td>
+        <td>Decisiones rápidas: total activas, % match con tu stock, valor estimado</td>
+        <td>3</td>
+      </tr>
+      <tr>
+        <td>Sub-tab "Mis Envíos" en DetalleRepuesto</td>
+        <td>P4</td>
+        <td>Auditoría e historial. Evita re-cotizar lo mismo</td>
+        <td>2</td>
+      </tr>
+      <tr>
+        <td>Filtro "Solo con oportunidades activas"</td>
+        <td>P1</td>
+        <td>Encuentra rápido qué piezas pueden venderse hoy</td>
+        <td>2</td>
+      </tr>
+      <tr>
+        <td>Botón "Probar conexión" en P7</td>
+        <td>P7</td>
+        <td>Diagnóstico cuando algo falla, sin tocar logs</td>
+        <td>3</td>
+      </tr>
+      <tr>
+        <td>Job sync ENVIADA → GANADA/PERDIDA</td>
+        <td>(backend)</td>
+        <td>Métricas reales de éxito sin marcar manualmente</td>
+        <td>3</td>
+      </tr>
+      <tr>
+        <td>Reporte "Mis envíos a Audatex"</td>
+        <td>P8</td>
+        <td>Auditoría fiscal y análisis de desempeño</td>
+        <td>3</td>
+      </tr>
+    </table>
+  </div>
+
+  <h3>Lo que NO se cubre (claridad sobre el alcance)</h3>
+  <div class="table-wrap">
+    <table>
+      <tr>
+        <th>Fuera del alcance</th>
+        <th>Por qué</th>
+      </tr>
+      <tr>
+        <td>Compatibilidad cruzada de piezas (Tigo 4 → Tigo 5)</td>
+        <td>Requiere conocimiento mecánico que solo tú tienes. Posible en una fase posterior con tabla de reglas</td>
+      </tr>
+      <tr>
+        <td>Envío masivo de cotizaciones (bulk bid)</td>
+        <td>Audatex podría detectarlo como abuso. Se mantiene 1 por 1 con confirmación</td>
+      </tr>
+      <tr>
+        <td>Sincronización en tiempo real (websockets)</td>
+        <td>Innecesario. Caché 5 min + botón refrescar es suficiente y respeta a Audatex</td>
+      </tr>
+      <tr>
+        <td>MCP server propio para Claude</td>
+        <td>Opcional v3 (post-MVP). 1-2 días si se decide más adelante</td>
+      </tr>
+      <tr>
+        <td>Integración con otros portales (no InPart)</td>
+        <td>Fuera del alcance hasta validar valor con InPart primero</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card card-success" style="margin-top: 32px;">
+    <h3 style="margin-top:0; color: var(--success);">Resumen ejecutivo de tres líneas</h3>
+    <p style="color: var(--text);">SOAP del proveedor no existe — la integración va por automatización del portal con tus credenciales en <code>.env</code>. Las 8 pantallas (4 modificadas, 4 nuevas) cubren tus 8 necesidades originales más 6 mejoras útiles. El producto completo se entrega en <strong>6 semanas + 1 de discovery</strong> dividido en 4 cycles de Linear con 30 issues identificados <code>ROD-01</code> a <code>ROD-37</code>.</p>
+  </div>
+
+  <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text3); font-size: 12px; text-align: center;">
+    RodiejaContable × Audatex InPart — Versión 3 (UI + Sprints)<br>
+    Junio 2026 · Repositorio: github.com/Mravenec/RodiejaContable
+  </div>
+
+</main>
+
+<script>
+  const anchors = document.querySelectorAll('.section-anchor');
+  const navLinks = document.querySelectorAll('.nav-link');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.nav-link[href="#${id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  anchors.forEach(a => observer.observe(a));
+</script>
+</body>
+</html>

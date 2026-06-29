@@ -19,6 +19,8 @@ const { Title } = Typography;
 const { RangePicker } = DatePicker;
 
 const defaultFiltros = {
+  marca: '',
+  anio: '',
   armadora: '',
   aseguradora: '',
   desde: dayjs().subtract(30, 'day'),
@@ -100,7 +102,7 @@ const OportunidadesAudatex = () => {
     streamReaderDoneRef.current = false;
 
     const params = new URLSearchParams();
-    if (currentFilters.armadora) params.set('armadora', currentFilters.armadora);
+    // Los filtros de marca y anio ahora se aplican de forma local en el frontend
     if (currentFilters.aseguradora) params.set('aseguradora', currentFilters.aseguradora);
     if (currentFilters.desde) params.set('desde', currentFilters.desde.format('YYYY-MM-DD'));
     if (currentFilters.hasta) params.set('hasta', currentFilters.hasta.format('YYYY-MM-DD'));
@@ -369,9 +371,13 @@ const OportunidadesAudatex = () => {
   // ── Invalidar caché y recargar ────────────────────────────────────────────
   const handleSincronizar = async () => {
     try {
+      // Tomamos los filtros que haya en pantalla por si el usuario no le dio a "Filtrar"
+      const nuevos = { ...filtros };
+      setAppliedFiltros(nuevos);
+
       await audatexService.invalidarCache();
       message.info('Caché invalidado. Iniciando carga...');
-      cargarOportunidadesStream(appliedFiltros);
+      cargarOportunidadesStream(nuevos);
     } catch (err) {
       console.error('Error invalidando caché:', err);
       message.error('Error al invalidar el caché');
@@ -392,18 +398,9 @@ const OportunidadesAudatex = () => {
 
 
   useEffect(() => {
-    // React StrictMode (dev) ejecuta: setup1 → cleanup1 → setup2.
-    // startedRef evita que setup1 y setup2 abran dos streams simultáneos.
-    // El cleanup resetea el flag para que setup2 pueda arrancar el stream real.
-    // Flujo real:
-    //   setup1 → startedRef=true → abre stream1
-    //   cleanup1 → startedRef=false → aborta stream1 (servidor lo detecta y sale limpio)
-    //   setup2 → startedRef=false → startedRef=true → abre stream2 (este es el real)
-    if (startedRef.current) return;
-    startedRef.current = true;
-    cargarOportunidadesStream();
+    // Al montar no iniciamos el stream automáticamente,
+    // esperamos a que el usuario presione Sincronizar o Filtrar.
     return () => {
-      startedRef.current = false;
       if (abortRef.current) abortRef.current.abort();
       detenerCola();
     };
@@ -413,6 +410,26 @@ const OportunidadesAudatex = () => {
   // ── Columnas ──────────────────────────────────────────────────────────────
   const columns = [
     {
+      title: 'Marca', key: 'marca',
+      sorter: (a, b) => {
+        const marcaA = (a.marca || a.armadora || (a.datosCotizacion && (a.datosCotizacion['Marca'] || a.datosCotizacion['Armadora'])) || '');
+        const marcaB = (b.marca || b.armadora || (b.datosCotizacion && (b.datosCotizacion['Marca'] || b.datosCotizacion['Armadora'])) || '');
+        return marcaA.localeCompare(marcaB);
+      },
+      render: (_, record) => record.marca || record.armadora || (record.datosCotizacion && (record.datosCotizacion['Marca'] || record.datosCotizacion['Armadora'])) || 'Desc.'
+    },
+    {
+      title: 'Año', key: 'anio',
+      sorter: (a, b) => {
+        const anioA = (a.anio || (a.datosCotizacion && (a.datosCotizacion['Año Modelo'] || a.datosCotizacion['Año Fabricación'])) || '').toString();
+        const anioB = (b.anio || (b.datosCotizacion && (b.datosCotizacion['Año Modelo'] || b.datosCotizacion['Año Fabricación'])) || '').toString();
+        return anioA.localeCompare(anioB);
+      },
+      render: (_, record) => {
+        return record.anio || (record.datosCotizacion && (record.datosCotizacion['Año Modelo'] || record.datosCotizacion['Año Fabricación'])) || '-';
+      }
+    },
+    {
       title: 'Aseguradora', dataIndex: 'aseguradora', key: 'aseguradora',
       sorter: (a, b) => (a.aseguradora || '').localeCompare(b.aseguradora || '')
     },
@@ -421,18 +438,12 @@ const OportunidadesAudatex = () => {
     { title: 'Póliza', dataIndex: 'poliza', key: 'poliza' },
     { title: 'Siniestro', dataIndex: 'siniestro', key: 'siniestro' },
     {
-      title: 'Vehículo', key: 'vehiculo',
+      title: 'Matrícula', key: 'vehiculo',
       render: (_, record) => {
-        const marca = record.marca || record.armadora || 'Desc.';
-        const modelo = record.modelo || '';
-        const anio = record.anio || '';
         const matricula = record.matricula || '';
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontWeight: 500 }}>{marca} {modelo} <span style={{ color: '#888', fontSize: '0.85em' }}>{anio}</span></span>
-            {matricula && <Tag color="blue" style={{ width: 'fit-content', margin: 0 }}>{matricula}</Tag>}
-          </div>
-        );
+        return matricula 
+          ? <Tag color="blue" style={{ width: 'fit-content', margin: 0 }}>{matricula}</Tag> 
+          : <span style={{ color: '#888' }}>N/A</span>;
       }
     },
     {
@@ -458,6 +469,44 @@ const OportunidadesAudatex = () => {
       )
     }
   ];
+
+  // ── Filtro Local (Frontend) ────────────────────────────────────────────────
+  const oportunidadesFiltradas = React.useMemo(() => {
+    const normalize = (str) => (str || '').toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    return oportunidades.filter(op => {
+      const mMarca = normalize(appliedFiltros.marca);
+      const mAnio = normalize(appliedFiltros.anio);
+      
+      const vMarca = normalize(op.marca || op.armadora || (op.datosCotizacion && (op.datosCotizacion['Marca'] || op.datosCotizacion['Armadora'])));
+      const vAnio = normalize(op.anio || (op.datosCotizacion && (op.datosCotizacion['Año Modelo'] || op.datosCotizacion['Año Fabricación'])));
+
+      const matchMarca = !mMarca || vMarca.includes(mMarca);
+      const matchAnio = !mAnio || vAnio.includes(mAnio);
+
+      let matchDesde = true;
+      let matchHasta = true;
+
+      if (op.fechaCotizacion) {
+        const parts = op.fechaCotizacion.split(' ')[0].split('/');
+        if (parts.length === 3) {
+          const d = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1; // month is 0-indexed in dayjs object construction via date? No, Dayjs string parsing is YYYY-MM-DD
+          const y = parseInt(parts[2], 10);
+          const opDate = dayjs(`${y}-${parts[1]}-${parts[0]}`);
+
+          if (appliedFiltros.desde && opDate.isValid()) {
+            matchDesde = opDate.isSame(appliedFiltros.desde, 'day') || opDate.isAfter(appliedFiltros.desde, 'day');
+          }
+          if (appliedFiltros.hasta && opDate.isValid()) {
+            matchHasta = opDate.isSame(appliedFiltros.hasta, 'day') || opDate.isBefore(appliedFiltros.hasta, 'day');
+          }
+        }
+      }
+
+      return matchMarca && matchAnio && matchDesde && matchHasta;
+    });
+  }, [oportunidades, appliedFiltros.marca, appliedFiltros.anio, appliedFiltros.desde, appliedFiltros.hasta]);
 
   const thStyle = {
     padding: '8px 12px', textAlign: 'left', fontWeight: 600,
@@ -518,10 +567,17 @@ const OportunidadesAudatex = () => {
       <Card style={{ marginBottom: '16px' }}>
         <Space size="middle" wrap>
           <Input
-            placeholder="Filtrar por armadora"
-            value={filtros.armadora}
-            onChange={(e) => setFiltros({ ...filtros, armadora: e.target.value })}
-            style={{ width: 200 }}
+            placeholder="Filtrar por marca"
+            value={filtros.marca}
+            onChange={(e) => setFiltros({ ...filtros, marca: e.target.value })}
+            style={{ width: 150 }}
+            prefix={<FilterOutlined />}
+          />
+          <Input
+            placeholder="Filtrar por año"
+            value={filtros.anio}
+            onChange={(e) => setFiltros({ ...filtros, anio: e.target.value })}
+            style={{ width: 120 }}
             prefix={<FilterOutlined />}
           />
           <Input
@@ -562,7 +618,7 @@ const OportunidadesAudatex = () => {
         <div ref={tableRef}>
           <Table
             columns={columns}
-            dataSource={oportunidades}
+            dataSource={oportunidadesFiltradas}
             rowKey={(record) => record._key}
             loading={streaming && oportunidades.length === 0}
             expandable={{
@@ -664,7 +720,7 @@ const OportunidadesAudatex = () => {
             pagination={{
               current: currentPage,
               pageSize,
-              total: oportunidades.length,
+              total: oportunidadesFiltradas.length,
               showSizeChanger: true,
               pageSizeOptions: ['10', '20', '50', '100'],
               showTotal: (total) =>
