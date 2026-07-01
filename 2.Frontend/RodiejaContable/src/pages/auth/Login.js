@@ -101,7 +101,7 @@ const Login = () => {
         </Form.Item>
         
         <div style={{ textAlign: 'center' }}>
-          <Link to="/recuperar-contrasena">¿Olvidó su contraseña?</Link>
+          <Link to="/olvide-contrasena">¿Olvidó su contraseña?</Link>
         </div>
       </Form>
     </Card>

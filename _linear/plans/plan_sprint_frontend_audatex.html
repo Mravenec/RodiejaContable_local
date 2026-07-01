@@ -12,238 +12,775 @@
   REGLA CURSOR: .cursor/rules/linear-plan-html-obligatorio.mdc
 -->
 <html lang="es">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Propuesta — Frontend Audatex · Rodieja Contable</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
-  :root{--bg:#07090F;--surf:#0D1117;--surf2:#131A24;--border:rgba(255,255,255,.07);--text:#E2E8F0;--muted:#64748B;--db:#EAB308;--be:#22C55E;--fe:#0EA5E9;--green:#22C55E;--orange:#F97316}
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.6}
-  .hero{padding:64px 48px 48px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
-  .hero::before{content:'';position:absolute;top:-80px;right:-60px;width:360px;height:360px;background:radial-gradient(circle,rgba(34,197,94,.1) 0%,transparent 70%);pointer-events:none}
-  .ey{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:10px}
-  .ey::after{content:'';width:32px;height:1px;background:var(--green);display:block}
-  h1{font-family:'Syne',sans-serif;font-size:clamp(24px,4vw,44px);font-weight:800;line-height:1.05;color:#fff}
-  h1 em{font-style:normal;background:linear-gradient(135deg,#22C55E,#0EA5E9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-  .sub{margin-top:14px;font-size:14px;color:var(--muted);max-width:860px}
-  .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
-  .chip{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:var(--surf2);border:1px solid var(--border);padding:4px 12px;border-radius:4px}
-  .chip span{color:#fff}.chip.ok{border-color:rgba(34,197,94,.35);color:var(--green)}
-  .chip.pending{border-color:rgba(249,115,22,.35);color:var(--orange)}
-  .al{margin:32px 48px 0;padding:14px 18px;border-radius:8px;font-size:13px;display:flex;gap:12px}
-  .al.ok{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-left:3px solid var(--green);color:#86EFAC}
-  .al.pending{background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.25);border-left:3px solid var(--orange);color:#FDBA74}
-  .sec{padding:48px 48px 0}
-  .sl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-  .st{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:18px}
-  .tbl{width:100%;border-collapse:collapse;font-size:12.5px;font-family:'IBM Plex Mono',monospace}
-  .tbl th{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--surf2)}
-  .tbl td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:top}
-  .ok{color:var(--green)}.done{color:var(--green)}
-  .issue{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start}
-  .badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--green);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);padding:2px 8px;border-radius:4px}
-  .badge.pending{color:var(--orange);background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.25)}
-  .issue-id{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
-  .issue-title{font-size:14px;font-weight:500;color:#fff;margin-top:4px}
-  .compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
-  .box{border-radius:8px;padding:14px;font-size:12.5px;line-height:1.55}
-  .box.bad{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);color:#FCA5A5}
-  .box.good{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);color:#BBF7D0}
-  .box h4{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
-  .box.bad h4{color:#FCA5A5}.box.good h4{color:var(--green)}
-  code{font-family:'IBM Plex Mono',monospace;font-size:11px;background:rgba(255,255,255,.06);color:#CBD5E1;padding:1px 5px;border-radius:3px}
-  .cb2{background:#060912;border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:13px 16px;margin:10px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.75;overflow-x:auto;white-space:pre}
-  .da{color:#86EFAC}.dk{color:#7DD3FC}.dc{color:#64748B}
-  .plf{display:flex;align-items:stretch;flex-wrap:wrap;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin:12px 0 20px}
-  .pln{background:var(--surf2);padding:12px 16px;display:flex;flex-direction:column;gap:3px;border-right:1px solid var(--border)}
-  .pla{display:flex;align-items:center;padding:0 8px;background:var(--surf2);color:var(--muted);font-size:14px;border-right:1px solid var(--border)}
-  .plname{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#fff}
-  .plnote{font-size:10px;color:var(--muted)}
-  ul.files{margin:0;padding-left:18px;font-size:13px;color:#94A3B8}
-  ul.files li{margin-bottom:6px}
-  hr.sep{border:none;border-top:1px solid var(--border);margin:48px 48px 0}
-  footer{margin-top:64px;border-top:1px solid var(--border);padding:24px 48px;display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
-  .utn{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#98BADF}
-  @media(max-width:720px){.compare{grid-template-columns:1fr}.hero,.sec,.al{padding-left:24px;padding-right:24px;margin-left:0;margin-right:0}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Propuesta — Frontend Audatex · Rodieja Contable</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+    :root {
+      --bg: #07090F;
+      --surf: #0D1117;
+      --surf2: #131A24;
+      --border: rgba(255, 255, 255, .07);
+      --text: #E2E8F0;
+      --muted: #64748B;
+      --db: #EAB308;
+      --be: #22C55E;
+      --fe: #0EA5E9;
+      --green: #22C55E;
+      --orange: #F97316
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.6
+    }
+
+    .hero {
+      padding: 64px 48px 48px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -60px;
+      width: 360px;
+      height: 360px;
+      background: radial-gradient(circle, rgba(34, 197, 94, .1) 0%, transparent 70%);
+      pointer-events: none
+    }
+
+    .ey {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .ey::after {
+      content: '';
+      width: 32px;
+      height: 1px;
+      background: var(--green);
+      display: block
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(24px, 4vw, 44px);
+      font-weight: 800;
+      line-height: 1.05;
+      color: #fff
+    }
+
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, #22C55E, #0EA5E9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text
+    }
+
+    .sub {
+      margin-top: 14px;
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 860px
+    }
+
+    .chips {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 22px
+    }
+
+    .chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surf2);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 4px
+    }
+
+    .chip span {
+      color: #fff
+    }
+
+    .chip.ok {
+      border-color: rgba(34, 197, 94, .35);
+      color: var(--green)
+    }
+
+    .chip.pending {
+      border-color: rgba(249, 115, 22, .35);
+      color: var(--orange)
+    }
+
+    .al {
+      margin: 32px 48px 0;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: flex;
+      gap: 12px
+    }
+
+    .al.ok {
+      background: rgba(34, 197, 94, .06);
+      border: 1px solid rgba(34, 197, 94, .25);
+      border-left: 3px solid var(--green);
+      color: #86EFAC
+    }
+
+    .al.pending {
+      background: rgba(249, 115, 22, .06);
+      border: 1px solid rgba(249, 115, 22, .25);
+      border-left: 3px solid var(--orange);
+      color: #FDBA74
+    }
+
+    .sec {
+      padding: 48px 48px 0
+    }
+
+    .sl {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px
+    }
+
+    .st {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 18px
+    }
+
+    .tbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      font-family: 'IBM Plex Mono', monospace
+    }
+
+    .tbl th {
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 9px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      background: var(--surf2)
+    }
+
+    .tbl td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, .03);
+      vertical-align: top
+    }
+
+    .ok {
+      color: var(--green)
+    }
+
+    .done {
+      color: var(--green)
+    }
+
+    .issue {
+      background: var(--surf);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: start
+    }
+
+    .badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--green);
+      background: rgba(34, 197, 94, .1);
+      border: 1px solid rgba(34, 197, 94, .25);
+      padding: 2px 8px;
+      border-radius: 4px
+    }
+
+    .badge.pending {
+      color: var(--orange);
+      background: rgba(249, 115, 22, .1);
+      border-color: rgba(249, 115, 22, .25)
+    }
+
+    .issue-id {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .issue-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      margin-top: 4px
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 14px 0
+    }
+
+    .box {
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 12.5px;
+      line-height: 1.55
+    }
+
+    .box.bad {
+      background: rgba(239, 68, 68, .06);
+      border: 1px solid rgba(239, 68, 68, .2);
+      color: #FCA5A5
+    }
+
+    .box.good {
+      background: rgba(34, 197, 94, .06);
+      border: 1px solid rgba(34, 197, 94, .2);
+      color: #BBF7D0
+    }
+
+    .box h4 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 8px
+    }
+
+    .box.bad h4 {
+      color: #FCA5A5
+    }
+
+    .box.good h4 {
+      color: var(--green)
+    }
+
+    code {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      background: rgba(255, 255, 255, .06);
+      color: #CBD5E1;
+      padding: 1px 5px;
+      border-radius: 3px
+    }
+
+    .cb2 {
+      background: #060912;
+      border: 1px solid rgba(255, 255, 255, .05);
+      border-radius: 7px;
+      padding: 13px 16px;
+      margin: 10px 0;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      line-height: 1.75;
+      overflow-x: auto;
+      white-space: pre
+    }
+
+    .da {
+      color: #86EFAC
+    }
+
+    .dk {
+      color: #7DD3FC
+    }
+
+    .dc {
+      color: #64748B
+    }
+
+    .plf {
+      display: flex;
+      align-items: stretch;
+      flex-wrap: wrap;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin: 12px 0 20px
+    }
+
+    .pln {
+      background: var(--surf2);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      border-right: 1px solid var(--border)
+    }
+
+    .pla {
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      background: var(--surf2);
+      color: var(--muted);
+      font-size: 14px;
+      border-right: 1px solid var(--border)
+    }
+
+    .plname {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: #fff
+    }
+
+    .plnote {
+      font-size: 10px;
+      color: var(--muted)
+    }
+
+    ul.files {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 13px;
+      color: #94A3B8
+    }
+
+    ul.files li {
+      margin-bottom: 6px
+    }
+
+    hr.sep {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 48px 0
+    }
+
+    footer {
+      margin-top: 64px;
+      border-top: 1px solid var(--border);
+      padding: 24px 48px;
+      display: flex;
+      justify-content: space-between;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .utn {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      color: #98BADF
+    }
+
+    @media(max-width:720px) {
+      .compare {
+        grid-template-columns: 1fr
+      }
+
+      .hero,
+      .sec,
+      .al {
+        padding-left: 24px;
+        padding-right: 24px;
+        margin-left: 0;
+        margin-right: 0
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<header class="hero">
-  <div class="ey">Rodieja Contable · Sprint 1 · Propuesta · linear_rodieja</div>
-  <h1>Frontend UI<br><em>Implementar Pantallas Audatex</em></h1>
-  <p class="sub">Implementar el UI en base a audatex-inpart-v4-colones-desarmado.html conectándolo con la API del backend que ahora exporta todos los JSON de detalle.</p>
-  <div class="chips">
-    <div class="chip pending">Estado <span>PENDIENTE</span></div>
-    <div class="chip">Issues <span>2 planificados</span></div>
+  <header class="hero">
+    <div class="ey">Rodieja Contable · Sprint 1 · Propuesta · linear_rodieja</div>
+    <h1>Frontend UI<br><em>Implementar Pantallas Audatex</em></h1>
+    <p class="sub">Implementar el UI en base a audatex-inpart-v4-colones-desarmado.html conectándolo con la API del
+      backend que ahora exporta todos los JSON de detalle.</p>
+    <div class="chips">
+      <div class="chip pending">Estado <span>PENDIENTE</span></div>
+      <div class="chip">Issues <span>2 planificados</span></div>
+    </div>
+  </header>
+
+  <div class="al pending">
+    <div>⏳</div>
+    <div><strong>Propuesta pendiente de aprobación.</strong> Validar con <code>validate-plan-html.mjs</code> antes de
+      <code>sprint_frontend_audatex.mjs create</code>.</div>
   </div>
-</header>
 
-<div class="al pending"><div>⏳</div><div><strong>Propuesta pendiente de aprobación.</strong> Validar con <code>validate-plan-html.mjs</code> antes de <code>sprint_frontend_audatex.mjs create</code>.</div></div>
+  <section class="sec">
+    <div class="sl">Linear — Proceso obligatorio (7 fases)</div>
+    <div class="st">Mismas fases siempre; cambian issues y gates</div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Fase</th>
+          <th>Qué</th>
+          <th>Quién</th>
+          <th>Gate</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fase 0 — Limpieza</td>
+          <td>cleanup + borrar artefactos</td>
+          <td>orchestrator</td>
+          <td>Sprint previo cerrado</td>
+          <td>✓</td>
+        </tr>
+        <tr>
+          <td>Fase 1–2 — Plan + HTML</td>
+          <td>plan_sprint_frontend_audatex.html</td>
+          <td>orchestrator</td>
+          <td>validate-plan-html OK</td>
+          <td>PENDIENTE</td>
+        </tr>
+        <tr>
+          <td>Fase 3 — Aprobación</td>
+          <td>✅ humano</td>
+          <td>Tú</td>
+          <td>APROBADO</td>
+          <td>PENDIENTE</td>
+        </tr>
+        <tr>
+          <td>Fase 4 — MJS</td>
+          <td>sprint_frontend_audatex.mjs create</td>
+          <td>orchestrator</td>
+          <td>Tras Fase 3</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>Fase 5 — Multi-agente</td>
+          <td>Doing → Testing → Done</td>
+          <td>agents</td>
+          <td>GATE_HTTP → FE</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>Fase 6 — Resumen</td>
+          <td>resumen_sprint_*.html</td>
+          <td>orchestrator</td>
+          <td>Epic Completed</td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-<section class="sec">
-  <div class="sl">Linear — Proceso obligatorio (7 fases)</div>
-  <div class="st">Mismas fases siempre; cambian issues y gates</div>
-  <table class="tbl">
-    <thead><tr><th>Fase</th><th>Qué</th><th>Quién</th><th>Gate</th><th>Estado</th></tr></thead>
-    <tbody>
-      <tr><td>Fase 0 — Limpieza</td><td>cleanup + borrar artefactos</td><td>orchestrator</td><td>Sprint previo cerrado</td><td>✓</td></tr>
-      <tr><td>Fase 1–2 — Plan + HTML</td><td>plan_sprint_frontend_audatex.html</td><td>orchestrator</td><td>validate-plan-html OK</td><td>PENDIENTE</td></tr>
-      <tr><td>Fase 3 — Aprobación</td><td>✅ humano</td><td>Tú</td><td>APROBADO</td><td>PENDIENTE</td></tr>
-      <tr><td>Fase 4 — MJS</td><td>sprint_frontend_audatex.mjs create</td><td>orchestrator</td><td>Tras Fase 3</td><td>—</td></tr>
-      <tr><td>Fase 5 — Multi-agente</td><td>Doing → Testing → Done</td><td>agents</td><td>GATE_HTTP → FE</td><td>—</td></tr>
-      <tr><td>Fase 6 — Resumen</td><td>resumen_sprint_*.html</td><td>orchestrator</td><td>Epic Completed</td><td>—</td></tr>
-    </tbody>
-  </table>
-</section>
+  <section class="sec">
+    <div class="sl">Linear — Metadatos del sprint</div>
+    <div class="st">EPIC_NAME · script · equipo linear_rodieja</div>
+    <table class="tbl">
+      <tbody>
+        <tr>
+          <td>EPIC_NAME</td>
+          <td>FE_Audatex_UI</td>
+        </tr>
+        <tr>
+          <td>SPRINT_NAME</td>
+          <td>frontend_audatex</td>
+        </tr>
+        <tr>
+          <td>Script</td>
+          <td><code>_linear/scripts/sprint_frontend_audatex.mjs</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-<section class="sec">
-  <div class="sl">Linear — Metadatos del sprint</div>
-  <div class="st">EPIC_NAME · script · equipo linear_rodieja</div>
-  <table class="tbl">
-    <tbody>
-      <tr><td>EPIC_NAME</td><td>FE_Audatex_UI</td></tr>
-      <tr><td>SPRINT_NAME</td><td>frontend_audatex</td></tr>
-      <tr><td>Script</td><td><code>_linear/scripts/sprint_frontend_audatex.mjs</code></td></tr>
-    </tbody>
-  </table>
-</section>
+  <section class="sec">
+    <div class="sl">Linear — Gates (qué aplica / qué no)</div>
+    <div class="st">GATE_SQL · GATE_BD · GATE_JOOQ · GATE_HTTP · GATE_FE</div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Gate</th>
+          <th>¿Aplica?</th>
+          <th>Issue</th>
+          <th>Comandos</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>GATE_SQL</td>
+          <td>N/A</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td>GATE_BD</td>
+          <td>N/A</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td>GATE_JOOQ</td>
+          <td>N/A</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td>GATE_HTTP</td>
+          <td>N/A</td>
+          <td>-</td>
+          <td>(El API ya está completada)</td>
+        </tr>
+        <tr>
+          <td>GATE_FE</td>
+          <td>Sí</td>
+          <td>ROD-102</td>
+          <td>npm run build</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-<section class="sec">
-  <div class="sl">Linear — Gates (qué aplica / qué no)</div>
-  <div class="st">GATE_SQL · GATE_BD · GATE_JOOQ · GATE_HTTP · GATE_FE</div>
-  <table class="tbl">
-    <thead><tr><th>Gate</th><th>¿Aplica?</th><th>Issue</th><th>Comandos</th></tr></thead>
-    <tbody>
-      <tr><td>GATE_SQL</td><td>N/A</td><td>-</td><td>-</td></tr>
-      <tr><td>GATE_BD</td><td>N/A</td><td>-</td><td>-</td></tr>
-      <tr><td>GATE_JOOQ</td><td>N/A</td><td>-</td><td>-</td></tr>
-      <tr><td>GATE_HTTP</td><td>N/A</td><td>-</td><td>(El API ya está completada)</td></tr>
-      <tr><td>GATE_FE</td><td>Sí</td><td>ROD-102</td><td>npm run build</td></tr>
-    </tbody>
-  </table>
-</section>
+  <section class="sec">
+    <div class="sl">Linear — Tabla de issues</div>
+    <div class="st">Id · role:backend|database|frontend|orchestrator · pts · blocks · archivos</div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Rol</th>
+          <th>Pts</th>
+          <th>Título</th>
+          <th>blocks</th>
+          <th>Archivos</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ROD-101</td>
+          <td>role:frontend</td>
+          <td>5</td>
+          <td>UI: Detalle Repuesto e Inventario</td>
+          <td>ROD-102</td>
+          <td>Inventario.js, DetalleRepuesto.js</td>
+        </tr>
+        <tr>
+          <td>ROD-102</td>
+          <td>role:frontend</td>
+          <td>5</td>
+          <td>UI: Modal Cotizar y Global</td>
+          <td>—</td>
+          <td>ModalCotizarAudatex.js, OportunidadesAudatex.js</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-<section class="sec">
-  <div class="sl">Linear — Tabla de issues</div>
-  <div class="st">Id · role:backend|database|frontend|orchestrator · pts · blocks · archivos</div>
-  <table class="tbl">
-    <thead><tr><th>Id</th><th>Rol</th><th>Pts</th><th>Título</th><th>blocks</th><th>Archivos</th></tr></thead>
-    <tbody>
-      <tr><td>ROD-101</td><td>role:frontend</td><td>5</td><td>UI: Detalle Repuesto e Inventario</td><td>ROD-102</td><td>Inventario.js, DetalleRepuesto.js</td></tr>
-      <tr><td>ROD-102</td><td>role:frontend</td><td>5</td><td>UI: Modal Cotizar y Global</td><td>—</td><td>ModalCotizarAudatex.js, OportunidadesAudatex.js</td></tr>
-    </tbody>
-  </table>
-</section>
+  <section class="sec">
+    <div class="sl">Linear — Dependencias blocks + handoff</div>
+    <div class="st">Cadena serial · handoff ítem 1 downstream</div>
+    <div class="cb2"><span class="dc">ROD-101</span> blocks <span class="dk">ROD-102</span>
+      handoff ROD-102 1</div>
+  </section>
 
-<section class="sec">
-  <div class="sl">Linear — Dependencias blocks + handoff</div>
-  <div class="st">Cadena serial · handoff ítem 1 downstream</div>
-  <div class="cb2"><span class="dc">ROD-101</span> blocks <span class="dk">ROD-102</span>
-handoff ROD-102 1</div>
-</section>
+  <section class="sec">
+    <div class="sl">Linear — Ciclo por issue (Fase 5)</div>
+    <div class="st">next → checklist (un ítem) → Testing → handoff → Done</div>
+    <div class="cb2">node scripts/sprint-next.mjs
+      checklist ROD-101 &lt;n&gt;
+      state ROD-101 Testing
+      state ROD-101 Done</div>
+  </section>
 
-<section class="sec">
-  <div class="sl">Linear — Ciclo por issue (Fase 5)</div>
-  <div class="st">next → checklist (un ítem) → Testing → handoff → Done</div>
-  <div class="cb2">node scripts/sprint-next.mjs
-checklist ROD-101 &lt;n&gt;
-state ROD-101 Testing
-state ROD-101 Done</div>
-</section>
+  <section class="sec">
+    <div class="sl">Linear — Comandos del script</div>
+    <div class="st">create · next · checklist · handoff · state · cleanup</div>
+    <div class="cb2">node scripts/sprint_frontend_audatex.mjs create
+      node scripts/sprint_frontend_audatex.mjs cleanup</div>
+  </section>
 
-<section class="sec">
-  <div class="sl">Linear — Comandos del script</div>
-  <div class="st">create · next · checklist · handoff · state · cleanup</div>
-  <div class="cb2">node scripts/sprint_frontend_audatex.mjs create
-node scripts/sprint_frontend_audatex.mjs cleanup</div>
-</section>
+  <section class="sec">
+    <div class="sl">Linear — Testing local por rol</div>
+    <div class="st">Tabla issue × comandos × criterio Done</div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Issue</th>
+          <th>Rol</th>
+          <th>Comandos Testing</th>
+          <th>Done</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ROD-101</td>
+          <td>role:frontend</td>
+          <td>npm start / interactuar UI</td>
+          <td>Pantallas renderizan según mockups</td>
+        </tr>
+        <tr>
+          <td>ROD-102</td>
+          <td>role:frontend</td>
+          <td>npm start / interactuar UI</td>
+          <td>Modal y tabla global renderizan correctamente</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-<section class="sec">
-  <div class="sl">Linear — Testing local por rol</div>
-  <div class="st">Tabla issue × comandos × criterio Done</div>
-  <table class="tbl">
-    <thead><tr><th>Issue</th><th>Rol</th><th>Comandos Testing</th><th>Done</th></tr></thead>
-    <tbody>
-      <tr><td>ROD-101</td><td>role:frontend</td><td>npm start / interactuar UI</td><td>Pantallas renderizan según mockups</td></tr>
-      <tr><td>ROD-102</td><td>role:frontend</td><td>npm start / interactuar UI</td><td>Modal y tabla global renderizan correctamente</td></tr>
-    </tbody>
-  </table>
-</section>
+  <section class="sec">
+    <div class="sl">Linear — Descripciones issue (verbatim para create)</div>
+    <div class="st">Checklists - [ ] copiar al .mjs</div>
+    <div class="cb2"><span class="dc">## ROD-101</span>
+      <span class="da">- [ ] Modificar Inventario.js para agregar la columna Oportunidades InPart según mockup P1</span>
+      <span class="da">- [ ] Modificar DetalleVehiculo.js y DetalleRepuesto.js según mockup P2 y P4</span>
+      <span class="da">- [ ] Handoff: marcar ROD-102 checklist ítem 1</span>
 
-<section class="sec">
-  <div class="sl">Linear — Descripciones issue (verbatim para create)</div>
-  <div class="st">Checklists - [ ] copiar al .mjs</div>
-  <div class="cb2"><span class="dc">## ROD-101</span>
-<span class="da">- [ ] Modificar Inventario.js para agregar la columna Oportunidades InPart según mockup P1</span>
-<span class="da">- [ ] Modificar DetalleVehiculo.js y DetalleRepuesto.js según mockup P2 y P4</span>
-<span class="da">- [ ] Handoff: marcar ROD-102 checklist ítem 1</span>
+      <span class="dc">## ROD-102</span>
+      <span class="da">- [ ] ⏸ Gate: NO iniciar hasta upstream ítem 1 [x]</span>
+      <span class="da">- [ ] Crear Modal Cotizar (P5) basado en diseño AntD</span>
+      <span class="da">- [ ] Actualizar OportunidadesAudatex.js (P6) con el diseño final de la lista global</span>
+    </div>
+  </section>
 
-<span class="dc">## ROD-102</span>
-<span class="da">- [ ] ⏸ Gate: NO iniciar hasta upstream ítem 1 [x]</span>
-<span class="da">- [ ] Crear Modal Cotizar (P5) basado en diseño AntD</span>
-<span class="da">- [ ] Actualizar OportunidadesAudatex.js (P6) con el diseño final de la lista global</span></div>
-</section>
+  <section class="sec">
+    <div class="sl">Fase 6 — Entregable de cierre</div>
+    <div class="st">resumen_sprint_frontend_audatex.html · Epic Completed · cleanup</div>
+  </section>
 
-<section class="sec">
-  <div class="sl">Fase 6 — Entregable de cierre</div>
-  <div class="st">resumen_sprint_frontend_audatex.html · Epic Completed · cleanup</div>
-</section>
+  <section class="sec">
+    <div class="sl">Objetivo</div>
+    <div class="st">Implementar la UI de frontend requerida por la mockup HTML</div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Problema</th>
+          <th>Solución propuesta</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Falta UI frontend</td>
+          <td class="ok">Crear y actualizar los componentes de React para mostrar los datos que el API de Spring Boot ya
+            está emitiendo correctamente.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-<section class="sec">
-  <div class="sl">Objetivo</div>
-  <div class="st">Implementar la UI de frontend requerida por la mockup HTML</div>
-  <table class="tbl">
-    <thead><tr><th>Problema</th><th>Solución propuesta</th></tr></thead>
-    <tbody>
-      <tr><td>Falta UI frontend</td><td class="ok">Crear y actualizar los componentes de React para mostrar los datos que el API de Spring Boot ya está emitiendo correctamente.</td></tr>
-    </tbody>
-  </table>
-</section>
+  <section class="sec">
+    <div class="sl">Pipeline visual</div>
+    <div class="st">DB → JOOQ → BE → .http → FE (N/A explícito si omitido)</div>
+    <div class="plf">
+      <div class="pln">
+        <div class="plname">DB</div>
+        <div class="plnote">N/A</div>
+      </div>
+      <div class="pla">→</div>
+      <div class="pln">
+        <div class="plname">JOOQ</div>
+        <div class="plnote">N/A</div>
+      </div>
+      <div class="pla">→</div>
+      <div class="pln">
+        <div class="plname">BE</div>
+        <div class="plnote">N/A</div>
+      </div>
+      <div class="pla">→</div>
+      <div class="pln">
+        <div class="plname">.http</div>
+        <div class="plnote">N/A</div>
+      </div>
+      <div class="pla">→</div>
+      <div class="pln">
+        <div class="plname">FE</div>
+        <div class="plnote">Modificaciones React UI</div>
+      </div>
+    </div>
+  </section>
 
-<section class="sec">
-  <div class="sl">Pipeline visual</div>
-  <div class="st">DB → JOOQ → BE → .http → FE (N/A explícito si omitido)</div>
-  <div class="plf">
-    <div class="pln"><div class="plname">DB</div><div class="plnote">N/A</div></div>
-    <div class="pla">→</div>
-    <div class="pln"><div class="plname">JOOQ</div><div class="plnote">N/A</div></div>
-    <div class="pla">→</div>
-    <div class="pln"><div class="plname">BE</div><div class="plnote">N/A</div></div>
-    <div class="pla">→</div>
-    <div class="pln"><div class="plname">.http</div><div class="plnote">N/A</div></div>
-    <div class="pla">→</div>
-    <div class="pln"><div class="plname">FE</div><div class="plnote">Modificaciones React UI</div></div>
-  </div>
-</section>
+  <section class="sec">
+    <div class="sl">Linear</div>
+    <div class="st">Issues planificados</div>
+    <div class="issue">
+      <div class="badge pending">Backlog</div>
+      <div>
+        <div class="issue-id">ROD-101 · FE</div>
+        <div class="issue-title">UI: Detalle Repuesto e Inventario</div>
+      </div>
+      <div></div>
+    </div>
+    <div class="issue">
+      <div class="badge pending">Backlog</div>
+      <div>
+        <div class="issue-id">ROD-102 · FE</div>
+        <div class="issue-title">UI: Modal Cotizar y Global</div>
+      </div>
+      <div></div>
+    </div>
+  </section>
 
-<section class="sec">
-  <div class="sl">Linear</div>
-  <div class="st">Issues planificados</div>
-  <div class="issue"><div class="badge pending">Backlog</div><div><div class="issue-id">ROD-101 · FE</div><div class="issue-title">UI: Detalle Repuesto e Inventario</div></div><div></div></div>
-  <div class="issue"><div class="badge pending">Backlog</div><div><div class="issue-id">ROD-102 · FE</div><div class="issue-title">UI: Modal Cotizar y Global</div></div><div></div></div>
-</section>
+  <section class="sec">
+    <div class="sl">Aprobación</div>
+    <div class="st">Estado PENDIENTE / APROBADO</div>
+    <table class="tbl">
+      <tbody>
+        <tr>
+          <td>Estado</t@d>
+          <td>PENDIENTE</td>
+        </tr>
+        <tr>
+          <td>Validación</td>
+          <td><code>node scripts/validate-plan-html.mjs plans/plan_sprint_frontend_audatex.html</code></td>
+        </tr>
+        <tr>
+          <td>Para aprobar</td>
+          <td>✅ APROBADO en chat → Fase 4 create</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-<section class="sec">
-  <div class="sl">Aprobación</div>
-  <div class="st">Estado PENDIENTE / APROBADO</div>
-  <table class="tbl">
-    <tbody>
-      <tr><td>Estado</td><td>PENDIENTE</td></tr>
-      <tr><td>Validación</td><td><code>node scripts/validate-plan-html.mjs plans/plan_sprint_frontend_audatex.html</code></td></tr>
-      <tr><td>Para aprobar</td><td>✅ APROBADO en chat → Fase 4 create</td></tr>
-    </tbody>
-  </table>
-</section>
+  <hr class="sep">
 
-<hr class="sep">
-
-<footer>
-  <div class="utn">Rodieja · Contable</div>
-  <div>plan_sprint_frontend_audatex.html</div>
-</footer>
+  <footer>
+    <div class="utn">Rodieja · Contable</div>
+    <div>plan_sprint_frontend_audatex.html</div>
+  </footer>
 
 </body>
+
 </html>
