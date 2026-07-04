@@ -644,6 +644,7 @@ public class AudatexService {
                     if (detalles != null && detalles.get("repuestos") != null) {
                         delta.put("repuestos", detalles.get("repuestos"));
                     }
+                    enrichConMatchInventario(java.util.List.of(delta));
                     com.rodiejacontable.rodiejacontable.integration.audatex.controller.AudatexController.emitirDelta(delta);
                 }
             }
@@ -702,6 +703,64 @@ public class AudatexService {
             }
             mapped.add(m);
         }
+        enrichConMatchInventario(mapped);
         return mapped;
+    }
+
+    private void enrichConMatchInventario(List<Map<String, Object>> oportunidades) {
+        if (oportunidades == null || oportunidades.isEmpty()) return;
+        
+        var repuestosConVehiculo = dsl.select(
+                        MARCAS.NOMBRE.as("marca_nombre"),
+                        MODELOS.NOMBRE.as("modelo_nombre"),
+                        VEHICULOS.ANIO.as("anio_exacto")
+                )
+                .from(INVENTARIO_REPUESTOS)
+                .join(VEHICULOS).on(INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID.eq(VEHICULOS.ID))
+                .join(GENERACIONES).on(VEHICULOS.GENERACION_ID.eq(GENERACIONES.ID))
+                .join(MODELOS).on(GENERACIONES.MODELO_ID.eq(MODELOS.ID))
+                .join(MARCAS).on(MODELOS.MARCA_ID.eq(MARCAS.ID))
+                .where(INVENTARIO_REPUESTOS.ESTADO.ne(InventarioRepuestosEstado.VENDIDO))
+                .fetch();
+
+        var repuestosGenericos = dsl.select(
+                        MARCAS.NOMBRE.as("marca_nombre"),
+                        MODELOS.NOMBRE.as("modelo_nombre"),
+                        GENERACIONES.ANIO_INICIO.as("anio_inicio"),
+                        GENERACIONES.ANIO_FIN.as("anio_fin")
+                )
+                .from(INVENTARIO_REPUESTOS)
+                .join(TRANSACCIONES_FINANCIERAS).on(TRANSACCIONES_FINANCIERAS.REPUESTO_ID.eq(INVENTARIO_REPUESTOS.ID))
+                .join(GENERACIONES).on(TRANSACCIONES_FINANCIERAS.GENERACION_ID.eq(GENERACIONES.ID))
+                .join(MODELOS).on(GENERACIONES.MODELO_ID.eq(MODELOS.ID))
+                .join(MARCAS).on(MODELOS.MARCA_ID.eq(MARCAS.ID))
+                .where(INVENTARIO_REPUESTOS.ESTADO.ne(InventarioRepuestosEstado.VENDIDO))
+                .and(INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID.isNull())
+                .fetch();
+
+        for (Map<String, Object> o : oportunidades) {
+            boolean hasMatch = false;
+            
+            for (var r : repuestosConVehiculo) {
+                if (coincideVehiculo(o, r.get("marca_nombre", String.class), r.get("modelo_nombre", String.class), r.get("anio_exacto", Integer.class))) {
+                    hasMatch = true;
+                    break;
+                }
+            }
+            if (!hasMatch) {
+                for (var r : repuestosGenericos) {
+                    Short aInObj = r.get("anio_inicio", Short.class);
+                    Short aFiObj = r.get("anio_fin", Short.class);
+                    Integer aIn = aInObj != null ? aInObj.intValue() : null;
+                    Integer aFi = aFiObj != null ? aFiObj.intValue() : null;
+                    if (coincideVehiculoRango(o, r.get("marca_nombre", String.class), r.get("modelo_nombre", String.class), aIn, aFi)) {
+                        hasMatch = true;
+                        break;
+                    }
+                }
+            }
+            
+            o.put("matchInventario", hasMatch);
+        }
     }
 }

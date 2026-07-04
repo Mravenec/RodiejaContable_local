@@ -41,11 +41,13 @@ public class AudatexController {
         new Thread(() -> {
             try {
                 syncWorker.syncHotZone();
+                syncWorker.syncWarmZone();
+                syncWorker.syncColdZone();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }).start();
-        return org.springframework.http.ResponseEntity.ok("Sincronización forzada en segundo plano iniciada.");
+        return org.springframework.http.ResponseEntity.ok("Sincronización total (Hot, Warm, Cold) iniciada en segundo plano.");
     }
 
     @GetMapping("/oportunidades")

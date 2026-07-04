@@ -574,6 +574,16 @@ const OportunidadesAudatex = () => {
     padding: '7px 12px', borderBottom: '1px solid #E2E8F0', color: '#334155',
   };
 
+  const stats = React.useMemo(() => {
+    let matches = 0;
+
+    oportunidadesFiltradas.forEach(op => {
+      if (op.matchInventario) matches++;
+    });
+
+    return { matches };
+  }, [oportunidadesFiltradas]);
+
   return (
     <div style={{ padding: '24px' }}>
 
@@ -602,19 +612,11 @@ const OportunidadesAudatex = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div style={{ background: '#f6ffed', border: '1px solid #b7eb8f', padding: '16px', borderRadius: '8px' }}>
           <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, letterSpacing: '0.05em' }}>TOTAL ACTIVAS</div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: '#52c41a' }}>{oportunidades.length}</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#52c41a' }}>{oportunidadesFiltradas.length}</div>
         </div>
         <div style={{ background: '#fff7e6', border: '1px solid #ffd591', padding: '16px', borderRadius: '8px' }}>
           <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, letterSpacing: '0.05em' }}>CON MATCH EN TU INV.</div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: '#faad14' }}>0</div>
-        </div>
-        <div style={{ background: '#fff1f0', border: '1px solid #ffa39e', padding: '16px', borderRadius: '8px' }}>
-          <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, letterSpacing: '0.05em' }}>VENCEN ≤ 3 DÍAS</div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: '#ff4d4f' }}>0</div>
-        </div>
-        <div style={{ background: '#e6f7ff', border: '1px solid #91d5ff', padding: '16px', borderRadius: '8px' }}>
-          <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, letterSpacing: '0.05em' }}>VALOR ESTIMADO</div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: '#1890ff' }}>₡0</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#faad14' }}>{stats.matches}</div>
         </div>
       </div>
 
