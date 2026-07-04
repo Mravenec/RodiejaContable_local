@@ -467,11 +467,11 @@ const OportunidadesAudatex = () => {
     {
       title: 'Modelo', key: 'modelo',
       sorter: (a, b) => {
-        const modeloA = (a.datosCotizacion && a.datosCotizacion['Descripción']) || '';
-        const modeloB = (b.datosCotizacion && b.datosCotizacion['Descripción']) || '';
+        const modeloA = a.modelo || (a.datosCotizacion && (a.datosCotizacion['Modelo'] || a.datosCotizacion['Descripción'])) || '';
+        const modeloB = b.modelo || (b.datosCotizacion && (b.datosCotizacion['Modelo'] || b.datosCotizacion['Descripción'])) || '';
         return modeloA.localeCompare(modeloB);
       },
-      render: (_, record) => (record.datosCotizacion && record.datosCotizacion['Descripción']) || '-'
+      render: (_, record) => record.modelo || (record.datosCotizacion && (record.datosCotizacion['Modelo'] || record.datosCotizacion['Descripción'])) || '-'
     },
     {
       title: 'Año', key: 'anio',

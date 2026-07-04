@@ -1,83 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Table, Typography, message, Tag, Button, Alert, Space } from 'antd';
-import { ReloadOutlined, LoadingOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import vehiculoService from '../../api/vehiculos';
+import React, { useState } from 'react';
+import { Card, Table, Typography, Tag, Button, Space, Modal } from 'antd';
+import { ReloadOutlined, EyeOutlined } from '@ant-design/icons';
+import { useJerarquiaAudatex } from '../../hooks/useJerarquiaAudatex';
 
 const { Title } = Typography;
 
-const isNullish = (v) => v === null || v === undefined || v === '{null}';
-const toStr = (v, d = '') => (isNullish(v) ? d : String(v));
-const toNum = (v, d = 0) => (isNullish(v) || v === '' ? d : Number(v));
-
-const normalizarJerarquia = (data) => {
-  const marcas = Array.isArray(data?.marcas) ? data.marcas : (Array.isArray(data) ? data : []);
-  return marcas.map(m => ({
-    key: `marca_${m.id}`,
-    id: m.id,
-    nombre: toStr(m.nombre, 'Sin marca'),
-    tipo: 'marca',
-    children: (Array.isArray(m.modelos) ? m.modelos : []).map(mo => ({
-      key: `modelo_${mo.id}`,
-      id: mo.id,
-      nombre: toStr(mo.nombre, 'Sin modelo'),
-      marca_nombre: m.nombre,
-      tipo: 'modelo',
-      children: (Array.isArray(mo.generaciones) ? mo.generaciones : []).map(g => ({
-        key: `gen_${g.id || g.generacion_id}`,
-        id: g.id || g.generacion_id,
-        nombre: toStr(g.nombre, 'Generación'),
-        marca_nombre: m.nombre,
-        modelo_nombre: mo.nombre,
-        anio_inicio: toNum(g.anio_inicio || g.anioInicio),
-        anio_fin: toNum(g.anio_fin || g.anioFin),
-        tipo: 'generacion',
-        vehiculos: Array.isArray(g.vehiculos) ? g.vehiculos.map(v => ({
-           id: v.id,
-           codigo: v.codigo_vehiculo || v.codigoVehiculo,
-           estado: v.estado,
-           anio: v.anio,
-           inversion_total: toNum(v.inversion_total || v.inversionTotal)
-        })) : []
-      })).sort((a,b) => a.anio_inicio - b.anio_inicio)
-    })).sort((a,b) => a.nombre.localeCompare(b.nombre))
-  })).sort((a,b) => a.nombre.localeCompare(b.nombre));
-};
-
 const JerarquiaAudatex = () => {
-  const [loading, setLoading] = useState(false);
-  const [jerarquia, setJerarquia] = useState([]);
-  const [oportunidades, setOportunidades] = useState([]);
+  const { jerarquia, oportunidades, isLoading: loading, refetch } = useJerarquiaAudatex();
   
-  const cargarDatos = useCallback(async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      const [vehResp, audResp] = await Promise.all([
-        vehiculoService.getVehiculosAgrupados(),
-        fetch(`http://localhost:8080/api/audatex/oportunidades/sync`, {
-           headers: { Authorization: `Bearer ${token}` }
-        }).then(res => res.json())
-      ]);
-      
-      const vehData = vehResp?.data ?? vehResp;
-      const opts = audResp.oportunidades || [];
-      
-      const normalizado = normalizarJerarquia(vehData);
-      setJerarquia(normalizado);
-      setOportunidades(opts);
-      
-    } catch (e) {
-      console.error(e);
-      message.error("Error al cargar la jerarquía o las oportunidades");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedOps, setSelectedOps] = useState([]);
+  const [selectedRowName, setSelectedRowName] = useState('');
 
   const normalizeStr = (str) => (str || '').toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
@@ -141,6 +74,7 @@ const JerarquiaAudatex = () => {
          return {
             ...nodo,
             opsCount: ops.length,
+            matchedOps: ops,
             stockValue: stock
          };
       });
@@ -169,7 +103,20 @@ const JerarquiaAudatex = () => {
       dataIndex: 'opsCount',
       key: 'opsCount',
       align: 'center',
-      render: (val) => val > 0 ? <Tag color="green" style={{ fontWeight: 'bold' }}>{val}</Tag> : <span style={{ color: '#ccc' }}>0</span>
+      render: (val, record) => val > 0 ? (
+          <Tag 
+             color="green" 
+             style={{ fontWeight: 'bold', cursor: 'pointer' }}
+             onClick={() => {
+                setSelectedOps(record.matchedOps || []);
+                setSelectedRowName(record.nombre);
+                setModalVisible(true);
+             }}
+          >
+             <EyeOutlined style={{ marginRight: 4 }} />
+             {val}
+          </Tag>
+      ) : <span style={{ color: '#ccc' }}>0</span>
     },
     {
       title: 'Vehículos Desarmados',
@@ -200,7 +147,7 @@ const JerarquiaAudatex = () => {
           <div style={{ color: '#8c8c8c', fontSize: '14px', marginTop: '4px' }}>Distribución de oportunidades de Audatex vs el Stock en Inventario</div>
         </div>
         <Space>
-          <Button type="default" icon={<ReloadOutlined />} onClick={cargarDatos} disabled={loading} style={{ color: '#1890ff', borderColor: '#1890ff' }}>
+          <Button type="default" icon={<ReloadOutlined />} onClick={refetch} disabled={loading} style={{ color: '#1890ff', borderColor: '#1890ff' }}>
             Refrescar
           </Button>
         </Space>
@@ -233,6 +180,32 @@ const JerarquiaAudatex = () => {
           }}
         />
       </Card>
+
+      <Modal
+        title={`Oportunidades InPart - ${selectedRowName}`}
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
+        width={900}
+      >
+        <Table 
+           dataSource={selectedOps}
+           rowKey="cotizacionId"
+           pagination={{ pageSize: 10 }}
+           columns={[
+              { title: 'Aseguradora', dataIndex: 'aseguradora' },
+              { title: 'Cotización ID', dataIndex: 'cotizacionId' },
+              { title: 'Vehículo (Audatex)', render: (_, r) => {
+                  const m = r.marca || r.armadora || (r.datosCotizacion && r.datosCotizacion['Marca']) || '';
+                  const mo = r.modelo || (r.datosCotizacion && r.datosCotizacion['Modelo']) || '';
+                  const a = r.anio || (r.datosCotizacion && r.datosCotizacion['Año Modelo']) || '';
+                  return `${m} ${mo} ${a}`.trim();
+              }},
+              { title: 'Fecha', dataIndex: 'fechaCotizacion' },
+              { title: 'Taller', dataIndex: 'taller' }
+           ]}
+        />
+      </Modal>
     </div>
   );
 };
