@@ -4,11 +4,10 @@ import vehiculoService from '../api/vehiculos';
 
 export function useVehiculos(params = {}) {
   return useQuery(
-    ['vehiculos', params],
+    ['vehiculos_vista', params],
     async () => {
       try {
-        const data = await vehiculoService.getVehiculos(params);
-        console.log('API Response:', data);
+        const data = await vehiculoService.getVehiculosCompletos(params);
         
         // Sort vehicles in the specified order: DISPONIBLE > REPARACION > DESARMADO > VENDIDO
         if (Array.isArray(data)) {

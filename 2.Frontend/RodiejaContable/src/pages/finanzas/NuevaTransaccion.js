@@ -30,6 +30,7 @@ import {
   EditOutlined
 } from '@ant-design/icons';
 import { useCreateTransaccion } from '../../hooks/useFinanzas';
+import vehiculoService from '../../api/vehiculos';
 import { useTiposByCategoria, useVehiculosParaTransacciones, useVehiculosParaEgreso, useEmpleados, useRepuestos } from '../../hooks';
 import api from '../../api/axios';
 
@@ -78,7 +79,23 @@ const NuevaTransaccion = () => {
   
   // Hook para crear transacción
   const { mutate: crearTransaccion, isLoading: isCreating } = useCreateTransaccion({
-    onSuccess: () => {
+    onSuccess: async () => {
+      // "y viceversa": Si se creó una venta de vehículo, marcamos el vehículo como VENDIDO
+      const tipoActualId = form.getFieldValue('tipo');
+      if (tipoActualId && vehiculoSeleccionado) {
+        const tipoSeleccionado = [...(tiposIngreso || []), ...(tiposEgreso || [])].find(t => t.id === tipoActualId);
+        if (tipoSeleccionado) {
+          const nombreTipo = tipoSeleccionado.nombre.toLowerCase();
+          if (nombreTipo.includes('venta') && nombreTipo.includes('veh')) {
+            try {
+              await vehiculoService.actualizarEstadoVehiculo(vehiculoSeleccionado, 'VENDIDO');
+            } catch (e) {
+              console.error('Error al marcar vehículo como VENDIDO:', e);
+            }
+          }
+        }
+      }
+
       // message.success('Transacción creada exitosamente');
       form.resetFields();
       setMonto(0);

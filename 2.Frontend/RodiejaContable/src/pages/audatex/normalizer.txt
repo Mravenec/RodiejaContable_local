@@ -1,0 +1,49 @@
+const normalizarEOrdenar = (
+  data,
+  genIdx = {
+    byId: new Map(),
+    byModelId: new Map(),
+    byModelName: new Map(),
+    byModelYears: new Map(),
+    byNameUnique: new Map(),
+    byYearsUnique: new Map()
+  }
+) => {
+  const marcas = Array.isArray(data?.marcas) ? data.marcas : (Array.isArray(data) ? data : []);
+
+  const normVehiculo = (v) => {
+    const codigo = v.codigo_vehiculo ?? v.codigoVehiculo;
+    const generacionId = v.generacion_id ?? v.generacionId;
+    const precioCompra = v.precio_compra ?? v.precioCompra;
+    const costoGrua = v.costo_grua ?? v.costoGrua;
+    const inversionTotal = v.inversion_total ?? v.inversionTotal;
+    const costoRecuperado = v.costo_recuperado ?? v.costoRecuperado;
+    const costoPendiente = v.costo_pendiente ?? v.costoPendiente;
+    const fechaIngreso = v.fecha_ingreso ?? v.fechaIngreso;
+    const precioVenta = v.precio_venta ?? v.precioVenta;
+    const fechaVenta = v.fecha_venta ?? v.fechaVenta;
+    const fechaCreacion = v.fecha_creacion ?? v.fechaCreacion;
+    const fechaActualizacion = v.fecha_actualizacion ?? v.fechaActualizacion;
+    const imagenUrl = v.imagen_url ?? v.imagenUrl;
+
+    return {
+      id: v.id,
+      codigo_vehiculo: toStr(codigo, 'Sin código'),
+      generacion_id: generacionId,
+      anio: toNum(v.anio),
+      precio_compra: toNum(precioCompra),
+      costo_grua: toNum(costoGrua),
+      comisiones: toNum(v.comisiones),
+      inversion_total: toNum(inversionTotal),
+      costo_recuperado: toNum(costoRecuperado),
+      costo_pendiente: toNum(costoPendiente),
+      fecha_ingreso: fechaIngreso,
+      estado: toStr(v.estado, 'SIN_ESTADO'),
+      precio_venta: isNullish(precioVenta) ? null : Number(precioVenta),
+      fecha_venta: isNullish(fechaVenta) ? null : fechaVenta,
+      activo: toNum(v.activo, 0),
+      notas: isNullish(v.notas) ? null : String(v.notas),
+      fecha_creacion: fechaCreacion,
+      fecha_actualizacion: fechaActualizacion,
+      imagen_url: imagenUrl
+    };

@@ -79,6 +79,7 @@ const Sidebar = ({ collapsed }) => {
       label: 'Cotizaciones InPart',
       children: [
         { key: '/audatex/oportunidades', label: 'Oportunidades' },
+        { key: '/audatex/jerarquia', label: 'Jerarquía InPart' },
       ]
     },
     { 

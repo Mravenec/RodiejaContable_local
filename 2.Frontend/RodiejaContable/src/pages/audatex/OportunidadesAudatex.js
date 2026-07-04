@@ -72,7 +72,14 @@ const OportunidadesAudatex = () => {
       return;
     }
     setOportunidades(prev => {
-      if (prev.some(o => o.cotizacionId === item.cotizacionId)) return prev;
+      const idx = prev.findIndex(o => o.cotizacionId === item.cotizacionId);
+      if (idx !== -1) {
+        // El item ya existe (probablemente cargado de la BD).
+        // Lo actualizamos con los datos nuevos que llegan del stream (que traen repuestos/datosCotizacion).
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], ...item, _key: updated[idx]._key || keyCounterRef.current++ };
+        return updated;
+      }
       return [...prev, { ...item, _key: keyCounterRef.current++ }];
     });
     setTotalCargado(c => c + 1);

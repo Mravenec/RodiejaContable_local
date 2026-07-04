@@ -24,7 +24,34 @@ export const authService = {
   },
 
   isAuthenticated: () => {
-    return !!localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        authService.logout();
+        return false;
+      }
+      
+      const base64Url = parts[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const payload = JSON.parse(jsonPayload);
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        authService.logout();
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Invalid token:', error);
+      authService.logout();
+      return false;
+    }
   },
 
   refreshToken: async () => {

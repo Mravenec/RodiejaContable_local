@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Form, InputNumber, Select, Button, Descriptions, Typography, Tag, message, Row, Col } from 'antd';
+import { Modal, Form, Input, InputNumber, Select, Button, Descriptions, Typography, Tag, message, Row, Col } from 'antd';
 import { SendOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { audatexService } from '../../api';
 
@@ -21,6 +21,9 @@ const ModalCotizarInPart = ({ visible, onClose, oportunidad, repuesto, onExito }
         precioOfrecido: values.precio,
         tiempoEntrega: values.tiempo,
         condicionPieza: values.condicion,
+        cantidad: values.cantidad,
+        costoEnvio: values.costoEnvio,
+        notas: values.notas,
       };
 
       const response = await audatexService.enviarCotizacion(payload);
@@ -107,6 +110,9 @@ const ModalCotizarInPart = ({ visible, onClose, oportunidad, repuesto, onExito }
             precio: repuesto.precioVenta || 0,
             tiempo: '24h',
             condicion: repuesto.condicion || 'USADO',
+            cantidad: 1,
+            costoEnvio: 0,
+            notas: '',
           }}
         >
           <Form.Item
@@ -152,6 +158,39 @@ const ModalCotizarInPart = ({ visible, onClose, oportunidad, repuesto, onExito }
               </Form.Item>
             </Col>
           </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="cantidad"
+                label={<span style={{ fontWeight: 600 }}>Cantidad</span>}
+                rules={[{ required: true, message: 'Ingrese la cantidad' }]}
+              >
+                <InputNumber style={{ width: '100%' }} min={1} size="large" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="costoEnvio"
+                label={<span style={{ fontWeight: 600 }}>Costo de Envío (₡)</span>}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  formatter={(value) => `₡ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(value) => value.replace(/₡\s?|(,*)/g, '')}
+                  min={0}
+                  size="large"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            name="notas"
+            label={<span style={{ fontWeight: 600 }}>Notas (opcional)</span>}
+          >
+            <Input.TextArea rows={3} placeholder="Ingrese comentarios adicionales para el ajustador..." />
+          </Form.Item>
         </Form>
 
         <div style={{ display: 'flex', gap: '8px', background: '#e6f7ff', border: '1px solid #91d5ff', padding: '10px 14px', borderRadius: '4px', marginTop: '16px' }}>

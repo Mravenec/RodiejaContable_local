@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Card, 
   Button, 
@@ -44,6 +44,16 @@ const DetalleRepuesto = () => {
   const [loadingEnvios, setLoadingEnvios] = useState(false);
   const [modalCotizarVisible, setModalCotizarVisible] = useState(false);
   const [oportunidadSeleccionada, setOportunidadSeleccionada] = useState(null);
+
+  const location = useLocation();
+  const urlTab = new URLSearchParams(location.search).get('tab');
+  const [activeTab, setActiveTab] = useState(urlTab === 'oportunidades' ? '3' : '1');
+
+  useEffect(() => {
+    if (urlTab === 'oportunidades') {
+      setActiveTab('3');
+    }
+  }, [urlTab]);
 
   useEffect(() => {
     const fetchRepuesto = async () => {
@@ -233,7 +243,17 @@ const DetalleRepuesto = () => {
       </div>
       
       <Card>
-        <Tabs defaultActiveKey="1">
+        <Tabs 
+          activeKey={activeTab}
+          onChange={(key) => {
+            setActiveTab(key);
+            if (key === '3') {
+              navigate(`/inventario/${id}?tab=oportunidades`, { replace: true });
+            } else {
+              navigate(`/inventario/${id}`, { replace: true });
+            }
+          }}
+        >
           <TabPane tab="Información General" key="1">
             <Row gutter={[24, 24]}>
               <Col xs={24} md={8}>
@@ -333,50 +353,61 @@ const DetalleRepuesto = () => {
               <Table 
                 columns={[
                   {
-                    title: 'Aseguradora',
-                    dataIndex: 'aseguradora',
-                    key: 'aseguradora',
+                    title: 'Marca', key: 'marca',
+                    sorter: (a, b) => {
+                      const marcaA = (a.marca || a.armadora || (a.datosCotizacion && (a.datosCotizacion['Marca'] || a.datosCotizacion['Armadora'])) || '');
+                      const marcaB = (b.marca || b.armadora || (b.datosCotizacion && (b.datosCotizacion['Marca'] || b.datosCotizacion['Armadora'])) || '');
+                      return marcaA.localeCompare(marcaB);
+                    },
+                    render: (_, record) => record.marca || record.armadora || (record.datosCotizacion && (record.datosCotizacion['Marca'] || record.datosCotizacion['Armadora'])) || 'Desc.'
                   },
                   {
-                    title: 'Cotización ID',
-                    dataIndex: 'cotizacionId',
-                    key: 'cotizacionId',
+                    title: 'Modelo', key: 'modelo',
+                    sorter: (a, b) => {
+                      const modeloA = (a.datosCotizacion && a.datosCotizacion['Descripción']) || '';
+                      const modeloB = (b.datosCotizacion && b.datosCotizacion['Descripción']) || '';
+                      return modeloA.localeCompare(modeloB);
+                    },
+                    render: (_, record) => (record.datosCotizacion && record.datosCotizacion['Descripción']) || '-'
                   },
                   {
-                    title: 'Taller',
-                    dataIndex: 'taller',
-                    key: 'taller',
+                    title: 'Año', key: 'anio',
+                    sorter: (a, b) => {
+                      const anioA = (a.anio || (a.datosCotizacion && (a.datosCotizacion['Año Modelo'] || a.datosCotizacion['Año Fabricación'])) || '').toString();
+                      const anioB = (b.anio || (b.datosCotizacion && (b.datosCotizacion['Año Modelo'] || b.datosCotizacion['Año Fabricación'])) || '').toString();
+                      return anioA.localeCompare(anioB);
+                    },
+                    render: (_, record) => {
+                      return record.anio || (record.datosCotizacion && (record.datosCotizacion['Año Modelo'] || record.datosCotizacion['Año Fabricación'])) || '-';
+                    }
                   },
                   {
-                    title: 'Póliza',
-                    dataIndex: 'poliza',
-                    key: 'poliza',
+                    title: 'Aseguradora', dataIndex: 'aseguradora', key: 'aseguradora',
+                    sorter: (a, b) => (a.aseguradora || '').localeCompare(b.aseguradora || '')
+                  },
+                  { title: 'Cotización ID', dataIndex: 'cotizacionId', key: 'cotizacionId' },
+                  { title: 'Taller', dataIndex: 'taller', key: 'taller' },
+                  { title: 'Póliza', dataIndex: 'poliza', key: 'poliza' },
+                  { title: 'Siniestro', dataIndex: 'siniestro', key: 'siniestro' },
+                  {
+                    title: 'Matrícula', key: 'vehiculo',
+                    render: (_, record) => {
+                      const matricula = record.matricula || '';
+                      return matricula
+                        ? <Tag color="blue" style={{ width: 'fit-content', margin: 0 }}>{matricula}</Tag>
+                        : <span style={{ color: '#888' }}>N/A</span>;
+                    }
                   },
                   {
-                    title: 'Siniestro',
-                    dataIndex: 'siniestro',
-                    key: 'siniestro',
+                    title: 'Fecha', dataIndex: 'fechaCotizacion', key: 'fechaCotizacion',
+                    sorter: (a, b) => (a.fechaCotizacion || '').localeCompare(b.fechaCotizacion || '')
                   },
                   {
-                    title: 'Matrícula',
-                    dataIndex: 'matricula',
-                    key: 'matricula',
-                  },
-                  {
-                    title: 'Armadora',
-                    dataIndex: 'armadora',
-                    key: 'armadora',
-                  },
-                  {
-                    title: 'Fecha',
-                    dataIndex: 'fechaCotizacion',
-                    key: 'fechaCotizacion',
-                  },
-                  {
-                    title: 'Pendientes',
-                    dataIndex: 'pendientes',
-                    key: 'pendientes',
-                    render: (pendientes) => <Tag color={pendientes > 0 ? 'orange' : 'green'}>{pendientes}</Tag>,
+                    title: 'Pendientes', dataIndex: 'pendientes', key: 'pendientes',
+                    sorter: (a, b) => (a.pendientes || 0) - (b.pendientes || 0),
+                    render: (v) => (
+                      <Tag color={v > 0 ? 'orange' : 'green'} style={{ fontWeight: 'bold' }}>{v}</Tag>
+                    ),
                   },
                   {
                     title: 'Acciones',
@@ -401,6 +432,7 @@ const DetalleRepuesto = () => {
                 loading={loadingOportunidades}
                 pagination={{ defaultPageSize: 10 }}
                 locale={{ emptyText: 'No hay oportunidades de Audatex para este repuesto.' }}
+                scroll={{ x: 'max-content' }}
               />
             </Card>
           </TabPane>
@@ -466,6 +498,7 @@ const DetalleRepuesto = () => {
                 loading={loadingEnvios}
                 pagination={{ defaultPageSize: 10 }}
                 locale={{ emptyText: 'No hay envíos de cotizaciones para este repuesto.' }}
+                scroll={{ x: 'max-content' }}
               />
             </Card>
           </TabPane>

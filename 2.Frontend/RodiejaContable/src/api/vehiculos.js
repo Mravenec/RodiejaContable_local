@@ -344,13 +344,53 @@ class VehiculoService {
   }
 
   // Obtener todos los vehículos desde la vista completa (con marca, modelo, etc.)
-  async getVehiculosCompletos() {
+  async getVehiculosCompletos(params = {}) {
     try {
-      this.log('Fetching ALL complete vehicles (view)...');
-      const response = await api.get('/v1/vehiculos');
-      return response.data;
+      this.log('Fetching complete vehicles (view) with params:', params);
+      
+      const response = await api.get('/v1/vehiculos/buscar', { 
+        params,
+        paramsSerializer: params => {
+          const searchParams = new URLSearchParams();
+          for (const key in params) {
+            if (params[key] !== undefined && params[key] !== null) {
+              searchParams.append(key, params[key]);
+            }
+          }
+          return searchParams.toString();
+        }
+      });
+      
+      let vehiculos = [];
+      if (response.data && response.data.vehiculos) {
+        vehiculos = response.data.vehiculos;
+      } else if (Array.isArray(response.data)) {
+        vehiculos = response.data;
+      }
+      
+      // Filtrar localmente por búsqueda si se proporciona (por si el backend no lo hizo por todos los campos)
+      if (params.busqueda) {
+        const searchStr = params.busqueda.toLowerCase();
+        vehiculos = vehiculos.filter(v => {
+          const searchSpace = [
+            v.codigoVehiculo,
+            v.anio?.toString(),
+            v.estado,
+            v.marca,
+            v.modelo,
+            v.generacion,
+            v.notas
+          ].filter(Boolean).join(' ').toLowerCase();
+          return searchSpace.includes(searchStr);
+        });
+      }
+      
+      return vehiculos;
     } catch (error) {
-      this.error('Error fetching all complete vehicles:', error);
+      if (error.response?.status === 404) {
+        return [];
+      }
+      this.error('Error fetching complete vehicles:', error);
       throw error;
     }
   }
@@ -402,6 +442,19 @@ class VehiculoService {
     }
   }
   
+  // Actualizar el estado de un vehículo existente
+  async actualizarEstadoVehiculo(id, estado) {
+    try {
+      const response = await api.put(`/vehiculos/${id}/estado`, null, {
+        params: { estado }
+      });
+      return response.data;
+    } catch (error) {
+      this.error(`Error al actualizar estado del vehículo ${id}:`, error);
+      throw error;
+    }
+  }
+
   // Actualizar un vehículo existente
   async actualizarVehiculo(id, vehiculoData) {
     try {

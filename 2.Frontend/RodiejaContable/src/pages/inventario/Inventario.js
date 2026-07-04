@@ -31,6 +31,23 @@ import { useNavigate } from 'react-router-dom';
 import InventarioService from '../../api/inventario';
 import { usePartesVehiculo } from '../../hooks/usePartesVehiculo';
 import { audatexService } from '../../api';
+import { useRepuesto } from '../../hooks/useInventario';
+
+const StockCell = ({ record }) => {
+  const { data: repuesto, isLoading } = useRepuesto(record.id);
+  
+  if (isLoading) {
+    return <Spin size="small" />;
+  }
+
+  const cantidad = repuesto?.cantidad ?? 0;
+  
+  return (
+    <Tag color={cantidad > 0 ? 'green' : 'red'}>
+      {cantidad} {cantidad === 1 ? 'unidad' : 'unidades'}
+    </Tag>
+  );
+};
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -253,11 +270,7 @@ const Inventario = () => {
       key: 'cantidad',
       sorter: (a, b) => a.cantidad - b.cantidad,
       width: 120,
-      render: (cantidad, record) => (
-        <Tag color={cantidad > 0 ? 'green' : 'red'}>
-          {cantidad} {cantidad === 1 ? 'unidad' : 'unidades'}
-        </Tag>
-      ),
+      render: (_, record) => <StockCell record={record} />,
     },
     {
       title: 'Precio Venta',
@@ -314,9 +327,21 @@ const Inventario = () => {
       render: (_, record) => {
         const oportunidades = oportunidadesPorRepuesto[record.id] || 0;
         if (oportunidades > 0) {
-          return <Tag color="blue">{oportunidades} {oportunidades === 1 ? 'oportunidad' : 'oportunidades'}</Tag>;
+          let color = 'cyan';
+          let prefix = '⭐ ';
+          if (oportunidades >= 7) { color = 'red'; prefix = '🌟 '; }
+          else if (oportunidades >= 4) { color = 'gold'; prefix = '✨ '; }
+          return (
+            <Tag 
+              color={color} 
+              style={{ cursor: 'pointer', fontWeight: color === 'red' ? 700 : 600, padding: '2px 8px', fontSize: '13px', borderRadius: '12px' }}
+              onClick={() => navigate(`/inventario/${record.id}?tab=oportunidades`)}
+            >
+              {prefix} {oportunidades} {oportunidades === 1 ? 'Op.' : 'Ops.'}
+            </Tag>
+          );
         }
-        return <Tag color="default">Sin oportunidades</Tag>;
+        return <span style={{ color: '#ccc' }}>0</span>;
       },
     },
     {

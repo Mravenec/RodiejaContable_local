@@ -51,11 +51,18 @@ const Vehiculos = () => {
       title: 'Vehículo',
       key: 'vehiculo',
       width: 200,
-      render: (_, record) => (
-        <span style={{ fontWeight: 500 }}>
-          {record.generacion?.nombre || '-'}
-        </span>
-      ),
+      render: (_, record) => {
+        const marca = record.marca || '';
+        const modelo = record.modelo || '';
+        const generacionStr = typeof record.generacion === 'object' ? record.generacion?.nombre : (record.generacion || '');
+        
+        return (
+          <span style={{ fontWeight: 500 }}>
+            {marca} {modelo} {generacionStr ? `- ${generacionStr}` : ''}
+            {!marca && !modelo && !generacionStr && '-'}
+          </span>
+        );
+      },
     },
     {
       title: 'Año',

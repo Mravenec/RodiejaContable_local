@@ -42,6 +42,7 @@ import static com.rodiejacontable.database.jooq.Tables.INVENTARIO_REPUESTOS;
 import static com.rodiejacontable.database.jooq.Tables.MARCAS;
 import static com.rodiejacontable.database.jooq.Tables.MODELOS;
 import static com.rodiejacontable.database.jooq.Tables.VEHICULOS;
+import static com.rodiejacontable.database.jooq.Tables.TRANSACCIONES_FINANCIERAS;
 
 @Service
 public class AudatexService {
@@ -270,47 +271,98 @@ public class AudatexService {
         }
 
         Integer vehiculoOrigenId = repuesto.getVehiculoOrigenId();
-        if (vehiculoOrigenId == null) {
+        Integer generacionId = null;
+        String marcaStr = null;
+        String modeloStr = null;
+        Integer anioExacto = null;
+        Integer anioInicio = null;
+        Integer anioFin = null;
+        String codigoVehiculoStr = "Genérico";
+
+        if (vehiculoOrigenId != null) {
+            Vehiculos vehiculo = vehiculosRepository.findById(vehiculoOrigenId).orElse(null);
+            if (vehiculo != null) {
+                generacionId = vehiculo.getGeneracionId();
+                codigoVehiculoStr = vehiculo.getCodigoVehiculo();
+                anioExacto = vehiculo.getAnio();
+            }
+        } else {
+            // Es repuesto genérico, obtener generación de la transacción original
+            var tf = dsl.select(TRANSACCIONES_FINANCIERAS.GENERACION_ID)
+                    .from(TRANSACCIONES_FINANCIERAS)
+                    .where(TRANSACCIONES_FINANCIERAS.REPUESTO_ID.eq(repuestoId))
+                    .and(TRANSACCIONES_FINANCIERAS.GENERACION_ID.isNotNull())
+                    .orderBy(TRANSACCIONES_FINANCIERAS.ID.asc())
+                    .limit(1)
+                    .fetchOne();
+            if (tf != null) {
+                generacionId = tf.get(TRANSACCIONES_FINANCIERAS.GENERACION_ID);
+            }
+        }
+
+        if (generacionId == null) {
             return Map.of(
                     "total", 0,
                     "oportunidades", List.of(),
-                    "mensaje", "Repuesto sin vehículo origen"
+                    "mensaje", "Repuesto sin vehículo origen ni generación asignada"
             );
         }
 
-        Vehiculos vehiculo = vehiculosRepository.findById(vehiculoOrigenId).orElse(null);
-        if (vehiculo == null) {
-            return Map.of(
-                    "total", 0,
-                    "oportunidades", List.of(),
-                    "mensaje", "Vehículo origen no encontrado"
-            );
+        Generaciones generacion = generacionesRepository.findById(generacionId).orElse(null);
+        Modelos modelo = generacion != null ? modelosRepository.findById(generacion.getModeloId()).orElse(null) : null;
+        Marcas marca = modelo != null ? marcasRepository.findById(modelo.getMarcaId()).orElse(null) : null;
+
+        if (marca != null) marcaStr = marca.getNombre();
+        if (modelo != null) modeloStr = modelo.getNombre();
+        if (generacion != null && vehiculoOrigenId == null) {
+            // Solo usar rango si es genérico
+            anioInicio = (int) generacion.getAnioInicio();
+            anioFin = (int) generacion.getAnioFin();
         }
 
-        String armadora = normalizarArmadoraParaAudatex(vehiculo);
-        List<Map<String, Object>> resultado = buscarConFiltros(armadora, null, null, null, null);
+        final String fMarca = marcaStr;
+        final String fModelo = modeloStr;
+        final Integer fAnioExacto = anioExacto;
+        final Integer fInicio = anioInicio;
+        final Integer fFin = anioFin;
+        final boolean esGenerico = (vehiculoOrigenId == null);
+
+        List<Map<String, Object>> todas = self.getOportunidadesFromDb();
+        List<Map<String, Object>> resultado = todas.stream()
+                .filter(o -> {
+                    if (esGenerico) {
+                        return coincideVehiculoRango(o, fMarca, fModelo, fInicio, fFin);
+                    } else {
+                        return coincideVehiculo(o, fMarca, fModelo, fAnioExacto);
+                    }
+                })
+                .collect(Collectors.toList());
 
         return Map.of(
                 "total", resultado.size(),
                 "oportunidades", resultado,
                 "vehiculoOrigen", Map.of(
-                        "id", vehiculo.getId(),
-                        "codigo", vehiculo.getCodigoVehiculo(),
-                        "armadoraInferida", armadora
+                        "id", vehiculoOrigenId != null ? vehiculoOrigenId : 0,
+                        "codigo", codigoVehiculoStr,
+                        "armadoraInferida", (marcaStr != null ? marcaStr : "") + " " + (modeloStr != null ? modeloStr : "")
                 )
         );
     }
 
     public Map<Integer, Long> obtenerOportunidadesBatch() throws IOException {
-        List<Map<String, Object>> todasOportunidades = self.obtenerTodasOportunidades();
+        List<Map<String, Object>> todasOportunidades = self.getOportunidadesFromDb();
         if (todasOportunidades.isEmpty()) {
             return Map.of();
         }
 
-        var repuestos = dsl.select(
+        Map<Integer, Long> counts = new HashMap<>();
+
+        // 1. Repuestos CON vehículo origen (año exacto)
+        var repuestosConVehiculo = dsl.select(
                         INVENTARIO_REPUESTOS.ID,
                         MARCAS.NOMBRE.as("marca_nombre"),
-                        MODELOS.NOMBRE.as("modelo_nombre")
+                        MODELOS.NOMBRE.as("modelo_nombre"),
+                        VEHICULOS.ANIO.as("anio_exacto")
                 )
                 .from(INVENTARIO_REPUESTOS)
                 .join(VEHICULOS).on(INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID.eq(VEHICULOS.ID))
@@ -320,26 +372,57 @@ public class AudatexService {
                 .where(INVENTARIO_REPUESTOS.ESTADO.ne(InventarioRepuestosEstado.VENDIDO))
                 .fetch();
 
-        Map<Integer, Long> counts = new HashMap<>();
-        for (var r : repuestos) {
+        for (var r : repuestosConVehiculo) {
             Integer id = r.get(INVENTARIO_REPUESTOS.ID);
             String marca = r.get("marca_nombre", String.class);
             String modelo = r.get("modelo_nombre", String.class);
+            Integer anioExacto = r.get("anio_exacto", Integer.class);
 
             long count = todasOportunidades.stream()
-                    .filter(o -> {
-                        String oArmadora = texto(o, "armadora");
-                        if (oArmadora == null) return false;
-                        String lower = oArmadora.toLowerCase();
-                        return lower.contains(marca.toLowerCase())
-                                && (modelo == null || lower.contains(modelo.toLowerCase()));
-                    })
+                    .filter(o -> coincideVehiculo(o, marca, modelo, anioExacto))
                     .count();
 
             if (count > 0) {
                 counts.put(id, count);
             }
         }
+
+        // 2. Repuestos SIN vehículo origen (rango de generación)
+        var repuestosGenericos = dsl.select(
+                        INVENTARIO_REPUESTOS.ID,
+                        MARCAS.NOMBRE.as("marca_nombre"),
+                        MODELOS.NOMBRE.as("modelo_nombre"),
+                        GENERACIONES.ANIO_INICIO.as("anio_inicio"),
+                        GENERACIONES.ANIO_FIN.as("anio_fin")
+                )
+                .from(INVENTARIO_REPUESTOS)
+                .join(TRANSACCIONES_FINANCIERAS).on(TRANSACCIONES_FINANCIERAS.REPUESTO_ID.eq(INVENTARIO_REPUESTOS.ID))
+                .join(GENERACIONES).on(TRANSACCIONES_FINANCIERAS.GENERACION_ID.eq(GENERACIONES.ID))
+                .join(MODELOS).on(GENERACIONES.MODELO_ID.eq(MODELOS.ID))
+                .join(MARCAS).on(MODELOS.MARCA_ID.eq(MARCAS.ID))
+                .where(INVENTARIO_REPUESTOS.ESTADO.ne(InventarioRepuestosEstado.VENDIDO))
+                .and(INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID.isNull())
+                .fetch();
+
+        for (var r : repuestosGenericos) {
+            Integer id = r.get(INVENTARIO_REPUESTOS.ID);
+            String marca = r.get("marca_nombre", String.class);
+            String modelo = r.get("modelo_nombre", String.class);
+            Short anioIn = r.get("anio_inicio", Short.class);
+            Short anioFi = r.get("anio_fin", Short.class);
+            
+            Integer aIn = anioIn != null ? (int) anioIn : null;
+            Integer aFi = anioFi != null ? (int) anioFi : null;
+
+            long count = todasOportunidades.stream()
+                    .filter(o -> coincideVehiculoRango(o, marca, modelo, aIn, aFi))
+                    .count();
+
+            if (count > 0) {
+                counts.put(id, count);
+            }
+        }
+
         return counts;
     }
 
@@ -376,23 +459,72 @@ public class AudatexService {
         return audatexEnviosRepository.save(envio);
     }
 
-    private String normalizarArmadoraParaAudatex(Vehiculos vehiculo) {
-        Generaciones generacion = generacionesRepository.findById(vehiculo.getGeneracionId()).orElse(null);
-        if (generacion == null) {
-            return "";
+    private boolean coincideVehiculo(Map<String, Object> o, String marca, String modelo, Integer anio) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(texto(o, "armadora")).append(" ");
+        sb.append(texto(o, "modelo")).append(" ");
+        sb.append(texto(o, "anio")).append(" ");
+
+        Object datosObj = o.get("datosCotizacion");
+        if (datosObj instanceof Map) {
+            Map<?, ?> datos = (Map<?, ?>) datosObj;
+            sb.append(datos.get("Descripción")).append(" ");
+            sb.append(datos.get("Armadora")).append(" ");
+            sb.append(datos.get("Año Modelo")).append(" ");
+            sb.append(datos.get("Año Fabricación")).append(" ");
         }
 
-        Modelos modelo = modelosRepository.findById(generacion.getModeloId()).orElse(null);
-        if (modelo == null) {
-            return "";
+        String textoCombinado = normalizarTexto(sb.toString());
+
+        if (marca != null && !marca.trim().isEmpty() && !textoCombinado.contains(normalizarTexto(marca))) return false;
+        if (modelo != null && !modelo.trim().isEmpty() && !textoCombinado.contains(normalizarTexto(modelo))) return false;
+        if (anio != null && !textoCombinado.contains(anio.toString())) return false;
+
+        return true;
+    }
+
+    private boolean coincideVehiculoRango(Map<String, Object> o, String marca, String modelo, Integer anioInicio, Integer anioFin) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(texto(o, "armadora")).append(" ");
+        sb.append(texto(o, "modelo")).append(" ");
+        sb.append(texto(o, "anio")).append(" ");
+
+        Object datosObj = o.get("datosCotizacion");
+        if (datosObj instanceof Map) {
+            Map<?, ?> datos = (Map<?, ?>) datosObj;
+            sb.append(datos.get("Descripción")).append(" ");
+            sb.append(datos.get("Armadora")).append(" ");
+            sb.append(datos.get("Año Modelo")).append(" ");
+            sb.append(datos.get("Año Fabricación")).append(" ");
         }
 
-        Marcas marca = marcasRepository.findById(modelo.getMarcaId()).orElse(null);
-        if (marca == null) {
-            return "";
+        String textoCombinado = normalizarTexto(sb.toString());
+
+        if (marca != null && !marca.trim().isEmpty() && !textoCombinado.contains(normalizarTexto(marca))) return false;
+        if (modelo != null && !modelo.trim().isEmpty() && !textoCombinado.contains(normalizarTexto(modelo))) return false;
+        
+        if (anioInicio != null && anioFin != null) {
+            boolean coincideAnio = false;
+            for (int i = anioInicio; i <= anioFin; i++) {
+                if (textoCombinado.contains(String.valueOf(i))) {
+                    coincideAnio = true;
+                    break;
+                }
+            }
+            if (!coincideAnio) return false;
         }
 
-        return (marca.getNombre().trim() + " " + modelo.getNombre().trim()).trim();
+        return true;
+    }
+
+    private String normalizarTexto(String texto) {
+        if (texto == null) return "";
+        // Convertir a minúsculas
+        String lower = texto.toLowerCase().trim();
+        // Normalizar para separar los caracteres de sus tildes/diacríticos
+        String normalizado = java.text.Normalizer.normalize(lower, java.text.Normalizer.Form.NFD);
+        // Eliminar todos los caracteres diacríticos (marcas de acentos)
+        return normalizado.replaceAll("\\p{M}", "");
     }
 
     private static String texto(Map<String, Object> o, String key) {

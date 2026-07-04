@@ -781,7 +781,19 @@ const VehiculoDetalle = () => {
                               {(() => {
                                 const oportunidades = oportunidadesPorRepuesto[repuesto.id] || 0;
                                 if (oportunidades > 0) {
-                                  return <Tag color="blue">{oportunidades} {oportunidades === 1 ? 'oportunidad' : 'oportunidades'}</Tag>;
+                                  let color = 'green';
+                                  let prefix = '';
+                                  if (oportunidades >= 7) { color = 'red'; prefix = '🔥 '; }
+                                  else if (oportunidades >= 5) { color = 'gold'; }
+                                  return (
+                                    <Tag 
+                                      color={color} 
+                                      style={{ cursor: 'pointer', fontWeight: color === 'red' ? 700 : 600 }}
+                                      onClick={() => navigate(`/inventario/${repuesto.id}?tab=oportunidades`)}
+                                    >
+                                      {prefix}{oportunidades} {oportunidades === 1 ? 'oportunidad' : 'oportunidades'}
+                                    </Tag>
+                                  );
                                 }
                                 return <Tag color="default">Sin oportunidades</Tag>;
                               })()}

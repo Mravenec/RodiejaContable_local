@@ -6,7 +6,7 @@
 GET http://localhost:8080/api/inventario-repuestos
 
 ### 2. Obtener repuesto por ID
-GET http://localhost:8080/api/inventario-repuestos/1
+GET http://localhost:3000/api/inventario-repuestos/1
 
 ### 3. Buscar repuestos por código
 GET http://localhost:8080/api/inventario-repuestos/buscar?codigo=REP-2023-02

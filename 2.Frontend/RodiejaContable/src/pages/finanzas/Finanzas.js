@@ -35,6 +35,7 @@ import { useNavigate } from 'react-router-dom';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import { useTransaccionesCompletas } from '../../hooks/useTransacciones';
 import { useAuth } from '../../context/AuthContext';
+import vehiculoService from '../../api/vehiculos';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -164,16 +165,22 @@ const Finanzas = () => {
       key: 'fecha',
       width: 120,
       render: (fecha) => {
+        if (!fecha) return 'Fecha inválida';
         if (Array.isArray(fecha) && fecha.length >= 3) {
           const [year, month, day] = fecha;
           return moment([year, month - 1, day]).format('DD/MM/YYYY');
         }
-        return 'Fecha inválida';
+        const m = moment(fecha);
+        return m.isValid() ? m.format('DD/MM/YYYY') : 'Fecha inválida';
       },
       sorter: (a, b) => {
-        const dateA = Array.isArray(a.fecha) ? new Date(a.fecha[0], a.fecha[1] - 1, a.fecha[2]).getTime() : new Date(a.fecha || 0).getTime();
-        const dateB = Array.isArray(b.fecha) ? new Date(b.fecha[0], b.fecha[1] - 1, b.fecha[2]).getTime() : new Date(b.fecha || 0).getTime();
-        return dateA - dateB; // Ant Design Table automatically reverses this for 'descend'
+        const getDate = (f) => {
+          if (!f) return 0;
+          if (Array.isArray(f) && f.length >= 3) return new Date(f[0], f[1] - 1, f[2]).getTime();
+          const d = new Date(f);
+          return isNaN(d.getTime()) ? 0 : d.getTime();
+        };
+        return getDate(a.fecha) - getDate(b.fecha);
       },
       defaultSortOrder: 'descend', // Ordenar descendente por defecto
     },
@@ -420,13 +427,25 @@ const Finanzas = () => {
       okText: 'Sí, Reembolsar',
       okType: 'danger',
       cancelText: 'Cancelar',
-      onOk: () => procesarReembolso(transaccion.id),
+      onOk: () => procesarReembolso(transaccion),
     });
   };
 
-  const procesarReembolso = async (id) => {
+  const procesarReembolso = async (transaccion) => {
     try {
-      await transaccionesCompletasService.reembolsarTransaccion(id);
+      await transaccionesCompletasService.reembolsarTransaccion(transaccion.id);
+      
+      // Si la transacción está relacionada a un vehículo y es un reembolso (posible cancelación de venta),
+      // volvemos a poner el vehículo como DISPONIBLE.
+      const vehiculoId = transaccion.vehiculoId || transaccion.codigoVehiculo;
+      if (vehiculoId) {
+        try {
+          await vehiculoService.actualizarEstadoVehiculo(vehiculoId, 'DISPONIBLE');
+        } catch (e) {
+          console.error('Error al actualizar estado del vehículo tras reembolso:', e);
+        }
+      }
+
       message.success('Reembolso procesado exitosamente');
       refetchTransacciones(); // Recargar la lista
     } catch (error) {

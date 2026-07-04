@@ -15,6 +15,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ShoppingCartOutlined
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
@@ -34,6 +35,7 @@ const MainLayout = () => {
     if (path.startsWith('/finanzas')) return 'finanzas';
     if (path.startsWith('/reportes')) return 'reportes';
     if (path.startsWith('/configuracion')) return 'configuracion';
+    if (path.startsWith('/audatex')) return 'audatex';
     return '';
   };
 
@@ -98,6 +100,15 @@ const MainLayout = () => {
             <Link to="/finanzas">Finanzas</Link>
           </Menu.Item>
           
+          <Menu.SubMenu key="audatex" icon={<ShoppingCartOutlined />} title="Audatex InPart">
+            <Menu.Item key="audatex-oportunidades">
+              <Link to="/audatex/oportunidades">Oportunidades Globales</Link>
+            </Menu.Item>
+            <Menu.Item key="audatex-jerarquia">
+              <Link to="/audatex/jerarquia">Jerarquía InPart</Link>
+            </Menu.Item>
+          </Menu.SubMenu>
+
           <Menu.Item key="reportes" icon={<BarChartOutlined />}>
             <Link to="/reportes">Reportes</Link>
           </Menu.Item>
