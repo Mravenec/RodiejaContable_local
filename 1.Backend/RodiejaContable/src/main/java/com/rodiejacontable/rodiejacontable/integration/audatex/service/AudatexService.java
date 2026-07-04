@@ -212,6 +212,13 @@ public class AudatexService {
                                     if (dt.containsKey("Chasis")) oportunidad.put("chasis", dt.get("Chasis"));
                                 }
                                 
+                                // Guardar en BD al instante
+                                String modeloStr = oportunidad.get("modelo") != null ? oportunidad.get("modelo").toString() : null;
+                                String anioStr = oportunidad.get("anio") != null ? oportunidad.get("anio").toString() : null;
+                                String repJson = null;
+                                try { repJson = objectMapper.writeValueAsString(detalles); } catch (Exception ignored) {}
+                                upsertOportunidad(oportunidad, modeloStr, anioStr, repJson);
+                                
                                 log.debug("[AudatexService][Stream] WAN {} → {} repuesto(s)", wan, repuestos.size());
                             } else {
                                 oportunidad.put("repuestos", java.util.List.of());
@@ -612,27 +619,7 @@ public class AudatexService {
                 }
 
                 // JOOQ Upsert
-                int affected = dsl.insertInto(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.WAN, wan)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ASEGURADORA, aseguradora)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.COTIZACION_ID, cotizacionId)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.TALLER, taller)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.POLIZA, poliza)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.SINIESTRO, siniestro)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.MATRICULA, matricula)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ARMADORA, armadora)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.MODELO, modelo)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ANIO, anio)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.FECHA_COTIZACION, fechaCotizacion)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.PENDIENTES, pendientes)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ESTADO, com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO, java.time.LocalDateTime.now())
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.DETALLE_JSON, repuestosJson)
-                    .onDuplicateKeyUpdate()
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO, java.time.LocalDateTime.now())
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.PENDIENTES, pendientes)
-                    .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.DETALLE_JSON, repuestosJson)
-                    .execute();
+                int affected = upsertOportunidad(op, modelo, anio, repuestosJson);
                 
                 if (affected == 1) insertadas++;
                 else if (affected == 2) actualizadas++;
@@ -652,6 +639,41 @@ public class AudatexService {
         } catch (Exception e) {
             log.error("[AudatexService] Error en syncRange: {}", e.getMessage(), e);
         }
+    }
+
+    private int upsertOportunidad(Map<String, Object> op, String modelo, String anio, String repuestosJson) {
+        String wan = texto(op, "wan");
+        String armadora = texto(op, "armadora");
+        String aseguradora = texto(op, "aseguradora");
+        String cotizacionId = texto(op, "cotizacionId");
+        String taller = texto(op, "taller");
+        String poliza = texto(op, "poliza");
+        String siniestro = texto(op, "siniestro");
+        String matricula = texto(op, "matricula");
+        String fechaCotizacion = texto(op, "fechaCotizacion");
+        Integer pendientes = pendientes(op);
+
+        return dsl.insertInto(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.WAN, wan)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ASEGURADORA, aseguradora)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.COTIZACION_ID, cotizacionId)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.TALLER, taller)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.POLIZA, poliza)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.SINIESTRO, siniestro)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.MATRICULA, matricula)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ARMADORA, armadora)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.MODELO, modelo)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ANIO, anio)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.FECHA_COTIZACION, fechaCotizacion)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.PENDIENTES, pendientes)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ESTADO, com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO, java.time.LocalDateTime.now())
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.DETALLE_JSON, repuestosJson)
+            .onDuplicateKeyUpdate()
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO, java.time.LocalDateTime.now())
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.PENDIENTES, pendientes)
+            .set(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.DETALLE_JSON, repuestosJson)
+            .execute();
     }
 
     public int markStaleAsClosed(int hours) {
