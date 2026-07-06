@@ -11,9 +11,10 @@
   VALIDAR: cd _linear && node scripts/validate-plan-html.mjs plans/plan_sprint_<nombre>.html
   REGLA CURSOR: .cursor/rules/linear-plan-html-obligatorio.mdc
   REGLA CURSOR: .cursor/rules/linear-plan-diagnostico-exhaustivo.mdc
-  REGLA CURSOR: .cursor/rules/linear-plan-ai-briefing.mdc
+  REGLA CURSOR: .cursor/rules/linear-plan-coherencia.mdc
   SKILL: .cursor/skills/linear-plan-html/SKILL.md
-  MERMAID: script CDN en head — mínimo 2 sequenceDiagram
+  ORDEN: Hero → INSTRUCCIONES IA → Diagnóstico D1–D11 → Contrato Linear (12) → Aprobación
+  VALIDACIÓN: 12 Linear + 11 diagnóstico + 6 briefing IA + coherencia semántica
 -->
 <html lang="es">
 <head>
@@ -279,8 +280,40 @@ node scripts/sprint_&lt;nombre&gt;.mjs cleanup</div>
 
 <section class="sec">
   <div class="sl">Diagnóstico — Resumen ejecutivo</div>
-  <div class="st">Problema → Causa → Fix (mapeo a checklist)</div>
+  <div class="st">Problema → Causa → Fix → Issue (mapeo a checklist)</div>
   <table class="tbl"><thead><tr><th>Problema</th><th>Causa</th><th>Fix</th><th>Issue</th></tr></thead><tbody><tr><td><!-- --></td><td><!-- --></td><td><!-- --></td><td>ROD-N</td></tr></tbody></table>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Mapeo necesidad del usuario (D9)</div>
+  <div class="st">Necesidad del usuario × sección del plan × issue</div>
+  <table class="tbl"><thead><tr><th>Lo que necesitas</th><th>Sección del plan</th><th>Issue</th></tr></thead><tbody><tr><td><!-- --></td><td><!-- --></td><td>ROD-N</td></tr></tbody></table>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Brecha código (D10)</div>
+  <div class="st">Ya escrito (parcial) vs Falta implementar</div>
+  <div class="compare">
+    <div class="box good"><h4>Ya escrito (parcial)</h4><ul class="files"><li><!-- rutas reales --></li></ul></div>
+    <div class="box bad"><h4>Falta implementar</h4><ul class="files"><li><!-- endpoints/archivos que no existen --></li></ul></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Flujo objetivo (resumen)</div>
+  <div class="st">Abrir / refrescar / background — texto o diagrama</div>
+  <div class="cb2"><!-- Abrir → GET BD sin vaciar
+Refrescar → POST incremental → UPSERT → SSE delta → merge UI
+Background → worker --></div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Coherencia diagnóstico ↔ checklists (D11)</div>
+  <div class="st">Sin discrepancias: cada hallazgo → ítem checklist concreto</div>
+  <table class="tbl" id="coherencia-checklist">
+    <thead><tr><th>Hallazgo / necesidad</th><th>Fix en plan</th><th>Checklist ítem</th><th>Issue</th></tr></thead>
+    <tbody><tr><td>H1</td><td><!-- fix --></td><td>ROD-N ítem M</td><td>ROD-N</td></tr></tbody>
+  </table>
 </section>
 
 <section class="sec">

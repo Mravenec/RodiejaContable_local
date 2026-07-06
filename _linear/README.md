@@ -116,7 +116,7 @@ cd _linear
 node scripts/validate-plan-html.mjs plans/plan_sprint_<nombre>.html
 ```
 
-12 secciones Linear + 8 diagnóstico (D1–D8) + briefing IA: reglas en `.cursor/rules/` y skill `.cursor/skills/linear-plan-html/SKILL.md`. El HTML debe ser **autocontenido** (problema, diagramas Mermaid, código, issues). Checklist: **un ítem a la vez** en Fase 5.
+12 secciones Linear + **11 diagnóstico (D1–D11)** + briefing IA + **coherencia semántica**: reglas en `.cursor/rules/` (incl. `linear-plan-coherencia.mdc`) y skill `.cursor/skills/linear-plan-html/SKILL.md`. El HTML debe ser **autocontenido** (problema, brecha código, tabla coherencia-checklist, Mermaid, issues). Checklist: **un ítem a la vez** en Fase 5.
 
 **No ejecutar `create` hasta:** validate exit 0 + **✅ APROBADO** del humano.
 

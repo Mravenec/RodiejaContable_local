@@ -22,7 +22,9 @@ Al crear o editar `plan_sprint_<nombre>.html`, el documento **es la única fuent
 | Hallazgos con código | Rutas archivo + fragmentos reales |
 | Regla de oro | BD fuente de verdad; refresh incremental |
 | Checklist secuencial | Sección que prohíbe marcar varios ítems a la vez |
-| Coherencia | Cada hallazgo → ítem checklist ROD-N |
+| D9 Mapeo usuario | Tabla necesidad × sección × issue |
+| D10 Brecha código | Ya escrito vs falta implementar |
+| D11 Coherencia | Tabla `id="coherencia-checklist"`; cada hallazgo → ítem checklist |
 
 ## Prohibido
 

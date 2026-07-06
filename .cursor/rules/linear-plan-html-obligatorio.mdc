@@ -36,7 +36,7 @@ copy _linear\plans\_plantilla_rodieja.html _linear\plans\plan_sprint_<nombre>.ht
 | 11 | **Objetivo producto** | Problema ↔ solución |
 | 12 | **Aprobación** | PENDIENTE / APROBADO — sin `create` hasta APROBADO |
 
-**Diagnóstico exhaustivo (D1–D8):** ver `linear-plan-diagnostico-exhaustivo.mdc`. Obligatorio en todo `plan_sprint_*.html`; validado por `validate-plan-html.mjs`.
+**Diagnóstico exhaustivo (D1–D11):** ver `linear-plan-diagnostico-exhaustivo.mdc` + `linear-plan-coherencia.mdc`. Obligatorio en todo `plan_sprint_*.html`; validado por `validate-plan-html.mjs`.
 
 Si hay capas omitidas (sin BD): pipeline con **DB/JOOQ N/A** explícito.
 
@@ -47,7 +47,7 @@ cd _linear
 node scripts/validate-plan-html.mjs plans/plan_sprint_<nombre>.html
 ```
 
-Exit 0 → puede ejecutar `create`. Exit 1 → completar plan. Requiere **25 checks**: 12 Linear + 8 diagnóstico (D1–D8) + 5 briefing IA.
+Exit 0 → puede ejecutar `create`. Exit 1 → completar plan. Requiere **28+ checks**: 12 Linear + 11 diagnóstico (D1–D11) + 5 briefing IA + coherencia semántica.
 
 ## Prohibido
 
@@ -55,5 +55,5 @@ Exit 0 → puede ejecutar `create`. Exit 1 → completar plan. Requiere **25 che
 - Plan sin tabla gates (aunque todo sea N/A).
 - Plan sin handoff entre issues encadenados.
 - Plan con `role:database` sin documentar `drop_db` → `setup_db` → `load_mocks`.
-- Plan sin diagnóstico forense (D1–D8) o con discrepancia diagnóstico ↔ checklists.
+- Plan sin diagnóstico forense (D1–D11), sin brecha código (D10) o con discrepancia diagnóstico ↔ checklists (D11).
 - Checklist que no cierra un hallazgo documentado en el plan.

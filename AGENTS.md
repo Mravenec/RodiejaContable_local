@@ -79,8 +79,8 @@ Si el ítem 1 dice «NO iniciar hasta…» o «GATE_HTTP»:
 Todo `plan_sprint_<nombre>.html` es **contrato Linear + auditoría técnica**: no es solo dominio de producto ni un resumen vago.
 
 1. Copiar `_linear/plans/_plantilla_rodieja.html` (esqueleto Linear + Diagnóstico + briefing IA).
-2. Rellenar **12 secciones Linear**, **8 diagnóstico D1–D8**, **briefing IA** (instrucciones, Mermaid, código, checklist secuencial). Skill: `.cursor/skills/linear-plan-html/SKILL.md`.
-3. **Coherencia obligatoria:** cada hallazgo del diagnóstico → ≥1 ítem de checklist en un issue ROD-N.
+2. Rellenar **12 secciones Linear**, **11 diagnóstico D1–D11**, **briefing IA** (instrucciones, Mermaid, código, checklist secuencial, flujo objetivo). Skill: `.cursor/skills/linear-plan-html/SKILL.md`. Coherencia: `linear-plan-coherencia.mdc` + tabla `id="coherencia-checklist"`.
+3. **Coherencia obligatoria:** cada hallazgo Hn → fila D11 → ≥1 ítem `- [ ]` en checklists verbatim; endpoints del diagnóstico deben figurar en checklists.
 4. **Checklist en ejecución:** un ítem a la vez (`checklist ROD-N <n>` solo el pendiente). Documentado en el plan y en `linear-checklist-secuencial.mdc`.
 5. Validar antes de pedir aprobación o hacer `create`:
 

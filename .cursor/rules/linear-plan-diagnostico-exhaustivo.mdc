@@ -26,6 +26,11 @@ El plan es **contrato Linear + auditoría técnica**. Prohibido plan solo «de p
 | D6 | **Resumen ejecutivo** | Tabla Problema → Causa → Fix (≥4 filas) |
 | D7 | **Comportamiento esperado** | Escenario concreto (ej. refresh: 150→162 sin vaciar UI) |
 | D8 | **Regla de oro** | Frase explícita: BD fuente de verdad; refresh = incremental, no reset |
+| D9 | **Mapeo necesidad del usuario** | Tabla: necesidad del usuario × sección del plan × issue |
+| D10 | **Brecha código** | Listas «Ya escrito (parcial)» y «Falta implementar» con rutas/archivos |
+| D11 | **Coherencia diagnóstico ↔ checklists** | Tabla `id="coherencia-checklist"`: hallazgo → ítem checklist → ROD-N |
+
+Ver `linear-plan-coherencia.mdc`.
 
 ## Coherencia issues ↔ diagnóstico
 
@@ -40,7 +45,7 @@ cd _linear
 node scripts/validate-plan-html.mjs plans/plan_sprint_<nombre>.html
 ```
 
-Exit 0 en **Linear (12) + Diagnóstico (8) + IA briefing (5)**. Si falla, completar plan antes de Fase 3.
+Exit 0 en **Linear (12) + Diagnóstico (11) + IA briefing (6) + coherencia semántica**. Si falla, completar plan antes de Fase 3.
 
 ## Checklist en ejecución (Fase 5)
 

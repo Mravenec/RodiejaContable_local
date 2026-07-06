@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Linear: validar plan sprint HTML",
+      "type": "shell",
+      "command": "node scripts/validate-plan-html.mjs plans/plan_sprint_sync_audatex.html",
+      "options": {
+        "cwd": "${workspaceFolder}/_linear"
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

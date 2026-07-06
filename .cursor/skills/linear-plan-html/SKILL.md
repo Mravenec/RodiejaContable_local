@@ -1,18 +1,18 @@
 ---
 name: linear-plan-html
 description: >-
-  Author or expand _linear/plans/plan_sprint_<nombre>.html as a self-contained
-  AI briefing (diagnosis, mermaid diagrams, code refs, Linear issues). Use when
-  creating sprint plans, plan_sprint_*.html, Fase 2 Linear, or validate-plan-html.
+  Author _linear/plans/plan_sprint_<nombre>.html as exhaustive self-contained
+  briefing: D1–D11 diagnosis, coherencia-checklist, Mermaid, Linear issues.
+  Use when creating sprint plans, Fase 2 Linear, or validate-plan-html.
 ---
 
-# Plan HTML sprint — briefing autocontenido para IA
+# Plan HTML sprint — briefing exhaustivo sin discrepancias
 
 ## Cuándo usar
 
 - Crear o editar `_linear/plans/plan_sprint_<nombre>.html`
-- Fase 2 Linear (antes de APROBADO y `create`)
-- El humano pide plan detallado, diagnóstico, o contexto para agentes
+- Fase 2 Linear (antes de ✅ APROBADO y `create`)
+- Humano pide propuesta, diagnóstico o contexto para agentes
 
 ## Origen obligatorio
 
@@ -20,67 +20,86 @@ description: >-
 copy _linear\plans\_plantilla_rodieja.html _linear\plans\plan_sprint_<nombre>.html
 ```
 
-No crear HTML desde cero sin plantilla.
+**Prohibido:** HTML desde cero; plan solo «de producto» sin diagnóstico forense.
 
-## Orden de secciones en el documento (lectura IA)
+## Flujo de redacción (IA u orquestador)
 
-1. **INSTRUCCIONES PARA LA IA** (`id="para-la-ia"`) — qué leer, reglas checklist, comandos gate
-2. **Diagnóstico completo** — problema, estado código, por qué falla hoy
-3. **Diagramas Mermaid** — flujo deseado + flujo actual (mínimo 2 `sequenceDiagram`)
-4. **Hallazgos** — cada uno con ruta archivo + líneas + fix → issue
-5. **Solución + regla de oro + comportamiento E2E**
-6. **Contrato Linear** (12 secciones) + checklists verbatim
-7. **Aprobación**
-
-## Contenido mínimo diagnóstico (D1–D8)
-
-Ver `.cursor/rules/linear-plan-diagnostico-exhaustivo.mdc`.
-
-Cada hallazgo del diagnóstico **debe** tener ≥1 ítem `- [ ]` en checklists ROD-N. Prohibida discrepancia plan ↔ issues.
-
-## Diagramas Mermaid
-
-Incluir en `<div class="mermaid">` y cargar Mermaid en `<head>`:
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-<script>mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });</script>
-```
-
-Mínimo: diagrama **flujo deseado** y **flujo actual**.
-
-## Referencias de código en el plan
-
-Usar bloques con ruta y líneas (legibles por IA sin abrir repo):
-
-```html
-<div class="code-ref">
-  <div class="code-ref-path">2.Frontend/.../OportunidadesAudatex.js · líneas 106–107</div>
-  <pre>setOportunidades([]);
-setTotalCargado(0);</pre>
-</div>
-```
-
-## Checklist secuencial (obligatorio en plan)
-
-Incluir sección **Linear — Checklist secuencial** que documente:
-
-- Un ítem a la vez: `checklist ROD-N <n>` solo el pendiente
-- Prohibido: `checklist ROD-N 1,2,3`, `all`, `--check-all`
-- Ciclo: leer `--checklist-status` → implementar **solo ese ítem** → marcar → repetir
-
-## Validación antes de pedir APROBADO
+1. **Investigar código real** — backend, BD, FE del dominio del sprint.
+2. **Copiar plantilla** y rellenar en este orden:
+   - Hero + chips
+   - `INSTRUCCIONES PARA LA IA` (`id="para-la-ia"`)
+   - Diagnóstico **D1–D11** (ver abajo)
+   - `<hr class="sep">`
+   - Contrato Linear (12 secciones)
+   - Aprobación
+3. **Por cada hallazgo Hn:** `code-ref` + fila en `id="coherencia-checklist"` + ítem `- [ ]` en checklists verbatim.
+4. **Validar** antes de pedir APROBADO:
 
 ```bash
 cd _linear
 node scripts/validate-plan-html.mjs plans/plan_sprint_<nombre>.html
 ```
 
-Exit 0 en Linear (12) + Diagnóstico (8) + IA briefing (5).
+Exit 0 obligatorio (estructura + coherencia semántica).
+
+## Secciones diagnóstico D1–D11
+
+| # | Sección HTML | Contenido |
+|---|--------------|-----------|
+| D1 | Diagnóstico — Estado actual | sprint-next, código fuera de gate |
+| D2 | Flujo deseado + Flujo actual | 2× Mermaid `sequenceDiagram` |
+| D3 | Hallazgos causa raíz | H1…Hn + `code-ref` + Fix → ROD-N |
+| D4 | Arquitectura híbrida | Tabla componente × fuente × estado |
+| D5 | Solución paso a paso | Pasos → issues |
+| D6 | Resumen ejecutivo | Problema → Causa → Fix → Issue (≥4 filas) |
+| D7 | Comportamiento esperado | E2E concreto (ej. 150→162 sin vaciar) |
+| D8 | Regla de oro | BD fuente de verdad; refresh incremental |
+| D9 | Mapeo necesidad del usuario | Tabla necesidad × sección × issue |
+| D10 | Brecha código | Ya escrito vs Falta implementar |
+| D11 | Coherencia | Tabla `id="coherencia-checklist"` |
+
+## Coherencia sin discrepancias (crítico)
+
+- Cada fix del resumen ejecutivo → ≥1 fila en `coherencia-checklist` → ≥1 ítem checklist.
+- Si el diagnóstico cita `POST /api/.../incremental`, debe aparecer en checklists verbatim.
+- `validate-plan-html.mjs` ejecuta `validateCoherence()` y falla si hay endpoints huérfanos.
+
+## Mermaid
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });</script>
+```
+
+Mínimo 2 `sequenceDiagram`: flujo **deseado** y flujo **actual/roto**.
+
+## Referencias de código
+
+```html
+<div class="code-ref">
+  <div class="code-ref-path">ruta/archivo.ext · líneas N–M</div>
+  <pre>fragmento real del repo</pre>
+</div>
+```
+
+## Checklist secuencial (en plan y en ejecución)
+
+Documentar en sección **Linear — Checklist secuencial**:
+
+- `checklist ROD-N <n>` solo el pendiente
+- Prohibido: `1,2,3`, `all`, `--check-all`
 
 ## Reglas relacionadas
 
 - `linear-plan-html-obligatorio.mdc`
 - `linear-plan-diagnostico-exhaustivo.mdc`
+- `linear-plan-coherencia.mdc`
+- `linear-plan-ai-briefing.mdc`
 - `linear-checklist-secuencial.mdc`
 - `AGENTS.md`
+
+## Validación esperada
+
+```
+✅ 12/12 Linear + 11/11 diagnóstico + 6/6 briefing IA + coherencia OK
+```

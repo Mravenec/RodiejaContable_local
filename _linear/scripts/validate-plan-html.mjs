@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Valida que plan_sprint_<nombre>.html cumple contrato Linear (README Fase 2).
+ * Valida plan_sprint_<nombre>.html: Linear (12) + Diagnóstico (D1–D11) + IA briefing (5) + coherencia semántica.
  * Uso: cd _linear && node scripts/validate-plan-html.mjs plans/plan_sprint_foo.html
  */
 import { readFileSync, existsSync } from "fs";
@@ -90,7 +90,7 @@ const CHECKS = [
   },
 ];
 
-/** Diagnóstico exhaustivo — debe alinearse 1:1 con checklists (linear-plan-diagnostico-exhaustivo.mdc) */
+/** Diagnóstico exhaustivo D1–D11 */
 const DIAG_CHECKS = [
   {
     id: "d1_estado",
@@ -104,13 +104,16 @@ const DIAG_CHECKS = [
   },
   {
     id: "d3_hallazgos",
-    label: "D3 Hallazgos causa raíz (archivos/endpoints)",
-    test: (s) => /Hallazgos.*causa raíz|causa raíz/i.test(s) && /OportunidadesAudatex|AudatexController|AudatexService/i.test(s),
+    label: "D3 Hallazgos causa raíz (code-ref + archivos)",
+    test: (s) =>
+      /Hallazgos.*causa raíz|causa raíz/i.test(s) &&
+      (/code-ref|code-ref-path/i.test(s) || /H1\s*[—–-]/i.test(s)) &&
+      /\.(java|js|sql|tsx?|py)/i.test(s),
   },
   {
     id: "d4_hibrida",
     label: "D4 Arquitectura híbrida (tabla componente × fuente)",
-    test: (s) => /Arquitectura híbrida/i.test(s) && /Portal|BD local|getOportunidadesFromDb/i.test(s),
+    test: (s) => /Arquitectura híbrida/i.test(s) && /Fuente|Portal|BD/i.test(s),
   },
   {
     id: "d5_solucion",
@@ -132,9 +135,32 @@ const DIAG_CHECKS = [
     label: "D8 Regla de oro (BD fuente de verdad, no reset)",
     test: (s) => /Regla de oro/i.test(s) && /fuente de verdad|Nunca borrar/i.test(s),
   },
+  {
+    id: "d9_mapeo",
+    label: "D9 Mapeo necesidad del usuario × sección × issue",
+    test: (s) =>
+      /Mapeo necesidad|necesidad del usuario|Tu problema.*dónde/i.test(s) &&
+      /Sección|sección del plan/i.test(s) &&
+      /ROD-0[1-9]/i.test(s),
+  },
+  {
+    id: "d10_brecha",
+    label: "D10 Brecha código (ya escrito vs falta implementar)",
+    test: (s) =>
+      /Brecha código|Ya escrito|Falta implementar/i.test(s) &&
+      /parcial|no existe/i.test(s),
+  },
+  {
+    id: "d11_coherencia",
+    label: "D11 Tabla coherencia-checklist (hallazgo → ítem → issue)",
+    test: (s) =>
+      /id=["']coherencia-checklist["']|Coherencia.*diagnóstico.*checklist/i.test(s) &&
+      /Hallazgo|necesidad/i.test(s) &&
+      /Checklist ítem|ítem checklist/i.test(s),
+  },
 ];
 
-/** Briefing autocontenido para IA — cualquier agente debe entender sin chat previo */
+/** Briefing autocontenido para IA */
 const AI_CHECKS = [
   {
     id: "ai_instrucciones",
@@ -149,7 +175,7 @@ const AI_CHECKS = [
   {
     id: "ai_codigo",
     label: "Hallazgos con rutas de archivo y fragmentos de código",
-    test: (s) => /code-ref|code-ref-path/i.test(s) && /OportunidadesAudatex\.js/i.test(s) && /AudatexController\.java/i.test(s),
+    test: (s) => /code-ref|code-ref-path/i.test(s) && /\.(java|js|sql)/i.test(s),
   },
   {
     id: "ai_checklist_seq",
@@ -158,26 +184,108 @@ const AI_CHECKS = [
   },
   {
     id: "ai_problema",
-    label: "Narrativa problema (reinicia desde cero / contexto sprint)",
-    test: (s) => /reinicia desde cero|Diagnóstico:/i.test(s) && /qué vamos a abordar|qué abordamos|cómo lo vamos a abordar/i.test(s),
+    label: "Narrativa problema + qué vamos a abordar",
+    test: (s) =>
+      /reinicia desde cero|Diagnóstico:/i.test(s) &&
+      /qué vamos a abordar|qué abordamos|cómo lo vamos a abordar/i.test(s),
+  },
+  {
+    id: "ai_flujo_resumen",
+    label: "Resumen flujo objetivo (abrir / refrescar / background)",
+    test: (s) => /Flujo objetivo|flujo objetivo/i.test(s) && /Refrescar|refrescar/i.test(s),
   },
 ];
 
+/**
+ * Coherencia semántica: endpoints y fixes del diagnóstico deben existir en checklists verbatim.
+ * @returns {{ id: string, label: string }[]}
+ */
+function validateCoherence(html) {
+  const failures = [];
+  const linearSplit = html.split(/Linear\s*[—–-]\s*Proceso obligatorio/i);
+  const diagPart = linearSplit[0] || html;
+  const checklistPart =
+    html.match(/Descripciones issue[\s\S]*?(?=<section class="sec">[\s\S]*?Fase 6|<section class="sec">[\s\S]*?Objetivo|<hr class="sep">)/i)?.[0] || "";
+
+  if (!checklistPart.includes("- [ ]")) {
+    failures.push({
+      id: "coh_checklists",
+      label: "Coherencia: no se encontraron checklists verbatim para cruzar",
+    });
+    return failures;
+  }
+
+  // Endpoints citados en diagnóstico (POST/GET /api/... o /ruta)
+  const endpointRe = /(?:POST|GET|PUT|DELETE)\s+[`"]?(\/[\w\-./{}]+)/gi;
+  const endpoints = new Set();
+  let m;
+  while ((m = endpointRe.exec(diagPart)) !== null) {
+    const ep = m[1].replace(/\{[^}]+\}/g, "").replace(/\/+$/, "");
+    if (ep.length > 3) endpoints.add(ep);
+  }
+
+  for (const ep of endpoints) {
+    const tail = ep.split("/").filter(Boolean).slice(-2).join("/");
+    const inChecklist = checklistPart.includes(ep) || checklistPart.includes(tail);
+    // /sync/force es legado; basta con POST incremental en checklist
+    if (ep.includes("/sync/force") && checklistPart.includes("incremental")) continue;
+    if (!inChecklist) {
+      failures.push({
+        id: `coh_ep_${tail.replace(/\W/g, "_")}`,
+        label: `Coherencia: endpoint «${ep}» en diagnóstico pero ausente en checklists verbatim`,
+      });
+    }
+  }
+
+  // Hallazgos H1–H9 en sección causa raíz (no contar menciones en tablas D11)
+  const hallazgosBlock = diagPart.match(/Hallazgos causa raíz[\s\S]*?(?=<section class="sec">)/i)?.[0] || diagPart;
+  const hallazgoCount = (hallazgosBlock.match(/<h3[^>]*>\s*H[1-9]\s*[—–-]/gi) || []).length;
+  const coherenciaRows = (html.match(/id=["']coherencia-checklist["'][\s\S]*?<\/table>/i)?.[0] || "").match(/<tr>/gi)?.length || 0;
+  const dataRows = Math.max(0, coherenciaRows - 1);
+  if (hallazgoCount >= 3 && dataRows < hallazgoCount) {
+    failures.push({
+      id: "coh_hallazgos_rows",
+      label: `Coherencia: ${hallazgoCount} hallazgos (H1…) pero solo ${dataRows} filas en coherencia-checklist`,
+    });
+  }
+
+  // Resumen ejecutivo: al menos 4 filas con Issue ROD-N
+  const resumenBlock = diagPart.match(/Resumen ejecutivo[\s\S]*?<\/table>/i)?.[0] || "";
+  const resumenRows = (resumenBlock.match(/ROD-0[1-9]/gi) || []).length;
+  if (resumenRows < 4) {
+    failures.push({
+      id: "coh_resumen_issues",
+      label: `Coherencia: resumen ejecutivo debe mapear ≥4 fixes a ROD-N (encontrados: ${resumenRows})`,
+    });
+  }
+
+  return failures;
+}
+
 const ALL_CHECKS = [...CHECKS, ...DIAG_CHECKS, ...AI_CHECKS];
-const failed = ALL_CHECKS.filter((c) => !c.test(html));
+const structuralFailed = ALL_CHECKS.filter((c) => !c.test(html));
+const coherenceFailed = validateCoherence(html);
 
 console.log(`\n📋 Validación plan Linear: ${name}\n`);
 
-if (failed.length === 0) {
-  console.log(`✅ ${CHECKS.length}/${CHECKS.length} Linear + ${DIAG_CHECKS.length}/${DIAG_CHECKS.length} diagnóstico + ${AI_CHECKS.length}/${AI_CHECKS.length} briefing IA.\n`);
+if (structuralFailed.length === 0 && coherenceFailed.length === 0) {
+  console.log(
+    `✅ ${CHECKS.length}/${CHECKS.length} Linear + ${DIAG_CHECKS.length}/${DIAG_CHECKS.length} diagnóstico + ${AI_CHECKS.length}/${AI_CHECKS.length} briefing IA + coherencia OK.\n`
+  );
   console.log("   Listo para Fase 4: sprint_<nombre>.mjs create (tras ✅ APROBADO humano).\n");
   process.exit(0);
 }
 
-console.log(`❌ Faltan ${failed.length}/${ALL_CHECKS.length} requisitos:\n`);
-for (const f of failed) {
+const totalFailed = structuralFailed.length + coherenceFailed.length;
+console.log(`❌ Faltan ${totalFailed} requisitos:\n`);
+for (const f of structuralFailed) {
+  console.log(`   • [${f.id}] ${f.label}`);
+}
+for (const f of coherenceFailed) {
   console.log(`   • [${f.id}] ${f.label}`);
 }
 console.log("\n   Completar plan desde _plantilla_rodieja.html");
-console.log("   Reglas: linear-plan-html-obligatorio.mdc · linear-plan-diagnostico-exhaustivo.mdc · linear-plan-ai-briefing.mdc\n");
+console.log(
+  "   Reglas: linear-plan-html-obligatorio · linear-plan-diagnostico-exhaustivo · linear-plan-coherencia · linear-plan-ai-briefing\n"
+);
 process.exit(1);

@@ -55,9 +55,15 @@
   .narrative{font-size:14px;color:#CBD5E1;max-width:900px}
   .narrative p{margin-bottom:14px}
   .narrative strong{color:#fff}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+  .box{border-radius:8px;padding:14px;font-size:12.5px;line-height:1.55}
+  .box.bad{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);color:#FCA5A5}
+  .box.good{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);color:#BBF7D0}
+  .box h4{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+  .box.bad h4{color:#FCA5A5}.box.good h4{color:var(--green)}
   hr.sep{border:none;border-top:1px solid var(--border);margin:48px 48px 0}
   footer{margin-top:64px;border-top:1px solid var(--border);padding:24px 48px;display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
-  @media(max-width:720px){.hero,.sec,.al{padding-left:24px;padding-right:24px}}
+  @media(max-width:720px){.hero,.sec,.al{padding-left:24px;padding-right:24px}.compare{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -293,6 +299,86 @@ public SseEmitter streamSyncDeltas() {
   <p class="narrative" style="margin-top:16px">El diseño es correcto y gran parte del código ya está. Falta <strong>cerrar el circuito</strong>: refrescar = sync incremental + merge, nunca vaciar + esperar pasivamente.</p>
 </section>
 
+<section class="sec">
+  <div class="sl">Diagnóstico — Mapeo necesidad del usuario (D9)</div>
+  <div class="st">Tu problema → dónde está en el plan → issue</div>
+  <table class="tbl">
+    <thead><tr><th>Lo que necesitas</th><th>Sección del plan</th><th>Issue</th></tr></thead>
+    <tbody>
+      <tr><td>Guardar <strong>todos</strong> los registros en BD</td><td>H5 + UPSERT por <code>wan</code></td><td>ROD-01, ROD-02</td></tr>
+      <tr><td>Carga <strong>siempre</strong> en background</td><td>Worker Hot/Warm/Cold</td><td>ROD-02 ítems 3–4</td></tr>
+      <tr><td>Refrescar <strong>agrega</strong>, no reinicia</td><td>Regla de oro + E2E 150→162</td><td>ROD-04 ítems 2, 4–6</td></tr>
+      <tr><td>No vaciar pantalla al refrescar</td><td>H1 <code>setOportunidades([])</code></td><td>ROD-04 ítem 2</td></tr>
+      <tr><td>Sync activo al refrescar (no SSE pasivo)</td><td>H2 + POST <code>/sync/incremental</code></td><td>ROD-02 ítem 6, ROD-03 ítem 3</td></tr>
+      <tr><td>Una sola fuente de verdad (BD)</td><td>H4 arquitectura híbrida</td><td>ROD-02 ítem 7</td></tr>
+      <tr><td>Registros que «desaparecen»</td><td>H6 <code>pruneStaleRecords</code></td><td>ROD-02 ítem 8</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Brecha código (D10)</div>
+  <div class="st">Qué ya existe vs qué falta cerrar</div>
+  <div class="compare">
+    <div class="box good">
+      <h4>Ya escrito (parcial)</h4>
+      <ul class="files">
+        <li>Tabla <code>audatex_oportunidades_sync</code> — <code>0.BaseDeDatos/DB/04_AudatexSync.sql</code></li>
+        <li><code>upsertOportunidad()</code>, <code>getOportunidadesFromDb()</code> — <code>AudatexService.java</code></li>
+        <li><code>AudatexSyncWorker</code> (Hot/Warm/Cold) — background</li>
+        <li>GET <code>/oportunidades/sync</code> + SSE pasivo <code>/sync/stream</code></li>
+        <li>FE: GET inicial + SSE — <code>OportunidadesAudatex.js</code> (pero vacía lista y no dispara sync)</li>
+        <li><code>por-repuesto</code> / <code>batch</code> leen de BD — correcto</li>
+      </ul>
+    </div>
+    <div class="box bad">
+      <h4>Falta implementar</h4>
+      <ul class="files">
+        <li><code>POST /api/audatex/oportunidades/sync/incremental</code> — <strong>no existe</strong></li>
+        <li>GET <code>/sync</code> con filtros en backend — hoy ignora query params</li>
+        <li>Refrescar → incremental — hoy llama <code>invalidarCache</code></li>
+        <li>FE sin <code>setOportunidades([])</code> + merge <code>wan</code>/<code>cotizacionId</code></li>
+        <li><code>buscarConFiltros</code> y export Excel — aún leen portal + Caffeine</li>
+        <li>Sprint Linear <code>sprint_sync_audatex.mjs</code> — no creado (código fuera de gate)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Flujo objetivo (resumen)</div>
+  <div class="st">Comportamiento cuando el sprint esté Done</div>
+  <div class="cb2">Abrir pantalla  → GET /sync (BD, ~50ms) — sin vaciar lista en UI
+
+Refrescar       → POST /sync/incremental (portal solo rango nuevo)
+                → UPSERT en audatex_oportunidades_sync
+                → SSE emite deltas
+                → UI merge (ej. 150 → 162, sin parpadeo)
+
+Background      → AudatexSyncWorker cada 30min / 6h / 24h (alimenta BD sin bloquear UI)
+
+Regla de oro    → Nunca borrar lo que ya está en BD ni vaciar la UI al refrescar.</div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Coherencia diagnóstico ↔ checklists (D11)</div>
+  <div class="st">Cada hallazgo y fix debe tener ítem checklist concreto — sin discrepancias</div>
+  <table class="tbl" id="coherencia-checklist">
+    <thead><tr><th>Hallazgo / necesidad</th><th>Fix en plan</th><th>Checklist ítem</th><th>Issue</th></tr></thead>
+    <tbody>
+      <tr><td>H1 — UI vacía al cargar</td><td>GET /sync sin setOportunidades([])</td><td>ROD-04 ítem 2</td><td>ROD-04</td></tr>
+      <tr><td>H2 — SSE pasivo no raspa</td><td>POST /sync/incremental + emitirDelta</td><td>ROD-02 ítem 6, ROD-03 ítem 3</td><td>ROD-02, ROD-03</td></tr>
+      <tr><td>H3 — Refrescar no dispara sync</td><td>Refrescar → incremental, no invalidarCache</td><td>ROD-04 ítem 4</td><td>ROD-04</td></tr>
+      <tr><td>H4 — Dos fuentes de datos</td><td>buscarConFiltros/export solo BD</td><td>ROD-02 ítem 7</td><td>ROD-02</td></tr>
+      <tr><td>H5 — BD no se alimenta al usar UI</td><td>UPSERT + worker + incremental</td><td>ROD-02 ítems 3–6</td><td>ROD-02</td></tr>
+      <tr><td>H6 — Registros CERRADA</td><td>Revisar pruneStaleRecords con sync activo</td><td>ROD-02 ítem 8</td><td>ROD-02</td></tr>
+      <tr><td>H7 — Filtros y claves</td><td>GET /sync params + merge wan</td><td>ROD-03 ítem 2, ROD-04 ítem 3</td><td>ROD-03, ROD-04</td></tr>
+      <tr><td>Guardar todos en BD</td><td>Tabla + UPSERT</td><td>ROD-01 ítems 1–3, ROD-02 ítem 4</td><td>ROD-01, ROD-02</td></tr>
+      <tr><td>Sin trazabilidad Linear</td><td>sprint_sync_audatex.mjs create</td><td>Fase 4 orquestador</td><td>Fase 4</td></tr>
+    </tbody>
+  </table>
+</section>
+
 <hr class="sep">
 
 <!-- ═══════════════════ CONTRATO LINEAR ═══════════════════ -->
@@ -426,7 +512,7 @@ node scripts/sprint-next.mjs</div>
 <span class="da">- [ ] 2. GET /sync con query params.</span>
 <span class="da">- [ ] 3. POST incremental → syncRange + emitirDelta cada UPSERT.</span>
 <span class="da">- [ ] 4. SSE /sync/stream recibe deltas de incremental y worker.</span>
-<span class="da">- [ ] 5. Deprecar /oportunidades/stream para FE.</span>
+<span class="da">- [ ] 5. Deprecar /oportunidades/stream y GET /sync/force para FE; usar POST incremental.</span>
 <span class="da">- [ ] 6. .http 2xx.</span>
 <span class="da">- [ ] 7. Handoff ROD-04 ítem 1 (GATE_HTTP).</span>
 
@@ -483,7 +569,7 @@ node scripts/sprint-next.mjs</div>
   <table class="tbl">
     <tbody>
       <tr><td>Estado</td><td>PENDIENTE</td></tr>
-      <tr><td>Validación</td><td>12 Linear + 8 diagnóstico + 5 briefing IA</td></tr>
+      <tr><td>Validación</td><td>12 Linear + 11 diagnóstico (D1–D11) + 5 briefing IA + coherencia</td></tr>
       <tr><td>Para aprobar</td><td>✅ APROBADO en chat → create</td></tr>
     </tbody>
   </table>
@@ -492,7 +578,7 @@ node scripts/sprint-next.mjs</div>
 <hr class="sep">
 <footer>
   <div>plan_sprint_sync_audatex.html</div>
-  <div>v3 · briefing IA · Mermaid · checklist secuencial</div>
+  <div>v4 · D1–D11 · coherencia-checklist · Mermaid · checklist secuencial</div>
 </footer>
 
 </body>

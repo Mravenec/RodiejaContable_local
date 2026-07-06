@@ -1,0 +1,53 @@
+---
+description: Plan sprint HTML — coherencia obligatoria diagnóstico ↔ hallazgos ↔ checklists ↔ código. Sin discrepancias.
+globs: _linear/plans/plan_sprint_*.html
+alwaysApply: true
+---
+
+# Plan HTML — coherencia sin discrepancias
+
+Fuente: `validate-plan-html.mjs` (checks estructurales + `validateCoherence()`). Complementa `linear-plan-diagnostico-exhaustivo.mdc` y `linear-plan-ai-briefing.mdc`.
+
+## Principio
+
+Un `plan_sprint_<nombre>.html` **completo** responde en un solo documento:
+
+1. Qué pide el usuario (necesidades)
+2. Qué está roto hoy (hallazgos con código)
+3. Qué ya existe vs qué falta (brecha)
+4. Cómo se arregla (pasos + issues)
+5. Qué ítem de checklist cierra cada fix (tabla coherencia)
+
+**Prohibido:** diagnóstico que pide `POST /foo` y checklist que no lo implementa; hallazgo H3 sin ítem ROD-N; plan «solo Linear» sin brecha de código.
+
+## Sección obligatoria: Coherencia diagnóstico ↔ checklists
+
+Tabla con `id="coherencia-checklist"` y columnas mínimas:
+
+| Hallazgo / necesidad | Fix en plan | Checklist ítem | Issue |
+|----------------------|-------------|----------------|-------|
+
+- Una fila por hallazgo H1…Hn (o equivalente).
+- Cada fila debe apuntar a un `- [ ]` **concreto** en «Descripciones issue verbatim».
+- `validate-plan-html.mjs` falla si falta la tabla o si un endpoint citado en diagnóstico no aparece en checklists.
+
+## D9 y D10 (además de D1–D8)
+
+| # | Sección | Contenido |
+|---|---------|-----------|
+| D9 | **Mapeo necesidad del usuario** | Tabla: Necesidad × Sección del plan × Issue |
+| D10 | **Brecha código** | Dos listas: «Ya escrito (parcial)» y «Falta implementar» con rutas/archivos |
+
+## Al redactar un plan (IA u orquestador)
+
+1. Investigar código real (backend, BD, FE) **antes** de escribir hallazgos.
+2. Copiar fragmentos reales en `code-ref` (no pseudocódigo).
+3. Por cada fix en resumen ejecutivo → añadir fila en `coherencia-checklist` + ítem en checklist verbatim.
+4. Ejecutar `validate-plan-html.mjs` — exit 0 obligatorio antes de pedir APROBADO.
+5. Skill: `.cursor/skills/linear-plan-html/SKILL.md`.
+
+## Prohibido
+
+- Plan validado estructuralmente pero con fixes huérfanos (en diagnóstico, no en checklist).
+- Marcar plan «completo» sin sección D10 (brecha código).
+- Implementar código de producto del sprint sin que el plan pase coherencia.
