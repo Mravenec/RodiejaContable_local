@@ -10,6 +10,10 @@
   REGLA: No cambiar colores, fuentes ni clases CSS. Solo el contenido.
   VALIDAR: cd _linear && node scripts/validate-plan-html.mjs plans/plan_sprint_<nombre>.html
   REGLA CURSOR: .cursor/rules/linear-plan-html-obligatorio.mdc
+  REGLA CURSOR: .cursor/rules/linear-plan-diagnostico-exhaustivo.mdc
+  REGLA CURSOR: .cursor/rules/linear-plan-ai-briefing.mdc
+  SKILL: .cursor/skills/linear-plan-html/SKILL.md
+  MERMAID: script CDN en head — mínimo 2 sequenceDiagram
 -->
 <html lang="es">
 <head>
@@ -63,6 +67,10 @@
   .plnote{font-size:10px;color:var(--muted)}
   ul.files{margin:0;padding-left:18px;font-size:13px;color:#94A3B8}
   ul.files li{margin-bottom:6px}
+  .code-ref-path{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#7DD3FC;padding:8px 14px;background:rgba(14,165,233,.08);border-bottom:1px solid var(--border)}
+  .code-ref pre{margin:0;padding:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.6;color:#E2E8F0}
+  .mermaid-wrap{background:#060912;border:1px solid var(--border);border-radius:8px;padding:20px;margin:16px 0;overflow-x:auto}
+  .al.ai{background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.3);border-left:3px solid #0EA5E9;color:#BAE6FD}
   hr.sep{border:none;border-top:1px solid var(--border);margin:48px 48px 0}
   footer{margin-top:64px;border-top:1px solid var(--border);padding:24px 48px;display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
   .utn{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#98BADF}
@@ -70,6 +78,11 @@
 </style>
 </head>
 <body>
+
+<!-- Copiar desde hero; luego INSTRUCCIONES PARA LA IA (id=para-la-ia) ANTES del contrato Linear -->
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });</script>
 
 <header class="hero">
   <div class="ey">Rodieja Contable · <!-- Sprint N --> · <!-- Propuesta | Completado --> · linear_rodieja</div>
@@ -84,6 +97,28 @@
 
 <!-- Propuesta: al.pending | Resumen: al.ok -->
 <div class="al pending"><div>⏳</div><div><strong>Propuesta pendiente de aprobación.</strong> Validar con <code>validate-plan-html.mjs</code> antes de <code>sprint_&lt;nombre&gt;.mjs create</code>.</div></div>
+
+<section class="sec" id="para-la-ia">
+  <div class="sl">INSTRUCCIONES PARA LA IA</div>
+  <div class="st">Leer primero — briefing autocontenido</div>
+  <div class="al ai"><div>🤖</div><div><!-- Resumen: problema, qué vamos a abordar, gate next, checklist un ítem --></div></div>
+</section>
+
+<!-- DIAGNÓSTICO: reinicia desde cero · Mermaid deseado + actual · H1–Hn con code-ref · solución · regla de oro -->
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Flujo deseado</div>
+  <div class="mermaid-wrap"><div class="mermaid">sequenceDiagram
+    participant A as Componente
+    A->>A: reemplazar con flujo deseado</div></div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Flujo actual / real</div>
+  <div class="mermaid-wrap"><div class="mermaid">sequenceDiagram
+    participant A as Componente
+    A->>A: reemplazar con flujo roto actual</div></div>
+</section>
 
 <!-- SECCIONES LINEAR OBLIGATORIAS — no eliminar; rellenar cada una -->
 
@@ -149,6 +184,12 @@ handoff ROD-B 1</div>
 </section>
 
 <section class="sec">
+  <div class="sl">Linear — Checklist secuencial (OBLIGATORIO)</div>
+  <div class="st">Un ítem a la vez — prohibido batch</div>
+  <div class="al pending"><div>⚠</div><div>checklist ROD-N &lt;n&gt; solo el pendiente. Prohibido 1,2,3 / all / --check-all.</div></div>
+</section>
+
+<section class="sec">
   <div class="sl">Linear — Ciclo por issue (Fase 5)</div>
   <div class="st">next → checklist (un ítem) → Testing → handoff → Done</div>
   <div class="cb2">node scripts/sprint-next.mjs
@@ -187,6 +228,59 @@ node scripts/sprint_&lt;nombre&gt;.mjs cleanup</div>
 <section class="sec">
   <div class="sl">Fase 6 — Entregable de cierre</div>
   <div class="st">resumen_sprint_&lt;nombre&gt;.html · Epic Completed · cleanup</div>
+</section>
+
+<!-- DIAGNÓSTICO EXHAUSTIVO D1–D8 — obligatorio; ver linear-plan-diagnostico-exhaustivo.mdc -->
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Estado actual del código</div>
+  <div class="st"><!-- Qué existe hoy, qué está a medias, estado Linear/sprint --></div>
+  <div class="cb2"><!-- sprint-next, código fuera de gate, archivos parcialmente implementados --></div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Flujo deseado vs flujo actual</div>
+  <div class="st">Comparación explícita (diagrama o secuencia)</div>
+  <div class="compare">
+    <div class="box good"><h4>Flujo deseado</h4><!-- … --></div>
+    <div class="box bad"><h4>Flujo actual / real</h4><!-- … --></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Hallazgos causa raíz</div>
+  <div class="st">Archivos, endpoints y líneas concretas</div>
+  <ul class="files"><li><!-- hallazgo 1 + ruta --></li></ul>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Arquitectura híbrida</div>
+  <div class="st">Componente × fuente de datos × estado</div>
+  <table class="tbl"><thead><tr><th>Componente</th><th>Fuente</th><th>Estado</th></tr></thead><tbody><tr><td><!-- --></td><td><!-- --></td><td><!-- --></td></tr></tbody></table>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Solución paso a paso</div>
+  <div class="st">Cada paso → issue ROD-N responsable</div>
+  <table class="tbl"><thead><tr><th>Paso</th><th>Qué</th><th>Issue</th></tr></thead><tbody><tr><td>1</td><td><!-- --></td><td>ROD-N</td></tr></tbody></table>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Comportamiento esperado</div>
+  <div class="st">Escenario concreto (ej. refresh incremental sin vaciar UI)</div>
+  <div class="cb2"><!-- Estado UI antes → acción → estado después --></div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Regla de oro</div>
+  <div class="st">BD fuente de verdad; refresh = incremental, no reset</div>
+  <div class="al ok"><div>✓</div><div><!-- Frase explícita + consecuencias si se viola --></div></div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Resumen ejecutivo</div>
+  <div class="st">Problema → Causa → Fix (mapeo a checklist)</div>
+  <table class="tbl"><thead><tr><th>Problema</th><th>Causa</th><th>Fix</th><th>Issue</th></tr></thead><tbody><tr><td><!-- --></td><td><!-- --></td><td><!-- --></td><td>ROD-N</td></tr></tbody></table>
 </section>
 
 <section class="sec">

@@ -74,21 +74,23 @@ Si el ítem 1 dice «NO iniciar hasta…» o «GATE_HTTP»:
 2. Si ítem 1 sigue `[ ]` → **no implementar** ítem 2+ (aunque `blocks` ya liberó).
 3. Cuando upstream hace `handoff ROD-N 1`, verificar `[x]` y recién entonces continuar.
 
-## Plan HTML — contrato Linear (Fase 2)
+## Plan HTML — contrato Linear + diagnóstico (Fase 2)
 
-Todo `plan_sprint_<nombre>.html` es **casi un ticket de Linear**: no es solo el dominio del producto.
+Todo `plan_sprint_<nombre>.html` es **contrato Linear + auditoría técnica**: no es solo dominio de producto ni un resumen vago.
 
-1. Copiar `_linear/plans/_plantilla_rodieja.html` (tiene esqueleto de secciones `Linear — …`).
-2. Rellenar las 12 secciones listadas en `linear-plan-html-obligatorio.mdc`.
-3. Validar antes de pedir aprobación o hacer `create`:
+1. Copiar `_linear/plans/_plantilla_rodieja.html` (esqueleto Linear + Diagnóstico + briefing IA).
+2. Rellenar **12 secciones Linear**, **8 diagnóstico D1–D8**, **briefing IA** (instrucciones, Mermaid, código, checklist secuencial). Skill: `.cursor/skills/linear-plan-html/SKILL.md`.
+3. **Coherencia obligatoria:** cada hallazgo del diagnóstico → ≥1 ítem de checklist en un issue ROD-N.
+4. **Checklist en ejecución:** un ítem a la vez (`checklist ROD-N <n>` solo el pendiente). Documentado en el plan y en `linear-checklist-secuencial.mdc`.
+5. Validar antes de pedir aprobación o hacer `create`:
 
 ```bash
 cd _linear
 node scripts/validate-plan-html.mjs plans/plan_sprint_<nombre>.html
 ```
 
-4. Humano responde **✅ APROBADO** en chat.
-5. `node scripts/sprint_<nombre>.mjs create`
+5. Humano responde **✅ APROBADO** en chat.
+6. `node scripts/sprint_<nombre>.mjs create`
 
 Gates N/A (sin BD) deben figurar explícitos; si hay `role:database`, incluir `drop_db` → `setup_db` → `load_mocks` en Testing.
 
@@ -167,7 +169,8 @@ MCP (si está configurado en Cursor): `claim_issue`, `ping_issue`, `get_issue_co
 
 ## Prohibido
 
-- Plan HTML sin secciones Linear (`validate-plan-html.mjs` falla).
+- Plan HTML sin secciones Linear o diagnóstico D1–D8 (`validate-plan-html.mjs` falla).
+- Plan con discrepancia entre diagnóstico y checklists de issues.
 - `sprint_*.mjs create` sin ✅ APROBADO y sin validación exitosa.
 - Trabajar sin issue reclamado o sin `next` claro.
 - Paralelizar issues de la misma cadena `blocks`.

@@ -4,9 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Propuesta — Sincronización Avanzada Audatex · Rodieja Contable</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
-  :root{--bg:#07090F;--surf:#0D1117;--surf2:#131A24;--border:rgba(255,255,255,.07);--text:#E2E8F0;--muted:#64748B;--db:#EAB308;--be:#22C55E;--fe:#0EA5E9;--green:#22C55E;--orange:#F97316}
+  :root{--bg:#07090F;--surf:#0D1117;--surf2:#131A24;--border:rgba(255,255,255,.07);--text:#E2E8F0;--muted:#64748B;--green:#22C55E;--orange:#F97316;--red:#F87171}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.6}
   .hero{padding:64px 48px 48px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
@@ -15,100 +17,325 @@
   .ey::after{content:'';width:32px;height:1px;background:var(--green);display:block}
   h1{font-family:'Syne',sans-serif;font-size:clamp(24px,4vw,44px);font-weight:800;line-height:1.05;color:#fff}
   h1 em{font-style:normal;background:linear-gradient(135deg,#22C55E,#0EA5E9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-  .sub{margin-top:14px;font-size:14px;color:var(--muted);max-width:860px}
+  h2.diagnosis{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#fff;margin:28px 0 12px}
+  h3.diagnosis{font-size:16px;font-weight:600;color:#CBD5E1;margin:20px 0 10px}
+  .sub{margin-top:14px;font-size:14px;color:var(--muted);max-width:900px}
   .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
   .chip{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:var(--surf2);border:1px solid var(--border);padding:4px 12px;border-radius:4px}
-  .chip span{color:#fff}.chip.ok{border-color:rgba(34,197,94,.35);color:var(--green)}
-  .chip.pending{border-color:rgba(249,115,22,.35);color:var(--orange)}
+  .chip span{color:#fff}.chip.pending{border-color:rgba(249,115,22,.35);color:var(--orange)}
   .al{margin:32px 48px 0;padding:14px 18px;border-radius:8px;font-size:13px;display:flex;gap:12px}
   .al.ok{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-left:3px solid var(--green);color:#86EFAC}
   .al.pending{background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.25);border-left:3px solid var(--orange);color:#FDBA74}
+  .al.ai{background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.3);border-left:3px solid #0EA5E9;color:#BAE6FD}
   .sec{padding:48px 48px 0}
   .sl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
   .st{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:18px}
   .tbl{width:100%;border-collapse:collapse;font-size:12.5px;font-family:'IBM Plex Mono',monospace}
   .tbl th{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--surf2)}
   .tbl td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:top}
-  .ok{color:var(--green)}.done{color:var(--green)}
-  .issue{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start}
-  .badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--green);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);padding:2px 8px;border-radius:4px}
-  .badge.pending{color:var(--orange);background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.25)}
+  .ok{color:var(--green)}
+  .issue{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:12px}
+  .badge.pending{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--orange);background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);padding:2px 8px;border-radius:4px}
   .issue-id{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
   .issue-title{font-size:14px;font-weight:500;color:#fff;margin-top:4px}
-  .compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
-  .box{border-radius:8px;padding:14px;font-size:12.5px;line-height:1.55}
-  .box.bad{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);color:#FCA5A5}
-  .box.good{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);color:#BBF7D0}
-  .box h4{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
-  .box.bad h4{color:#FCA5A5}.box.good h4{color:var(--green)}
   code{font-family:'IBM Plex Mono',monospace;font-size:11px;background:rgba(255,255,255,.06);color:#CBD5E1;padding:1px 5px;border-radius:3px}
   .cb2{background:#060912;border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:13px 16px;margin:10px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.75;overflow-x:auto;white-space:pre}
   .da{color:#86EFAC}.dk{color:#7DD3FC}.dc{color:#64748B}
   .plf{display:flex;align-items:stretch;flex-wrap:wrap;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin:12px 0 20px}
-  .pln{background:var(--surf2);padding:12px 16px;display:flex;flex-direction:column;gap:3px;border-right:1px solid var(--border)}
-  .pla{display:flex;align-items:center;padding:0 8px;background:var(--surf2);color:var(--muted);font-size:14px;border-right:1px solid var(--border)}
+  .pln{background:var(--surf2);padding:12px 16px;border-right:1px solid var(--border)}
+  .pla{padding:0 8px;background:var(--surf2);color:var(--muted);display:flex;align-items:center;border-right:1px solid var(--border)}
   .plname{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#fff}
   .plnote{font-size:10px;color:var(--muted)}
   ul.files{margin:0;padding-left:18px;font-size:13px;color:#94A3B8}
-  ul.files li{margin-bottom:6px}
+  ul.files li{margin-bottom:10px}
+  .mermaid-wrap{background:#060912;border:1px solid var(--border);border-radius:8px;padding:20px;margin:16px 0;overflow-x:auto}
+  .code-ref{background:#060912;border:1px solid rgba(255,255,255,.08);border-radius:8px;margin:12px 0;overflow:hidden}
+  .code-ref-path{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#7DD3FC;padding:8px 14px;background:rgba(14,165,233,.08);border-bottom:1px solid var(--border)}
+  .code-ref pre{margin:0;padding:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.6;color:#E2E8F0;overflow-x:auto}
+  .narrative{font-size:14px;color:#CBD5E1;max-width:900px}
+  .narrative p{margin-bottom:14px}
+  .narrative strong{color:#fff}
   hr.sep{border:none;border-top:1px solid var(--border);margin:48px 48px 0}
   footer{margin-top:64px;border-top:1px solid var(--border);padding:24px 48px;display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
-  .utn{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#98BADF}
-  @media(max-width:720px){.compare{grid-template-columns:1fr}.hero,.sec,.al{padding-left:24px;padding-right:24px;margin-left:0;margin-right:0}}
+  @media(max-width:720px){.hero,.sec,.al{padding-left:24px;padding-right:24px}}
 </style>
 </head>
 <body>
 
 <header class="hero">
-  <div class="ey">Rodieja Contable · Sprint 3 · Propuesta · linear_rodieja</div>
-  <h1>Sincronización Avanzada Audatex<br><em>Workers Background y Vista Materializada</em></h1>
-  <p class="sub">Desacoplar la carga de oportunidades del Frontend implementando un Worker asíncrono escalonado, guardado en Base de Datos y eventos SSE reactivos.</p>
+  <div class="ey">Rodieja Contable · Sprint sync_audatex · Briefing IA + Linear · linear_rodieja</div>
+  <h1>Diagnóstico: por qué Audatex<br><em>«reinicia desde cero»</em></h1>
+  <p class="sub">Documento autocontenido para cualquier IA o humano. Incluye: qué está pasando, por qué falla, diagramas de flujo, código actual, solución paso a paso y contrato Linear (ROD-01 → ROD-04). <strong>Leer completo antes de codear.</strong></p>
   <div class="chips">
-    <div class="chip pending">Estado <span>PENDIENTE</span></div>
-    <div class="chip">Issues <span>4 planificados</span></div>
+    <div class="chip pending">Plan <span>PENDIENTE APROBACIÓN</span></div>
+    <div class="chip">Issues <span>ROD-01 → ROD-04</span></div>
+    <div class="chip">Checklist <span>un ítem a la vez</span></div>
   </div>
 </header>
 
-<div class="al pending"><div>⏳</div><div><strong>Propuesta pendiente de aprobación.</strong> Validar con <code>validate-plan-html.mjs</code> antes de <code>sprint_sync_audatex.mjs create</code>.</div></div>
+<!-- ═══════════════════ INSTRUCCIONES PARA LA IA ═══════════════════ -->
+
+<section class="sec" id="para-la-ia">
+  <div class="sl">INSTRUCCIONES PARA LA IA</div>
+  <div class="st">Leer esto primero — contexto completo sin chat previo</div>
+  <div class="al ai">
+    <div>🤖</div>
+    <div>
+      <strong>Eres un agente Rodieja Contable.</strong> Este HTML es tu única fuente de verdad para el sprint <code>sync_audatex</code>.
+      <ol style="margin:10px 0 0 18px;line-height:1.8">
+        <li>Lee el <strong>Diagnóstico</strong> (secciones siguientes): problema, flujos, hallazgos H1–H7.</li>
+        <li>Entiende <strong>qué vamos a abordar</strong>: cerrar circuito BD ↔ Portal ↔ UI incremental (no vaciar al refrescar).</li>
+        <li>Antes de editar <code>0.BaseDeDatos/</code>, <code>1.Backend/</code> o <code>2.Frontend/</code>: <code>cd _linear &amp;&amp; node scripts/sprint-next.mjs</code>.</li>
+        <li>Trabaja <strong>solo el issue desbloqueado</strong> (ROD-N). Checklist: <strong>un ítem a la vez</strong> — ver sección «Checklist secuencial».</li>
+        <li>Prohibido: <code>checklist ROD-N 1,2,3</code>, <code>all</code>, implementar varios ítems y marcar al final.</li>
+        <li>Si no hay <code>sprint_sync_audatex.mjs</code>: parar code producto; esperar ✅ APROBADO humano y <code>create</code>.</li>
+      </ol>
+    </div>
+  </div>
+  <div class="narrative" style="margin-top:20px">
+    <p><strong>Resumen ejecutivo para IA:</strong> Revisé backend, BD y frontend. El diseño correcto (tabla <code>audatex_oportunidades_sync</code>, worker, UPSERT, GET /sync) <strong>ya está parcialmente escrito</strong>, pero el flujo real está <strong>a medias y mal conectado</strong>. Al refrescar la UI ejecuta <code>setOportunidades([])</code>, conecta un SSE pasivo que no raspa el portal, y no dispara sync incremental. Por eso parece que todo se borra y se vuelve a empezar.</p>
+    <p><strong>Qué vamos a abordar en este sprint:</strong> (1) confirmar BD, (2) unificar lecturas en BD + POST <code>/sync/incremental</code>, (3) SSE delta activo, (4) FE sin vaciar + Refrescar → incremental. Regla de oro: <em>nunca borrar lo que ya está en BD; solo UPSERT + merge deltas.</em></p>
+  </div>
+</section>
+
+<!-- ═══════════════════ DIAGNÓSTICO COMPLETO ═══════════════════ -->
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Estado actual del código</div>
+  <div class="st">Estado Linear, gate y repositorio</div>
+  <div class="cb2">sprint-next → No hay sprint activo (no existe sprint_sync_audatex.mjs)
+
+Plan sync_audatex → PENDIENTE (sin ✅ APROBADO ni create)
+Código sync integrado fuera del gate Linear (sin checklist trazable)
+
+Para arreglarlo de forma trazable: aprobar este plan → create → ROD-01…04 secuencial</div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Flujo deseado</div>
+  <div class="st">Cómo <strong>debe</strong> funcionar cuando el sprint esté Done</div>
+  <p class="narrative" style="margin-bottom:12px"><strong>Principio clave:</strong> la BD es la fuente de verdad. El portal solo alimenta <strong>nuevos</strong> o <strong>actualizados</strong>. Refrescar = «traer más / actualizar», no «borrar y empezar».</p>
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+sequenceDiagram
+    participant FE as Frontend
+    participant BE as Backend
+    participant BD as audatex_oportunidades_sync
+    participant Portal as Audatex InPart
+    participant Worker as AudatexSyncWorker
+
+    Note over Worker,Portal: Background cada 30min / 6h / 24h
+    Worker->>Portal: syncRange(desde, hasta)
+    Portal-->>Worker: oportunidades
+    Worker->>BD: UPSERT por WAN
+    Worker->>FE: SSE delta opcional
+
+    Note over FE,BD: Al abrir pantalla
+    FE->>BE: GET /oportunidades/sync
+    BE->>BD: SELECT ACTIVA
+    BD-->>FE: lista instantanea 50ms
+
+    Note over FE,Portal: Al refrescar incremental
+    FE->>BE: POST sync incremental
+    BE->>Portal: scrape solo rango nuevo
+    BE->>BD: UPSERT
+    BE-->>FE: deltas SSE sin vaciar tabla
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Flujo actual / real</div>
+  <div class="st">Qué ocurre <strong>hoy</strong> en producción/dev (causa del bug)</div>
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+sequenceDiagram
+    participant FE as OportunidadesAudatex.js
+    participant BE as AudatexController
+    participant BD as BD local
+    participant Portal as Audatex
+
+    FE->>FE: setOportunidades vacio BORRA TODO
+    FE->>BE: GET /oportunidades/sync
+    BE->>BD: getOportunidadesFromDb
+    BD-->>FE: 0 o pocos si worker no corrio
+    FE->>BE: SSE /sync/stream
+    Note over BE: Solo escucha pasivo NO raspa portal
+    Note over BE: Solo emite si Worker background corre
+    Note over FE: Pantalla vacia o cargando sin fin
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Hallazgos causa raíz</div>
+  <div class="st">H1 a H7 — archivo, código, fix e issue</div>
+
+  <h3 class="diagnosis">H1 — El frontend vacía la lista en cada carga</h3>
+  <p class="narrative">Aunque la BD tenga datos, la UI los borra primero. Sensación de «empezar desde cero». <strong>Fix:</strong> ROD-04 ítem 2.</p>
+  <div class="code-ref">
+    <div class="code-ref-path">2.Frontend/RodiejaContable/src/pages/audatex/OportunidadesAudatex.js · líneas 106–107</div>
+    <pre>    setOportunidades([]);
+    setTotalCargado(0);</pre>
+  </div>
+
+  <h3 class="diagnosis">H2 — El SSE conectado no sincroniza con Audatex</h3>
+  <p class="narrative"><code>GET /oportunidades/sync/stream</code> solo registra listener pasivo. No llama portal ni <code>syncRange</code>. Solo emite <code>delta</code> cuando <code>AudatexSyncWorker</code> hace UPSERT en background. El endpoint que sí raspa+guarda es <code>/oportunidades/stream</code> pero el FE ya no lo usa. <strong>Fix:</strong> ROD-03 ítems 3–5.</p>
+  <div class="code-ref">
+    <div class="code-ref-path">1.Backend/.../integration/audatex/controller/AudatexController.java · líneas 97–105</div>
+    <pre>@GetMapping("/oportunidades/sync/stream")
+public SseEmitter streamSyncDeltas() {
+    SseEmitter emitter = new SseEmitter(3600_000L);
+    deltaEmitters.add(emitter);
+    // no llama al portal ni a syncRange
+    return emitter;
+}</pre>
+  </div>
+
+  <h3 class="diagnosis">H3 — «Refrescar» invalida caché vieja, no dispara sync</h3>
+  <p class="narrative">Existe <code>GET /oportunidades/sync/force</code> pero el botón Refrescar no lo llama. <strong>Fix:</strong> ROD-04 ítem 4.</p>
+  <div class="code-ref">
+    <div class="code-ref-path">2.Frontend/.../OportunidadesAudatex.js · handleSincronizar ~410–418</div>
+    <pre>  const handleSincronizar = async () => {
+    await audatexService.invalidarCache();  // Caffeine flujo antiguo
+    cargarOportunidadesStream(nuevos);      // vacía UI + GET BD + SSE pasivo
+  };</pre>
+  </div>
+
+  <h3 class="diagnosis">H4 — Arquitectura híbrida incompleta</h3>
+  <p class="narrative">Dos mundos: portal directo (viejo) y BD materializada (nuevo). <strong>Fix:</strong> ROD-02 ítem 7.</p>
+  <table class="tbl">
+    <thead><tr><th>Componente</th><th>Fuente de datos</th><th>Estado</th><th>Issue</th></tr></thead>
+    <tbody>
+      <tr><td>Pantalla Oportunidades (FE)</td><td>BD + SSE pasivo</td><td>Parcial</td><td>ROD-04</td></tr>
+      <tr><td>buscarConFiltros / export Excel</td><td>Portal + Caffeine cache</td><td>Flujo antiguo</td><td>ROD-02</td></tr>
+      <tr><td>por-repuesto / batch</td><td>getOportunidadesFromDb()</td><td class="ok">Correcto</td><td>—</td></tr>
+      <tr><td>streamOportunidades (/oportunidades/stream)</td><td>Portal + UPSERT</td><td>Existe, FE no usa</td><td>ROD-03</td></tr>
+      <tr><td>AudatexSyncWorker</td><td>Portal → UPSERT</td><td>Solo background</td><td>ROD-02</td></tr>
+      <tr><td>POST /sync/incremental</td><td>—</td><td>No existe</td><td>ROD-02/03</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="diagnosis">H5 — La infraestructura de persistencia sí existe</h3>
+  <ul class="files">
+    <li>Tabla: <code>0.BaseDeDatos/DB/04_AudatexSync.sql</code> (en <code>00_run_all.sql</code>)</li>
+    <li>UPSERT: <code>AudatexService.upsertOportunidad()</code> por <code>wan</code> PK</li>
+    <li>Worker: Hot 3d/30min, Warm 4–15d/6h, Cold 16–30d/diario</li>
+    <li>Limpieza: <code>markStaleAsClosed(24)</code> → estado CERRADA</li>
+  </ul>
+  <p class="narrative"><strong>El problema no es «falta la tabla»</strong>, sino que <strong>nadie alimenta la BD cuando el usuario refresca</strong>. Fix: POST incremental + ROD-04.</p>
+
+  <h3 class="diagnosis">H6 — Riesgo de «desaparecer» registros</h3>
+  <p class="narrative">Sin sync regular, <code>pruneStaleRecords</code> marca CERRADA lo no visto en 24h. <code>getOportunidadesFromDb()</code> solo ACTIVA. Datos «se pierden» de la vista aunque sigan en Audatex. <strong>Fix:</strong> ROD-02 ítem 8.</p>
+
+  <h3 class="diagnosis">H7 — Filtros y claves inconsistentes</h3>
+  <p class="narrative">GET <code>/sync</code> ignora query params del FE. Merge por <code>cotizacionId</code> pero PK BD es <code>wan</code> → duplicados visuales. <strong>Fix:</strong> ROD-03 ítem 2 + ROD-04 ítem 3.</p>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Por qué no se puede trabajar así</div>
+  <div class="st">Impacto operativo</div>
+  <ul class="files">
+    <li><strong>Cada refresh = pantalla en blanco</strong> → pierdes paginación, filas expandidas, trabajo en curso.</li>
+    <li><strong>Sin sync activo al refrescar</strong> → dependes del worker cada 30 min; la UI no refleja «ahora».</li>
+    <li><strong>Dos flujos mezclados</strong> → comportamiento impredecible según endpoint.</li>
+    <li><strong>Sin sprint Linear activo</strong> → cambios sin checklist; imposible multi-agente ordenado.</li>
+  </ul>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Solución objetivo (flujo incremental real)</div>
+  <div class="st">Cómo lo vamos a abordar — pasos → issues</div>
+  <table class="tbl">
+    <thead><tr><th>Paso</th><th>Qué</th><th>Quién (Linear)</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Confirmar tabla audatex_oportunidades_sync (setup_db)</td><td>ROD-01</td></tr>
+      <tr><td>2</td><td>Unificar backend: lectura desde BD; portal solo en sync</td><td>ROD-02</td></tr>
+      <tr><td>3</td><td>POST /oportunidades/sync/incremental — rango nuevo, UPSERT</td><td>ROD-02/03</td></tr>
+      <tr><td>4</td><td>SSE solo registros nuevos/actualizados (no re-stream completo)</td><td>ROD-03</td></tr>
+      <tr><td>5</td><td>FE: montaje GET sin setOportunidades([]); merge wan/cotizacionId</td><td>ROD-04</td></tr>
+      <tr><td>6</td><td>Refrescar → incremental, NO invalidarCache</td><td>ROD-04</td></tr>
+      <tr><td>7</td><td>Deprecar /oportunidades directo al portal; export desde BD</td><td>ROD-02</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Comportamiento esperado al refrescar</div>
+  <div class="st">Criterio de aceptación E2E</div>
+  <div class="cb2">Estado actual en UI: 150 oportunidades (de BD)
+  → POST sync incremental (últimos 3 días)
+  → Portal devuelve 12 nuevas + 5 actualizadas
+  → UPSERT en BD
+  → SSE emite 17 deltas
+  → UI pasa a 162 (sin parpadeo, sin vaciar)</div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Regla de oro</div>
+  <div class="st">BD fuente de verdad — refresh incremental, no reset</div>
+  <div class="al ok"><div>✓</div><div><strong>Nunca borrar lo que ya está en BD ni vaciar la UI al refrescar.</strong> Solo UPSERT + emitir deltas. Violación = bug de sprint.</div></div>
+</section>
+
+<section class="sec">
+  <div class="sl">Diagnóstico — Resumen ejecutivo</div>
+  <div class="st">Problema → Causa → Fix → Issue</div>
+  <table class="tbl">
+    <thead><tr><th>Problema</th><th>Causa</th><th>Fix</th><th>Issue</th></tr></thead>
+    <tbody>
+      <tr><td>Pantalla vacía al refrescar</td><td>setOportunidades([]) en FE</td><td>Mantener estado; merge deltas</td><td>ROD-04</td></tr>
+      <tr><td>No agrega, «reinicia»</td><td>SSE pasivo sin sync activo</td><td>POST /sync/incremental + SSE delta</td><td>ROD-02, ROD-03</td></tr>
+      <tr><td>BD no se llena al usar UI</td><td>Worker solo background</td><td>Refrescar dispara incremental</td><td>ROD-04</td></tr>
+      <tr><td>Código inconsistente</td><td>Portal + BD mezclados</td><td>buscarConFiltros/export solo BD</td><td>ROD-02</td></tr>
+      <tr><td>Sin trazabilidad</td><td>Sprint no creado</td><td>sprint_sync_audatex.mjs create</td><td>Fase 4</td></tr>
+    </tbody>
+  </table>
+  <p class="narrative" style="margin-top:16px">El diseño es correcto y gran parte del código ya está. Falta <strong>cerrar el circuito</strong>: refrescar = sync incremental + merge, nunca vaciar + esperar pasivamente.</p>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════ CONTRATO LINEAR ═══════════════════ -->
 
 <section class="sec">
   <div class="sl">Linear — Proceso obligatorio (7 fases)</div>
-  <div class="st">Mismas fases siempre; cambian issues y gates</div>
+  <div class="st">Fase 0–6</div>
   <table class="tbl">
-    <thead><tr><th>Fase</th><th>Qué</th><th>Quién</th><th>Gate</th><th>Estado</th></tr></thead>
+    <thead><tr><th>Fase</th><th>Qué</th><th>Gate</th><th>Estado</th></tr></thead>
     <tbody>
-      <tr><td>Fase 0 — Limpieza</td><td>cleanup + borrar artefactos</td><td>orchestrator</td><td>Sprint previo cerrado</td><td>✓</td></tr>
-      <tr><td>1–2 — Plan + HTML</td><td>plan_sprint_sync_audatex.html</td><td>orchestrator</td><td>validate-plan-html OK</td><td>PENDIENTE</td></tr>
-      <tr><td>3 — Aprobación</td><td>✅ humano</td><td>Tú</td><td>APROBADO</td><td>PENDIENTE</td></tr>
-      <tr><td>4 — MJS</td><td>sprint_sync_audatex.mjs create</td><td>orchestrator</td><td>Tras Fase 3</td><td>—</td></tr>
-      <tr><td>5 — Multi-agente</td><td>Doing → Testing → Done</td><td>agents</td><td>GATE_HTTP → FE</td><td>—</td></tr>
-      <tr><td>Fase 6 — Resumen</td><td>resumen_sprint_sync_audatex.html</td><td>orchestrator</td><td>Epic Completed</td><td>—</td></tr>
+      <tr><td>0 Limpieza</td><td>cleanup artefactos sprint anterior</td><td>Sprint previo cerrado</td><td>✓</td></tr>
+      <tr><td>1–2 Plan HTML</td><td>Este documento (Linear + diagnóstico + IA)</td><td>validate-plan-html OK</td><td>✓</td></tr>
+      <tr><td>3 Aprobación</td><td>✅ humano en chat</td><td>APROBADO</td><td>PENDIENTE</td></tr>
+      <tr><td>4 MJS</td><td>sprint_sync_audatex.mjs create</td><td>Tras Fase 3</td><td>—</td></tr>
+      <tr><td>5 Multi-agente</td><td>ROD-01→04 checklist ítem a ítem</td><td>GATE_HTTP→FE</td><td>—</td></tr>
+      <tr><td>6 Resumen</td><td>resumen_sprint_sync_audatex.html</td><td>Epic Completed</td><td>—</td></tr>
     </tbody>
   </table>
 </section>
 
 <section class="sec">
   <div class="sl">Linear — Metadatos del sprint</div>
-  <div class="st">Sincronizacion_Audatex · script · equipo linear_rodieja</div>
+  <div class="st">EPIC_NAME · SPRINT_NAME · script</div>
   <table class="tbl">
     <tbody>
       <tr><td>EPIC_NAME</td><td>Sincronizacion_Audatex</td></tr>
       <tr><td>SPRINT_NAME</td><td>sync_audatex</td></tr>
       <tr><td>Script</td><td><code>_linear/scripts/sprint_sync_audatex.mjs</code></td></tr>
+      <tr><td>Equipo</td><td>linear_rodieja</td></tr>
     </tbody>
   </table>
 </section>
 
 <section class="sec">
-  <div class="sl">Linear — Gates (qué aplica / qué no)</div>
+  <div class="sl">Linear — Gates</div>
   <div class="st">GATE_SQL · GATE_BD · GATE_JOOQ · GATE_HTTP · GATE_FE</div>
   <table class="tbl">
-    <thead><tr><th>Gate</th><th>¿Aplica?</th><th>Issue</th><th>Comandos</th></tr></thead>
+    <thead><tr><th>Gate</th><th>Aplica</th><th>Issue</th><th>Comandos</th></tr></thead>
     <tbody>
-      <tr><td>GATE_SQL</td><td>Sí</td><td>ROD-01</td><td>merge SQL file</td></tr>
-      <tr><td>GATE_BD</td><td>Sí</td><td>role:database</td><td>python setup_db.py</td></tr>
-      <tr><td>GATE_JOOQ</td><td>Sí</td><td>ROD-02</td><td>mvn spring-boot:run</td></tr>
-      <tr><td>GATE_HTTP</td><td>Sí</td><td>ROD-03</td><td>.http 2xx</td></tr>
+      <tr><td>GATE_SQL</td><td>Sí</td><td>ROD-01</td><td>04_AudatexSync.sql</td></tr>
+      <tr><td>GATE_BD</td><td>Sí</td><td>ROD-01</td><td>drop_db → setup_db → load_mocks</td></tr>
+      <tr><td>GATE_JOOQ</td><td>Sí</td><td>ROD-02</td><td>mvn compile</td></tr>
+      <tr><td>GATE_HTTP</td><td>Sí</td><td>ROD-03</td><td>.http sync + incremental 2xx</td></tr>
       <tr><td>GATE_FE</td><td>Sí</td><td>ROD-04</td><td>npm run build</td></tr>
     </tbody>
   </table>
@@ -116,83 +343,102 @@
 
 <section class="sec">
   <div class="sl">Linear — Tabla de issues</div>
-  <div class="st">Id · role:backend|database|frontend|orchestrator · pts · blocks · archivos</div>
+  <div class="st">ROD-01 → ROD-04</div>
   <table class="tbl">
     <thead><tr><th>Id</th><th>Rol</th><th>Pts</th><th>Título</th><th>blocks</th><th>Archivos</th></tr></thead>
     <tbody>
       <tr><td>ROD-01</td><td>role:database</td><td>2</td><td>Tabla audatex_oportunidades_sync</td><td>ROD-02</td><td>0.BaseDeDatos/DB/*.sql</td></tr>
-      <tr><td>ROD-02</td><td>role:backend</td><td>5</td><td>Worker @Scheduled Escalonado y UPSERT</td><td>ROD-03</td><td>SyncWorker.java, AudatexService.java</td></tr>
-      <tr><td>ROD-03</td><td>role:backend</td><td>3</td><td>Emisión de Eventos SSE Delta</td><td>ROD-04</td><td>AudatexController.java</td></tr>
-      <tr><td>ROD-04</td><td>role:frontend</td><td>3</td><td>Carga Instantánea + Reacción a Eventos</td><td>none</td><td>OportunidadesAudatex.js</td></tr>
+      <tr><td>ROD-02</td><td>role:backend</td><td>8</td><td>Worker + UPSERT + BD unificada + POST incremental</td><td>ROD-03</td><td>AudatexSyncWorker.java, AudatexService.java</td></tr>
+      <tr><td>ROD-03</td><td>role:backend</td><td>5</td><td>GET filtros + SSE delta activo + .http</td><td>ROD-04</td><td>AudatexController.java</td></tr>
+      <tr><td>ROD-04</td><td>role:frontend</td><td>5</td><td>UI incremental sin vaciar</td><td>none</td><td>OportunidadesAudatex.js, api/audatex.js</td></tr>
     </tbody>
   </table>
 </section>
 
 <section class="sec">
   <div class="sl">Linear — Dependencias blocks + handoff</div>
-  <div class="st">Cadena serial · handoff ítem 1 downstream</div>
-  <div class="cb2"><span class="dc">ROD-01</span> blocks <span class="dk">ROD-02</span>
-handoff ROD-02 1
-<span class="dc">ROD-02</span> blocks <span class="dk">ROD-03</span>
-<span class="dc">ROD-03</span> blocks <span class="dk">ROD-04</span>
-handoff ROD-04 1</div>
+  <div class="cb2">ROD-01 blocks ROD-02 → handoff ROD-02 1
+ROD-02 blocks ROD-03 → handoff ROD-03 1
+ROD-03 blocks ROD-04 → handoff ROD-04 1</div>
+</section>
+
+<section class="sec">
+  <div class="sl">Linear — Checklist secuencial (OBLIGATORIO)</div>
+  <div class="st">Un ítem a la vez — nunca batch</div>
+  <div class="al pending"><div>⚠</div><div>
+    <strong>Regla de oro Linear:</strong> leer → implementar <strong>un solo ítem</strong> → probar → marcar → repetir.<br><br>
+    <code>node scripts/linear-update-state.mjs ROD-N --checklist-status</code> — identificar único pendiente<br>
+    <code>node scripts/sprint_sync_audatex.mjs checklist ROD-N &lt;n&gt;</code> — solo ese número<br><br>
+    <strong>Prohibido (exit 1):</strong> checklist ROD-N 1,2,3 · checklist all · --check-all · codear ítems 1–4 y marcar al final.
+  </div></div>
 </section>
 
 <section class="sec">
   <div class="sl">Linear — Ciclo por issue (Fase 5)</div>
-  <div class="st">next → checklist (un ítem) → Testing → handoff → Done</div>
-  <div class="cb2">node scripts/sprint-next.mjs
-checklist ROD-N &lt;n&gt;
-state ROD-N Testing
-state ROD-N Done</div>
+  <div class="cb2">next → show ROD-N → --checklist-status → [HACER un ítem] → checklist ROD-N n → Testing → handoff → Done</div>
 </section>
 
 <section class="sec">
   <div class="sl">Linear — Comandos del script</div>
-  <div class="st">create · next · checklist · handoff · state · cleanup</div>
   <div class="cb2">node scripts/sprint_sync_audatex.mjs create
-node scripts/sprint_sync_audatex.mjs cleanup</div>
+node scripts/sprint_sync_audatex.mjs next
+node scripts/sprint_sync_audatex.mjs checklist ROD-N &lt;n&gt;
+node scripts/sprint_sync_audatex.mjs handoff ROD-M 1
+node scripts/sprint_sync_audatex.mjs state ROD-N Done
+node scripts/sprint_sync_audatex.mjs cleanup
+node scripts/sprint-next.mjs</div>
 </section>
 
 <section class="sec">
   <div class="sl">Linear — Testing local por rol</div>
-  <div class="st">Tabla issue × comandos × criterio Done</div>
   <table class="tbl">
-    <thead><tr><th>Issue</th><th>Rol</th><th>Comandos Testing</th><th>Done</th></tr></thead>
+    <thead><tr><th>Issue</th><th>Rol</th><th>Testing</th><th>Done</th></tr></thead>
     <tbody>
-      <tr><td>ROD-01</td><td>role:database</td><td>python setup_db.py</td><td>Tabla creada en MariaDB local</td></tr>
-      <tr><td>ROD-02</td><td>role:backend</td><td>mvn compile</td><td>JOOQ genera clases y Worker compila</td></tr>
-      <tr><td>ROD-03</td><td>role:backend</td><td>mvn spring-boot:run</td><td>Endpoint /oportunidades devuelve 2xx</td></tr>
-      <tr><td>ROD-04</td><td>role:frontend</td><td>npm start / npm run build</td><td>UI carga instantáneo y recibe SSE</td></tr>
+      <tr><td>ROD-01</td><td>database</td><td>drop_db → setup_db</td><td>Tabla existe</td></tr>
+      <tr><td>ROD-02</td><td>backend</td><td>mvn compile; POST incremental llena BD</td><td>Lectura solo BD</td></tr>
+      <tr><td>ROD-03</td><td>backend</td><td>.http GET/POST/SSE 2xx</td><td>Deltas activos</td></tr>
+      <tr><td>ROD-04</td><td>frontend</td><td>refresh 150→162 sin vaciar; npm run build</td><td>UI incremental OK</td></tr>
     </tbody>
   </table>
 </section>
 
 <section class="sec">
   <div class="sl">Linear — Descripciones issue (verbatim para create)</div>
-  <div class="st">Checklists - [ ] copiar al .mjs</div>
+  <div class="st">Copiar al .mjs — cada ítem = un commit lógico de trabajo</div>
   <div class="cb2"><span class="dc">## ROD-01</span>
-<span class="da">- [ ] 1. Crear script SQL con tabla audatex_oportunidades_sync (columna ultima_vez_visto).</span>
-<span class="da">- [ ] 2. Ejecutar drop_db / setup_db para probar.</span>
-<span class="da">- [ ] 3. Handoff: marcar ROD-02 checklist ítem 1 (GATE_BD).</span>
+<span class="da">- [ ] 1. Verificar 04_AudatexSync.sql (PK wan, ultima_vez_visto, detalle_json).</span>
+<span class="da">- [ ] 2. Confirmar en 00_run_all.sql.</span>
+<span class="da">- [ ] 3. drop_db → setup_db → load_mocks.</span>
+<span class="da">- [ ] 4. Handoff ROD-02 ítem 1 (GATE_BD).</span>
 
 <span class="dc">## ROD-02</span>
-<span class="da">- [ ] 1. ⏸ Gate: NO iniciar hasta upstream ROD-01 [x].</span>
-<span class="da">- [ ] 2. Compilar JOOQ con mvn compile.</span>
-<span class="da">- [ ] 3. Crear AudatexSyncWorker con @Scheduled (frecuencias escalonadas).</span>
-<span class="da">- [ ] 4. Implementar UPSERT en BD usando jOOQ.</span>
+<span class="da">- [ ] 1. ⏸ Gate: NO iniciar hasta ROD-01 [x].</span>
+<span class="da">- [ ] 2. mvn compile — jOOQ AudatexOportunidadesSync.</span>
+<span class="da">- [ ] 3. AudatexSyncWorker Hot/Warm/Cold.</span>
+<span class="da">- [ ] 4. upsertOportunidad() por WAN.</span>
+<span class="da">- [ ] 5. getOportunidadesFromDb(desde,hasta,aseguradora) filtros BE.</span>
+<span class="da">- [ ] 6. POST /api/audatex/oportunidades/sync/incremental.</span>
+<span class="da">- [ ] 7. buscarConFiltros + export solo BD; deprecar @Cacheable portal.</span>
+<span class="da">- [ ] 8. Revisar pruneStaleRecords(24h) con sync activo.</span>
 
 <span class="dc">## ROD-03</span>
-<span class="da">- [ ] 1. Crear endpoint REST para carga inicial (GET).</span>
-<span class="da">- [ ] 2. Ajustar SseEmitter para enviar solo deltas (eventos de Upsert).</span>
-<span class="da">- [ ] 3. Probar con request HTTP manual o Postman.</span>
-<span class="da">- [ ] 4. Handoff: marcar ROD-04 checklist ítem 1 (GATE_HTTP).</span>
+<span class="da">- [ ] 1. ⏸ Gate: NO iniciar hasta ROD-02 [x].</span>
+<span class="da">- [ ] 2. GET /sync con query params.</span>
+<span class="da">- [ ] 3. POST incremental → syncRange + emitirDelta cada UPSERT.</span>
+<span class="da">- [ ] 4. SSE /sync/stream recibe deltas de incremental y worker.</span>
+<span class="da">- [ ] 5. Deprecar /oportunidades/stream para FE.</span>
+<span class="da">- [ ] 6. .http 2xx.</span>
+<span class="da">- [ ] 7. Handoff ROD-04 ítem 1 (GATE_HTTP).</span>
 
 <span class="dc">## ROD-04</span>
-<span class="da">- [ ] 1. ⏸ Gate: NO iniciar hasta upstream ROD-03 [x].</span>
-<span class="da">- [ ] 2. Modificar OportunidadesAudatex.js para consumir GET inicial en vez de Stream completo.</span>
-<span class="da">- [ ] 3. Escuchar EventSource para inyectar deltas al array sin recargar.</span>
-<span class="da">- [ ] 4. Testear flujo completo UI.</span></div>
+<span class="da">- [ ] 1. ⏸ Gate: NO iniciar hasta ROD-03 [x].</span>
+<span class="da">- [ ] 2. Montaje GET /sync SIN setOportunidades([]).</span>
+<span class="da">- [ ] 3. Merge wan + cotizacionId dedup.</span>
+<span class="da">- [ ] 4. Refrescar → POST incremental; NO invalidarCache.</span>
+<span class="da">- [ ] 5. SSE delta encolar sin vaciar lista.</span>
+<span class="da">- [ ] 6. Mantener paginación/expandidos al refrescar.</span>
+<span class="da">- [ ] 7. audatex.js: syncIncremental(), obtenerOportunidadesSync(params).</span>
+<span class="da">- [ ] 8. npm run build.</span></div>
 </section>
 
 <section class="sec">
@@ -201,60 +447,52 @@ node scripts/sprint_sync_audatex.mjs cleanup</div>
 </section>
 
 <section class="sec">
-  <div class="sl">Objetivo</div>
-  <div class="st">Velocidad Instantánea y Resiliencia en Audatex</div>
+  <div class="sl">Objetivo producto</div>
   <table class="tbl">
-    <thead><tr><th>Problema</th><th>Solución propuesta</th></tr></thead>
+    <thead><tr><th>Problema</th><th>Solución sprint</th></tr></thead>
     <tbody>
-      <tr><td>Carga de 5 minutos bloqueante</td><td class="ok">Vista materializada cargada en 50ms desde BD local.</td></tr>
-      <tr><td>Portal de Audatex lento e inestable</td><td class="ok">Worker en 2do plano raspa escalonado (hot/warm/cold) sin bloquear UI.</td></tr>
-      <tr><td>Datos huérfanos/fantasma</td><td class="ok">Limpieza de BD basada en 'ultima_vez_visto' + UPSERT.</td></tr>
+      <tr><td>Refresh reinicia desde cero</td><td class="ok">POST incremental + merge UI (regla de oro)</td></tr>
+      <tr><td>Carga 5 min bloqueante</td><td class="ok">GET /sync ~50ms desde BD</td></tr>
+      <tr><td>Portal inestable</td><td class="ok">Worker background + sync bajo demanda</td></tr>
+      <tr><td>Arquitectura híbrida</td><td class="ok">Una fuente lectura: audatex_oportunidades_sync</td></tr>
     </tbody>
   </table>
 </section>
 
 <section class="sec">
   <div class="sl">Pipeline visual</div>
-  <div class="st">DB → JOOQ → BE → .http → FE</div>
   <div class="plf">
-    <div class="pln"><div class="plname">DB</div><div class="plnote">ROD-01 (SQL)</div></div>
-    <div class="pla">→</div>
-    <div class="pln"><div class="plname">JOOQ</div><div class="plnote">mvn compile</div></div>
-    <div class="pla">→</div>
-    <div class="pln"><div class="plname">BE</div><div class="plnote">ROD-02 / ROD-03</div></div>
-    <div class="pla">→</div>
-    <div class="pln"><div class="plname">.http</div><div class="plnote">GATE_HTTP</div></div>
-    <div class="pla">→</div>
-    <div class="pln"><div class="plname">FE</div><div class="plnote">ROD-04 (UI)</div></div>
+    <div class="pln"><div class="plname">DB</div><div class="plnote">ROD-01</div></div><div class="pla">→</div>
+    <div class="pln"><div class="plname">JOOQ</div><div class="plnote">compile</div></div><div class="pla">→</div>
+    <div class="pln"><div class="plname">BE</div><div class="plnote">ROD-02/03</div></div><div class="pla">→</div>
+    <div class="pln"><div class="plname">.http</div><div class="plnote">GATE_HTTP</div></div><div class="pla">→</div>
+    <div class="pln"><div class="plname">FE</div><div class="plnote">ROD-04</div></div>
   </div>
 </section>
 
 <section class="sec">
-  <div class="sl">Linear</div>
-  <div class="st">Issues planificados</div>
-  <div class="issue"><div class="badge pending">Backlog</div><div><div class="issue-id">ROD-01 · DB</div><div class="issue-title">Tabla audatex_oportunidades_sync</div></div><div></div></div>
-  <div class="issue"><div class="badge pending">Backlog</div><div><div class="issue-id">ROD-02 · BE</div><div class="issue-title">Worker @Scheduled Escalonado y UPSERT</div></div><div></div></div>
-  <div class="issue"><div class="badge pending">Backlog</div><div><div class="issue-id">ROD-03 · BE</div><div class="issue-title">Emisión de Eventos SSE Delta</div></div><div></div></div>
-  <div class="issue"><div class="badge pending">Backlog</div><div><div class="issue-id">ROD-04 · FE</div><div class="issue-title">Carga Instantánea + Reacción a Eventos</div></div><div></div></div>
+  <div class="sl">Siguiente paso según _linear</div>
+  <div class="cb2">1. node scripts/validate-plan-html.mjs plans/plan_sprint_sync_audatex.html
+2. Humano: ✅ APROBADO en chat
+3. node scripts/sprint_sync_audatex.mjs create
+4. next → ROD-01 ítem 1 → checklist un ítem a la vez → Done</div>
 </section>
 
 <section class="sec">
   <div class="sl">Aprobación</div>
-  <div class="st">Estado PENDIENTE / APROBADO</div>
   <table class="tbl">
     <tbody>
       <tr><td>Estado</td><td>PENDIENTE</td></tr>
-      <tr><td>Validación</td><td><code>node scripts/validate-plan-html.mjs plans/plan_sprint_sync_audatex.html</code></td></tr>
-      <tr><td>Para aprobar</td><td>✅ APROBADO en chat → Fase 4 create</td></tr>
+      <tr><td>Validación</td><td>12 Linear + 8 diagnóstico + 5 briefing IA</td></tr>
+      <tr><td>Para aprobar</td><td>✅ APROBADO en chat → create</td></tr>
     </tbody>
   </table>
 </section>
 
 <hr class="sep">
-
 <footer>
-  <div class="utn">Rodieja · Contable</div>
   <div>plan_sprint_sync_audatex.html</div>
+  <div>v3 · briefing IA · Mermaid · checklist secuencial</div>
 </footer>
 
 </body>

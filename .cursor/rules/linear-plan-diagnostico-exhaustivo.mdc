@@ -1,0 +1,47 @@
+---
+description: Plan sprint HTML debe incluir diagnóstico forense alineado 1:1 con issues y checklists. Complementa linear-plan-html-obligatorio.mdc
+globs: _linear/plans/plan_sprint_*.html
+alwaysApply: true
+---
+
+# Plan HTML — diagnóstico exhaustivo obligatorio
+
+Fuente: `AGENTS.md` + `validate-plan-html.mjs`. Aplica a `plan_sprint_<nombre>.html` (no resúmenes ni plantilla).
+
+## Principio
+
+El plan es **contrato Linear + auditoría técnica**. Prohibido plan solo «de producto» sin explicar **qué está roto hoy**, **por qué** y **cómo cada issue lo cierra**.
+
+**Regla de oro del plan:** cada hallazgo del diagnóstico debe mapear a ≥1 ítem de checklist en un issue ROD-N.
+
+## Secciones de diagnóstico (obligatorias además de las 12 Linear)
+
+| # | Sección | Contenido mínimo |
+|---|---------|------------------|
+| D1 | **Diagnóstico — estado actual** | Código parcial vs gate Linear; sprint activo o no |
+| D2 | **Flujo deseado vs flujo actual** | Dos diagramas o tablas comparativas (no solo texto vago) |
+| D3 | **Hallazgos causa raíz** | ≥5 hallazgos con archivo/ruta o endpoint concreto |
+| D4 | **Arquitectura híbrida** | Tabla componente × fuente de datos × estado |
+| D5 | **Solución paso a paso** | Pasos numerados con issue ROD-N responsable |
+| D6 | **Resumen ejecutivo** | Tabla Problema → Causa → Fix (≥4 filas) |
+| D7 | **Comportamiento esperado** | Escenario concreto (ej. refresh: 150→162 sin vaciar UI) |
+| D8 | **Regla de oro** | Frase explícita: BD fuente de verdad; refresh = incremental, no reset |
+
+## Coherencia issues ↔ diagnóstico
+
+- Checklists **verbatim** deben cubrir cada fix de la tabla resumen ejecutivo.
+- Si el diagnóstico menciona un endpoint (ej. `POST /sync/incremental`), debe aparecer en checklist de un issue.
+- Prohibido discrepancia: diagnóstico pide X y el checklist no lo implementa.
+
+## Antes de pedir APROBADO
+
+```bash
+cd _linear
+node scripts/validate-plan-html.mjs plans/plan_sprint_<nombre>.html
+```
+
+Exit 0 en **Linear (12) + Diagnóstico (8) + IA briefing (5)**. Si falla, completar plan antes de Fase 3.
+
+## Checklist en ejecución (Fase 5)
+
+El plan HTML debe documentar: **un ítem a la vez**. Ver `linear-checklist-secuencial.mdc`. El agente marca solo el ítem pendiente tras implementar y probar ese ítem.

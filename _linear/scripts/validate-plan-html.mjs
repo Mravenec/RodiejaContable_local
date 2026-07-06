@@ -90,20 +90,94 @@ const CHECKS = [
   },
 ];
 
-const failed = CHECKS.filter((c) => !c.test(html));
+/** Diagnóstico exhaustivo — debe alinearse 1:1 con checklists (linear-plan-diagnostico-exhaustivo.mdc) */
+const DIAG_CHECKS = [
+  {
+    id: "d1_estado",
+    label: "D1 Diagnóstico — estado actual del código",
+    test: (s) => /Diagnóstico\s*[—–-]\s*Estado actual/i.test(s),
+  },
+  {
+    id: "d2_flujos",
+    label: "D2 Flujo deseado vs flujo actual",
+    test: (s) => /Flujo deseado/i.test(s) && /Flujo actual|flujo real/i.test(s),
+  },
+  {
+    id: "d3_hallazgos",
+    label: "D3 Hallazgos causa raíz (archivos/endpoints)",
+    test: (s) => /Hallazgos.*causa raíz|causa raíz/i.test(s) && /OportunidadesAudatex|AudatexController|AudatexService/i.test(s),
+  },
+  {
+    id: "d4_hibrida",
+    label: "D4 Arquitectura híbrida (tabla componente × fuente)",
+    test: (s) => /Arquitectura híbrida/i.test(s) && /Portal|BD local|getOportunidadesFromDb/i.test(s),
+  },
+  {
+    id: "d5_solucion",
+    label: "D5 Solución paso a paso mapeada a ROD-N",
+    test: (s) => /Solución objetivo|Solución paso a paso/i.test(s) && /ROD-0[1-9]/i.test(s),
+  },
+  {
+    id: "d6_resumen",
+    label: "D6 Resumen ejecutivo Problema → Causa → Fix",
+    test: (s) => /Resumen ejecutivo/i.test(s) && /Causa/i.test(s) && /Fix/i.test(s),
+  },
+  {
+    id: "d7_comportamiento",
+    label: "D7 Comportamiento esperado al refrescar",
+    test: (s) => /Comportamiento esperado/i.test(s) && /refrescar|incremental/i.test(s),
+  },
+  {
+    id: "d8_regla_oro",
+    label: "D8 Regla de oro (BD fuente de verdad, no reset)",
+    test: (s) => /Regla de oro/i.test(s) && /fuente de verdad|Nunca borrar/i.test(s),
+  },
+];
+
+/** Briefing autocontenido para IA — cualquier agente debe entender sin chat previo */
+const AI_CHECKS = [
+  {
+    id: "ai_instrucciones",
+    label: "INSTRUCCIONES PARA LA IA (id=para-la-ia)",
+    test: (s) => /id=["']para-la-ia["']|INSTRUCCIONES PARA LA IA/i.test(s),
+  },
+  {
+    id: "ai_mermaid",
+    label: "Diagramas Mermaid sequenceDiagram (deseado + actual)",
+    test: (s) => (s.match(/sequenceDiagram/g) || []).length >= 2 && /class=["']mermaid["']|class=mermaid/.test(s),
+  },
+  {
+    id: "ai_codigo",
+    label: "Hallazgos con rutas de archivo y fragmentos de código",
+    test: (s) => /code-ref|code-ref-path/i.test(s) && /OportunidadesAudatex\.js/i.test(s) && /AudatexController\.java/i.test(s),
+  },
+  {
+    id: "ai_checklist_seq",
+    label: "Sección checklist secuencial (un ítem a la vez)",
+    test: (s) => /Checklist secuencial/i.test(s) && /un ítem a la vez|un solo ítem|ítem a ítem/i.test(s),
+  },
+  {
+    id: "ai_problema",
+    label: "Narrativa problema (reinicia desde cero / contexto sprint)",
+    test: (s) => /reinicia desde cero|Diagnóstico:/i.test(s) && /qué vamos a abordar|qué abordamos|cómo lo vamos a abordar/i.test(s),
+  },
+];
+
+const ALL_CHECKS = [...CHECKS, ...DIAG_CHECKS, ...AI_CHECKS];
+const failed = ALL_CHECKS.filter((c) => !c.test(html));
 
 console.log(`\n📋 Validación plan Linear: ${name}\n`);
 
 if (failed.length === 0) {
-  console.log(`✅ ${CHECKS.length}/${CHECKS.length} secciones obligatorias presentes.\n`);
+  console.log(`✅ ${CHECKS.length}/${CHECKS.length} Linear + ${DIAG_CHECKS.length}/${DIAG_CHECKS.length} diagnóstico + ${AI_CHECKS.length}/${AI_CHECKS.length} briefing IA.\n`);
   console.log("   Listo para Fase 4: sprint_<nombre>.mjs create (tras ✅ APROBADO humano).\n");
   process.exit(0);
 }
 
-console.log(`❌ Faltan ${failed.length}/${CHECKS.length} requisitos:\n`);
+console.log(`❌ Faltan ${failed.length}/${ALL_CHECKS.length} requisitos:\n`);
 for (const f of failed) {
   console.log(`   • [${f.id}] ${f.label}`);
 }
 console.log("\n   Completar plan desde _plantilla_rodieja.html");
-console.log("   Regla: .cursor/rules/linear-plan-html-obligatorio.mdc\n");
+console.log("   Reglas: linear-plan-html-obligatorio.mdc · linear-plan-diagnostico-exhaustivo.mdc · linear-plan-ai-briefing.mdc\n");
 process.exit(1);
