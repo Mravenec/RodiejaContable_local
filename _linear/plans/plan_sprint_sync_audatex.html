@@ -100,7 +100,7 @@
   </div>
   <div class="narrative" style="margin-top:20px">
     <p><strong>Resumen ejecutivo para IA:</strong> Revisé backend, BD y frontend. El diseño correcto (tabla <code>audatex_oportunidades_sync</code>, worker, UPSERT, GET /sync) <strong>ya está parcialmente escrito</strong>, pero el flujo real está <strong>a medias y mal conectado</strong>. Al refrescar la UI ejecuta <code>setOportunidades([])</code>, conecta un SSE pasivo que no raspa el portal, y no dispara sync incremental. Por eso parece que todo se borra y se vuelve a empezar.</p>
-    <p><strong>Qué vamos a abordar en este sprint:</strong> (1) confirmar BD, (2) unificar lecturas en BD + POST <code>/sync/incremental</code>, (3) SSE delta activo, (4) FE sin vaciar + Refrescar → incremental. Regla de oro: <em>nunca borrar lo que ya está en BD; solo UPSERT + merge deltas.</em></p>
+    <p><strong>Qué vamos a abordar en este sprint:</strong> (1) confirmar BD, (2) unificar lecturas en BD + POST <code>/sync/incremental</code> con ventana fija de <strong>30 días</strong> (hoy − 30 → hoy), (3) SSE delta activo, (4) FE sin vaciar: login y refrescar muestran BD al instante y sincronizan por detrás. Regla de oro: <em>la UI siempre muestra lo que hay en BD; el sync con Audatex corre en background; nunca vaciar la pantalla.</em></p>
   </div>
 </section>
 
@@ -120,10 +120,11 @@ Para arreglarlo de forma trazable: aprobar este plan → create → ROD-01…04 
 <section class="sec">
   <div class="sl">Diagnóstico — Flujo deseado</div>
   <div class="st">Cómo <strong>debe</strong> funcionar cuando el sprint esté Done</div>
-  <p class="narrative" style="margin-bottom:12px"><strong>Principio clave:</strong> la BD es la fuente de verdad. El portal solo alimenta <strong>nuevos</strong> o <strong>actualizados</strong>. Refrescar = «traer más / actualizar», no «borrar y empezar».</p>
+  <p class="narrative" style="margin-bottom:12px"><strong>Principio clave:</strong> la BD es la fuente de verdad <strong>visible al instante</strong> (~1700 registros de 30 días). El portal reconcilia por detrás (poner / actualizar / cerrar). Login y Refrescar disparan el mismo sync de <strong>30 días</strong> en background — la tabla <strong>nunca se vacía</strong> mientras corre.</p>
   <div class="mermaid-wrap">
     <div class="mermaid">
 sequenceDiagram
+    participant Usuario
     participant FE as Frontend
     participant BE as Backend
     participant BD as audatex_oportunidades_sync
@@ -131,21 +132,30 @@ sequenceDiagram
     participant Worker as AudatexSyncWorker
 
     Note over Worker,Portal: Background cada 30min / 6h / 24h
-    Worker->>Portal: syncRange(desde, hasta)
+    Worker->>Portal: syncRange 30 dias
     Portal-->>Worker: oportunidades
     Worker->>BD: UPSERT por WAN
     Worker->>FE: SSE delta opcional
 
-    Note over FE,BD: Al abrir pantalla
+    Note over Usuario,BD: Login o abrir pantalla
+    Usuario->>FE: Entra a Oportunidades
     FE->>BE: GET /oportunidades/sync
-    BE->>BD: SELECT ACTIVA
-    BD-->>FE: lista instantanea 50ms
+    BE->>BD: SELECT ACTIVA ultimos 30 dias
+    BD-->>FE: ~1700 al instante
+    FE-->>Usuario: Tabla visible sin vaciar
+    FE->>BE: POST /sync/incremental 30 dias async
+    BE->>Portal: scrape chunks 3 dias x10
+    loop Por cada cambio
+        BE->>BD: UPSERT o CERRADA
+        BE-->>FE: SSE delta
+        FE->>FE: merge fila sin parpadeo
+    end
 
-    Note over FE,Portal: Al refrescar incremental
-    FE->>BE: POST sync incremental
-    BE->>Portal: scrape solo rango nuevo
-    BE->>BD: UPSERT
-    BE-->>FE: deltas SSE sin vaciar tabla
+    Note over Usuario,Portal: Refrescar mismo flujo
+    Usuario->>FE: Clic Refrescar
+    Note over FE: NO setOportunidades vacio
+    FE->>BE: POST /sync/incremental 30 dias
+    Note over Usuario: Sigue trabajando con datos BD
     </div>
   </div>
 </section>
@@ -257,7 +267,7 @@ public SseEmitter streamSyncDeltas() {
     <tbody>
       <tr><td>1</td><td>Confirmar tabla audatex_oportunidades_sync (setup_db)</td><td>ROD-01</td></tr>
       <tr><td>2</td><td>Unificar backend: lectura desde BD; portal solo en sync</td><td>ROD-02</td></tr>
-      <tr><td>3</td><td>POST /oportunidades/sync/incremental — rango nuevo, UPSERT</td><td>ROD-02/03</td></tr>
+      <tr><td>3</td><td>POST /oportunidades/sync/incremental — ventana fija <strong>30 días</strong> (hoy−30→hoy), async, UPSERT</td><td>ROD-02/03</td></tr>
       <tr><td>4</td><td>SSE solo registros nuevos/actualizados (no re-stream completo)</td><td>ROD-03</td></tr>
       <tr><td>5</td><td>FE: montaje GET sin setOportunidades([]); merge wan/cotizacionId</td><td>ROD-04</td></tr>
       <tr><td>6</td><td>Refrescar → incremental, NO invalidarCache</td><td>ROD-04</td></tr>
@@ -267,20 +277,28 @@ public SseEmitter streamSyncDeltas() {
 </section>
 
 <section class="sec">
-  <div class="sl">Diagnóstico — Comportamiento esperado al refrescar</div>
-  <div class="st">Criterio de aceptación E2E</div>
-  <div class="cb2">Estado actual en UI: 150 oportunidades (de BD)
-  → POST sync incremental (últimos 3 días)
-  → Portal devuelve 12 nuevas + 5 actualizadas
-  → UPSERT en BD
-  → SSE emite 17 deltas
-  → UI pasa a 162 (sin parpadeo, sin vaciar)</div>
+  <div class="sl">Diagnóstico — Comportamiento esperado (login, refrescar, sync)</div>
+  <div class="st">Criterio de aceptación E2E — BD siempre visible</div>
+  <div class="al ok"><div>✓</div><div><strong>Sí: siempre se ven las oportunidades de la BD.</strong> El sync con Audatex puede tardar varios minutos (30 días, ~10 chunks de 3 días), pero la UI muestra de inmediato lo persistido y solo hace merge de deltas por encima. El usuario puede filtrar, paginar y cotizar mientras sincroniza.</div></div>
+  <div class="cb2">Login / abrir pantalla:
+  → GET /sync → ~1700 ACTIVAS de BD al instante (tabla visible)
+  → POST /sync/incremental (30 días) en background — no bloquea la UI
+  → indicador discreto: «Sincronizando con Audatex… N revisados»
+
+Refrescar (mismo comportamiento, sin vaciar):
+  → UI conserva las ~1700 filas actuales
+  → POST /sync/incremental (30 días) async
+  → Portal: 12 nuevas + 5 actualizadas + 3 ya no en portal
+  → UPSERT en BD; las 3 no vistas → CERRADA tras regla 24h
+  → SSE emite deltas → UI pasa a ~1709 (merge fila a fila, sin parpadeo)
+
+Durante todo el sync: la tabla sigue mostrando datos de BD — nunca pantalla en blanco.</div>
 </section>
 
 <section class="sec">
   <div class="sl">Diagnóstico — Regla de oro</div>
-  <div class="st">BD fuente de verdad — refresh incremental, no reset</div>
-  <div class="al ok"><div>✓</div><div><strong>Nunca borrar lo que ya está en BD ni vaciar la UI al refrescar.</strong> Solo UPSERT + emitir deltas. Violación = bug de sprint.</div></div>
+  <div class="st">BD visible siempre — sync 30 días en background, no reset</div>
+  <div class="al ok"><div>✓</div><div><strong>Nunca borrar lo que ya está en BD ni vaciar la UI</strong> (login, refrescar ni montaje). La pantalla lee siempre de <code>audatex_oportunidades_sync</code>; el portal solo reconcilia (UPSERT + CERRADA) en background con ventana de <strong>30 días</strong>. Violación = bug de sprint.</div></div>
 </section>
 
 <section class="sec">
@@ -307,8 +325,11 @@ public SseEmitter streamSyncDeltas() {
     <tbody>
       <tr><td>Guardar <strong>todos</strong> los registros en BD</td><td>H5 + UPSERT por <code>wan</code></td><td>ROD-01, ROD-02</td></tr>
       <tr><td>Carga <strong>siempre</strong> en background</td><td>Worker Hot/Warm/Cold</td><td>ROD-02 ítems 3–4</td></tr>
-      <tr><td>Refrescar <strong>agrega</strong>, no reinicia</td><td>Regla de oro + E2E 150→162</td><td>ROD-04 ítems 2, 4–6</td></tr>
-      <tr><td>No vaciar pantalla al refrescar</td><td>H1 <code>setOportunidades([])</code></td><td>ROD-04 ítem 2</td></tr>
+      <tr><td>Refrescar <strong>agrega</strong>, no reinicia</td><td>Regla de oro + E2E ~1700→~1709</td><td>ROD-04 ítems 2, 4–6</td></tr>
+      <tr><td>No vaciar pantalla (login ni refrescar)</td><td>H1 <code>setOportunidades([])</code></td><td>ROD-04 ítem 2</td></tr>
+      <tr><td><strong>BD siempre visible</strong> mientras sync corre</td><td>Comportamiento esperado E2E</td><td>ROD-04 ítems 2, 5, 9</td></tr>
+      <tr><td>Sync <strong>30 días</strong> (no solo 3)</td><td>POST incremental hoy−30→hoy</td><td>ROD-02 ítem 6, ROD-03 ítem 3</td></tr>
+      <tr><td>Login → BD al instante + sync background</td><td>Flujo deseado Mermaid</td><td>ROD-04 ítem 8</td></tr>
       <tr><td>Sync activo al refrescar (no SSE pasivo)</td><td>H2 + POST <code>/sync/incremental</code></td><td>ROD-02 ítem 6, ROD-03 ítem 3</td></tr>
       <tr><td>Una sola fuente de verdad (BD)</td><td>H4 arquitectura híbrida</td><td>ROD-02 ítem 7</td></tr>
       <tr><td>Registros que «desaparecen»</td><td>H6 <code>pruneStaleRecords</code></td><td>ROD-02 ítem 8</td></tr>
@@ -348,16 +369,18 @@ public SseEmitter streamSyncDeltas() {
 <section class="sec">
   <div class="sl">Diagnóstico — Flujo objetivo (resumen)</div>
   <div class="st">Comportamiento cuando el sprint esté Done</div>
-  <div class="cb2">Abrir pantalla  → GET /sync (BD, ~50ms) — sin vaciar lista en UI
+  <div class="cb2">Login / abrir   → GET /sync (BD, ~50ms, ~1700 filas) — tabla visible de inmediato
+                → POST /sync/incremental (30 días) async en background
+                → usuario trabaja mientras sincroniza
 
-Refrescar       → POST /sync/incremental (portal solo rango nuevo)
-                → UPSERT en audatex_oportunidades_sync
-                → SSE emite deltas
-                → UI merge (ej. 150 → 162, sin parpadeo)
+Refrescar       → misma UI visible (NO vaciar)
+                → POST /sync/incremental (30 días) async
+                → UPSERT + CERRADA según Audatex
+                → SSE deltas → merge (ej. 1700 → 1709, sin parpadeo)
 
-Background      → AudatexSyncWorker cada 30min / 6h / 24h (alimenta BD sin bloquear UI)
+Background      → AudatexSyncWorker cada 30min / 6h / 24h (mantiene BD sin abrir pantalla)
 
-Regla de oro    → Nunca borrar lo que ya está en BD ni vaciar la UI al refrescar.</div>
+Regla de oro    → BD siempre visible; sync 30 días por detrás; nunca vaciar UI.</div>
 </section>
 
 <section class="sec">
@@ -374,6 +397,8 @@ Regla de oro    → Nunca borrar lo que ya está en BD ni vaciar la UI al refres
       <tr><td>H6 — Registros CERRADA</td><td>Revisar pruneStaleRecords con sync activo</td><td>ROD-02 ítem 8</td><td>ROD-02</td></tr>
       <tr><td>H7 — Filtros y claves</td><td>GET /sync params + merge wan</td><td>ROD-03 ítem 2, ROD-04 ítem 3</td><td>ROD-03, ROD-04</td></tr>
       <tr><td>Guardar todos en BD</td><td>Tabla + UPSERT</td><td>ROD-01 ítems 1–3, ROD-02 ítem 4</td><td>ROD-01, ROD-02</td></tr>
+      <tr><td>Sync ventana 30 días</td><td>POST incremental hoy−30→hoy</td><td>ROD-02 ítem 6</td><td>ROD-02</td></tr>
+      <tr><td>BD siempre visible en UI</td><td>E2E login/refrescar sin vaciar</td><td>ROD-04 ítems 2, 5, 9</td><td>ROD-04</td></tr>
       <tr><td>Sin trazabilidad Linear</td><td>sprint_sync_audatex.mjs create</td><td>Fase 4 orquestador</td><td>Fase 4</td></tr>
     </tbody>
   </table>
@@ -483,7 +508,7 @@ node scripts/sprint-next.mjs</div>
       <tr><td>ROD-01</td><td>database</td><td>drop_db → setup_db</td><td>Tabla existe</td></tr>
       <tr><td>ROD-02</td><td>backend</td><td>mvn compile; POST incremental llena BD</td><td>Lectura solo BD</td></tr>
       <tr><td>ROD-03</td><td>backend</td><td>.http GET/POST/SSE 2xx</td><td>Deltas activos</td></tr>
-      <tr><td>ROD-04</td><td>frontend</td><td>refresh 150→162 sin vaciar; npm run build</td><td>UI incremental OK</td></tr>
+      <tr><td>ROD-04</td><td>frontend</td><td>login/refrescar: BD ~1700 visible; sync 30d background; npm run build</td><td>UI incremental OK</td></tr>
     </tbody>
   </table>
 </section>
@@ -503,14 +528,14 @@ node scripts/sprint-next.mjs</div>
 <span class="da">- [ ] 3. AudatexSyncWorker Hot/Warm/Cold.</span>
 <span class="da">- [ ] 4. upsertOportunidad() por WAN.</span>
 <span class="da">- [ ] 5. getOportunidadesFromDb(desde,hasta,aseguradora) filtros BE.</span>
-<span class="da">- [ ] 6. POST /api/audatex/oportunidades/sync/incremental.</span>
+<span class="da">- [ ] 6. POST /api/audatex/oportunidades/sync/incremental — ventana fija 30 días (hoy−30→hoy), async, chunks 3d portal.</span>
 <span class="da">- [ ] 7. buscarConFiltros + export solo BD; deprecar @Cacheable portal.</span>
 <span class="da">- [ ] 8. Revisar pruneStaleRecords(24h) con sync activo.</span>
 
 <span class="dc">## ROD-03</span>
 <span class="da">- [ ] 1. ⏸ Gate: NO iniciar hasta ROD-02 [x].</span>
 <span class="da">- [ ] 2. GET /sync con query params.</span>
-<span class="da">- [ ] 3. POST incremental → syncRange + emitirDelta cada UPSERT.</span>
+<span class="da">- [ ] 3. POST incremental 30 días → syncRange(hoy−30, hoy) async + emitirDelta cada UPSERT/CERRADA.</span>
 <span class="da">- [ ] 4. SSE /sync/stream recibe deltas de incremental y worker.</span>
 <span class="da">- [ ] 5. Deprecar /oportunidades/stream y GET /sync/force para FE; usar POST incremental.</span>
 <span class="da">- [ ] 6. .http 2xx.</span>
@@ -524,7 +549,9 @@ node scripts/sprint-next.mjs</div>
 <span class="da">- [ ] 5. SSE delta encolar sin vaciar lista.</span>
 <span class="da">- [ ] 6. Mantener paginación/expandidos al refrescar.</span>
 <span class="da">- [ ] 7. audatex.js: syncIncremental(), obtenerOportunidadesSync(params).</span>
-<span class="da">- [ ] 8. npm run build.</span></div>
+<span class="da">- [ ] 8. Login/montaje: GET /sync + POST incremental 30d background (mismo flujo que Refrescar).</span>
+<span class="da">- [ ] 9. Indicador «Sincronizando…» sin ocultar tabla; BD siempre visible.</span>
+<span class="da">- [ ] 10. npm run build.</span></div>
 </section>
 
 <section class="sec">
@@ -537,8 +564,9 @@ node scripts/sprint-next.mjs</div>
   <table class="tbl">
     <thead><tr><th>Problema</th><th>Solución sprint</th></tr></thead>
     <tbody>
-      <tr><td>Refresh reinicia desde cero</td><td class="ok">POST incremental + merge UI (regla de oro)</td></tr>
-      <tr><td>Carga 5 min bloqueante</td><td class="ok">GET /sync ~50ms desde BD</td></tr>
+      <tr><td>Refresh reinicia desde cero</td><td class="ok">POST incremental 30d + merge UI (regla de oro)</td></tr>
+      <tr><td>BD no visible durante sync</td><td class="ok">GET /sync instantáneo; sync async; tabla nunca vacía</td></tr>
+      <tr><td>Carga 5 min bloqueante</td><td class="ok">GET /sync ~50ms desde BD; portal en background</td></tr>
       <tr><td>Portal inestable</td><td class="ok">Worker background + sync bajo demanda</td></tr>
       <tr><td>Arquitectura híbrida</td><td class="ok">Una fuente lectura: audatex_oportunidades_sync</td></tr>
     </tbody>
@@ -578,7 +606,7 @@ node scripts/sprint-next.mjs</div>
 <hr class="sep">
 <footer>
   <div>plan_sprint_sync_audatex.html</div>
-  <div>v4 · D1–D11 · coherencia-checklist · Mermaid · checklist secuencial</div>
+  <div>v5 · 30 días · BD siempre visible · D1–D11 · coherencia-checklist</div>
 </footer>
 
 </body>
