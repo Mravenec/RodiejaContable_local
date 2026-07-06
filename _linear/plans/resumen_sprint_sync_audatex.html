@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resumen — Sync Audatex incremental · Rodieja Contable</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+  :root{--bg:#07090F;--surf:#0D1117;--surf2:#131A24;--border:rgba(255,255,255,.07);--text:#E2E8F0;--muted:#64748B;--green:#22C55E;--orange:#F97316;--fe:#0EA5E9}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.6}
+  .hero{padding:64px 48px 48px;border-bottom:1px solid var(--border)}
+  .ey{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--green);margin-bottom:12px}
+  h1{font-family:'Syne',sans-serif;font-size:clamp(24px,4vw,40px);font-weight:800;color:#fff}
+  h1 em{font-style:normal;background:linear-gradient(135deg,#22C55E,#0EA5E9);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{margin-top:14px;font-size:14px;color:var(--muted);max-width:860px}
+  .chip{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);padding:4px 12px;border-radius:4px;display:inline-block;margin-top:18px}
+  .al.ok{margin:32px 48px 0;padding:14px 18px;border-radius:8px;font-size:13px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-left:3px solid var(--green);color:#86EFAC}
+  .sec{padding:40px 48px 0}
+  .sl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .st{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:18px}
+  .tbl{width:100%;border-collapse:collapse;font-size:12.5px;font-family:'IBM Plex Mono',monospace}
+  .tbl th{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--surf2)}
+  .tbl td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:top}
+  .ok{color:var(--green)}
+  code{font-family:'IBM Plex Mono',monospace;font-size:11px;background:rgba(255,255,255,.06);color:#CBD5E1;padding:1px 5px;border-radius:3px}
+  .cb2{background:#060912;border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:13px 16px;margin:10px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.75;white-space:pre-wrap}
+  footer{margin-top:64px;border-top:1px solid var(--border);padding:24px 48px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="ey">Rodieja Contable · Sprint sync_audatex · Completado · Epic Sincronizacion_Audatex</div>
+  <h1>Sync Audatex incremental<br><em>BD siempre visible · 30 días</em></h1>
+  <p class="sub">Sprint cerrado 2026-07-06. La pantalla de oportunidades carga instantáneamente desde <code>audatex_oportunidades_sync</code>, sincroniza con Audatex en background (30 días) y fusiona deltas SSE sin vaciar la tabla.</p>
+  <div class="chip">Estado ✅ COMPLETADO — 4/4 issues Done</div>
+</header>
+
+<div class="al ok"><strong>Sprint entregado.</strong> Issues ODS-218 → ODS-221 en Done. Handoff GATE_HTTP cumplido. Frontend <code>npm run build</code> OK.</div>
+
+<section class="sec">
+  <div class="sl">Issues entregados</div>
+  <table class="tbl">
+    <thead><tr><th>Issue</th><th>Rol</th><th>Entregable</th><th>Estado</th></tr></thead>
+    <tbody>
+      <tr><td>ODS-218</td><td>database</td><td><code>04_AudatexSync.sql</code> · drop/setup/load_mocks</td><td class="ok">Done 4/4</td></tr>
+      <tr><td>ODS-219</td><td>backend</td><td><code>getOportunidadesFromDb</code> · <code>buscarConFiltros</code> solo BD · POST incremental 30d · UPSERT + CERRADA</td><td class="ok">Done 8/8</td></tr>
+      <tr><td>ODS-220</td><td>backend</td><td>GET /sync filtros · SSE <code>/sync/stream</code> · deprecar stream legacy · <code>23.audatex_sync.http</code> 2xx</td><td class="ok">Done 7/7</td></tr>
+      <tr><td>ODS-221</td><td>frontend</td><td><code>OportunidadesAudatex.js</code> sin vaciar · merge wan/cotizacionId · indicador sync</td><td class="ok">Done 10/10</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sec">
+  <div class="sl">Flujo UX final</div>
+  <div class="cb2">Login / abrir pantalla
+  → GET /api/audatex/oportunidades/sync (BD instantánea, tabla visible)
+  → POST /api/audatex/oportunidades/sync/incremental (30 días async)
+  → SSE /api/audatex/oportunidades/sync/stream (deltas UPSERT / CERRADA merge en tabla)
+
+Refrescar = mismo flujo. NO setOportunidades([]). NO invalidarCache.</div>
+</section>
+
+<section class="sec">
+  <div class="sl">Testing local ejecutado</div>
+  <table class="tbl">
+    <thead><tr><th>Capa</th><th>Comando / prueba</th><th>Resultado</th></tr></thead>
+    <tbody>
+      <tr><td>Database</td><td>drop_db → setup_db → load_mocks</td><td class="ok">Tabla audatex_oportunidades_sync OK</td></tr>
+      <tr><td>Backend</td><td>mvn clean compile · spring-boot:run</td><td class="ok">Compila y arranca</td></tr>
+      <tr><td>HTTP</td><td>GET /sync 200 · POST /incremental 202 · GET /status 200</td><td class="ok">2xx</td></tr>
+      <tr><td>Frontend</td><td>npm run build</td><td class="ok">Build OK</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sec">
+  <div class="sl">Archivos principales</div>
+  <table class="tbl">
+    <tbody>
+      <tr><td>BD</td><td><code>0.BaseDeDatos/DB/04_AudatexSync.sql</code></td></tr>
+      <tr><td>BE</td><td><code>AudatexService.java</code> · <code>AudatexController.java</code> · <code>AudatexSyncWorker.java</code></td></tr>
+      <tr><td>HTTP</td><td><code>23.audatex_sync.http</code></td></tr>
+      <tr><td>FE</td><td><code>api/audatex.js</code> · <code>pages/audatex/OportunidadesAudatex.js</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sec">
+  <div class="sl">Fase 6 — Cierre</div>
+  <div class="st">resumen_sprint_sync_audatex.html · Epic Completed · cleanup opcional</div>
+  <div class="cb2">Epic Sincronizacion_Audatex → Completed en Linear
+cleanup (Fase 0 próximo sprint): node scripts/sprint_sync_audatex.mjs cleanup</div>
+</section>
+
+<footer>resumen_sprint_sync_audatex.html · generado 2026-07-06 · sprint sync_audatex</footer>
+</body>
+</html>

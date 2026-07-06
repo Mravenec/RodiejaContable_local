@@ -30,7 +30,7 @@ import org.jooq.impl.TableImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class VistaVehiculosCompleta extends TableImpl<VistaVehiculosCompletaRecord> {
 
     private static final long serialVersionUID = 1L;
@@ -193,13 +193,13 @@ public class VistaVehiculosCompleta extends TableImpl<VistaVehiculosCompletaReco
      * The column
      * <code>sistema_vehicular.vista_vehiculos_completa.total_ingresos_vehiculo</code>.
      */
-    public final TableField<VistaVehiculosCompletaRecord, BigDecimal> TOTAL_INGRESOS_VEHICULO = createField(DSL.name("total_ingresos_vehiculo"), SQLDataType.DECIMAL(34, 2).nullable(false).defaultValue(DSL.field(DSL.raw("0.00"), SQLDataType.DECIMAL)), this, "");
+    public final TableField<VistaVehiculosCompletaRecord, BigDecimal> TOTAL_INGRESOS_VEHICULO = createField(DSL.name("total_ingresos_vehiculo"), SQLDataType.DECIMAL(34, 2).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.DECIMAL)), this, "");
 
     /**
      * The column
      * <code>sistema_vehicular.vista_vehiculos_completa.total_egresos_vehiculo</code>.
      */
-    public final TableField<VistaVehiculosCompletaRecord, BigDecimal> TOTAL_EGRESOS_VEHICULO = createField(DSL.name("total_egresos_vehiculo"), SQLDataType.DECIMAL(34, 2).nullable(false).defaultValue(DSL.field(DSL.raw("0.00"), SQLDataType.DECIMAL)), this, "");
+    public final TableField<VistaVehiculosCompletaRecord, BigDecimal> TOTAL_EGRESOS_VEHICULO = createField(DSL.name("total_egresos_vehiculo"), SQLDataType.DECIMAL(34, 2).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.DECIMAL)), this, "");
 
     /**
      * The column

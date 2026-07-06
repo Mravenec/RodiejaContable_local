@@ -6,9 +6,14 @@ export const audatexAPI = {
     return axios.get('/audatex/oportunidades', { params, timeout: 60000 });
   },
 
-  // Obtener oportunidades de la BD local (sync)
-  obtenerOportunidadesSync: () => {
-    return axios.get('/audatex/oportunidades/sync', { timeout: 60000 });
+  // Obtener oportunidades de la BD local (sync) — carga instantánea, acepta filtros
+  obtenerOportunidadesSync: (params) => {
+    return axios.get('/audatex/oportunidades/sync', { params, timeout: 60000 });
+  },
+
+  // Disparar sincronización incremental de 30 días en background
+  syncIncremental: () => {
+    return axios.post('/audatex/oportunidades/sync/incremental', null, { timeout: 15000 });
   },
 
   // Obtener oportunidades activas para un repuesto específico

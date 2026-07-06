@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card, Table, Button, DatePicker, Input, Space, Typography,
   message, Tag, Alert
-  , Tabs, Descriptions, Row, Col, Divider
+  , Tabs, Descriptions, Row, Col
 } from 'antd';
 import {
   SearchOutlined,
@@ -10,7 +10,6 @@ import {
   ReloadOutlined,
   FilterOutlined,
   LoadingOutlined,
-  CheckCircleOutlined,
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
@@ -30,15 +29,35 @@ const defaultFiltros = {
   minPendientes: null,
 };
 
+/** Misma oportunidad por wan o cotizacionId (dedup merge). */
+const sameOportunidad = (a, b) => {
+  if (!a || !b) return false;
+  if (a.wan && b.wan && a.wan === b.wan) return true;
+  if (a.cotizacionId && b.cotizacionId && a.cotizacionId === b.cotizacionId) return true;
+  return false;
+};
+
+const findOportunidadIndex = (list, item) => list.findIndex((o) => sameOportunidad(o, item));
+
+const buildSyncParams = (filters) => {
+  const params = {};
+  if (filters.armadora) params.armadora = filters.armadora;
+  if (filters.aseguradora) params.aseguradora = filters.aseguradora;
+  if (filters.desde) params.desde = filters.desde.format('YYYY-MM-DD');
+  if (filters.hasta) params.hasta = filters.hasta.format('YYYY-MM-DD');
+  if (filters.minPendientes) params.minPendientes = filters.minPendientes;
+  return params;
+};
+
 const OportunidadesAudatex = () => {
   const [oportunidades, setOportunidades] = useState([]);
+  const [syncing, setSyncing] = useState(false);
   const [streaming, setStreaming] = useState(false);
-  const [streamDone, setStreamDone] = useState(false);
-  const [totalCargado, setTotalCargado] = useState(0);
   const [filtros, setFiltros] = useState({ ...defaultFiltros });
   const [appliedFiltros, setAppliedFiltros] = useState({ ...defaultFiltros });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [expandedRowKeys, setExpandedRowKeys] = useState([]);
 
 
   const abortRef = useRef(null);
@@ -48,6 +67,7 @@ const OportunidadesAudatex = () => {
   const drainActiveRef = useRef(false);
   const keyCounterRef = useRef(0);
   const streamReaderDoneRef = useRef(false);
+  const syncTimerRef = useRef(null);
 
   const INTERVALO_FILA_MS = 80;
 
@@ -71,23 +91,24 @@ const OportunidadesAudatex = () => {
       finalizarStreamSiColaVacia();
       return;
     }
-    setOportunidades(prev => {
-      const idx = prev.findIndex(o => o.cotizacionId === item.cotizacionId);
-      if (idx !== -1) {
-        // El item ya existe (probablemente cargado de la BD).
-        // Lo actualizamos con los datos nuevos que llegan del stream (que traen repuestos/datosCotizacion).
-        const updated = [...prev];
-        updated[idx] = { ...updated[idx], ...item, _key: updated[idx]._key || keyCounterRef.current++ };
-        return updated;
-      }
-      return [...prev, { ...item, _key: keyCounterRef.current++ }];
-    });
-    setTotalCargado(c => c + 1);
+    if (item.cerrada) {
+      setOportunidades((prev) => prev.filter((o) => !sameOportunidad(o, item)));
+    } else {
+      setOportunidades((prev) => {
+        const idx = findOportunidadIndex(prev, item);
+        if (idx !== -1) {
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], ...item, _key: updated[idx]._key || keyCounterRef.current++ };
+          return updated;
+        }
+        return [...prev, { ...item, _key: keyCounterRef.current++ }];
+      });
+    }
     setTimeout(tick, INTERVALO_FILA_MS);
   }, [finalizarStreamSiColaVacia]);
 
   const encolarOportunidad = useCallback((item) => {
-    if (!item?.cotizacionId) return;
+    if (!item?.cotizacionId && !item?.wan) return;
     pendingQueueRef.current.push(item);
     if (!drainActiveRef.current) {
       drainActiveRef.current = true;
@@ -95,113 +116,117 @@ const OportunidadesAudatex = () => {
     }
   }, [drenarSiguiente]);
 
-  // ── Sincronización Avanzada (Instantánea + Deltas) ──────────────────────────────────
-  const cargarOportunidadesStream = useCallback(async (currentFilters = appliedFiltros) => {
-    // Cancelar stream anterior si existe
+  const aplicarDatosBd = useCallback((bdOportunidades) => {
+    setOportunidades((prev) =>
+      bdOportunidades.map((item) => {
+        const idx = findOportunidadIndex(prev, item);
+        const _key = idx >= 0 ? prev[idx]._key : keyCounterRef.current++;
+        return { ...item, _key };
+      })
+    );
+  }, []);
+
+  const iniciarIndicadorSync = useCallback(() => {
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    setSyncing(true);
+    syncTimerRef.current = setTimeout(() => setSyncing(false), 120000);
+  }, []);
+
+  // ── Sincronización incremental (BD instantánea + deltas SSE) ─────────────────────────
+  const cargarOportunidadesStream = useCallback(async (currentFilters = appliedFiltros, options = {}) => {
+    const { resetPage = false } = options;
     if (abortRef.current) abortRef.current.abort();
     detenerCola();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setOportunidades([]);
-    setTotalCargado(0);
-    setStreamDone(false);
+    // NO vaciar la tabla — la BD previa sigue visible hasta que llegue el snapshot
     setStreaming(true);
-    setCurrentPage(1);
+    if (resetPage) setCurrentPage(1);
     streamReaderDoneRef.current = false;
 
-    const params = new URLSearchParams();
-    if (currentFilters.aseguradora) params.set('aseguradora', currentFilters.aseguradora);
-    if (currentFilters.desde) params.set('desde', currentFilters.desde.format('YYYY-MM-DD'));
-    if (currentFilters.hasta) params.set('hasta', currentFilters.hasta.format('YYYY-MM-DD'));
-    if (currentFilters.minPendientes) params.set('minPendientes', currentFilters.minPendientes);
-
+    const params = new URLSearchParams(buildSyncParams(currentFilters));
     const token = localStorage.getItem('token');
-    
-    // 1. Carga inicial instantánea desde la Base de Datos (Vista Materializada)
+
+    // 1. Carga instantánea desde BD (sin setOportunidades([]))
     try {
       const getResponse = await fetch(`http://localhost:8080/api/audatex/oportunidades/sync?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (getResponse.ok) {
         const data = await getResponse.json();
-        const bdOportunidades = data.oportunidades || [];
-        setOportunidades(bdOportunidades);
-        setTotalCargado(bdOportunidades.length);
-        // Si hay un mapa de "nuevos" IDs podemos inyectarlos acá.
+        aplicarDatosBd(data.oportunidades || []);
       }
     } catch (e) {
-      console.warn("Fallo en GET inicial de sync", e);
+      console.warn('Fallo en GET inicial de sync', e);
     }
 
-    // 2. Conexión SSE para escuchar Deltas (Nuevas oportunidades en vivo)
-    const url = `http://localhost:8080/api/audatex/oportunidades/sync/stream?${params.toString()}`;
-
+    // 2. Sync incremental 30 días en background
     try {
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'text/event-stream',
-        },
-        signal: controller.signal,
-      });
+      await audatexService.syncIncremental();
+      iniciarIndicadorSync();
+    } catch (e) {
+      console.warn('Fallo al iniciar sync incremental', e);
+    }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+    setStreaming(false);
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let eventName = '';
+    // 3. SSE para deltas (UPSERT / CERRADA) — en background, no bloquea la UI
+    const url = `http://localhost:8080/api/audatex/oportunidades/sync/stream`;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    (async () => {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'text/event-stream',
+          },
+          signal: controller.signal,
+        });
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop(); // la última línea podría estar incompleta
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
 
-        for (const line of lines) {
-          if (line.startsWith('event:')) {
-            eventName = line.slice(6).trim();
-          } else if (line.startsWith('data:')) {
-            const raw = line.slice(5).trim();
-            try {
-              const parsed = JSON.parse(raw);
-              if (eventName === 'oportunidad' || eventName === 'delta') {
-                // Inyección delta en vivo sin recargar
-                encolarOportunidad(parsed);
-              } else if (eventName === 'pagina') {
-                const lote = Array.isArray(parsed) ? parsed : [parsed];
-                lote.forEach(encolarOportunidad);
-              } else if (eventName === 'done') {
-                setStreamDone(true);
-                message.success({
-                  content: `✓ Todas las oportunidades cargadas — ${parsed.total} en total`,
-                  icon: <CheckCircleOutlined />,
-                  duration: 5,
-                });
-              } else if (eventName === 'error') {
-                message.error(`Error del portal: ${parsed.error}`);
-              }
-              eventName = '';
-            } catch (_) { }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let eventName = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              eventName = line.slice(6).trim();
+            } else if (line.startsWith('data:')) {
+              const raw = line.slice(5).trim();
+              try {
+                const parsed = JSON.parse(raw);
+                if (eventName === 'delta' || eventName === 'oportunidad') {
+                  encolarOportunidad(parsed);
+                }
+                eventName = '';
+              } catch (_) { /* ignore malformed SSE chunk */ }
+            }
           }
         }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Error SSE sync deltas:', err);
+        }
+      } finally {
+        streamReaderDoneRef.current = true;
+        finalizarStreamSiColaVacia();
+        if (abortRef.current === controller) abortRef.current = null;
       }
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error('Error streaming oportunidades:', err);
-        message.error('Error al conectar con el portal Audatex');
-      }
-    } finally {
-      streamReaderDoneRef.current = true;
-      finalizarStreamSiColaVacia();
-      abortRef.current = null;
-    }
-  }, [appliedFiltros, detenerCola, encolarOportunidad, finalizarStreamSiColaVacia]);
+    })();
+  }, [appliedFiltros, detenerCola, encolarOportunidad, finalizarStreamSiColaVacia, aplicarDatosBd, iniciarIndicadorSync]);
 
   // Detener stream en curso
   const handleDetener = () => {
@@ -406,32 +431,29 @@ const OportunidadesAudatex = () => {
     message.success(`Excel exportado — ${oportunidades.length} oportunidades, ${repuestosData.length} repuestos${nota}`);
   };
 
-  // ── Invalidar caché y recargar ────────────────────────────────────────────
+  // ── Refrescar: sync incremental sin vaciar tabla ────────────────────────────
   const handleSincronizar = async () => {
     try {
-      // Tomamos los filtros que haya en pantalla por si el usuario no le dio a "Filtrar"
       const nuevos = { ...filtros };
       setAppliedFiltros(nuevos);
-
-      await audatexService.invalidarCache();
-      message.info('Caché invalidado. Iniciando carga...');
-      cargarOportunidadesStream(nuevos);
+      message.info('Sincronizando con Audatex (30 días)…');
+      await cargarOportunidadesStream(nuevos, { resetPage: false });
     } catch (err) {
-      console.error('Error invalidando caché:', err);
-      message.error('Error al invalidar el caché');
+      console.error('Error al sincronizar:', err);
+      message.error('Error al iniciar la sincronización');
     }
   };
 
   const handleFiltrar = () => {
     const nuevos = { ...filtros };
     setAppliedFiltros(nuevos);
-    cargarOportunidadesStream(nuevos);
+    cargarOportunidadesStream(nuevos, { resetPage: true });
   };
 
   const handleLimpiar = () => {
     setFiltros({ ...defaultFiltros });
     setAppliedFiltros({ ...defaultFiltros });
-    cargarOportunidadesStream({ ...defaultFiltros });
+    cargarOportunidadesStream({ ...defaultFiltros }, { resetPage: true });
   };
 
 
@@ -449,6 +471,7 @@ const OportunidadesAudatex = () => {
     return () => {
       startedRef.current = false;
       if (abortRef.current) abortRef.current.abort();
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
       detenerCola();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -548,8 +571,6 @@ const OportunidadesAudatex = () => {
       if (op.fechaCotizacion) {
         const parts = op.fechaCotizacion.split(' ')[0].split('/');
         if (parts.length === 3) {
-          const d = parseInt(parts[0], 10);
-          const m = parseInt(parts[1], 10) - 1; // month is 0-indexed in dayjs object construction via date? No, Dayjs string parsing is YYYY-MM-DD
           const y = parseInt(parts[2], 10);
           const opDate = dayjs(`${y}-${parts[1]}-${parts[0]}`);
 
@@ -599,7 +620,7 @@ const OportunidadesAudatex = () => {
               Detener
             </Button>
           )}
-          <Button type="default" icon={<ReloadOutlined />} onClick={handleSincronizar} disabled={streaming} style={{ color: '#1890ff', borderColor: '#1890ff' }}>
+          <Button type="default" icon={<ReloadOutlined />} onClick={handleSincronizar} disabled={streaming && oportunidades.length === 0} style={{ color: '#1890ff', borderColor: '#1890ff' }}>
             Refrescar
           </Button>
           <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} style={{ background: '#52c41a', borderColor: '#52c41a' }}>
@@ -620,8 +641,8 @@ const OportunidadesAudatex = () => {
         </div>
       </div>
 
-      {/* Barra de progreso mientras carga */}
-      {streaming && (
+      {/* Indicador de sync en background — tabla siempre visible */}
+      {syncing && (
         <Alert
           style={{ marginBottom: '12px' }}
           type="info"
@@ -629,20 +650,19 @@ const OportunidadesAudatex = () => {
           showIcon
           message={
             <span>
-              Cargando oportunidades desde el portal…{' '}
-              <strong>{totalCargado}</strong> cargadas hasta ahora
+              Sincronizando con Audatex (30 días)…{' '}
+              <strong>{oportunidadesFiltradas.length}</strong> oportunidades visibles desde BD
             </span>
           }
         />
       )}
-      {streamDone && !streaming && (
+      {streaming && oportunidades.length === 0 && (
         <Alert
           style={{ marginBottom: '12px' }}
-          type="success"
+          type="info"
+          icon={<LoadingOutlined spin />}
           showIcon
-          icon={<CheckCircleOutlined />}
-          message={`Carga completa — ${totalCargado} oportunidades disponibles`}
-          closable
+          message="Cargando oportunidades desde la base de datos…"
         />
       )}
 
@@ -694,10 +714,10 @@ const OportunidadesAudatex = () => {
             }
             style={{ width: 150 }}
           />
-          <Button type="primary" icon={<SearchOutlined />} onClick={handleFiltrar} disabled={streaming}>
+          <Button type="primary" icon={<SearchOutlined />} onClick={handleFiltrar}>
             Filtrar
           </Button>
-          <Button onClick={handleLimpiar} disabled={streaming}>
+          <Button onClick={handleLimpiar}>
             Limpiar
           </Button>
         </Space>
@@ -713,6 +733,8 @@ const OportunidadesAudatex = () => {
             loading={streaming && oportunidades.length === 0}
             expandable={{
               expandRowByClick: false,
+              expandedRowKeys,
+              onExpandedRowsChange: setExpandedRowKeys,
               rowExpandable: (record) => Array.isArray(record.repuestos) && record.repuestos.length > 0,
               expandedRowRender: (record) => {
                 const repuestos = record.repuestos || [];

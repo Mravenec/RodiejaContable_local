@@ -11,7 +11,8 @@
 -- Scripts numerados en DB/:
 --   01_sistema_vehicular.sql  — esquema principal (tablas, vistas, triggers, SPs)
 --   02_UsersAuth.sql          — autenticación y usuarios
---   03_AudatexEnvios.sql      — integración Audatex InPart
+--   03_AudatexEnvios.sql      — integración Audatex InPart (envíos)
+--   04_AudatexSync.sql        — sincronización oportunidades Audatex (vista materializada)
 --   04_datos.sql              — mocks (vía load_mocks.py, no incluido aquí)
 -- ============================================================
 

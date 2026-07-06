@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static com.rodiejacontable.database.jooq.Tables.AUDATEX_OPORTUNIDADES_SYNC;
 import static com.rodiejacontable.database.jooq.Tables.GENERACIONES;
 import static com.rodiejacontable.database.jooq.Tables.INVENTARIO_REPUESTOS;
 import static com.rodiejacontable.database.jooq.Tables.MARCAS;
@@ -58,6 +59,9 @@ public class AudatexService {
     private final MarcasRepository marcasRepository;
     private final DSLContext dsl;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final java.util.concurrent.atomic.AtomicBoolean syncIncrementalEnCurso = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    private static final int SYNC_INCREMENTAL_DIAS = 30;
 
     @Autowired
     @Lazy
@@ -99,35 +103,14 @@ public class AudatexService {
             String aseguradora,
             String desde,
             String hasta,
-            Integer minPendientes) throws IOException {
+            Integer minPendientes) {
 
-        List<Map<String, Object>> todas = self.obtenerTodasOportunidades(desde, hasta);
+        List<Map<String, Object>> todas = getOportunidadesFromDb(armadora, aseguradora, desde, hasta, minPendientes);
 
         log.info("[AudatexService] buscarConFiltros - filtro armadora={}, aseguradora={}, desde={}, hasta={}, minPendientes={}",
                 armadora, aseguradora, desde, hasta, minPendientes);
-        log.info("[AudatexService] buscarConFiltros - total recuperadas: {}", todas.size());
-
-        java.time.LocalDate desdeDate = parseFilterDate(desde);
-        java.time.LocalDate hastaDate = parseFilterDate(hasta);
-
-        List<Map<String, Object>> res = todas.stream()
-                .filter(o -> filtroTexto(armadora, texto(o, "armadora")))
-                .filter(o -> filtroTexto(aseguradora, texto(o, "aseguradora")))
-                .filter(o -> minPendientes == null || pendientes(o) >= minPendientes)
-                .filter(o -> {
-                    if (desdeDate == null) return true;
-                    java.time.LocalDate fecha = parsePortalDate(texto(o, "fechaCotizacion"));
-                    return fecha != null && !fecha.isBefore(desdeDate);
-                })
-                .filter(o -> {
-                    if (hastaDate == null) return true;
-                    java.time.LocalDate fecha = parsePortalDate(texto(o, "fechaCotizacion"));
-                    return fecha != null && !fecha.isAfter(hastaDate);
-                })
-                .collect(Collectors.toList());
-
-        log.info("[AudatexService] buscarConFiltros - total final: {}", res.size());
-        return res;
+        log.info("[AudatexService] buscarConFiltros - total desde BD: {}", todas.size());
+        return todas;
     }
 
     /**
@@ -582,6 +565,7 @@ public class AudatexService {
 
     public void syncRange(String desde, String hasta) {
         log.info("[AudatexService] Sincronizando rango desde={} hasta={}...", desde, hasta);
+        java.time.LocalDateTime syncInicio = java.time.LocalDateTime.now();
         try {
             List<Map<String, Object>> ops = client.buscarTodasOportunidades(desde, hasta);
             int insertadas = 0;
@@ -635,9 +619,97 @@ public class AudatexService {
                     com.rodiejacontable.rodiejacontable.integration.audatex.controller.AudatexController.emitirDelta(delta);
                 }
             }
-            log.info("[AudatexService] Sync finalizado. Insertadas: {}, Actualizadas: {}", insertadas, actualizadas);
+            int cerrados = markStaleAsClosed(24);
+            int cerradosEnRango = markStaleInRangeNotSeenSince(syncInicio, desde, hasta);
+            log.info("[AudatexService] Sync finalizado. Insertadas: {}, Actualizadas: {}, CERRADA stale: {}, CERRADA en rango: {}",
+                    insertadas, actualizadas, cerrados, cerradosEnRango);
         } catch (Exception e) {
             log.error("[AudatexService] Error en syncRange: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Dispara sync de 30 días en background. Retorna de inmediato si no hay otro sync en curso.
+     */
+    public boolean iniciarSyncIncremental() {
+        if (!syncIncrementalEnCurso.compareAndSet(false, true)) {
+            log.info("[AudatexService] Sync incremental ya en curso — ignorando solicitud duplicada");
+            return false;
+        }
+        java.time.LocalDate hoy = java.time.LocalDate.now();
+        java.time.LocalDate desde = hoy.minusDays(SYNC_INCREMENTAL_DIAS);
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String desdeStr = desde.format(fmt);
+        String hastaStr = hoy.format(fmt);
+
+        Thread t = new Thread(() -> {
+            try {
+                log.info("[AudatexService] Sync incremental 30d iniciado ({} → {})", desdeStr, hastaStr);
+                syncRange(desdeStr, hastaStr);
+            } finally {
+                syncIncrementalEnCurso.set(false);
+            }
+        }, "audatex-sync-incremental");
+        t.setDaemon(true);
+        t.start();
+        return true;
+    }
+
+    public boolean isSyncIncrementalEnCurso() {
+        return syncIncrementalEnCurso.get();
+    }
+
+    /**
+     * Tras un sync de rango: cierra ACTIVAS en ventana de fechas que no fueron vistas en esta pasada.
+     */
+    private int markStaleInRangeNotSeenSince(java.time.LocalDateTime syncInicio, String desde, String hasta) {
+        java.time.LocalDate desdeDate = parsePortalDate(desde);
+        java.time.LocalDate hastaDate = parsePortalDate(hasta);
+        if (desdeDate == null && desde != null) desdeDate = parseFilterDateFromDdMmYyyy(desde);
+        if (hastaDate == null && hasta != null) hastaDate = parseFilterDateFromDdMmYyyy(hasta);
+
+        var condition = AUDATEX_OPORTUNIDADES_SYNC.ESTADO.eq(
+                com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA)
+                .and(AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO.lt(syncInicio));
+
+        List<Map<String, Object>> candidatas = dsl.selectFrom(AUDATEX_OPORTUNIDADES_SYNC)
+                .where(condition)
+                .fetchMaps();
+
+        int cerrados = 0;
+        for (Map<String, Object> row : candidatas) {
+            String fechaCot = row.get("fecha_cotizacion") != null ? row.get("fecha_cotizacion").toString() : null;
+            java.time.LocalDate fecha = parsePortalDate(fechaCot);
+            if (fecha == null) continue;
+            if (desdeDate != null && fecha.isBefore(desdeDate)) continue;
+            if (hastaDate != null && fecha.isAfter(hastaDate)) continue;
+
+            String wan = row.get("wan").toString();
+            int n = dsl.update(AUDATEX_OPORTUNIDADES_SYNC)
+                    .set(AUDATEX_OPORTUNIDADES_SYNC.ESTADO,
+                            com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.CERRADA)
+                    .where(AUDATEX_OPORTUNIDADES_SYNC.WAN.eq(wan))
+                    .execute();
+            if (n > 0) {
+                cerrados++;
+                java.util.Map<String, Object> delta = new java.util.HashMap<>();
+                delta.put("wan", wan);
+                delta.put("cotizacionId", row.get("cotizacion_id"));
+                delta.put("estado", "CERRADA");
+                delta.put("cerrada", true);
+                com.rodiejacontable.rodiejacontable.integration.audatex.controller.AudatexController.emitirDelta(delta);
+            }
+        }
+        return cerrados;
+    }
+
+    private java.time.LocalDate parseFilterDateFromDdMmYyyy(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) return null;
+        try {
+            java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            return java.time.LocalDate.parse(dateStr.trim().split("\\s+")[0], fmt);
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -685,13 +757,54 @@ public class AudatexService {
     }
 
     public List<Map<String, Object>> getOportunidadesFromDb() {
-        List<Map<String, Object>> records = dsl.selectFrom(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC)
-            .where(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ESTADO.eq(com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA))
-            .orderBy(com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO.desc())
-            .fetchMaps();
-            
+        return getOportunidadesFromDb(null, null, null, null, null);
+    }
+
+    public List<Map<String, Object>> getOportunidadesFromDb(
+            String armadora,
+            String aseguradora,
+            String desde,
+            String hasta,
+            Integer minPendientes) {
+
+        java.time.LocalDate desdeDate = parseFilterDate(desde);
+        java.time.LocalDate hastaDate = parseFilterDate(hasta);
+        if (desdeDate == null && desde != null) desdeDate = parseFilterDateFromDdMmYyyy(desde);
+        if (hastaDate == null && hasta != null) hastaDate = parseFilterDateFromDdMmYyyy(hasta);
+
+        var query = dsl.selectFrom(AUDATEX_OPORTUNIDADES_SYNC)
+                .where(AUDATEX_OPORTUNIDADES_SYNC.ESTADO.eq(
+                        com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA));
+
+        if (aseguradora != null && !aseguradora.trim().isEmpty()) {
+            query = query.and(AUDATEX_OPORTUNIDADES_SYNC.ASEGURADORA.containsIgnoreCase(aseguradora.trim()));
+        }
+        if (armadora != null && !armadora.trim().isEmpty()) {
+            query = query.and(AUDATEX_OPORTUNIDADES_SYNC.ARMADORA.containsIgnoreCase(armadora.trim()));
+        }
+        if (minPendientes != null) {
+            query = query.and(AUDATEX_OPORTUNIDADES_SYNC.PENDIENTES.ge(minPendientes));
+        }
+
+        List<Map<String, Object>> records = query
+                .orderBy(AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO.desc())
+                .fetchMaps();
+
         List<Map<String, Object>> mapped = new java.util.ArrayList<>();
         for (Map<String, Object> r : records) {
+            String fechaCot = r.get("fecha_cotizacion") != null ? r.get("fecha_cotizacion").toString() : null;
+            java.time.LocalDate fecha = parsePortalDate(fechaCot);
+            if (desdeDate != null && (fecha == null || fecha.isBefore(desdeDate))) continue;
+            if (hastaDate != null && (fecha == null || fecha.isAfter(hastaDate))) continue;
+
+            Map<String, Object> m = mapDbRowToOportunidad(r);
+            mapped.add(m);
+        }
+        enrichConMatchInventario(mapped);
+        return mapped;
+    }
+
+    private Map<String, Object> mapDbRowToOportunidad(Map<String, Object> r) {
             Map<String, Object> m = new java.util.HashMap<>();
             m.put("wan", r.get("wan"));
             m.put("aseguradora", r.get("aseguradora"));
@@ -701,21 +814,22 @@ public class AudatexService {
             m.put("siniestro", r.get("siniestro"));
             m.put("matricula", r.get("matricula"));
             m.put("armadora", r.get("armadora"));
-            m.put("marca", r.get("armadora")); // fallback for frontend
+            m.put("marca", r.get("armadora"));
             m.put("modelo", r.get("modelo"));
             m.put("anio", r.get("anio"));
             m.put("fechaCotizacion", r.get("fecha_cotizacion"));
             m.put("pendientes", r.get("pendientes"));
             m.put("estado", r.get("estado") != null ? r.get("estado").toString() : null);
             m.put("ultima_vez_visto", r.get("ultima_vez_visto"));
-            
+
             Object json = r.get("detalle_json");
             if (json != null) {
                 try {
-                    Map<String, Object> detalles = objectMapper.readValue(json.toString(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                    Map<String, Object> detalles = objectMapper.readValue(json.toString(),
+                            new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
                     m.put("repuestos", detalles.get("repuestos"));
                     m.put("datosCotizacion", detalles.get("datosCotizacion"));
-                } catch(Exception e) {
+                } catch (Exception e) {
                     m.put("repuestos", java.util.List.of());
                     m.put("datosCotizacion", java.util.Map.of());
                 }
@@ -723,10 +837,7 @@ public class AudatexService {
                 m.put("repuestos", java.util.List.of());
                 m.put("datosCotizacion", java.util.Map.of());
             }
-            mapped.add(m);
-        }
-        enrichConMatchInventario(mapped);
-        return mapped;
+            return m;
     }
 
     private void enrichConMatchInventario(List<Map<String, Object>> oportunidades) {

@@ -1,0 +1,42 @@
+### ========================================
+### MÓDULO: AUDATEX — Sync incremental (GATE_HTTP)
+### Login dev: admin@rodieja.com / Admin123!
+### ========================================
+
+### 0. Login (obtener token)
+# @name login
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@rodieja.com",
+  "password": "Admin123!"
+}
+
+###
+@token = {{login.response.body.token}}
+
+### 1. GET /oportunidades/sync — carga instantánea desde BD
+GET http://localhost:8080/api/audatex/oportunidades/sync
+Authorization: Bearer {{token}}
+
+### 2. GET /oportunidades/sync con filtros
+GET http://localhost:8080/api/audatex/oportunidades/sync?desde=2026-06-01&hasta=2026-07-06&aseguradora=Qualitas
+Authorization: Bearer {{token}}
+
+### 3. POST /oportunidades/sync/incremental — sync 30 días async
+POST http://localhost:8080/api/audatex/oportunidades/sync/incremental
+Authorization: Bearer {{token}}
+
+### 4. GET /oportunidades — lectura desde BD (no portal)
+GET http://localhost:8080/api/audatex/oportunidades?desde=2026-06-01&hasta=2026-07-06
+Authorization: Bearer {{token}}
+
+### 5. GET /status integración
+GET http://localhost:8080/api/audatex/status
+Authorization: Bearer {{token}}
+
+### 6. SSE deltas (abrir en cliente REST que soporte stream)
+# GET http://localhost:8080/api/audatex/oportunidades/sync/stream
+# Authorization: Bearer {{token}}
+# Accept: text/event-stream

@@ -73,7 +73,7 @@
   <h1>Diagnóstico: por qué Audatex<br><em>«reinicia desde cero»</em></h1>
   <p class="sub">Documento autocontenido para cualquier IA o humano. Incluye: qué está pasando, por qué falla, diagramas de flujo, código actual, solución paso a paso y contrato Linear (ROD-01 → ROD-04). <strong>Leer completo antes de codear.</strong></p>
   <div class="chips">
-    <div class="chip pending">Plan <span>PENDIENTE APROBACIÓN</span></div>
+    <div class="chip ok">Plan <span>✅ APROBADO</span></div>
     <div class="chip">Issues <span>ROD-01 → ROD-04</span></div>
     <div class="chip">Checklist <span>un ítem a la vez</span></div>
   </div>
@@ -111,7 +111,7 @@
   <div class="st">Estado Linear, gate y repositorio</div>
   <div class="cb2">sprint-next → No hay sprint activo (no existe sprint_sync_audatex.mjs)
 
-Plan sync_audatex → PENDIENTE (sin ✅ APROBADO ni create)
+Plan sync_audatex → ✅ APROBADO — ejecutar create
 Código sync integrado fuera del gate Linear (sin checklist trazable)
 
 Para arreglarlo de forma trazable: aprobar este plan → create → ROD-01…04 secuencial</div>
@@ -416,8 +416,8 @@ Regla de oro    → BD siempre visible; sync 30 días por detrás; nunca vaciar 
     <tbody>
       <tr><td>0 Limpieza</td><td>cleanup artefactos sprint anterior</td><td>Sprint previo cerrado</td><td>✓</td></tr>
       <tr><td>1–2 Plan HTML</td><td>Este documento (Linear + diagnóstico + IA)</td><td>validate-plan-html OK</td><td>✓</td></tr>
-      <tr><td>3 Aprobación</td><td>✅ humano en chat</td><td>APROBADO</td><td>PENDIENTE</td></tr>
-      <tr><td>4 MJS</td><td>sprint_sync_audatex.mjs create</td><td>Tras Fase 3</td><td>—</td></tr>
+      <tr><td>3 Aprobación</td><td>✅ humano en chat</td><td>APROBADO</td><td>✓</td></tr>
+      <tr><td>4 MJS</td><td>sprint_sync_audatex.mjs create</td><td>Tras Fase 3</td><td>En curso</td></tr>
       <tr><td>5 Multi-agente</td><td>ROD-01→04 checklist ítem a ítem</td><td>GATE_HTTP→FE</td><td>—</td></tr>
       <tr><td>6 Resumen</td><td>resumen_sprint_sync_audatex.html</td><td>Epic Completed</td><td>—</td></tr>
     </tbody>
@@ -596,9 +596,9 @@ node scripts/sprint-next.mjs</div>
   <div class="sl">Aprobación</div>
   <table class="tbl">
     <tbody>
-      <tr><td>Estado</td><td>PENDIENTE</td></tr>
+      <tr><td>Estado</td><td>✅ APROBADO</td></tr>
       <tr><td>Validación</td><td>12 Linear + 11 diagnóstico (D1–D11) + 5 briefing IA + coherencia</td></tr>
-      <tr><td>Para aprobar</td><td>✅ APROBADO en chat → create</td></tr>
+      <tr><td>Siguiente</td><td><code>node scripts/sprint_sync_audatex.mjs create</code></td></tr>
     </tbody>
   </table>
 </section>

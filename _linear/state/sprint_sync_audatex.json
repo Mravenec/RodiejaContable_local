@@ -1,0 +1,35 @@
+{
+  "sprintName": "sync_audatex",
+  "epicName": "Sincronizacion_Audatex",
+  "projectId": "88e65668-a298-4e4e-82db-484571786eb2",
+  "cycleId": "8d54afff-61a5-4b0d-9a1e-5929ec09ae58",
+  "createdAt": "2026-07-06T18:58:01.213Z",
+  "issues": [
+    {
+      "id": "f449b241-b3e7-4f0e-85ac-6d2d2c26fa28",
+      "identifier": "ODS-218",
+      "key": "01"
+    },
+    {
+      "id": "23f788b9-762c-458c-b0bd-73219a28358a",
+      "identifier": "ODS-219",
+      "key": "02"
+    },
+    {
+      "id": "97811490-75cd-4274-bee2-8ca65eb7b7b1",
+      "identifier": "ODS-220",
+      "key": "03"
+    },
+    {
+      "id": "688c2ef4-f4ed-4349-abfb-1be6d4349d9a",
+      "identifier": "ODS-221",
+      "key": "04"
+    }
+  ],
+  "order": [
+    "01",
+    "02",
+    "03",
+    "04"
+  ]
+}

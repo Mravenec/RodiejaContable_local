@@ -1,5 +1,6 @@
 package com.rodiejacontable.rodiejacontable.integration.audatex.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rodiejacontable.database.jooq.tables.pojos.AudatexEnvios;
 import com.rodiejacontable.rodiejacontable.integration.audatex.service.AudatexExcelExportService;
 import com.rodiejacontable.rodiejacontable.integration.audatex.service.AudatexService;
@@ -25,6 +26,7 @@ import java.util.Map;
 public class AudatexController {
 
     private static final Logger log = LoggerFactory.getLogger(AudatexController.class);
+    private static final ObjectMapper SSE_MAPPER = new ObjectMapper();
 
     private final AudatexService audatexService;
     private final AudatexExcelExportService excelService;
@@ -36,8 +38,13 @@ public class AudatexController {
         this.syncWorker = syncWorker;
     }
 
+    /**
+     * @deprecated Usar POST /oportunidades/sync/incremental (30 días, async).
+     */
+    @Deprecated
     @GetMapping("/oportunidades/sync/force")
     public org.springframework.http.ResponseEntity<String> forceSync() {
+        log.warn("[Audatex] GET /oportunidades/sync/force está deprecado — usar POST /oportunidades/sync/incremental");
         new Thread(() -> {
             try {
                 syncWorker.syncHotZone();
@@ -69,17 +76,23 @@ public class AudatexController {
                     "total", resultado.size(),
                     "oportunidades", resultado
             ));
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("[Audatex] Error consultando oportunidades: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(Map.of("error", "Portal Audatex no disponible: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno: " + e.getMessage()));
         }
     }
 
     @GetMapping("/oportunidades/sync")
-    public ResponseEntity<?> obtenerOportunidadesSync() {
+    public ResponseEntity<?> obtenerOportunidadesSync(
+            @RequestParam(required = false) String armadora,
+            @RequestParam(required = false) String aseguradora,
+            @RequestParam(required = false) String desde,
+            @RequestParam(required = false) String hasta,
+            @RequestParam(required = false) Integer minPendientes) {
         try {
-            List<Map<String, Object>> resultado = audatexService.getOportunidadesFromDb();
+            List<Map<String, Object>> resultado = audatexService.getOportunidadesFromDb(
+                    armadora, aseguradora, desde, hasta, minPendientes);
             log.info("[Audatex] GET /oportunidades/sync → {} resultados desde BD local", resultado.size());
             return ResponseEntity.ok(Map.of(
                     "total", resultado.size(),
@@ -92,9 +105,26 @@ public class AudatexController {
         }
     }
 
+    @PostMapping("/oportunidades/sync/incremental")
+    public ResponseEntity<?> syncIncremental() {
+        boolean iniciado = audatexService.iniciarSyncIncremental();
+        if (!iniciado) {
+            return ResponseEntity.ok(Map.of(
+                    "mensaje", "Sincronización incremental ya en curso",
+                    "enCurso", true,
+                    "dias", 30
+            ));
+        }
+        return ResponseEntity.accepted().body(Map.of(
+                "mensaje", "Sincronización incremental de 30 días iniciada en background",
+                "enCurso", true,
+                "dias", 30
+        ));
+    }
+
     private static final java.util.List<SseEmitter> deltaEmitters = new java.util.concurrent.CopyOnWriteArrayList<>();
 
-    @GetMapping("/oportunidades/sync/stream")
+    @GetMapping(value = "/oportunidades/sync/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamSyncDeltas() {
         SseEmitter emitter = new SseEmitter(3600_000L); // 1 hora de timeout
         deltaEmitters.add(emitter);
@@ -111,7 +141,8 @@ public class AudatexController {
         java.util.List<SseEmitter> muertos = new java.util.ArrayList<>();
         for (SseEmitter emitter : deltaEmitters) {
             try {
-                emitter.send(SseEmitter.event().name("delta").data(oportunidad));
+                String json = SSE_MAPPER.writeValueAsString(oportunidad);
+                emitter.send(SseEmitter.event().name("delta").data(json));
             } catch (Exception e) {
                 muertos.add(emitter);
             }
@@ -120,10 +151,9 @@ public class AudatexController {
     }
 
     /**
-     * SSE: emite las oportunidades página a página conforme se scraping el portal.
-     * El cliente React consume con fetch() + ReadableStream para carga progresiva.
-     * Timeout: 5 minutos (300 000 ms) para portales con muchas páginas.
+     * @deprecated El frontend debe usar GET /oportunidades/sync + POST /sync/incremental + SSE /sync/stream.
      */
+    @Deprecated
     @GetMapping(value = "/oportunidades/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamOportunidades(
             @RequestParam(required = false) String armadora,
@@ -132,8 +162,7 @@ public class AudatexController {
             @RequestParam(required = false) String hasta,
             @RequestParam(required = false) Integer minPendientes) {
 
-        // El streaming de múltiples días puede tomar bastante tiempo en Audatex. 
-        // 3600_000L = 1 hora de timeout para la conexión SSE.
+        log.warn("[Audatex] GET /oportunidades/stream está deprecado — usar sync incremental + /sync/stream");
         SseEmitter emitter = new SseEmitter(3600_000L);
         log.info("[Audatex] SSE /oportunidades/stream — armadora={}, aseguradora={}, desde={}, hasta={}",
                 armadora, aseguradora, desde, hasta);
