@@ -8,10 +8,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
 import static com.rodiejacontable.database.jooq.Tables.INVENTARIO_REPUESTOS;
+import static com.rodiejacontable.database.jooq.Tables.GENERACIONES;
+import static com.rodiejacontable.database.jooq.Tables.MARCAS;
+import static com.rodiejacontable.database.jooq.Tables.MODELOS;
+import static com.rodiejacontable.database.jooq.Tables.VEHICULOS;
+import static com.rodiejacontable.database.jooq.Tables.TRANSACCIONES_FINANCIERAS;
 
 @Repository
 public class InventarioRepuestosRepository {
@@ -137,5 +143,37 @@ public class InventarioRepuestosRepository {
         sp.setPCantidad(org.jooq.types.UInteger.valueOf(cantidad != null ? cantidad : 1));
         
         sp.execute(dsl.configuration());
+    }
+
+    public List<Map<String, Object>> getRepuestosConVehiculoOrigen() {
+        return dsl.select(
+                INVENTARIO_REPUESTOS.ID,
+                MARCAS.NOMBRE.as("marca_nombre"),
+                MODELOS.NOMBRE.as("modelo_nombre"),
+                VEHICULOS.ANIO.as("anio_exacto"))
+                .from(INVENTARIO_REPUESTOS)
+                .join(VEHICULOS).on(INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID.eq(VEHICULOS.ID))
+                .join(GENERACIONES).on(VEHICULOS.GENERACION_ID.eq(GENERACIONES.ID))
+                .join(MODELOS).on(GENERACIONES.MODELO_ID.eq(MODELOS.ID))
+                .join(MARCAS).on(MODELOS.MARCA_ID.eq(MARCAS.ID))
+                .where(INVENTARIO_REPUESTOS.ESTADO.ne(InventarioRepuestosEstado.VENDIDO))
+                .fetchMaps();
+    }
+
+    public List<Map<String, Object>> getRepuestosGenericos() {
+        return dsl.select(
+                INVENTARIO_REPUESTOS.ID,
+                MARCAS.NOMBRE.as("marca_nombre"),
+                MODELOS.NOMBRE.as("modelo_nombre"),
+                GENERACIONES.ANIO_INICIO.as("anio_inicio"),
+                GENERACIONES.ANIO_FIN.as("anio_fin"))
+                .from(INVENTARIO_REPUESTOS)
+                .join(TRANSACCIONES_FINANCIERAS).on(TRANSACCIONES_FINANCIERAS.REPUESTO_ID.eq(INVENTARIO_REPUESTOS.ID))
+                .join(GENERACIONES).on(TRANSACCIONES_FINANCIERAS.GENERACION_ID.eq(GENERACIONES.ID))
+                .join(MODELOS).on(GENERACIONES.MODELO_ID.eq(MODELOS.ID))
+                .join(MARCAS).on(MODELOS.MARCA_ID.eq(MARCAS.ID))
+                .where(INVENTARIO_REPUESTOS.ESTADO.ne(InventarioRepuestosEstado.VENDIDO))
+                .and(INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID.isNull())
+                .fetchMaps();
     }
 }

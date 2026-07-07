@@ -1,6 +1,6 @@
 ### Obtener todas las transacciones por vehiculo
 GET http://localhost:8080/api/transacciones-financieras/vehiculo/1
-
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkByb2RpZWphLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc4MzEyMjAyNCwiZXhwIjoxNzgzMjA4NDI0fQ.KHwaSRZsh0zBmuE_gnRFz97PxaYlAekMyw2EJxGz8wg
 
 ### Obtener todas las transacciones
 GET http://localhost:8080/api/transacciones-financieras

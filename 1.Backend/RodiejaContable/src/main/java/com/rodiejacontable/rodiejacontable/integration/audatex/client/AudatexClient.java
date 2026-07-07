@@ -830,29 +830,29 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
         String idAnterior = primeraCotizacionId(currentDoc);
         int siguiente = paginaActual + 1;
 
-        Element ibtNext = currentDoc.getElementById("ctl00_cphBody_ucNeoPager_ibtNext");
-        if (ibtNext == null) {
-            ibtNext = currentDoc.select("input[type=image][name*=ucNeoPager$ibtNext]").first();
-        }
-        if (ibtNext != null && !ibtNext.hasAttr("disabled")) {
-            PostNavigationResult r = intentarPaginacionAjax(currentDoc, currentUrl, cookies,
-                    startDate, endDate, status, "next",
-                    ibtNext.attr("name"), null, paginaActual, idAnterior);
-            if (r != null) return r;
-        }
-
-        PostNavigationResult r = intentarPaginacionAjax(currentDoc, currentUrl, cookies,
-                startDate, endDate, status, "ddl",
-                "ctl00$cphBody$ucNeoPager$ddlGoToPage",
-                String.valueOf(siguiente), paginaActual, idAnterior);
+        PostNavigationResult r = intentarPaginacionSync(currentDoc, currentUrl, cookies,
+                startDate, endDate, status, siguiente, paginaActual, idAnterior);
         if (r != null) return r;
 
         r = intentarGridViewPage(currentDoc, currentUrl, cookies,
                 startDate, endDate, status, siguiente, paginaActual, idAnterior);
         if (r != null) return r;
 
-        r = intentarPaginacionSync(currentDoc, currentUrl, cookies,
-                startDate, endDate, status, siguiente, paginaActual, idAnterior);
+        Element ibtNext = currentDoc.getElementById("ctl00_cphBody_ucNeoPager_ibtNext");
+        if (ibtNext == null) {
+            ibtNext = currentDoc.select("input[type=image][name*=ucNeoPager$ibtNext]").first();
+        }
+        if (ibtNext != null && !ibtNext.hasAttr("disabled")) {
+            r = intentarPaginacionAjax(currentDoc, currentUrl, cookies,
+                    startDate, endDate, status, "next",
+                    ibtNext.attr("name"), null, paginaActual, idAnterior);
+            if (r != null) return r;
+        }
+
+        r = intentarPaginacionAjax(currentDoc, currentUrl, cookies,
+                startDate, endDate, status, "ddl",
+                "ctl00$cphBody$ucNeoPager$ddlGoToPage",
+                String.valueOf(siguiente), paginaActual, idAnterior);
         if (r != null) return r;
 
         return new PostNavigationResult(false, currentDoc, cookies, currentUrl,
@@ -907,6 +907,8 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
         form.remove(SCRIPT_MANAGER);
         form.remove("ctl00$cphBody$btnSearch");
         form.keySet().removeIf(k -> k.endsWith(".x") || k.endsWith(".y"));
+        
+        aplicarFiltros(form, startDate, endDate, status);
 
         Connection.Response postResp = postForm(currentUrl, cookies, form);
         cookies.putAll(postResp.cookies());
@@ -940,6 +942,8 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
                 form.put(controlName + ".x", "8");
                 form.put(controlName + ".y", "8");
             }
+            
+            aplicarFiltros(form, startDate, endDate, status);
 
             Connection.Response postResp = postFormAjax(currentUrl, cookies, form);
             cookies.putAll(postResp.cookies());
@@ -963,6 +967,8 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
         form.remove(SCRIPT_MANAGER);
         form.remove("ctl00$cphBody$btnSearch");
         form.keySet().removeIf(k -> k.endsWith(".x") || k.endsWith(".y"));
+        
+        aplicarFiltros(form, startDate, endDate, status);
 
         Connection.Response postResp = postForm(currentUrl, cookies, form);
         cookies.putAll(postResp.cookies());

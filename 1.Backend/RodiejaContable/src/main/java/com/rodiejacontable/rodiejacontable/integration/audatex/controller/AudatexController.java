@@ -57,6 +57,10 @@ public class AudatexController {
         return org.springframework.http.ResponseEntity.ok("Sincronización total (Hot, Warm, Cold) iniciada en segundo plano.");
     }
 
+    /**
+     * @deprecated Usar GET /oportunidades/sync para leer desde BD.
+     */
+    @Deprecated
     @GetMapping("/oportunidades")
     public ResponseEntity<?> obtenerOportunidades(
             @RequestParam(required = false) String armadora,
@@ -272,6 +276,10 @@ public class AudatexController {
         }
     }
 
+    /**
+     * @deprecated El frontend ahora exporta a Excel localmente desde los datos de BD.
+     */
+    @Deprecated
     @GetMapping("/oportunidades/export")
     public ResponseEntity<byte[]> exportarExcel(
             @RequestParam(required = false) String armadora,

@@ -15,8 +15,31 @@ import { audatexService } from '../../api';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
+
+const getSafeString = (val) => (val && val !== 'null' && val !== '-' ? val.trim() : '');
+
+const getMarcaSegura = (row) => {
+  let m = getSafeString(row.marca) || getSafeString(row.armadora);
+  if (m) return m;
+  if (row.datosCotizacion) return row.datosCotizacion['Marca'] || row.datosCotizacion['Armadora'] || 'Desc.';
+  return 'Desc.';
+};
+
+const getModeloSeguro = (row) => {
+  let m = getSafeString(row.modelo);
+  if (m) return m;
+  if (row.datosCotizacion) return row.datosCotizacion['Modelo'] || row.datosCotizacion['Descripción'] || row.datosCotizacion['Descripcion'] || '-';
+  return '-';
+};
+
+const getAnioSeguro = (row) => {
+  let a = getSafeString(row.anio);
+  if (a) return a;
+  if (row.datosCotizacion) return row.datosCotizacion['Año Modelo'] || row.datosCotizacion['Año Fabricación'] || row.datosCotizacion['Ano Modelo'] || '-';
+  return '-';
+};
 
 const defaultFiltros = {
   marca: '',
@@ -32,8 +55,8 @@ const defaultFiltros = {
 /** Misma oportunidad por wan o cotizacionId (dedup merge). */
 const sameOportunidad = (a, b) => {
   if (!a || !b) return false;
-  if (a.wan && b.wan && a.wan === b.wan) return true;
-  if (a.cotizacionId && b.cotizacionId && a.cotizacionId === b.cotizacionId) return true;
+  if (a.wan && b.wan) return a.wan === b.wan;
+  if (a.cotizacionId && b.cotizacionId) return a.cotizacionId === b.cotizacionId;
   return false;
 };
 
@@ -117,6 +140,7 @@ const OportunidadesAudatex = () => {
   }, [drenarSiguiente]);
 
   const aplicarDatosBd = useCallback((bdOportunidades) => {
+    console.log('Aplicando BD', bdOportunidades.length, 'items. Primer item:', bdOportunidades[0]);
     setOportunidades((prev) =>
       bdOportunidades.map((item) => {
         const idx = findOportunidadIndex(prev, item);
@@ -134,7 +158,7 @@ const OportunidadesAudatex = () => {
 
   // ── Sincronización incremental (BD instantánea + deltas SSE) ─────────────────────────
   const cargarOportunidadesStream = useCallback(async (currentFilters = appliedFiltros, options = {}) => {
-    const { resetPage = false } = options;
+    const { resetPage = false, triggerSync = false } = options;
     if (abortRef.current) abortRef.current.abort();
     detenerCola();
     const controller = new AbortController();
@@ -161,12 +185,14 @@ const OportunidadesAudatex = () => {
       console.warn('Fallo en GET inicial de sync', e);
     }
 
-    // 2. Sync incremental 30 días en background
-    try {
-      await audatexService.syncIncremental();
-      iniciarIndicadorSync();
-    } catch (e) {
-      console.warn('Fallo al iniciar sync incremental', e);
+    // 2. Sync incremental 30 días en background (Solo si se solicita explícitamente)
+    if (triggerSync) {
+      try {
+        await audatexService.syncIncremental();
+        iniciarIndicadorSync();
+      } catch (e) {
+        console.warn('Fallo al iniciar sync incremental', e);
+      }
     }
 
     setStreaming(false);
@@ -299,9 +325,9 @@ const OportunidadesAudatex = () => {
     // ── Hoja 1: Oportunidades — azul corporativo ──────────────────────────
     const oportHeaders = ['Marca', 'Modelo', 'Año', 'Cotizacion ID', 'Aseguradora', 'Taller', 'Poliza', 'Siniestro', 'Matricula', 'Armadora', 'Fecha', 'Pendientes', 'Total Repuestos'];
     const oportData = oportunidades.map(({ _key, repuestos, ...row }) => {
-      const vMarca = row.marca || row.armadora || (row.datosCotizacion && (row.datosCotizacion['Marca'] || row.datosCotizacion['Armadora'])) || 'Desc.';
-      const vModelo = (row.datosCotizacion && (row.datosCotizacion['Descripción'] || row.datosCotizacion['Modelo'])) || '-';
-      const vAnio = row.anio || (row.datosCotizacion && (row.datosCotizacion['Año Modelo'] || row.datosCotizacion['Año Fabricación'])) || '-';
+      const vMarca = getMarcaSegura(row);
+      const vModelo = getModeloSeguro(row);
+      const vAnio = getAnioSeguro(row);
 
       return {
         'Marca': vMarca,
@@ -437,7 +463,7 @@ const OportunidadesAudatex = () => {
       const nuevos = { ...filtros };
       setAppliedFiltros(nuevos);
       message.info('Sincronizando con Audatex (30 días)…');
-      await cargarOportunidadesStream(nuevos, { resetPage: false });
+      await cargarOportunidadesStream(nuevos, { resetPage: false, triggerSync: true });
     } catch (err) {
       console.error('Error al sincronizar:', err);
       message.error('Error al iniciar la sincronización');
@@ -447,13 +473,13 @@ const OportunidadesAudatex = () => {
   const handleFiltrar = () => {
     const nuevos = { ...filtros };
     setAppliedFiltros(nuevos);
-    cargarOportunidadesStream(nuevos, { resetPage: true });
+    cargarOportunidadesStream(nuevos, { resetPage: true, triggerSync: false });
   };
 
   const handleLimpiar = () => {
     setFiltros({ ...defaultFiltros });
     setAppliedFiltros({ ...defaultFiltros });
-    cargarOportunidadesStream({ ...defaultFiltros }, { resetPage: true });
+    cargarOportunidadesStream({ ...defaultFiltros }, { resetPage: true, triggerSync: false });
   };
 
 
@@ -467,7 +493,7 @@ const OportunidadesAudatex = () => {
     //   setup2 → startedRef=false → startedRef=true → abre stream2 (este es el real)
     if (startedRef.current) return;
     startedRef.current = true;
-    cargarOportunidadesStream();
+    cargarOportunidadesStream(appliedFiltros, { triggerSync: false });
     return () => {
       startedRef.current = false;
       if (abortRef.current) abortRef.current.abort();
@@ -481,30 +507,30 @@ const OportunidadesAudatex = () => {
     {
       title: 'Marca', key: 'marca',
       sorter: (a, b) => {
-        const marcaA = (a.marca || a.armadora || (a.datosCotizacion && (a.datosCotizacion['Marca'] || a.datosCotizacion['Armadora'])) || '');
-        const marcaB = (b.marca || b.armadora || (b.datosCotizacion && (b.datosCotizacion['Marca'] || b.datosCotizacion['Armadora'])) || '');
+        const marcaA = getMarcaSegura(a);
+        const marcaB = getMarcaSegura(b);
         return marcaA.localeCompare(marcaB);
       },
-      render: (_, record) => record.marca || record.armadora || (record.datosCotizacion && (record.datosCotizacion['Marca'] || record.datosCotizacion['Armadora'])) || 'Desc.'
+      render: (_, record) => getMarcaSegura(record),
     },
     {
       title: 'Modelo', key: 'modelo',
       sorter: (a, b) => {
-        const modeloA = a.modelo || (a.datosCotizacion && (a.datosCotizacion['Modelo'] || a.datosCotizacion['Descripción'])) || '';
-        const modeloB = b.modelo || (b.datosCotizacion && (b.datosCotizacion['Modelo'] || b.datosCotizacion['Descripción'])) || '';
+        const modeloA = getModeloSeguro(a);
+        const modeloB = getModeloSeguro(b);
         return modeloA.localeCompare(modeloB);
       },
-      render: (_, record) => record.modelo || (record.datosCotizacion && (record.datosCotizacion['Modelo'] || record.datosCotizacion['Descripción'])) || '-'
+      render: (_, record) => getModeloSeguro(record),
     },
     {
       title: 'Año', key: 'anio',
       sorter: (a, b) => {
-        const anioA = (a.anio || (a.datosCotizacion && (a.datosCotizacion['Año Modelo'] || a.datosCotizacion['Año Fabricación'])) || '').toString();
-        const anioB = (b.anio || (b.datosCotizacion && (b.datosCotizacion['Año Modelo'] || b.datosCotizacion['Año Fabricación'])) || '').toString();
+        const anioA = getAnioSeguro(a).toString();
+        const anioB = getAnioSeguro(b).toString();
         return anioA.localeCompare(anioB);
       },
       render: (_, record) => {
-        return record.anio || (record.datosCotizacion && (record.datosCotizacion['Año Modelo'] || record.datosCotizacion['Año Fabricación'])) || '-';
+        return getAnioSeguro(record);
       }
     },
     {
@@ -556,36 +582,49 @@ const OportunidadesAudatex = () => {
       const mMarca = normalize(appliedFiltros.marca);
       const mModelo = normalize(appliedFiltros.modelo);
       const mAnio = normalize(appliedFiltros.anio);
+      const mAseguradora = normalize(appliedFiltros.aseguradora);
 
-      const vMarca = normalize(op.marca || op.armadora || (op.datosCotizacion && (op.datosCotizacion['Marca'] || op.datosCotizacion['Armadora'])));
-      const vModelo = normalize(op.datosCotizacion && (op.datosCotizacion['Descripción'] || op.datosCotizacion['Modelo']));
-      const vAnio = normalize(op.anio || (op.datosCotizacion && (op.datosCotizacion['Año Modelo'] || op.datosCotizacion['Año Fabricación'])));
+      const vMarca = normalize(getMarcaSegura(op));
+      const vModelo = normalize(getModeloSeguro(op));
+      const vAnio = normalize(getAnioSeguro(op));
+      const vAseguradora = normalize(op.aseguradora || (op.datosCotizacion && op.datosCotizacion['Aseguradora']));
 
       const matchMarca = !mMarca || vMarca.includes(mMarca);
       const matchModelo = !mModelo || vModelo.includes(mModelo);
       const matchAnio = !mAnio || vAnio.includes(mAnio);
+      const matchAseguradora = !mAseguradora || vAseguradora.includes(mAseguradora);
+      const matchMinPendientes = appliedFiltros.minPendientes === null || appliedFiltros.minPendientes === undefined || (op.pendientes || 0) >= appliedFiltros.minPendientes;
 
       let matchDesde = true;
       let matchHasta = true;
 
+      let opDate = null;
       if (op.fechaCotizacion) {
-        const parts = op.fechaCotizacion.split(' ')[0].split('/');
-        if (parts.length === 3) {
-          const y = parseInt(parts[2], 10);
-          const opDate = dayjs(`${y}-${parts[1]}-${parts[0]}`);
-
-          if (appliedFiltros.desde && opDate.isValid()) {
-            matchDesde = opDate.isSame(appliedFiltros.desde, 'day') || opDate.isAfter(appliedFiltros.desde, 'day');
+        if (typeof op.fechaCotizacion === 'string' && op.fechaCotizacion.includes('/')) {
+          const parts = op.fechaCotizacion.split(' ')[0].split('/');
+          if (parts.length === 3) {
+            const y = parseInt(parts[2], 10);
+            const m = parts[1].padStart(2, '0');
+            const d = parts[0].padStart(2, '0');
+            opDate = dayjs(`${y}-${m}-${d}`);
           }
-          if (appliedFiltros.hasta && opDate.isValid()) {
-            matchHasta = opDate.isSame(appliedFiltros.hasta, 'day') || opDate.isBefore(appliedFiltros.hasta, 'day');
-          }
+        } else {
+          opDate = dayjs(op.fechaCotizacion);
         }
       }
 
-      return matchMarca && matchModelo && matchAnio && matchDesde && matchHasta;
+      if (opDate && opDate.isValid()) {
+        if (appliedFiltros.desde) {
+          matchDesde = opDate.isSame(appliedFiltros.desde, 'day') || opDate.isAfter(appliedFiltros.desde, 'day');
+        }
+        if (appliedFiltros.hasta) {
+          matchHasta = opDate.isSame(appliedFiltros.hasta, 'day') || opDate.isBefore(appliedFiltros.hasta, 'day');
+        }
+      }
+
+      return matchMarca && matchModelo && matchAnio && matchAseguradora && matchMinPendientes && matchDesde && matchHasta;
     });
-  }, [oportunidades, appliedFiltros.marca, appliedFiltros.modelo, appliedFiltros.anio, appliedFiltros.desde, appliedFiltros.hasta]);
+  }, [oportunidades, appliedFiltros.marca, appliedFiltros.modelo, appliedFiltros.anio, appliedFiltros.aseguradora, appliedFiltros.minPendientes, appliedFiltros.desde, appliedFiltros.hasta]);
 
   const thStyle = {
     padding: '8px 12px', textAlign: 'left', fontWeight: 600,

@@ -60,6 +60,17 @@ public class TransaccionesFinancierasRepository {
                  .fetchInto(TransaccionesFinancieras.class);
     }
     
+    public Integer findGeneracionIdByRepuestoId(Integer repuestoId) {
+        var tf = dsl.select(TRANSACCIONES_FINANCIERAS.GENERACION_ID)
+                .from(TRANSACCIONES_FINANCIERAS)
+                .where(TRANSACCIONES_FINANCIERAS.REPUESTO_ID.eq(repuestoId))
+                .and(TRANSACCIONES_FINANCIERAS.GENERACION_ID.isNotNull())
+                .orderBy(TRANSACCIONES_FINANCIERAS.ID.asc())
+                .limit(1)
+                .fetchOne();
+        return tf != null ? tf.get(TRANSACCIONES_FINANCIERAS.GENERACION_ID) : null;
+    }
+    
     public Optional<TransaccionesFinancieras> findById(Integer id) {
         return dsl.selectFrom(TRANSACCIONES_FINANCIERAS)
                  .where(TRANSACCIONES_FINANCIERAS.ID.eq(id))

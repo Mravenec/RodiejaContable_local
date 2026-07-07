@@ -19,7 +19,7 @@ import org.jooq.impl.TableRecordImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculosCompletaRecord> {
 
     private static final long serialVersionUID = 1L;
