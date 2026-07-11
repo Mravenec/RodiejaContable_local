@@ -84,6 +84,7 @@ export function useCreateVehiculo(options = {}) {
       onSuccess: (data, variables, context) => {
         message.success('Vehículo creado correctamente');
         queryClient.invalidateQueries('vehiculos');
+        queryClient.invalidateQueries('vehiculos_vista');
         // Llamar al callback onSuccess si existe
         if (onSuccess) {
           onSuccess(data, variables, context);
@@ -123,6 +124,7 @@ export function useUpdateVehiculo(options = {}) {
         message.success('Vehículo actualizado correctamente');
         queryClient.invalidateQueries(['vehiculo', variables.id]);
         queryClient.invalidateQueries('vehiculos');
+        queryClient.invalidateQueries('vehiculos_vista');
         // Llamar al callback onSuccess si existe
         if (onSuccess) {
           onSuccess(data, variables, context);

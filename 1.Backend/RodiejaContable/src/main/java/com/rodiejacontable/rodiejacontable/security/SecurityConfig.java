@@ -42,7 +42,7 @@ public class SecurityConfig {
                 // Los dispatches ASYNC y ERROR son callbacks internos de Tomcat/SSE,
                 // no requests nuevas del cliente — no requieren re-autenticación.
                 .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/audatex/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

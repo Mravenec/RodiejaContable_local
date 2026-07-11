@@ -203,8 +203,12 @@ public class AudatexService {
                                             .get("datosCotizacion");
                                     if (dt.containsKey("Marca"))
                                         oportunidad.put("marca", dt.get("Marca"));
-                                    if (dt.containsKey("Modelo"))
+                                    if (dt.containsKey("Modelo") && !dt.get("Modelo").trim().isEmpty()) {
                                         oportunidad.put("modelo", dt.get("Modelo"));
+                                    } else if (dt.containsKey("Descripción") && !dt.get("Descripción").trim().isEmpty()) {
+                                        oportunidad.put("modelo", dt.get("Descripción"));
+                                    }
+                                    
                                     if (dt.containsKey("Año Modelo"))
                                         oportunidad.put("anio", dt.get("Año Modelo"));
                                     if (dt.containsKey("Matricula"))
@@ -601,8 +605,11 @@ public class AudatexService {
                         if (detalles.get("datosCotizacion") instanceof java.util.Map) {
                             java.util.Map<String, String> dt = (java.util.Map<String, String>) detalles
                                     .get("datosCotizacion");
-                            if (dt.containsKey("Modelo"))
+                            if (dt.containsKey("Modelo") && !dt.get("Modelo").trim().isEmpty()) {
                                 modelo = dt.get("Modelo");
+                            } else if (dt.containsKey("Descripción") && !dt.get("Descripción").trim().isEmpty()) {
+                                modelo = dt.get("Descripción");
+                            }
                             if (dt.containsKey("Año Modelo"))
                                 anio = dt.get("Año Modelo");
                         }

@@ -74,6 +74,8 @@ public class AudatexOportunidadesSyncRepository {
                 .set(AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO, java.time.LocalDateTime.now())
                 .set(AUDATEX_OPORTUNIDADES_SYNC.PENDIENTES, pendientes)
                 .set(AUDATEX_OPORTUNIDADES_SYNC.DETALLE_JSON, repuestosJson)
+                .set(AUDATEX_OPORTUNIDADES_SYNC.MODELO, org.jooq.impl.DSL.coalesce(org.jooq.impl.DSL.val(modelo), AUDATEX_OPORTUNIDADES_SYNC.MODELO))
+                .set(AUDATEX_OPORTUNIDADES_SYNC.ANIO, org.jooq.impl.DSL.coalesce(org.jooq.impl.DSL.val(anio), AUDATEX_OPORTUNIDADES_SYNC.ANIO))
                 .set(AUDATEX_OPORTUNIDADES_SYNC.ESTADO, com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA)
                 .execute();
     }

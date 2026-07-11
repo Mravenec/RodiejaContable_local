@@ -41,6 +41,30 @@ const getAnioSeguro = (row) => {
   return '-';
 };
 
+const parseFechaCotizacion = (dateStr) => {
+  if (!dateStr) return 0;
+  if (typeof dateStr === 'string' && dateStr.includes('/')) {
+    const [datePart, timePart] = dateStr.split(' ');
+    if (datePart) {
+      const parts = datePart.split('/');
+      if (parts.length === 3) {
+        const y = parseInt(parts[2], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[0], 10);
+        let h = 0, min = 0;
+        if (timePart) {
+          const tParts = timePart.split(':');
+          h = parseInt(tParts[0], 10) || 0;
+          min = parseInt(tParts[1], 10) || 0;
+        }
+        return new Date(y, m, d, h, min).getTime();
+      }
+    }
+  }
+  const d = dayjs(dateStr);
+  return d.isValid() ? d.valueOf() : 0;
+};
+
 const defaultFiltros = {
   marca: '',
   modelo: '',
@@ -552,7 +576,8 @@ const OportunidadesAudatex = () => {
     },
     {
       title: 'Fecha', dataIndex: 'fechaCotizacion', key: 'fechaCotizacion',
-      sorter: (a, b) => (a.fechaCotizacion || '').localeCompare(b.fechaCotizacion || '')
+      sorter: (a, b) => parseFechaCotizacion(a.fechaCotizacion) - parseFechaCotizacion(b.fechaCotizacion),
+      defaultSortOrder: 'descend'
     },
     {
       title: 'Pendientes', dataIndex: 'pendientes', key: 'pendientes',
@@ -623,7 +648,7 @@ const OportunidadesAudatex = () => {
       }
 
       return matchMarca && matchModelo && matchAnio && matchAseguradora && matchMinPendientes && matchDesde && matchHasta;
-    });
+    }).sort((a, b) => parseFechaCotizacion(b.fechaCotizacion) - parseFechaCotizacion(a.fechaCotizacion));
   }, [oportunidades, appliedFiltros.marca, appliedFiltros.modelo, appliedFiltros.anio, appliedFiltros.aseguradora, appliedFiltros.minPendientes, appliedFiltros.desde, appliedFiltros.hasta]);
 
   const thStyle = {

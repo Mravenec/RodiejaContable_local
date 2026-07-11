@@ -491,7 +491,7 @@ public class AudatexClient {
                     .header("sec-fetch-site", "same-origin")
                     .header("Upgrade-Insecure-Requests", "1")
                     .followRedirects(true)
-                    .timeout(90_000)   // 90 s — el portal puede tardar más durante scraping paralelo
+                    .timeout(300_000)   // 300 s — el portal puede tardar muchísimo
                     .method(Connection.Method.GET)
                     .userAgent(USER_AGENT)
                     .execute();
@@ -505,7 +505,7 @@ public class AudatexClient {
                         .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                         .header("Accept-Language", "es-419,es;q=0.9")
                         .followRedirects(true)
-                        .timeout(90_000)
+                        .timeout(300_000)
                         .method(Connection.Method.GET)
                         .userAgent(USER_AGENT)
                         .execute();
@@ -518,28 +518,41 @@ public class AudatexClient {
             datosCotizacion.putAll(parsearDatosCotizacion(doc));
             
             // Si la pestaña de datos viene vacía (AJAX TabContainer de ASP.NET) simulamos el clic en la pestaña
-            if (datosCotizacion.getOrDefault("Marca", "").isEmpty() && datosCotizacion.getOrDefault("Matricula", "").isEmpty()) {
-                String vs = ""; String vsg = ""; String ev = "";
-                org.jsoup.select.Elements vsEl = doc.select("input[name=__VIEWSTATE]");
-                if (!vsEl.isEmpty()) vs = vsEl.first().val();
-                org.jsoup.select.Elements vsgEl = doc.select("input[name=__VIEWSTATEGENERATOR]");
-                if (!vsgEl.isEmpty()) vsg = vsgEl.first().val();
-                org.jsoup.select.Elements evEl = doc.select("input[name=__EVENTVALIDATION]");
-                if (!evEl.isEmpty()) ev = evEl.first().val();
-                
+            boolean requiresTabPost = datosCotizacion.getOrDefault("Marca", "").isEmpty() || 
+                                      datosCotizacion.getOrDefault("Matricula", "").isEmpty() || 
+                                      datosCotizacion.getOrDefault("Año Modelo", "").isEmpty();
+                                      
+            if (requiresTabPost) {
                 try {
+                    java.util.Map<String, String> formData = extractFormFields(doc);
+                    formData.put("__EVENTTARGET", "ctl00$cphBody$tbcAnswerQuotation");
+                    formData.put("__EVENTARGUMENT", "activeTabChanged:1");
+                    
+                    String clientStateKey = "ctl00_cphBody_tbcAnswerQuotation_ClientState";
+                    if (formData.containsKey("ctl00$cphBody$tbcAnswerQuotation_ClientState")) {
+                        clientStateKey = "ctl00$cphBody$tbcAnswerQuotation_ClientState";
+                    }
+                    formData.put(clientStateKey, "{\"ActiveTabIndex\":1,\"TabEnabledState\":[true,true],\"TabWasLoadedOnceState\":[true,false]}");
+                    formData.put("ctl00$smMain", "ctl00$smMain|ctl00$cphBody$tbcAnswerQuotation");
+                    
                     Connection.Response postResp = Jsoup.connect(detalleUrl)
                             .cookies(cookies)
+                            .header("Referer", detalleUrl)
+                            .header("Accept", "*/*")
+                            .header("Accept-Language", "es-419,es;q=0.9")
+                            .header("X-MicrosoftAjax", "Delta=true")
+                            .header("X-Requested-With", "XMLHttpRequest")
+                            .header("Cache-Control", "no-cache")
+                            .userAgent(USER_AGENT)
                             .method(Connection.Method.POST)
-                            .data("__EVENTTARGET", "ctl00$cphBody$tbcAnswerQuotation")
-                            .data("__EVENTARGUMENT", "activeTabChanged:1")
-                            .data("__VIEWSTATE", vs)
-                            .data("__VIEWSTATEGENERATOR", vsg)
-                            .data("__EVENTVALIDATION", ev)
-                            .data("ctl00$cphBody$tbcAnswerQuotation_ClientState", "{\"ActiveTabIndex\":1,\"TabState\":[true,true,true]}")
+                            .data(formData)
+                            .timeout(300_000)
                             .execute();
                     
-                    Document postDoc = postResp.parse();
+                    String postBody = postResp.body();
+                    log.info("[Audatex] POST res.length={} | Snippet: {}", postBody.length(), postBody.length() > 500 ? postBody.substring(0, 500) : postBody);
+                    
+                    Document postDoc = Jsoup.parse(postBody);
                     java.util.Map<String, String> datosPost = parsearDatosCotizacion(postDoc);
                     for (java.util.Map.Entry<String, String> entry : datosPost.entrySet()) {
                         if (entry.getValue() != null && !entry.getValue().isEmpty() && !entry.getValue().equals("-")) {
@@ -723,6 +736,50 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
         resultado.put("formFields", extractFormFields(doc));
 
         List<Map<String, String>> filasRepuestos = parsearRepuestosDeDoc(doc);
+        
+        Map<String, String> datosCotizacion = parsearDatosCotizacion(doc);
+        if (datosCotizacion.getOrDefault("Marca", "").isEmpty() && datosCotizacion.getOrDefault("Matricula", "").isEmpty()) {
+            try {
+                java.util.Map<String, String> formData = extractFormFields(doc);
+                formData.put("__EVENTTARGET", "ctl00$cphBody$tbcAnswerQuotation");
+                formData.put("__EVENTARGUMENT", "activeTabChanged:1");
+                
+                String clientStateKey = "ctl00_cphBody_tbcAnswerQuotation_ClientState";
+                if (formData.containsKey("ctl00$cphBody$tbcAnswerQuotation_ClientState")) {
+                    clientStateKey = "ctl00$cphBody$tbcAnswerQuotation_ClientState";
+                }
+                formData.put(clientStateKey, "{\"ActiveTabIndex\":1,\"TabEnabledState\":[true,true],\"TabWasLoadedOnceState\":[true,false]}");
+                formData.put("ctl00$smMain", "ctl00$smMain|ctl00$cphBody$tbcAnswerQuotation");
+                
+                Connection.Response postResp = Jsoup.connect(detalleUrl)
+                        .cookies(cookies)
+                        .header("Referer", detalleUrl)
+                        .header("Accept", "*/*")
+                        .header("Accept-Language", "es-419,es;q=0.9")
+                        .header("X-MicrosoftAjax", "Delta=true")
+                        .header("X-Requested-With", "XMLHttpRequest")
+                        .header("Cache-Control", "no-cache")
+                        .userAgent(USER_AGENT)
+                        .method(Connection.Method.POST)
+                        .data(formData)
+                        .timeout(300_000)
+                        .execute();
+                
+                String postBody = postResp.body();
+                log.info("[Audatex] POST res.length={} | Snippet: {}", postBody.length(), postBody.length() > 500 ? postBody.substring(0, 500) : postBody);
+                
+                Document postDoc = Jsoup.parse(postBody);
+                java.util.Map<String, String> datosPost = parsearDatosCotizacion(postDoc);
+                for (java.util.Map.Entry<String, String> entry : datosPost.entrySet()) {
+                    if (entry.getValue() != null && !entry.getValue().isEmpty() && !entry.getValue().equals("-")) {
+                        datosCotizacion.put(entry.getKey(), entry.getValue());
+                    }
+                }
+            } catch (Exception postEx) {
+                log.warn("[Audatex] Error al hacer POST para tab de datos: {}", postEx.getMessage());
+            }
+        }
+        resultado.put("datosCotizacion", datosCotizacion);
 
         List<Map<String, Object>> tablas = new ArrayList<>();
         if (!filasRepuestos.isEmpty()) {
