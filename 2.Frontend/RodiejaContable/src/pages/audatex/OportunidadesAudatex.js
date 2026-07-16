@@ -41,6 +41,25 @@ const getAnioSeguro = (row) => {
   return '-';
 };
 
+const getProvinciaSegura = (row) => {
+  if (row.datosCotizacion) return getSafeString(row.datosCotizacion['Estado']) || getSafeString(row.datosCotizacion['Provincia']) || '-';
+  return '-';
+};
+
+const getCantonSeguro = (row) => {
+  let c = getSafeString(row.ciudad);
+  if (c) return c;
+  if (row.datosCotizacion) return getSafeString(row.datosCotizacion['Ciudad']) || getSafeString(row.datosCotizacion['Cantón']) || getSafeString(row.datosCotizacion['Canton']) || '-';
+  return '-';
+};
+
+const getDireccionSegura = (row) => {
+  let d = getSafeString(row.colonia);
+  if (d) return d;
+  if (row.datosCotizacion) return getSafeString(row.datosCotizacion['Colonia']) || getSafeString(row.datosCotizacion['Dirección']) || getSafeString(row.datosCotizacion['Direccion']) || '-';
+  return '-';
+};
+
 const parseFechaCotizacion = (dateStr) => {
   if (!dateStr) return 0;
   if (typeof dateStr === 'string' && dateStr.includes('/')) {
@@ -347,22 +366,25 @@ const OportunidadesAudatex = () => {
     const wb = XLSX.utils.book_new();
 
     // ── Hoja 1: Oportunidades — azul corporativo ──────────────────────────
-    const oportHeaders = ['Marca', 'Modelo', 'Año', 'Cotizacion ID', 'Aseguradora', 'Taller', 'Poliza', 'Siniestro', 'Matricula', 'Armadora', 'Fecha', 'Pendientes', 'Total Repuestos'];
+    const oportHeaders = ['Cotizacion ID', 'Marca', 'Modelo', 'Año', 'Provincia', 'Canton', 'Direccion', 'Taller', 'Poliza', 'Armadora', 'Fecha', 'Pendientes', 'Total Repuestos'];
     const oportData = oportunidades.map(({ _key, repuestos, ...row }) => {
       const vMarca = getMarcaSegura(row);
       const vModelo = getModeloSeguro(row);
       const vAnio = getAnioSeguro(row);
+      const vProvincia = getProvinciaSegura(row);
+      const vCanton = getCantonSeguro(row);
+      const vDireccion = getDireccionSegura(row);
 
       return {
+        'Cotizacion ID': row.cotizacionId ?? '',
         'Marca': vMarca,
         'Modelo': vModelo,
         'Año': vAnio,
-        'Cotizacion ID': row.cotizacionId ?? '',
-        'Aseguradora': row.aseguradora ?? '',
+        'Provincia': vProvincia !== '-' ? vProvincia : '',
+        'Canton': vCanton !== '-' ? vCanton : '',
+        'Direccion': vDireccion !== '-' ? vDireccion : '',
         'Taller': row.taller ?? '',
         'Poliza': row.poliza ?? '',
-        'Siniestro': row.siniestro ?? '',
-        'Matricula': row.matricula ?? '',
         'Armadora': row.armadora ?? '',
         'Fecha': row.fechaCotizacion ?? '',
         'Pendientes': row.pendientes ?? 0,
@@ -371,9 +393,9 @@ const OportunidadesAudatex = () => {
     });
     const wsOport = XLSX.utils.json_to_sheet(oportData, { header: oportHeaders });
     wsOport['!cols'] = [
-      { wch: 18 }, { wch: 25 }, { wch: 10 },
-      { wch: 20 }, { wch: 22 }, { wch: 30 }, { wch: 18 }, { wch: 18 },
-      { wch: 14 }, { wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 15 },
+      { wch: 20 }, { wch: 18 }, { wch: 25 }, { wch: 10 },
+      { wch: 20 }, { wch: 20 }, { wch: 30 },
+      { wch: 30 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 15 },
     ];
     applyBlockStyles(wsOport, oportHeaders, '1D4ED8', oportData.map((_, i) => i));
     XLSX.utils.book_append_sheet(wb, wsOport, 'Oportunidades');
@@ -528,6 +550,7 @@ const OportunidadesAudatex = () => {
   }, []);
   // ── Columnas ──────────────────────────────────────────────────────────────
   const columns = [
+    { title: 'Cotización ID', dataIndex: 'cotizacionId', key: 'cotizacionId' },
     {
       title: 'Marca', key: 'marca',
       sorter: (a, b) => {
@@ -557,23 +580,20 @@ const OportunidadesAudatex = () => {
         return getAnioSeguro(record);
       }
     },
-    {
-      title: 'Aseguradora', dataIndex: 'aseguradora', key: 'aseguradora',
-      sorter: (a, b) => (a.aseguradora || '').localeCompare(b.aseguradora || '')
+    { 
+      title: 'Provincia', key: 'estado',
+      render: (_, record) => getProvinciaSegura(record) || '-'
     },
-    { title: 'Cotización ID', dataIndex: 'cotizacionId', key: 'cotizacionId' },
+    { 
+      title: 'Cantón', key: 'ciudad',
+      render: (_, record) => getCantonSeguro(record) || '-'
+    },
+    { 
+      title: 'Dirección', key: 'colonia',
+      render: (_, record) => getDireccionSegura(record) || '-'
+    },
     { title: 'Taller', dataIndex: 'taller', key: 'taller' },
     { title: 'Póliza', dataIndex: 'poliza', key: 'poliza' },
-    { title: 'Siniestro', dataIndex: 'siniestro', key: 'siniestro' },
-    {
-      title: 'Matrícula', key: 'vehiculo',
-      render: (_, record) => {
-        const matricula = record.matricula || '';
-        return matricula
-          ? <Tag color="blue" style={{ width: 'fit-content', margin: 0 }}>{matricula}</Tag>
-          : <span style={{ color: '#888' }}>N/A</span>;
-      }
-    },
     {
       title: 'Fecha', dataIndex: 'fechaCotizacion', key: 'fechaCotizacion',
       sorter: (a, b) => parseFechaCotizacion(a.fechaCotizacion) - parseFechaCotizacion(b.fechaCotizacion),
