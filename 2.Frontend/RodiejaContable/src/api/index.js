@@ -12,6 +12,7 @@ import finanzaService from './finanzas';
 import generacionesService from './generaciones';
 import partesVehiculoService from './partesVehiculo';
 import audatexService from './audatex';
+import geoService from './geo';
 
 // Configuración global de axios
 const api = axios.create({
@@ -76,7 +77,8 @@ export {
   finanzaService,
   generacionesService,
   partesVehiculoService,
-  audatexService
+  audatexService,
+  geoService
 };
 
 // Default export
@@ -89,6 +91,7 @@ const apiServices = {
   generacionesService,
   partesVehiculoService,
   audatexService,
+  geoService,
   api
 };
 

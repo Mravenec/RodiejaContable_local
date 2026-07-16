@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card, Table, Button, DatePicker, Input, Space, Typography,
-  message, Tag, Alert
-  , Tabs, Descriptions, Row, Col
+  message, Tag, Alert,
+  Tabs, Descriptions, Row, Col, Select
 } from 'antd';
 import {
   SearchOutlined,
@@ -14,6 +14,7 @@ import {
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
+import { useGeo } from '../../hooks/useGeo';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -60,6 +61,13 @@ const getDireccionSegura = (row) => {
   return '-';
 };
 
+const getDistritoSeguro = (row) => {
+  let d = getSafeString(row.distrito);
+  if (d) return d;
+  if (row.datosCotizacion) return getSafeString(row.datosCotizacion['Distrito']) || getSafeString(row.datosCotizacion['Colonia']) || '-';
+  return '-';
+};
+
 const parseFechaCotizacion = (dateStr) => {
   if (!dateStr) return 0;
   if (typeof dateStr === 'string' && dateStr.includes('/')) {
@@ -84,12 +92,42 @@ const parseFechaCotizacion = (dateStr) => {
   return d.isValid() ? d.valueOf() : 0;
 };
 
+const normalizeString = (str) => (str || '').toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+const HighlightText = ({ text, highlight }) => {
+  if (!highlight || !text) return <>{text}</>;
+  const strText = text.toString();
+  const normText = normalizeString(strText);
+  const normHighlight = normalizeString(highlight.toString());
+  if (!normHighlight) return <>{text}</>;
+  
+  const parts = [];
+  let startIndex = 0;
+  let index = normText.indexOf(normHighlight, startIndex);
+  
+  while (index !== -1) {
+    parts.push(strText.slice(startIndex, index));
+    parts.push(
+      <mark key={index} style={{ backgroundColor: '#fef08a', padding: '0 2px', borderRadius: '2px', color: '#854d0e', fontWeight: 600 }}>
+        {strText.slice(index, index + highlight.length)}
+      </mark>
+    );
+    startIndex = index + highlight.length;
+    index = normText.indexOf(normHighlight, startIndex);
+  }
+  parts.push(strText.slice(startIndex));
+  
+  return <>{parts}</>;
+};
+
 const defaultFiltros = {
   marca: '',
   modelo: '',
   anio: '',
+  repuesto: '',
   armadora: '',
-  aseguradora: '',
+  provincia: null,
+  canton: null,
   desde: dayjs().subtract(30, 'day'),
   hasta: dayjs(), //today
   minPendientes: null,
@@ -108,7 +146,6 @@ const findOportunidadIndex = (list, item) => list.findIndex((o) => sameOportunid
 const buildSyncParams = (filters) => {
   const params = {};
   if (filters.armadora) params.armadora = filters.armadora;
-  if (filters.aseguradora) params.aseguradora = filters.aseguradora;
   if (filters.desde) params.desde = filters.desde.format('YYYY-MM-DD');
   if (filters.hasta) params.hasta = filters.hasta.format('YYYY-MM-DD');
   if (filters.minPendientes) params.minPendientes = filters.minPendientes;
@@ -125,6 +162,17 @@ const OportunidadesAudatex = () => {
   const [pageSize, setPageSize] = useState(20);
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
 
+  const { provincias, cantones, loadingProvincias, loadingCantones, fetchProvincias, fetchCantones } = useGeo();
+
+  useEffect(() => {
+    fetchProvincias();
+  }, [fetchProvincias]);
+
+  useEffect(() => {
+    if (filtros.provincia) {
+      fetchCantones(filtros.provincia);
+    }
+  }, [filtros.provincia, fetchCantones]);
 
   const abortRef = useRef(null);
   const startedRef = useRef(false); // evita doble-mount de React StrictMode en dev
@@ -366,7 +414,7 @@ const OportunidadesAudatex = () => {
     const wb = XLSX.utils.book_new();
 
     // ── Hoja 1: Oportunidades — azul corporativo ──────────────────────────
-    const oportHeaders = ['Cotizacion ID', 'Marca', 'Modelo', 'Año', 'Provincia', 'Canton', 'Direccion', 'Taller', 'Poliza', 'Armadora', 'Fecha', 'Pendientes', 'Total Repuestos'];
+    const oportHeaders = ['Cotizacion ID', 'Marca', 'Modelo', 'Año', 'Provincia', 'Canton', 'Direccion', 'Taller', 'Poliza', 'Fecha', 'Pendientes', 'Total Repuestos'];
     const oportData = oportunidades.map(({ _key, repuestos, ...row }) => {
       const vMarca = getMarcaSegura(row);
       const vModelo = getModeloSeguro(row);
@@ -385,7 +433,6 @@ const OportunidadesAudatex = () => {
         'Direccion': vDireccion !== '-' ? vDireccion : '',
         'Taller': row.taller ?? '',
         'Poliza': row.poliza ?? '',
-        'Armadora': row.armadora ?? '',
         'Fecha': row.fechaCotizacion ?? '',
         'Pendientes': row.pendientes ?? 0,
         'Total Repuestos': Array.isArray(repuestos) ? repuestos.length : 0,
@@ -395,13 +442,13 @@ const OportunidadesAudatex = () => {
     wsOport['!cols'] = [
       { wch: 20 }, { wch: 18 }, { wch: 25 }, { wch: 10 },
       { wch: 20 }, { wch: 20 }, { wch: 30 },
-      { wch: 30 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 15 },
+      { wch: 30 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 15 },
     ];
     applyBlockStyles(wsOport, oportHeaders, '1D4ED8', oportData.map((_, i) => i));
     XLSX.utils.book_append_sheet(wb, wsOport, 'Oportunidades');
 
     // ── Hoja 2: Repuestos — con grupos desplegables por Cotizacion ID ──────
-    const repHeaders = ['Cotizacion ID', 'Aseguradora', 'Taller', '#', 'Grupo Pieza', 'PartNumber', 'Part Serial Number', 'Descripcion Pieza'];
+    const repHeaders = ['Cotizacion ID', 'Taller', '#', 'Grupo Pieza', 'PartNumber', 'Part Serial Number', 'Descripcion Pieza'];
     const repuestosData = [];
     const repBlockMap = [];
     const repRowMeta = [{ hpt: 22 }]; // fila 0 = cabecera
@@ -416,7 +463,6 @@ const OportunidadesAudatex = () => {
       // Fila resumen (siempre visible, muestra el +/-)
       repuestosData.push({
         'Cotizacion ID': `▼ ${cotizacionId ?? ''}`,
-        'Aseguradora': aseguradora ?? '',
         'Taller': taller ?? '',
         '#': `${repuestos.length} pza`,
         'Grupo Pieza': '',
@@ -431,7 +477,6 @@ const OportunidadesAudatex = () => {
       repuestos.forEach((rep, idx) => {
         repuestosData.push({
           'Cotizacion ID': '',
-          'Aseguradora': '',
           'Taller': '',
           '#': idx + 1,
           'Grupo Pieza': rep['Grupo Pieza'] ?? '',
@@ -447,7 +492,7 @@ const OportunidadesAudatex = () => {
     if (repuestosData.length > 0) {
       const wsRep = XLSX.utils.json_to_sheet(repuestosData, { header: repHeaders });
       wsRep['!cols'] = [
-        { wch: 24 }, { wch: 22 }, { wch: 30 }, { wch: 8 },
+        { wch: 24 }, { wch: 30 }, { wch: 8 },
         { wch: 14 }, { wch: 20 }, { wch: 32 }, { wch: 38 },
       ];
       // Grupos arriba del detalle (summaryBelow: false)
@@ -621,23 +666,33 @@ const OportunidadesAudatex = () => {
 
   // ── Filtro Local (Frontend) ────────────────────────────────────────────────
   const oportunidadesFiltradas = React.useMemo(() => {
-    const normalize = (str) => (str || '').toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-
     return oportunidades.filter(op => {
-      const mMarca = normalize(appliedFiltros.marca);
-      const mModelo = normalize(appliedFiltros.modelo);
-      const mAnio = normalize(appliedFiltros.anio);
-      const mAseguradora = normalize(appliedFiltros.aseguradora);
+      const mMarca = normalizeString(appliedFiltros.marca);
+      const mModelo = normalizeString(appliedFiltros.modelo);
+      const mAnio = normalizeString(appliedFiltros.anio);
+      const mRepuesto = normalizeString(appliedFiltros.repuesto);
 
-      const vMarca = normalize(getMarcaSegura(op));
-      const vModelo = normalize(getModeloSeguro(op));
-      const vAnio = normalize(getAnioSeguro(op));
-      const vAseguradora = normalize(op.aseguradora || (op.datosCotizacion && op.datosCotizacion['Aseguradora']));
+      const vMarca = normalizeString(getMarcaSegura(op));
+      const vModelo = normalizeString(getModeloSeguro(op));
+      const vAnio = normalizeString(getAnioSeguro(op));
 
       const matchMarca = !mMarca || vMarca.includes(mMarca);
       const matchModelo = !mModelo || vModelo.includes(mModelo);
       const matchAnio = !mAnio || vAnio.includes(mAnio);
-      const matchAseguradora = !mAseguradora || vAseguradora.includes(mAseguradora);
+      const matchRepuesto = !mRepuesto || (Array.isArray(op.repuestos) && op.repuestos.some(r => 
+        normalizeString(r['Grupo Pieza']).includes(mRepuesto) || 
+        normalizeString(r['PartNumber']).includes(mRepuesto) || 
+        normalizeString(r['Part Serial Number']).includes(mRepuesto) || 
+        normalizeString(r['Descripcion Pieza']).includes(mRepuesto)
+      ));
+
+      const mProvincia = appliedFiltros.provincia ? normalizeString(provincias.find(p => p.id === appliedFiltros.provincia)?.nombre) : '';
+      const mCanton = appliedFiltros.canton ? normalizeString(cantones.find(c => c.id === appliedFiltros.canton)?.nombre) : '';
+      const vProvincia = normalizeString(getProvinciaSegura(op));
+      const vCanton = normalizeString(getCantonSeguro(op));
+      const matchProvincia = !mProvincia || vProvincia.includes(mProvincia);
+      const matchCanton = !mCanton || vCanton.includes(mCanton);
+
       const matchMinPendientes = appliedFiltros.minPendientes === null || appliedFiltros.minPendientes === undefined || (op.pendientes || 0) >= appliedFiltros.minPendientes;
 
       let matchDesde = true;
@@ -667,9 +722,9 @@ const OportunidadesAudatex = () => {
         }
       }
 
-      return matchMarca && matchModelo && matchAnio && matchAseguradora && matchMinPendientes && matchDesde && matchHasta;
+      return matchMarca && matchModelo && matchAnio && matchRepuesto && matchProvincia && matchCanton && matchMinPendientes && matchDesde && matchHasta;
     }).sort((a, b) => parseFechaCotizacion(b.fechaCotizacion) - parseFechaCotizacion(a.fechaCotizacion));
-  }, [oportunidades, appliedFiltros.marca, appliedFiltros.modelo, appliedFiltros.anio, appliedFiltros.aseguradora, appliedFiltros.minPendientes, appliedFiltros.desde, appliedFiltros.hasta]);
+  }, [oportunidades, appliedFiltros.marca, appliedFiltros.modelo, appliedFiltros.anio, appliedFiltros.repuesto, appliedFiltros.provincia, appliedFiltros.canton, appliedFiltros.minPendientes, appliedFiltros.desde, appliedFiltros.hasta, provincias, cantones]);
 
   const thStyle = {
     padding: '8px 12px', textAlign: 'left', fontWeight: 600,
@@ -751,60 +806,129 @@ const OportunidadesAudatex = () => {
       )}
 
       {/* Filtros */}
-      <Card style={{ marginBottom: '16px' }}>
-        <Space size="middle" wrap>
-          <Input
-            placeholder="Filtrar por marca"
-            value={filtros.marca}
-            onChange={(e) => setFiltros({ ...filtros, marca: e.target.value })}
-            style={{ width: 150 }}
-            prefix={<FilterOutlined />}
-          />
-          <Input
-            placeholder="Filtrar por modelo"
-            value={filtros.modelo}
-            onChange={(e) => setFiltros({ ...filtros, modelo: e.target.value })}
-            style={{ width: 150 }}
-            prefix={<FilterOutlined />}
-          />
-          <Input
-            placeholder="Filtrar por año"
-            value={filtros.anio}
-            onChange={(e) => setFiltros({ ...filtros, anio: e.target.value })}
-            style={{ width: 120 }}
-            prefix={<FilterOutlined />}
-          />
-          <Input
-            placeholder="Filtrar por aseguradora"
-            value={filtros.aseguradora}
-            onChange={(e) => setFiltros({ ...filtros, aseguradora: e.target.value })}
-            style={{ width: 200 }}
-            prefix={<FilterOutlined />}
-          />
-          <RangePicker
-            value={[filtros.desde, filtros.hasta]}
-            onChange={(dates) =>
-              setFiltros({ ...filtros, desde: dates ? dates[0] : null, hasta: dates ? dates[1] : null })
-            }
-            format="YYYY-MM-DD"
-            placeholder={['Desde', 'Hasta']}
-          />
-          <Input
-            type="number"
-            placeholder="Min. pendientes"
-            value={filtros.minPendientes}
-            onChange={(e) =>
-              setFiltros({ ...filtros, minPendientes: e.target.value ? parseInt(e.target.value) : null })
-            }
-            style={{ width: 150 }}
-          />
-          <Button type="primary" icon={<SearchOutlined />} onClick={handleFiltrar}>
-            Filtrar
-          </Button>
-          <Button onClick={handleLimpiar}>
-            Limpiar
-          </Button>
-        </Space>
+      <Card 
+        bordered={false} 
+        style={{ 
+          marginBottom: '24px', 
+          borderRadius: '16px', 
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+          background: '#ffffff'
+        }}
+        bodyStyle={{ padding: '24px' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <Title level={5} style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center' }}>
+            <FilterOutlined style={{ marginRight: '8px', color: '#3b82f6' }} />
+            Filtros de Búsqueda
+          </Title>
+          <Space>
+            <Button onClick={handleLimpiar} style={{ borderRadius: '8px' }}>
+              Limpiar
+            </Button>
+            <Button type="primary" icon={<SearchOutlined />} onClick={handleFiltrar} style={{ borderRadius: '8px', background: '#3b82f6' }}>
+              Filtrar
+            </Button>
+          </Space>
+        </div>
+
+        <Row gutter={[16, 20]}>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Marca</div>
+            <Input
+              placeholder="Ej: Toyota"
+              value={filtros.marca}
+              onChange={(e) => setFiltros({ ...filtros, marca: e.target.value })}
+              style={{ width: '100%', borderRadius: '8px' }}
+              prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Modelo</div>
+            <Input
+              placeholder="Ej: Yaris"
+              value={filtros.modelo}
+              onChange={(e) => setFiltros({ ...filtros, modelo: e.target.value })}
+              style={{ width: '100%', borderRadius: '8px' }}
+              prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Año</div>
+            <Input
+              placeholder="Ej: 2020"
+              value={filtros.anio}
+              onChange={(e) => setFiltros({ ...filtros, anio: e.target.value })}
+              style={{ width: '100%', borderRadius: '8px' }}
+              prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Repuesto</div>
+            <Input
+              placeholder="Ej: Bumper"
+              value={filtros.repuesto}
+              onChange={(e) => setFiltros({ ...filtros, repuesto: e.target.value })}
+              style={{ width: '100%', borderRadius: '8px' }}
+              prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
+              allowClear
+            />
+          </Col>
+
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Provincia</div>
+            <Select
+              placeholder="Seleccione"
+              allowClear
+              loading={loadingProvincias}
+              value={filtros.provincia}
+              onChange={(val) => setFiltros({ ...filtros, provincia: val, canton: null })}
+              style={{ width: '100%' }}
+              options={provincias.map(p => ({ value: p.id, label: p.nombre }))}
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Cantón</div>
+            <Select
+              placeholder="Seleccione"
+              allowClear
+              loading={loadingCantones}
+              disabled={!filtros.provincia}
+              value={filtros.canton}
+              onChange={(val) => setFiltros({ ...filtros, canton: val })}
+              style={{ width: '100%' }}
+              options={cantones.map(c => ({ value: c.id, label: c.nombre }))}
+            />
+          </Col>
+
+          <Col xs={24} sm={12} md={8} lg={8}>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Rango de Fechas</div>
+            <RangePicker
+              value={[filtros.desde, filtros.hasta]}
+              onChange={(dates) =>
+                setFiltros({ ...filtros, desde: dates ? dates[0] : null, hasta: dates ? dates[1] : null })
+              }
+              format="YYYY-MM-DD"
+              placeholder={['Desde', 'Hasta']}
+              style={{ width: '100%', borderRadius: '8px' }}
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={4}>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Min. Pendientes</div>
+            <Input
+              type="number"
+              placeholder="Ej: 1"
+              value={filtros.minPendientes}
+              onChange={(e) =>
+                setFiltros({ ...filtros, minPendientes: e.target.value ? parseInt(e.target.value) : null })
+              }
+              style={{ width: '100%', borderRadius: '8px' }}
+              allowClear
+            />
+          </Col>
+        </Row>
       </Card>
 
       {/* Tabla progresiva — Ant Design maneja la paginación internamente */}
@@ -821,7 +945,16 @@ const OportunidadesAudatex = () => {
               onExpandedRowsChange: setExpandedRowKeys,
               rowExpandable: (record) => Array.isArray(record.repuestos) && record.repuestos.length > 0,
               expandedRowRender: (record) => {
-                const repuestos = record.repuestos || [];
+                let repuestos = record.repuestos || [];
+                const mRepuesto = normalizeString(appliedFiltros.repuesto);
+                if (mRepuesto) {
+                  repuestos = repuestos.filter(r => 
+                    normalizeString(r['Grupo Pieza']).includes(mRepuesto) || 
+                    normalizeString(r['PartNumber']).includes(mRepuesto) || 
+                    normalizeString(r['Part Serial Number']).includes(mRepuesto) || 
+                    normalizeString(r['Descripcion Pieza']).includes(mRepuesto)
+                  );
+                }
                 const datos = record.datosCotizacion || {};
 
                 const repuestosTab = (
@@ -839,10 +972,10 @@ const OportunidadesAudatex = () => {
                       {repuestos.map((rep, i) => (
                         <tr key={i} style={{ background: i % 2 === 0 ? '#F8FAFC' : '#FFFFFF' }}>
                           <td style={tdStyle}>{i + 1}</td>
-                          <td style={tdStyle}>{rep['Grupo Pieza'] || '-'}</td>
-                          <td style={{ ...tdStyle, fontWeight: 500 }}>{rep['PartNumber'] || '-'}</td>
-                          <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}>{rep['Part Serial Number'] || '-'}</td>
-                          <td style={tdStyle}>{rep['Descripcion Pieza'] || '-'}</td>
+                          <td style={tdStyle}><HighlightText text={rep['Grupo Pieza'] || '-'} highlight={appliedFiltros.repuesto} /></td>
+                          <td style={{ ...tdStyle, fontWeight: 500 }}><HighlightText text={rep['PartNumber'] || '-'} highlight={appliedFiltros.repuesto} /></td>
+                          <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}><HighlightText text={rep['Part Serial Number'] || '-'} highlight={appliedFiltros.repuesto} /></td>
+                          <td style={tdStyle}><HighlightText text={rep['Descripcion Pieza'] || '-'} highlight={appliedFiltros.repuesto} /></td>
                         </tr>
                       ))}
                       {repuestos.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', padding: 16 }}>No hay repuestos disponibles</td></tr>}
