@@ -406,16 +406,25 @@ const OportunidadesAudatex = () => {
   // ── Exportar Excel ────────────────────────────────────────────────────────
   // ── Exportar Excel — 2 hojas: Oportunidades + Repuestos ─────────────────
   const handleExportar = () => {
-    if (!oportunidades.length) {
+    if (!oportunidadesFiltradas.length) {
       message.warning('No hay oportunidades cargadas para exportar');
       return;
     }
 
     const wb = XLSX.utils.book_new();
 
+    const mRepuesto = normalizeString(appliedFiltros.repuesto);
+
     // ── Hoja 1: Oportunidades — azul corporativo ──────────────────────────
     const oportHeaders = ['Cotizacion ID', 'Marca', 'Modelo', 'Año', 'Provincia', 'Canton', 'Direccion', 'Taller', 'Poliza', 'Fecha', 'Pendientes', 'Total Repuestos'];
-    const oportData = oportunidades.map(({ _key, repuestos, ...row }) => {
+    const oportData = oportunidadesFiltradas.map(({ _key, repuestos, ...row }) => {
+      const repuestosFiltrados = !mRepuesto ? (repuestos || []) : (repuestos || []).filter(r => 
+        normalizeString(r['Grupo Pieza']).includes(mRepuesto) || 
+        normalizeString(r['PartNumber']).includes(mRepuesto) || 
+        normalizeString(r['Part Serial Number']).includes(mRepuesto) || 
+        normalizeString(r['Descripcion Pieza']).includes(mRepuesto)
+      );
+
       const vMarca = getMarcaSegura(row);
       const vModelo = getModeloSeguro(row);
       const vAnio = getAnioSeguro(row);
@@ -435,7 +444,7 @@ const OportunidadesAudatex = () => {
         'Poliza': row.poliza ?? '',
         'Fecha': row.fechaCotizacion ?? '',
         'Pendientes': row.pendientes ?? 0,
-        'Total Repuestos': Array.isArray(repuestos) ? repuestos.length : 0,
+        'Total Repuestos': repuestosFiltrados.length,
       };
     });
     const wsOport = XLSX.utils.json_to_sheet(oportData, { header: oportHeaders });
@@ -456,15 +465,22 @@ const OportunidadesAudatex = () => {
     let blockIdx = -1;
     let lastCotizId = null;
 
-    oportunidades.forEach(({ repuestos, cotizacionId, taller, aseguradora }) => {
-      if (!Array.isArray(repuestos) || repuestos.length === 0) return;
+    oportunidadesFiltradas.forEach(({ repuestos, cotizacionId, taller, aseguradora }) => {
+      const repuestosFiltrados = !mRepuesto ? (repuestos || []) : (repuestos || []).filter(r => 
+        normalizeString(r['Grupo Pieza']).includes(mRepuesto) || 
+        normalizeString(r['PartNumber']).includes(mRepuesto) || 
+        normalizeString(r['Part Serial Number']).includes(mRepuesto) || 
+        normalizeString(r['Descripcion Pieza']).includes(mRepuesto)
+      );
+
+      if (repuestosFiltrados.length === 0) return;
       if (cotizacionId !== lastCotizId) { blockIdx++; lastCotizId = cotizacionId; }
 
       // Fila resumen (siempre visible, muestra el +/-)
       repuestosData.push({
         'Cotizacion ID': `▼ ${cotizacionId ?? ''}`,
         'Taller': taller ?? '',
-        '#': `${repuestos.length} pza`,
+        '#': `${repuestosFiltrados.length} pza`,
         'Grupo Pieza': '',
         'PartNumber': '',
         'Part Serial Number': '',
@@ -474,7 +490,7 @@ const OportunidadesAudatex = () => {
       repRowMeta.push({ hpt: 20 }); // fila resumen, NO grouped
 
       // Filas de detalle (colapsables)
-      repuestos.forEach((rep, idx) => {
+      repuestosFiltrados.forEach((rep, idx) => {
         repuestosData.push({
           'Cotizacion ID': '',
           'Taller': '',
@@ -545,7 +561,7 @@ const OportunidadesAudatex = () => {
     XLSX.writeFile(wb, `oportunidades_audatex_${dayjs().format('YYYYMMDD_HHmm')}.xlsx`);
 
     const nota = streaming ? ' (carga aun en curso)' : '';
-    message.success(`Excel exportado — ${oportunidades.length} oportunidades, ${repuestosData.length} repuestos${nota}`);
+    message.success(`Excel exportado — ${oportunidadesFiltradas.length} oportunidades, ${repuestosData.length} repuestos${nota}`);
   };
 
   // ── Refrescar: sync incremental sin vaciar tabla ────────────────────────────
