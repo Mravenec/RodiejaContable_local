@@ -633,6 +633,9 @@ public class AudatexService {
                             java.util.Map<String, Object> delta = new java.util.HashMap<>(op);
                             delta.put("modelo", modelo);
                             delta.put("anio", anio);
+                            boolean isCerrada = pendientes != null && pendientes == 0;
+                            delta.put("estado", isCerrada ? "CERRADA" : "ACTIVA");
+                            delta.put("cerrada", isCerrada);
                             if (detalles != null) {
                                 if (detalles.get("repuestos") != null) {
                                     delta.put("repuestos", detalles.get("repuestos"));

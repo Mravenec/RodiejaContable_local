@@ -130,7 +130,7 @@ const defaultFiltros = {
   canton: null,
   desde: dayjs().subtract(30, 'day'),
   hasta: dayjs(), //today
-  minPendientes: null,
+  minPendientes: 1,
 };
 
 /** Misma oportunidad por wan o cotizacionId (dedup merge). */

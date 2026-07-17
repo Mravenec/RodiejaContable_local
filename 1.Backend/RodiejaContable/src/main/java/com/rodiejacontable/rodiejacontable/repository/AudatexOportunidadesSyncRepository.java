@@ -53,6 +53,10 @@ public class AudatexOportunidadesSyncRepository {
             String modelo, String anio, String fechaCotizacion, Integer pendientes,
             String repuestosJson) {
 
+        var estado = (pendientes != null && pendientes == 0)
+                ? com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.CERRADA
+                : com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA;
+
         return dsl.insertInto(AUDATEX_OPORTUNIDADES_SYNC)
                 .set(AUDATEX_OPORTUNIDADES_SYNC.WAN, wan)
                 .set(AUDATEX_OPORTUNIDADES_SYNC.ASEGURADORA, aseguradora)
@@ -66,8 +70,7 @@ public class AudatexOportunidadesSyncRepository {
                 .set(AUDATEX_OPORTUNIDADES_SYNC.ANIO, anio)
                 .set(AUDATEX_OPORTUNIDADES_SYNC.FECHA_COTIZACION, fechaCotizacion)
                 .set(AUDATEX_OPORTUNIDADES_SYNC.PENDIENTES, pendientes)
-                .set(AUDATEX_OPORTUNIDADES_SYNC.ESTADO,
-                        com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA)
+                .set(AUDATEX_OPORTUNIDADES_SYNC.ESTADO, estado)
                 .set(AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO, java.time.LocalDateTime.now())
                 .set(AUDATEX_OPORTUNIDADES_SYNC.DETALLE_JSON, repuestosJson)
                 .onDuplicateKeyUpdate()
@@ -76,7 +79,7 @@ public class AudatexOportunidadesSyncRepository {
                 .set(AUDATEX_OPORTUNIDADES_SYNC.DETALLE_JSON, repuestosJson)
                 .set(AUDATEX_OPORTUNIDADES_SYNC.MODELO, org.jooq.impl.DSL.coalesce(org.jooq.impl.DSL.val(modelo), AUDATEX_OPORTUNIDADES_SYNC.MODELO))
                 .set(AUDATEX_OPORTUNIDADES_SYNC.ANIO, org.jooq.impl.DSL.coalesce(org.jooq.impl.DSL.val(anio), AUDATEX_OPORTUNIDADES_SYNC.ANIO))
-                .set(AUDATEX_OPORTUNIDADES_SYNC.ESTADO, com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA)
+                .set(AUDATEX_OPORTUNIDADES_SYNC.ESTADO, estado)
                 .execute();
     }
 
