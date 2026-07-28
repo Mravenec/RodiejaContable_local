@@ -10,11 +10,13 @@ import {
   ReloadOutlined,
   FilterOutlined,
   LoadingOutlined,
+  FormOutlined,
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
 import { useGeo } from '../../hooks/useGeo';
+import CotizarDrawer from './CotizarDrawer';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -161,6 +163,8 @@ const OportunidadesAudatex = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [oportunidadSeleccionada, setOportunidadSeleccionada] = useState(null);
 
   const { provincias, cantones, loadingProvincias, loadingCantones, fetchProvincias, fetchCantones } = useGeo();
 
@@ -670,10 +674,23 @@ const OportunidadesAudatex = () => {
     {
       title: 'Acciones', key: 'acciones',
       render: (_, record) => (
-        <Button type="primary" size="small" onClick={(e) => {
-          e.stopPropagation(); // Evita que se despliegue la fila al clickear el botón
-          message.info(`Cotizar oportunidad ${record.cotizacionId || ''}`);
-        }}>
+        <Button 
+          type="primary" 
+          size="middle" 
+          shape="round"
+          icon={<FormOutlined />}
+          style={{
+            background: 'linear-gradient(90deg, #1890ff, #096dd9)',
+            border: 'none',
+            fontWeight: 'bold',
+            padding: '0 20px'
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOportunidadSeleccionada(record);
+            setDrawerVisible(true);
+          }}
+        >
           Cotizar
         </Button>
       )
@@ -1083,6 +1100,15 @@ const OportunidadesAudatex = () => {
         </div>
       </Card>
 
+      <CotizarDrawer 
+        visible={drawerVisible} 
+        onClose={() => {
+          setDrawerVisible(false);
+          setOportunidadSeleccionada(null);
+        }} 
+        oportunidad={oportunidadSeleccionada} 
+        filtroRepuesto={appliedFiltros.repuesto}
+      />
     </div>
   );
 };
