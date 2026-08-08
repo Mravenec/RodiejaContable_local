@@ -47,6 +47,33 @@ class VehiculoService {
   }
 
   /**
+   * Obtiene un vehículo por su ID
+   * @param {number} id - ID del vehículo
+   * @returns {Promise<Object>} Vehículo
+   */
+  async getVehiculo(id) {
+    try {
+      this.log(`Fetching vehicle with ID: ${id}`);
+      const response = await api.get(`/vehiculos/${id}`);
+      let vehiculo = response.data;
+      
+      if (vehiculo && vehiculo.generacionId) {
+        try {
+          const generacionResponse = await api.get(`/generaciones/${vehiculo.generacionId}`);
+          vehiculo.generacion = generacionResponse.data || { id: vehiculo.generacionId };
+        } catch (genError) {
+          this.error(`Error loading generation for vehicle ${id}:`, genError);
+          vehiculo.generacion = { id: vehiculo.generacionId };
+        }
+      }
+      return vehiculo;
+    } catch (error) {
+      this.error(`Error fetching vehicle ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Obtiene vehículos completos filtrados por estado
    * @param {string} estado - El estado del vehículo (ej: 'DESARMADO')
    * @returns {Promise<Array>} Lista de vehículos

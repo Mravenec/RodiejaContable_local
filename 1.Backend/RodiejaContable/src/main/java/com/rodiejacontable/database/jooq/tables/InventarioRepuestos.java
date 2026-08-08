@@ -90,6 +90,12 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
 
     /**
      * The column
+     * <code>sistema_vehicular.inventario_repuestos.generacion_id</code>.
+     */
+    public final TableField<InventarioRepuestosRecord, Integer> GENERACION_ID = createField(DSL.name("generacion_id"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column
      * <code>sistema_vehicular.inventario_repuestos.anio_registro</code>.
      */
     public final TableField<InventarioRepuestosRecord, Short> ANIO_REGISTRO = createField(DSL.name("anio_registro"), SQLDataType.SMALLINT, this, "");
@@ -279,7 +285,7 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.INVENTARIO_REPUESTOS_IDX_ESTADO, Indexes.INVENTARIO_REPUESTOS_IDX_FECHA_REGISTRO, Indexes.INVENTARIO_REPUESTOS_IDX_PARTE_VEHICULO, Indexes.INVENTARIO_REPUESTOS_IDX_VEHICULO_ORIGEN);
+        return Arrays.asList(Indexes.INVENTARIO_REPUESTOS_IDX_ESTADO, Indexes.INVENTARIO_REPUESTOS_IDX_FECHA_REGISTRO, Indexes.INVENTARIO_REPUESTOS_IDX_GENERACION, Indexes.INVENTARIO_REPUESTOS_IDX_PARTE_VEHICULO, Indexes.INVENTARIO_REPUESTOS_IDX_VEHICULO_ORIGEN);
     }
 
     @Override
@@ -299,11 +305,12 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
 
     @Override
     public List<ForeignKey<InventarioRepuestosRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.INVENTARIO_REPUESTOS_IBFK_2, Keys.INVENTARIO_REPUESTOS_IBFK_1);
+        return Arrays.asList(Keys.INVENTARIO_REPUESTOS_IBFK_2, Keys.INVENTARIO_REPUESTOS_IBFK_1, Keys.INVENTARIO_REPUESTOS_IBFK_3);
     }
 
     private transient ParteVehiculo _parteVehiculo;
     private transient Vehiculos _vehiculos;
+    private transient Generaciones _generaciones;
 
     /**
      * Get the implicit join path to the
@@ -325,6 +332,17 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
             _vehiculos = new Vehiculos(this, Keys.INVENTARIO_REPUESTOS_IBFK_1);
 
         return _vehiculos;
+    }
+
+    /**
+     * Get the implicit join path to the
+     * <code>sistema_vehicular.generaciones</code> table.
+     */
+    public Generaciones generaciones() {
+        if (_generaciones == null)
+            _generaciones = new Generaciones(this, Keys.INVENTARIO_REPUESTOS_IBFK_3);
+
+        return _generaciones;
     }
 
     @Override

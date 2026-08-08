@@ -127,6 +127,7 @@ CREATE TABLE inventario_repuestos (
     codigo_repuesto VARCHAR(100) UNIQUE,
     parte_Vehiculo_id INT DEFAULT NULL,
     vehiculo_origen_id INT DEFAULT NULL,
+    generacion_id INT DEFAULT NULL,
 
     -- Fecha de ingreso al sistema
 	anio_registro SMALLINT AS (YEAR(fecha_creacion)) STORED,
@@ -234,7 +235,9 @@ CREATE TABLE inventario_repuestos (
     -- Relaciones e índices
     FOREIGN KEY (vehiculo_origen_id) REFERENCES vehiculos(id),
     FOREIGN KEY (parte_Vehiculo_id) REFERENCES parte_vehiculo(id),
+    FOREIGN KEY (generacion_id) REFERENCES generaciones(id),
     INDEX idx_vehiculo_origen (vehiculo_origen_id),
+    INDEX idx_generacion (generacion_id),
     INDEX idx_estado         (estado),
     INDEX idx_parte_vehiculo (parte_Vehiculo_id),
     INDEX idx_fecha_registro (anio_registro, mes_registro)
@@ -561,41 +564,84 @@ BEGIN
     DECLARE gen_inicio INT;
     DECLARE gen_fin INT;
     DECLARE contador INT;
+    DECLARE var_generacion_id INT;
+    DECLARE var_marca VARCHAR(50);
 
     -- ✅ Solo genera el código si NO viene definido
     IF NEW.codigo_repuesto IS NULL OR NEW.codigo_repuesto = '' THEN
-
         IF NEW.vehiculo_origen_id IS NOT NULL THEN
-            -- Obtener rango de años de la generación del vehículo
-            SELECT g.anio_inicio, g.anio_fin
-            INTO gen_inicio, gen_fin
-            FROM vehiculos v
-            JOIN generaciones g ON v.generacion_id = g.id
-            WHERE v.id = NEW.vehiculo_origen_id;
+            SELECT generacion_id INTO var_generacion_id FROM vehiculos WHERE id = NEW.vehiculo_origen_id;
+        ELSEIF NEW.generacion_id IS NOT NULL THEN
+            SET var_generacion_id = NEW.generacion_id;
+        END IF;
+
+        IF var_generacion_id IS NOT NULL THEN
+            -- Obtener rango de años y marca de la generación
+            SELECT g.anio_inicio, g.anio_fin, m.nombre
+            INTO gen_inicio, gen_fin, var_marca
+            FROM generaciones g
+            JOIN modelos mo ON g.modelo_id = mo.id
+            JOIN marcas m ON mo.marca_id = m.id
+            WHERE g.id = var_generacion_id;
 
             -- Contar repuestos asociados a esa generación
             SELECT COUNT(*) + 1 INTO contador
             FROM inventario_repuestos ir
-            JOIN vehiculos v2 ON ir.vehiculo_origen_id = v2.id
-            JOIN generaciones g2 ON v2.generacion_id = g2.id
-            WHERE g2.anio_inicio = gen_inicio AND g2.anio_fin = gen_fin;
+            LEFT JOIN vehiculos v2 ON ir.vehiculo_origen_id = v2.id
+            WHERE (ir.generacion_id = var_generacion_id) OR (v2.generacion_id = var_generacion_id);
 
-            SET NEW.codigo_repuesto = CONCAT('REP-', gen_inicio, '-', gen_fin, '-', LPAD(contador, 4, '0'));
-
+            SET NEW.codigo_repuesto = CONCAT('REP-', REPLACE(var_marca, ' ', ''), '-', gen_inicio, '-', gen_fin, '-', LPAD(contador, 4, '0'));
         ELSE
             -- Código temporal por año/mes
             SELECT COUNT(*) + 1 INTO contador
-            FROM inventario_repuestos 
+            FROM inventario_repuestos
             WHERE anio_registro = NEW.anio_registro AND mes_registro = NEW.mes_registro;
 
             SET NEW.codigo_repuesto = CONCAT('REP-TEMP-', NEW.anio_registro, '-', LPAD(NEW.mes_registro, 2, '0'), '-', LPAD(contador, 4, '0'));
         END IF;
-
     END IF;
 END;
 //
 DELIMITER ;
 
+-- Trigger para actualizar código de repuesto si cambia la generación
+DELIMITER //
+CREATE TRIGGER tr_actualizar_codigo_repuesto
+BEFORE UPDATE ON inventario_repuestos
+FOR EACH ROW
+BEGIN
+    DECLARE gen_inicio INT;
+    DECLARE gen_fin INT;
+    DECLARE contador INT;
+    DECLARE var_generacion_id INT;
+    DECLARE var_marca VARCHAR(50);
+
+    -- Si se asignó una generación nueva o si era un código temporal y ahora tiene generación
+    IF (NEW.generacion_id IS NOT NULL AND (OLD.generacion_id IS NULL OR NEW.generacion_id != OLD.generacion_id)) 
+       OR (NEW.codigo_repuesto LIKE 'REP-TEMP-%' AND NEW.generacion_id IS NOT NULL) THEN
+
+        SET var_generacion_id = NEW.generacion_id;
+
+        -- Obtener rango de años y marca de la generación
+        SELECT g.anio_inicio, g.anio_fin, m.nombre
+        INTO gen_inicio, gen_fin, var_marca
+        FROM generaciones g
+        JOIN modelos mo ON g.modelo_id = mo.id
+        JOIN marcas m ON mo.marca_id = m.id
+        WHERE g.id = var_generacion_id;
+
+        -- Contar repuestos asociados a esa generación
+        SELECT COUNT(*) + 1 INTO contador
+        FROM inventario_repuestos ir
+        LEFT JOIN vehiculos v2 ON ir.vehiculo_origen_id = v2.id
+        WHERE ((ir.generacion_id = var_generacion_id) OR (v2.generacion_id = var_generacion_id))
+          AND ir.id != NEW.id;
+
+        SET NEW.codigo_repuesto = CONCAT('REP-', REPLACE(var_marca, ' ', ''), '-', gen_inicio, '-', gen_fin, '-', LPAD(contador, 4, '0'));
+    END IF;
+END;
+//
+DELIMITER ;
 
 -- Inserta un repuesto sin vehículo origen, generando código único por generación y registrando el egreso automáticamente.
 DELIMITER $$ 
@@ -655,12 +701,12 @@ BEGIN
       4. Insertar el repuesto
     -----------------------------------*/
     INSERT INTO inventario_repuestos (
-        codigo_repuesto, parte_Vehiculo_id, descripcion,
+        codigo_repuesto, parte_Vehiculo_id, generacion_id, descripcion,
         precio_costo,   precio_venta,   precio_mayoreo,
         bodega, zona, pared, malla, estante, piso,
         estado, condicion, imagen_url, cantidad, fecha_creacion
     ) VALUES (
-        codigo_generado, p_parte_Vehiculo_id, p_descripcion,
+        codigo_generado, p_parte_Vehiculo_id, p_generacion_id, p_descripcion,
         p_precio_costo,  p_precio_venta,  p_precio_mayoreo,
         p_bodega, p_zona, p_pared, p_malla, p_estante, p_piso,
         p_estado, p_condicion, p_imagen_url, p_cantidad, NOW()
@@ -1021,14 +1067,22 @@ BEGIN
 
         -- Intentar deducir desde el repuesto
         IF NEW.repuesto_id IS NOT NULL THEN
-            -- 1. Intentar por vehículo origen
-            SELECT v.generacion_id INTO gen_id_temp
-            FROM inventario_repuestos ir
-            JOIN vehiculos v ON ir.vehiculo_origen_id = v.id
-            WHERE ir.id = NEW.repuesto_id
+            -- 1. Intentar por generacion_id directa del repuesto
+            SELECT generacion_id INTO gen_id_temp
+            FROM inventario_repuestos
+            WHERE id = NEW.repuesto_id
             LIMIT 1;
 
-            -- 2. Si no tiene vehículo, deducir desde código
+            -- 2. Si no es genérico, intentar por vehículo origen
+            IF gen_id_temp IS NULL THEN
+                SELECT v.generacion_id INTO gen_id_temp
+                FROM inventario_repuestos ir
+                JOIN vehiculos v ON ir.vehiculo_origen_id = v.id
+                WHERE ir.id = NEW.repuesto_id
+                LIMIT 1;
+            END IF;
+
+            -- 3. Si por alguna razón sigue nulo, intentar con el regex antiguo
             IF gen_id_temp IS NULL THEN
                 SELECT codigo_repuesto INTO cod_repuesto
                 FROM inventario_repuestos

@@ -18,6 +18,7 @@ import { getTiposTransacciones } from '../../api/transacciones';
 import { formatCurrency } from '../../utils/formatters';
 import api from '../../api/axios';
 import HistorialVehiculo from '../../components/vehiculos/HistorialVehiculo';
+import ImageCarousel from '../../components/common/ImageCarousel';
 import { useAuth } from '../../context/AuthContext';
 import { audatexService } from '../../api';
 
@@ -151,35 +152,27 @@ const VehiculoDetalle = () => {
       setIsLoading(true);
       setIsError(false);
       
-      // Get vehicle by ID from the flat list
-      const vehiculosResponse = await vehiculoService.getVehiculos();
+      // Get vehicle by ID directly from API
       let vehiculoEncontrado;
       
       console.log('🔍 Buscando vehículo con ID/código:', id);
-      console.log('🔍 Vehículos disponibles:', vehiculosResponse.map(v => ({
-        id: v.id,
-        codigoVehiculo: v.codigoVehiculo,
-        codigo_vehiculo: v.codigo_vehiculo
-      })));
 
       if (isNaN(Number(id))) {
-        console.log('🔍 Buscando por código (no numérico)');
+        console.log('🔍 Buscando por código (no numérico) - requires fetch all');
+        const vehiculosResponse = await vehiculoService.getVehiculos();
         vehiculoEncontrado = vehiculosResponse.find(v => 
           v.codigoVehiculo === id || 
           v.codigo_vehiculo === id ||
           v.codigoVehiculo?.toLowerCase() === id.toLowerCase() ||
           v.codigo_vehiculo?.toLowerCase() === id.toLowerCase()
         );
-        console.log('🔍 Resultado búsqueda por código:', vehiculoEncontrado);
       } else {
         console.log('🔍 Buscando por ID (numérico)');
-        vehiculoEncontrado = vehiculosResponse.find(v => v.id === parseInt(id, 10));
-        console.log('🔍 Resultado búsqueda por ID:', vehiculoEncontrado);
+        vehiculoEncontrado = await vehiculoService.getVehiculo(parseInt(id, 10));
       }
       
       if (!vehiculoEncontrado) {
         console.error('❌ Vehículo no encontrado. ID buscado:', id);
-        console.error('❌ Códigos disponibles:', vehiculosResponse.map(v => v.codigoVehiculo || v.codigo_vehiculo));
         throw new Error(`Vehículo con código/ID "${id}" no encontrado. Verifique consola para detalles.`);
       }
 
@@ -187,7 +180,7 @@ const VehiculoDetalle = () => {
       let vehiculoConGeneracion = vehiculoEncontrado;
 
       // If generacion is present but lacks nested modelo/marca, fetch them
-      if (vehiculoConGeneracion.generacion && !vehiculoConGeneracion.generacion.modelo) {
+      if (vehiculoConGeneracion.generacion && vehiculoConGeneracion.generacion.modeloId && !vehiculoConGeneracion.generacion.modelo) {
         try {
           const generacion = vehiculoConGeneracion.generacion;
 
@@ -488,11 +481,11 @@ const VehiculoDetalle = () => {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '24px' }}>
             <div style={{ flex: '0 0 300px', marginRight: '24px', marginBottom: '16px' }}>
-              <Image
-                src={vehiculo.imagenUrl || 'https://via.placeholder.com/300x200?text=Sin+imagen'}
-                alt={`${marca} ${modelo}`}
-                style={{ width: '100%', borderRadius: '8px' }}
-                fallback="https://via.placeholder.com/300x200?text=Imagen+no+disponible"
+              <ImageCarousel 
+                imageUrlString={vehiculo.imagenUrl} 
+                alt={`${marca} ${modelo}`} 
+                width="100%" 
+                borderRadius="8px"
               />
             </div>
             <div style={{ flex: 1, minWidth: '300px' }}>
@@ -634,19 +627,19 @@ const VehiculoDetalle = () => {
               <Row gutter={[24, 16]}>
                 <Col xs={12} sm={8} md={6}>
                   <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Precio de Compra</Text>
-                  <Text strong style={{ color: '#1890ff', fontSize: '15px' }}>{formatCurrency(vehiculo.precioCompra || 0)}</Text>
+                  <Text strong style={{ color: '#cf1322', fontSize: '15px' }}>{formatCurrency(vehiculo.precioCompra || 0)}</Text>
                 </Col>
                 <Col xs={12} sm={8} md={6}>
                   <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Costo de Grúa</Text>
-                  <Text>{formatCurrency(vehiculo.costoGrua || 0)}</Text>
+                  <Text style={{ color: '#cf1322' }}>{formatCurrency(vehiculo.costoGrua || 0)}</Text>
                 </Col>
                 <Col xs={12} sm={8} md={6}>
                   <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Comisiones</Text>
-                  <Text>{formatCurrency(vehiculo.comisiones || 0)}</Text>
+                  <Text style={{ color: '#cf1322' }}>{formatCurrency(vehiculo.comisiones || 0)}</Text>
                 </Col>
                 <Col xs={12} sm={8} md={6}>
                   <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Inversión Total</Text>
-                  <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>{formatCurrency(vehiculo.inversionTotal || 0)}</Text>
+                  <Text strong style={{ color: '#cf1322', fontSize: '16px' }}>{formatCurrency(vehiculo.inversionTotal || 0)}</Text>
                 </Col>
                 {vehiculo.precioVenta && (
                   <Col xs={12} sm={8} md={6}>

@@ -1517,7 +1517,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
           <Col xs={24} md={12}>
             <Form.Item
               name="precioCompra"
-              label="Precio de compra"
+              label={<span style={{ color: '#cf1322' }}>Precio de compra</span>}
               rules={formRules.precioCompra}
             >
               <InputNumber
@@ -1540,7 +1540,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
           <Col xs={24} md={12}>
             <Form.Item
               name="costoGrua"
-              label="Costo de grúa"
+              label={<span style={{ color: '#cf1322' }}>Costo de grúa (Opcional)</span>}
             >
               <InputNumber
                 style={{ width: '100%' }}
@@ -1562,7 +1562,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
           <Col xs={24} md={12}>
             <Form.Item
               name="comisiones"
-              label="Comisiones"
+              label={<span style={{ color: '#cf1322' }}>Comisiones (Opcional)</span>}
             >
               <InputNumber
                 style={{ width: '100%' }}
@@ -1724,14 +1724,14 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 </Row>
 
                 {/* ── Información Financiera ── */}
-                <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginTop: '24px' }}>
+                <Text strong style={{ color: '#cf1322', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginTop: '24px' }}>
                   Información Financiera
                 </Text>
-                <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+                <Divider style={{ marginTop: '8px', marginBottom: '16px', borderColor: '#cf1322' }} />
                 <Row gutter={[24, 16]}>
                   <Col xs={12} sm={8} md={8}>
                     <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Precio de Compra</Text>
-                    <Text strong style={{ color: '#52c41a', fontSize: '15px' }}>
+                    <Text strong style={{ color: '#cf1322', fontSize: '15px' }}>
                       {precioCompraValue ? `₡ ${parseFloat(precioCompraValue || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : '₡ 0.00'}
                     </Text>
                   </Col>
@@ -1747,7 +1747,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
 
                 <div style={{ marginTop: '24px', padding: '16px', background: '#fafafa', borderRadius: '8px', border: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text type="secondary" strong>Inversión Total Estimada</Text>
-                  <Text strong style={{ color: '#1890ff', fontSize: '20px' }}>
+                  <Text strong style={{ color: '#cf1322', fontSize: '20px' }}>
                     ₡ {parseFloat((precioCompraValue || 0) + (costoGruaValue || 0) + (comisionesValue || 0)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}
                   </Text>
                 </div>

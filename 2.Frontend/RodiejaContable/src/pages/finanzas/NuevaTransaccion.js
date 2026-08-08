@@ -497,6 +497,9 @@ const NuevaTransaccion = () => {
     if (repuestoId) {
       const repuesto = repuestos.find(r => r.id === repuestoId);
       if (repuesto) {
+        if (tipoTransaccion === 'EGRESO' && value > repuesto.cantidad) {
+          message.warning(`Solo hay ${repuesto.cantidad} en stock.`);
+        }
         let unitPrice = 0;
         if (esReembolso) {
           unitPrice = tipoTransaccion === 'EGRESO' ? repuesto.precioVenta : repuesto.precioCosto;
@@ -513,12 +516,10 @@ const NuevaTransaccion = () => {
 
   const getRepuestoMaxStock = () => {
     const repuestoId = form.getFieldValue('repuesto_id');
-    if (repuestoId) {
+    if (repuestoId && tipoTransaccion === 'EGRESO') {
       const repuesto = repuestos.find(r => r.id === repuestoId);
       if (repuesto) {
-        if (repuesto.estado === 'STOCK') {
-          return repuesto.cantidad;
-        }
+        return repuesto.cantidad;
       }
     }
     return undefined;
@@ -572,6 +573,7 @@ const NuevaTransaccion = () => {
               form={form}
               layout="vertical"
               onFinish={onFinish}
+              onFinishFailed={() => message.warning('Por favor corrija los errores (en rojo) antes de guardar.')}
               initialValues={{
                 fecha: dayjs(),
                 tipo: 1,
@@ -677,9 +679,9 @@ const NuevaTransaccion = () => {
                       showSearch
                       optionFilterProp="children"
                       filterOption={(input, option) =>
-                        option && option.children 
-                          ? option.children.toLowerCase().includes(input.toLowerCase())
-                          : option.props.className === 'add-new-option' // Always show add new option
+                        option && option.empleadonombre 
+                          ? option.empleadonombre.toLowerCase().includes(input.toLowerCase())
+                          : false
                       }
                       dropdownRender={(menu) => {
                         return (
@@ -787,7 +789,7 @@ const NuevaTransaccion = () => {
                       }}
                     >
                       {empleados.map(empleado => (
-                        <Option key={empleado.id} value={empleado.id}>
+                        <Option key={empleado.id} value={empleado.id} empleadonombre={empleado.nombre || `${empleado.nombres} ${empleado.apellidos}`}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                             <span>{empleado.nombre || `${empleado.nombres} ${empleado.apellidos}`}</span>
                             <EditOutlined 
@@ -914,7 +916,7 @@ const NuevaTransaccion = () => {
                     >
                       {getRepuestosFiltrados().map(repuesto => (
                         <Option key={repuesto.id} value={repuesto.id}>
-                          {repuesto.descripcion} - {repuesto.codigo} {repuesto.ubicacion ? `(${repuesto.ubicacion})` : ''}
+                          {repuesto.parteVehiculo || repuesto.descripcion} - {repuesto.codigo} {repuesto.ubicacion ? `(${repuesto.ubicacion})` : ''}
                         </Option>
                       ))}
                     </Select>
@@ -931,7 +933,18 @@ const NuevaTransaccion = () => {
                           name="cantidad_repuesto"
                           label="Cantidad a mover"
                           initialValue={1}
-                          rules={[{ required: true, message: 'Ingrese la cantidad' }]}
+                          rules={[
+                            { required: true, message: 'Ingrese la cantidad' },
+                            {
+                              validator: (_, value) => {
+                                const max = getRepuestoMaxStock();
+                                if (max !== undefined && value > max) {
+                                  return Promise.reject(new Error(`La cantidad máxima en stock es ${max}`));
+                                }
+                                return Promise.resolve();
+                              }
+                            }
+                          ]}
                         >
                           <InputNumber
                             min={1}
@@ -992,6 +1005,7 @@ const NuevaTransaccion = () => {
               form={form}
               layout="vertical"
               onFinish={onFinish}
+              onFinishFailed={() => message.warning('Por favor corrija los errores (en rojo) antes de guardar.')}
               initialValues={{
                 fecha: dayjs(),
                 monto: 0
@@ -1175,7 +1189,7 @@ const NuevaTransaccion = () => {
                     >
                       {getRepuestosFiltrados().map(repuesto => (
                         <Option key={repuesto.id} value={repuesto.id}>
-                          {repuesto.descripcion} - {repuesto.codigo} {repuesto.ubicacion ? `(${repuesto.ubicacion})` : ''}
+                          {repuesto.parteVehiculo || repuesto.descripcion} - {repuesto.codigo} {repuesto.ubicacion ? `(${repuesto.ubicacion})` : ''}
                         </Option>
                       ))}
                     </Select>
@@ -1192,7 +1206,18 @@ const NuevaTransaccion = () => {
                           name="cantidad_repuesto"
                           label="Cantidad a mover"
                           initialValue={1}
-                          rules={[{ required: true, message: 'Ingrese la cantidad' }]}
+                          rules={[
+                            { required: true, message: 'Ingrese la cantidad' },
+                            {
+                              validator: (_, value) => {
+                                const max = getRepuestoMaxStock();
+                                if (max !== undefined && value > max) {
+                                  return Promise.reject(new Error(`La cantidad máxima en stock es ${max}`));
+                                }
+                                return Promise.resolve();
+                              }
+                            }
+                          ]}
                         >
                           <InputNumber
                             min={1}

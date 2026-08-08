@@ -1,0 +1,23 @@
+{
+  "sprintName": "Sprint UI y Logica",
+  "epicName": "Correcciones",
+  "projectId": "858f98eb-11a9-4963-8280-f5d1e4622a4c",
+  "cycleId": null,
+  "createdAt": "2026-08-07T14:28:19.119Z",
+  "issues": [
+    {
+      "id": "bef9887b-caef-4321-9b2a-29228a72625d",
+      "identifier": "LIN-8",
+      "key": "01"
+    },
+    {
+      "id": "3856b5bf-d026-4f9f-81ff-b30579481b5f",
+      "identifier": "LIN-9",
+      "key": "02"
+    }
+  ],
+  "order": [
+    "01",
+    "02"
+  ]
+}

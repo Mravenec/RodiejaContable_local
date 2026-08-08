@@ -225,7 +225,7 @@ const DetalleRepuesto = () => {
         <Button 
           type="text"
           icon={<ArrowLeftOutlined />} 
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/inventario')}
           style={{ marginRight: 16 }}
         >
           Volver

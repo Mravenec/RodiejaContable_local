@@ -1419,19 +1419,10 @@ const VehiculosJerarquicos = () => {
               onChange={(e) => handleSearch(e.target.value)}
               value={searchQuery}
             />
-            {rawData && (
-              <Button onClick={() => setShowRawData(!showRawData)} icon={<InfoCircleOutlined />}>
-                {showRawData ? 'Ocultar datos' : 'Ver datos'}
-              </Button>
-            )}
           </div>
         </div>
 
-        {showRawData && (
-          <div style={{ marginTop: 16, padding: 16, background: '#f5f5f5', borderRadius: 4, maxHeight: 400, overflow: 'auto' }}>
-            <pre style={{ margin: 0 }}>{JSON.stringify(rawData, null, 2)}</pre>
-          </div>
-        )}
+
       </div>
 
       {filteredMarcas.length > 0 ? (

@@ -36,6 +36,7 @@ public class InventarioRepuestos implements Serializable {
     private String codigoRepuesto;
     private Integer parteVehiculoId;
     private Integer vehiculoOrigenId;
+    private Integer generacionId;
     private Short anioRegistro;
     private Byte mesRegistro;
     private String codigoUbicacion;
@@ -71,6 +72,7 @@ public class InventarioRepuestos implements Serializable {
         this.codigoRepuesto = value.codigoRepuesto;
         this.parteVehiculoId = value.parteVehiculoId;
         this.vehiculoOrigenId = value.vehiculoOrigenId;
+        this.generacionId = value.generacionId;
         this.anioRegistro = value.anioRegistro;
         this.mesRegistro = value.mesRegistro;
         this.codigoUbicacion = value.codigoUbicacion;
@@ -105,6 +107,7 @@ public class InventarioRepuestos implements Serializable {
         String codigoRepuesto,
         Integer parteVehiculoId,
         Integer vehiculoOrigenId,
+        Integer generacionId,
         Short anioRegistro,
         Byte mesRegistro,
         String codigoUbicacion,
@@ -137,6 +140,7 @@ public class InventarioRepuestos implements Serializable {
         this.codigoRepuesto = codigoRepuesto;
         this.parteVehiculoId = parteVehiculoId;
         this.vehiculoOrigenId = vehiculoOrigenId;
+        this.generacionId = generacionId;
         this.anioRegistro = anioRegistro;
         this.mesRegistro = mesRegistro;
         this.codigoUbicacion = codigoUbicacion;
@@ -229,6 +233,23 @@ public class InventarioRepuestos implements Serializable {
      */
     public InventarioRepuestos setVehiculoOrigenId(Integer vehiculoOrigenId) {
         this.vehiculoOrigenId = vehiculoOrigenId;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.inventario_repuestos.generacion_id</code>.
+     */
+    public Integer getGeneracionId() {
+        return this.generacionId;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.inventario_repuestos.generacion_id</code>.
+     */
+    public InventarioRepuestos setGeneracionId(Integer generacionId) {
+        this.generacionId = generacionId;
         return this;
     }
 
@@ -696,6 +717,12 @@ public class InventarioRepuestos implements Serializable {
         }
         else if (!this.vehiculoOrigenId.equals(other.vehiculoOrigenId))
             return false;
+        if (this.generacionId == null) {
+            if (other.generacionId != null)
+                return false;
+        }
+        else if (!this.generacionId.equals(other.generacionId))
+            return false;
         if (this.anioRegistro == null) {
             if (other.anioRegistro != null)
                 return false;
@@ -869,6 +896,7 @@ public class InventarioRepuestos implements Serializable {
         result = prime * result + ((this.codigoRepuesto == null) ? 0 : this.codigoRepuesto.hashCode());
         result = prime * result + ((this.parteVehiculoId == null) ? 0 : this.parteVehiculoId.hashCode());
         result = prime * result + ((this.vehiculoOrigenId == null) ? 0 : this.vehiculoOrigenId.hashCode());
+        result = prime * result + ((this.generacionId == null) ? 0 : this.generacionId.hashCode());
         result = prime * result + ((this.anioRegistro == null) ? 0 : this.anioRegistro.hashCode());
         result = prime * result + ((this.mesRegistro == null) ? 0 : this.mesRegistro.hashCode());
         result = prime * result + ((this.codigoUbicacion == null) ? 0 : this.codigoUbicacion.hashCode());
@@ -907,6 +935,7 @@ public class InventarioRepuestos implements Serializable {
         sb.append(", ").append(codigoRepuesto);
         sb.append(", ").append(parteVehiculoId);
         sb.append(", ").append(vehiculoOrigenId);
+        sb.append(", ").append(generacionId);
         sb.append(", ").append(anioRegistro);
         sb.append(", ").append(mesRegistro);
         sb.append(", ").append(codigoUbicacion);

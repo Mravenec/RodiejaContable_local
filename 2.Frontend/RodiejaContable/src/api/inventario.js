@@ -145,6 +145,7 @@ class InventarioService {
       codigo: item.codigoRepuesto || item.codigo_repuesto,
       codigoUbicacion: item.codigoUbicacion || item.codigo_ubicacion,
       vehiculoOrigenId: item.vehiculoOrigenId || item.vehiculo_origen_id,
+      generacionId: item.generacionId || item.generacion_id,
       // Vehículo (si viene de vista o dto)
       vehiculoCodigo: item.codigoVehiculo || item.codigo_vehiculo,
       marca: item.marca,
@@ -179,8 +180,8 @@ class InventarioService {
       estadoDisplay: getEstadoDisplay(item.estado),
       condicion: item.condicion,
       imagenUrl: item.imagenUrl || item.imagen_url,
-      fechaCreacion: formatDate(item.fechaCreacion) || item.fecha_creacion,
-      fechaActualizacion: formatDate(item.fechaActualizacion) || item.fecha_actualizacion,
+      fechaCreacion: formatDate(item.fechaCreacion) || item.fechaCreacion || item.fecha_creacion,
+      fechaActualizacion: formatDate(item.fechaActualizacion) || item.fechaActualizacion || item.fecha_actualizacion,
       activo: item.activo !== false,
       ubicacion: ubicacion,
       esVendido: (item.estado === 'VENDIDO' || item.estado === 'AGOTADO'),

@@ -107,12 +107,9 @@ public class TransaccionesFinancierasRepository {
     }
     
     public TransaccionesFinancieras save(TransaccionesFinancieras transaccion) {
-        return dsl.insertInto(TRANSACCIONES_FINANCIERAS)
+        Integer id = dsl.insertInto(TRANSACCIONES_FINANCIERAS)
                  .set(TRANSACCIONES_FINANCIERAS.CODIGO_TRANSACCION, transaccion.getCodigoTransaccion())
                  .set(TRANSACCIONES_FINANCIERAS.FECHA, transaccion.getFecha())
-                 .set(TRANSACCIONES_FINANCIERAS.DIA, transaccion.getDia())
-                 .set(TRANSACCIONES_FINANCIERAS.MES, transaccion.getMes())
-                 .set(TRANSACCIONES_FINANCIERAS.ANIO, transaccion.getAnio())
                  .set(TRANSACCIONES_FINANCIERAS.TIPO_TRANSACCION_ID, transaccion.getTipoTransaccionId())
                  .set(TRANSACCIONES_FINANCIERAS.EMPLEADO_ID, transaccion.getEmpleadoId())
                  .set(TRANSACCIONES_FINANCIERAS.VEHICULO_ID, transaccion.getVehiculoId())
@@ -127,9 +124,12 @@ public class TransaccionesFinancierasRepository {
                  .set(TRANSACCIONES_FINANCIERAS.ACTIVO, transaccion.getActivo())
                  .set(TRANSACCIONES_FINANCIERAS.FECHA_CREACION, transaccion.getFechaCreacion())
                  .set(TRANSACCIONES_FINANCIERAS.FECHA_ACTUALIZACION, transaccion.getFechaActualizacion())
-                 .returning()
+                 .returning(TRANSACCIONES_FINANCIERAS.ID)
                  .fetchOne()
-                 .into(TransaccionesFinancieras.class);
+                 .getValue(TRANSACCIONES_FINANCIERAS.ID);
+                 
+        transaccion.setId(id);
+        return transaccion;
     }
     
     public TransaccionesFinancieras update(TransaccionesFinancieras transaccion) {

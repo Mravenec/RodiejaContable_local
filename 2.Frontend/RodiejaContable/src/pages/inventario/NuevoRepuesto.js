@@ -544,6 +544,7 @@ const NuevoRepuesto = () => {
         console.log('Respuesta del servidor:', response.data);
 
         // message.success('Repuesto creado correctamente');
+        queryClient.invalidateQueries('repuestos');
         navigate('/inventario');
 
       } else {
@@ -591,6 +592,7 @@ const NuevoRepuesto = () => {
         console.log('Respuesta del servidor:', response.data);
 
         // message.success('Repuesto genérico creado correctamente');
+        queryClient.invalidateQueries('repuestos');
         navigate('/inventario');
       }
 

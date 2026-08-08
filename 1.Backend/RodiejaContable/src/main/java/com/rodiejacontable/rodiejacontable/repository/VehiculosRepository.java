@@ -27,6 +27,7 @@ public class VehiculosRepository {
     
     public List<Vehiculos> findAll() {
         return dsl.selectFrom(VEHICULOS)
+                 .where(VEHICULOS.ESTADO.ne(VehiculosEstado.DESARMADO))
                  .orderBy(VEHICULOS.FECHA_INGRESO.desc())
                  .fetchInto(Vehiculos.class);
     }
@@ -55,6 +56,7 @@ public class VehiculosRepository {
     public List<Vehiculos> findActivos() {
         return dsl.selectFrom(VEHICULOS)
                  .where(VEHICULOS.ACTIVO.eq((byte) 1))
+                 .and(VEHICULOS.ESTADO.ne(VehiculosEstado.DESARMADO))
                  .orderBy(VEHICULOS.FECHA_INGRESO.desc())
                  .fetchInto(Vehiculos.class);
     }
@@ -155,6 +157,13 @@ public class VehiculosRepository {
     public void actualizarEstado(Integer id, VehiculosEstado estado) {
         dsl.update(VEHICULOS)
            .set(VEHICULOS.ESTADO, estado)
+           .where(VEHICULOS.ID.eq(id))
+           .execute();
+    }
+    
+    public void actualizarCostoRecuperado(Integer id, BigDecimal costoRecuperado) {
+        dsl.update(VEHICULOS)
+           .set(VEHICULOS.COSTO_RECUPERADO, costoRecuperado)
            .where(VEHICULOS.ID.eq(id))
            .execute();
     }

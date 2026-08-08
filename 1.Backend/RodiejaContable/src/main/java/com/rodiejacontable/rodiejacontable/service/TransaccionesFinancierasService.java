@@ -11,7 +11,7 @@ import com.rodiejacontable.rodiejacontable.repository.TransaccionesFinancierasRe
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.rodiejacontable.database.jooq.tables.pojos.InventarioRepuestos;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,6 +30,12 @@ public class TransaccionesFinancierasService {
     
     @Autowired
     private TiposTransaccionesRepository tiposTransaccionesRepository;
+    
+    @Autowired
+    private InventarioRepuestosService inventarioRepuestosService;
+    
+    @Autowired
+    private VehiculosService vehiculosService;
     
     public List<TransaccionesFinancieras> findAll() {
         return transaccionesRepository.findAll();
@@ -112,7 +118,49 @@ public class TransaccionesFinancierasService {
         }
         transaccion.setFechaActualizacion(now);
         
-        return transaccionesRepository.save(transaccion);
+        TransaccionesFinancieras saved = transaccionesRepository.save(transaccion);
+        
+        // Manejo de stock de repuestos si aplica
+        if (saved.getRepuestoId() != null && saved.getCantidadRepuesto() != null && saved.getCantidadRepuesto() > 0) {
+            InventarioRepuestos repuesto = inventarioRepuestosService.obtenerPorId(saved.getRepuestoId())
+                .orElse(null);
+                 if (repuesto != null) {
+                  int currentStock = repuesto.getCantidad() != null ? repuesto.getCantidad().intValue() : 0;
+                  InventarioRepuestos repuestoUpdate = new InventarioRepuestos();
+
+                  if (tipoTransaccion.getCategoria() == TiposTransaccionesCategoria.INGRESO) {
+                      // Venta (Ingreso de dinero), disminuimos stock
+                      repuestoUpdate.setCantidad(org.jooq.types.UInteger.valueOf(Math.max(0, currentStock - saved.getCantidadRepuesto().intValue())));
+                      inventarioRepuestosService.actualizarRepuesto(repuesto.getId(), repuestoUpdate);
+
+                      if (repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
+                          try {
+                              com.rodiejacontable.database.jooq.tables.pojos.Vehiculos v = vehiculosService.findById(repuesto.getVehiculoOrigenId());
+                              BigDecimal actual = v.getCostoRecuperado() != null ? v.getCostoRecuperado() : BigDecimal.ZERO;
+                              vehiculosService.actualizarCostoRecuperado(v.getId(), actual.add(saved.getMonto()));
+                          } catch (Exception e) {
+                              // Ignorar si el vehículo ya no existe
+                          }
+                      }
+                  } else if (tipoTransaccion.getCategoria() == TiposTransaccionesCategoria.EGRESO) {
+                      // Compra/Reembolso (Egreso de dinero), aumentamos stock
+                      repuestoUpdate.setCantidad(org.jooq.types.UInteger.valueOf(currentStock + saved.getCantidadRepuesto().intValue()));
+                      inventarioRepuestosService.actualizarRepuesto(repuesto.getId(), repuestoUpdate);
+                    
+                    if (repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
+                        try {
+                            com.rodiejacontable.database.jooq.tables.pojos.Vehiculos v = vehiculosService.findById(repuesto.getVehiculoOrigenId());
+                            BigDecimal actual = v.getCostoRecuperado() != null ? v.getCostoRecuperado() : BigDecimal.ZERO;
+                            vehiculosService.actualizarCostoRecuperado(v.getId(), actual.subtract(saved.getMonto()));
+                        } catch (Exception e) {
+                            // Ignorar si el vehículo ya no existe
+                        }
+                    }
+                }
+            }
+        }
+        
+        return saved;
     }
     
     @Transactional

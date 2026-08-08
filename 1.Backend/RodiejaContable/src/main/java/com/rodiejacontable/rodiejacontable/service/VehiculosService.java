@@ -202,6 +202,13 @@ public class VehiculosService {
     
     @Transactional
     @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
+    public void actualizarCostoRecuperado(Integer id, BigDecimal costoRecuperado) {
+        findById(id);
+        vehiculosRepository.actualizarCostoRecuperado(id, costoRecuperado);
+    }
+    
+    @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public void marcarComoVendido(Integer id, BigDecimal precioVenta, LocalDate fechaVenta) {
         // Verificar que el vehículo existe
         Vehiculos vehiculo = findById(id);

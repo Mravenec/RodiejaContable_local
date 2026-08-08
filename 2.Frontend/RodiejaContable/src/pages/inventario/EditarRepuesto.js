@@ -29,6 +29,10 @@ import InventarioService from '../../api/inventario';
 import vehiculoService from '../../api/vehiculos';
 import api from '../../api/axios';
 import { usePartesVehiculo } from '../../hooks/usePartesVehiculo';
+import { useVehiculosParaTransacciones } from '../../hooks/useVehiculosParaTransacciones';
+import { useMarcas } from '../../hooks/useMarcas';
+import { useModelos } from '../../hooks/useModelos';
+import { useGeneraciones } from '../../hooks/useGeneraciones';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -50,6 +54,250 @@ const EditarRepuesto = () => {
 
   const queryClient = useQueryClient();
   const { data: partesVehiculo = [], isLoading: loadingPartes } = usePartesVehiculo();
+  const { data: vehiculosDesarmados = [], isLoading: loadingVehiculos } = useVehiculosParaTransacciones();
+
+  // Estados para la cadena de selección (solo para repuestos genéricos)
+  const [marcaSeleccionada, setMarcaSeleccionada] = useState(null);
+  const [modeloSeleccionado, setModeloSeleccionado] = useState(null);
+  const [generacionSeleccionada, setGeneracionSeleccionada] = useState(null);
+
+  // Modal states for creating new (inline)
+  const [nuevaMarcaModal, setNuevaMarcaModal] = useState(false);
+  const [nuevaMarcaNombre, setNuevaMarcaNombre] = useState('');
+  const [creandoMarca, setCreandoMarca] = useState(false);
+
+  const [nuevoModeloModal, setNuevoModeloModal] = useState(false);
+  const [nuevoModeloNombre, setNuevoModeloNombre] = useState('');
+  const [creandoModelo, setCreandoModelo] = useState(false);
+
+  const [nuevaGeneracionModal, setNuevaGeneracionModal] = useState(false);
+  const [nuevaGeneracionNombre, setNuevaGeneracionNombre] = useState('');
+  const [nuevaGeneracionAnioInicio, setNuevaGeneracionAnioInicio] = useState('');
+  const [nuevaGeneracionAnioFin, setNuevaGeneracionAnioFin] = useState('');
+  const [creandoGeneracion, setCreandoGeneracion] = useState(false);
+
+  // Hooks para cargar datos
+  const { data: marcas = [], isLoading: loadingMarcas, updateMarca } = useMarcas();
+  const { data: modelos = [], isLoading: loadingModelos, updateModelo } = useModelos(
+    marcaSeleccionada,
+    !!marcaSeleccionada
+  );
+  const { data: generaciones = [], isLoading: loadingGeneraciones, updateGeneracion } = useGeneraciones(
+    modeloSeleccionado,
+    !!modeloSeleccionado
+  );
+
+  // Estados para editar Marca
+  const [editingMarcaId, setEditingMarcaId] = useState(null);
+  const [editingMarcaNombre, setEditingMarcaNombre] = useState('');
+
+  // Estados para editar Modelo
+  const [editingModeloId, setEditingModeloId] = useState(null);
+  const [editingModeloNombre, setEditingModeloNombre] = useState('');
+
+  // Estados para editar Generacion
+  const [editingGeneracionId, setEditingGeneracionId] = useState(null);
+  const [editingGeneracionNombre, setEditingGeneracionNombre] = useState('');
+  const [editingGeneracionAnioInicio, setEditingGeneracionAnioInicio] = useState(new Date().getFullYear());
+  const [editingGeneracionAnioFin, setEditingGeneracionAnioFin] = useState(new Date().getFullYear());
+
+
+  // Función para crear nueva marca
+  const handleNuevaMarca = async () => {
+    if (!nuevaMarcaNombre.trim()) {
+      message.warning('Por favor ingrese el nombre de la marca');
+      return;
+    }
+
+    setCreandoMarca(true);
+    try {
+      const response = await api.post('/marcas', {
+        nombre: nuevaMarcaNombre.trim()
+      });
+
+      console.log('Marca creada:', response.data);
+      message.success('Marca creada exitosamente');
+
+      setNuevaMarcaModal(false);
+      setNuevaMarcaNombre('');
+
+      // Refrescar la lista de marcas
+      queryClient.invalidateQueries('marcas');
+
+    } catch (error) {
+      console.error('Error al crear marca:', error);
+      message.error('Error al crear marca: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setCreandoMarca(false);
+    }
+  };
+
+  // Función para crear nuevo modelo
+  const handleNuevoModelo = async () => {
+    if (!nuevoModeloNombre.trim()) {
+      message.warning('Por favor ingrese el nombre del modelo');
+      return;
+    }
+
+    setCreandoModelo(true);
+    try {
+      const response = await api.post('/modelos', {
+        nombre: nuevoModeloNombre.trim(),
+        marcaId: marcaSeleccionada
+      });
+
+      console.log('Modelo creado:', response.data);
+      message.success('Modelo creado exitosamente');
+
+      setNuevoModeloModal(false);
+      setNuevoModeloNombre('');
+
+      // Refrescar la lista de modelos
+      queryClient.invalidateQueries('modelos');
+
+    } catch (error) {
+      console.error('Error al crear modelo:', error);
+      message.error('Error al crear modelo: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setCreandoModelo(false);
+    }
+  };
+
+  // Función para crear nueva generación
+  const handleNuevaGeneracion = async () => {
+    if (!nuevaGeneracionNombre.trim()) {
+      message.warning('Por favor ingrese el nombre de la generación');
+      return;
+    }
+    if (!nuevaGeneracionAnioInicio || !nuevaGeneracionAnioFin) {
+      message.warning('Por favor ingrese los años de inicio y fin');
+      return;
+    }
+
+    setCreandoGeneracion(true);
+    try {
+      const response = await api.post('/generaciones', {
+        nombre: nuevaGeneracionNombre.trim(),
+        anioInicio: parseInt(nuevaGeneracionAnioInicio),
+        anioFin: parseInt(nuevaGeneracionAnioFin),
+        modeloId: modeloSeleccionado
+      });
+
+      console.log('Generación creada:', response.data);
+      message.success('Generación creada exitosamente');
+
+      setNuevaGeneracionModal(false);
+      setNuevaGeneracionNombre('');
+      setNuevaGeneracionAnioInicio('');
+      setNuevaGeneracionAnioFin('');
+
+      // Refrescar la lista de generaciones
+      queryClient.invalidateQueries('generaciones');
+
+    } catch (error) {
+      console.error('Error al crear generación:', error);
+      message.error('Error al crear generación: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setCreandoGeneracion(false);
+    }
+  };
+
+
+  // Handlers para editar Marca
+  const handleEditarMarca = (marca) => {
+    setEditingMarcaId(marca.id);
+    setEditingMarcaNombre(marca.nombre);
+  };
+  const handleCancelarEdicionMarca = () => {
+    setEditingMarcaId(null);
+    setEditingMarcaNombre('');
+  };
+  const handleGuardarEdicionMarca = async () => {
+    if (!editingMarcaNombre.trim()) {
+      message.warning('El nombre de la marca no puede estar vacío');
+      return;
+    }
+    try {
+      await updateMarca.mutateAsync({ id: editingMarcaId, nombre: editingMarcaNombre.trim() });
+      setEditingMarcaId(null);
+      setEditingMarcaNombre('');
+    } catch (error) {
+      // El hook maneja el mensaje de error
+    }
+  };
+
+  // Handlers para editar Modelo
+  const handleEditarModelo = (modelo) => {
+    setEditingModeloId(modelo.id);
+    setEditingModeloNombre(modelo.nombre);
+  };
+  const handleCancelarEdicionModelo = () => {
+    setEditingModeloId(null);
+    setEditingModeloNombre('');
+  };
+  const handleGuardarEdicionModelo = async () => {
+    if (!editingModeloNombre.trim()) {
+      message.warning('El nombre del modelo no puede estar vacío');
+      return;
+    }
+    try {
+      await updateModelo.mutateAsync({ id: editingModeloId, nombre: editingModeloNombre.trim(), marcaId: marcaSeleccionada });
+      setEditingModeloId(null);
+      setEditingModeloNombre('');
+    } catch (error) { }
+  };
+
+  // Handlers para editar Generacion
+  const handleEditarGeneracion = (generacion) => {
+    setEditingGeneracionId(generacion.id);
+    setEditingGeneracionNombre(generacion.nombre);
+    setEditingGeneracionAnioInicio(generacion.anioInicio || new Date().getFullYear());
+    setEditingGeneracionAnioFin(generacion.anioFin || new Date().getFullYear());
+  };
+  const handleCancelarEdicionGeneracion = () => {
+    setEditingGeneracionId(null);
+    setEditingGeneracionNombre('');
+  };
+  const handleGuardarEdicionGeneracion = async () => {
+    if (!editingGeneracionNombre.trim()) {
+      message.warning('El nombre no puede estar vacío');
+      return;
+    }
+    try {
+      await updateGeneracion.mutateAsync({
+        id: editingGeneracionId,
+        nombre: editingGeneracionNombre.trim(),
+        anioInicio: editingGeneracionAnioInicio,
+        anioFin: editingGeneracionAnioFin,
+        modeloId: modeloSeleccionado
+      });
+      setEditingGeneracionId(null);
+      setEditingGeneracionNombre('');
+    } catch (error) { }
+  };
+
+
+  const onMarcaChange = (marcaId) => {
+    setMarcaSeleccionada(marcaId);
+    setModeloSeleccionado(null);
+    setGeneracionSeleccionada(null);
+    form.setFieldsValue({
+      modelo_id: undefined,
+      generacion_id: undefined
+    });
+  };
+
+  const onModeloChange = (modeloId) => {
+    setModeloSeleccionado(modeloId);
+    setGeneracionSeleccionada(null);
+    form.setFieldsValue({
+      generacion_id: undefined
+    });
+  };
+
+  const onGeneracionChange = (generacionId) => {
+    setGeneracionSeleccionada(generacionId);
+  };
 
   // Estados para nueva parte de vehículo
   const [nuevaParteModal, setNuevaParteModal] = useState(false);
@@ -114,11 +362,40 @@ const EditarRepuesto = () => {
         const esGenerico = data.vehiculoOrigenId == null;
         const defaultSep = esGenerico ? '-' : '_';
 
+        if (esGenerico && data.generacionId) {
+          try {
+            // we need to get the generacion to know the modelo and marca
+            const genRes = await api.get(`/generaciones/${data.generacionId}`);
+            if (genRes.data) {
+              setGeneracionSeleccionada(genRes.data.id);
+              const modeloId = genRes.data.modeloId || genRes.data.modelo_id;
+              if (modeloId) {
+                setModeloSeleccionado(modeloId);
+                const modRes = await api.get(`/modelos/${modeloId}`);
+                if (modRes.data) {
+                  const marcaId = modRes.data.marcaId || modRes.data.marca_id;
+                  if (marcaId) {
+                    setMarcaSeleccionada(marcaId);
+                    form.setFieldsValue({
+                      marca_id: marcaId,
+                      modelo_id: modeloId,
+                      generacion_id: genRes.data.id
+                    });
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Error fetching generacion details", e);
+          }
+        }
+
         // Determinar si ya tiene una ubicación asignada
         const tieneUbicacion = (data.bodega && data.bodega !== `0${defaultSep}` && data.bodega !== '0-' && data.bodega !== '0_');
         setUbicacionFisicaHabilitada(tieneUbicacion);
 
         form.setFieldsValue({
+          vehiculo_origen_id: data.vehiculoOrigenId,
           parte_vehiculo_id: data.parteVehiculoId,
           descripcion: data.descripcion,
           imagen_url: data.imagenUrl,
@@ -229,6 +506,8 @@ const EditarRepuesto = () => {
       const pVenta = costoUni * 1.5;
 
       const payload = {
+        vehiculoOrigenId: !esGenerico ? values.vehiculo_origen_id : null,
+        generacionId: esGenerico ? generacionSeleccionada : null,
         parteVehiculoId: values.parte_vehiculo_id,
         descripcion: values.descripcion,
         precioCosto: costoUni,
@@ -252,6 +531,7 @@ const EditarRepuesto = () => {
       };
 
       await InventarioService.actualizarRepuesto(id, payload);
+      queryClient.invalidateQueries('repuestos');
       navigate(`/inventario/${id}`);
     } catch (error) {
       console.error('Error al actualizar:', error);
@@ -275,7 +555,7 @@ const EditarRepuesto = () => {
         <Button
           type="text"
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/inventario')}
           style={{ color: '#595959', fontWeight: 500 }}
           disabled={loading}
         >
@@ -315,12 +595,9 @@ const EditarRepuesto = () => {
                 }
 
                 return `${codigo} — ${marca} ${modelo} ${anio} (${estadoAmigable})`;
-              })() : ''}
+              })() : 'Cargando...'}
             </Tag>
           )}
-          <div style={{ marginTop: 8 }}>
-            <Text type="secondary">El origen del repuesto no puede ser modificado una vez creado.</Text>
-          </div>
         </div>
 
         <Form
@@ -328,6 +605,34 @@ const EditarRepuesto = () => {
           layout="vertical"
           onFinish={onFinish}
         >
+          {!esGenerico && (
+            <Form.Item
+              name="vehiculo_origen_id"
+              label="Vehículo Origen"
+              rules={[{ required: true, message: 'Seleccione el vehículo de origen' }]}
+            >
+              <Select
+                placeholder="Buscar por código, marca, modelo o generación"
+                showSearch
+                filterOption={(input, option) => {
+                  const searchText = option.label || '';
+                  return searchText.toLowerCase().includes(input.toLowerCase());
+                }}
+              >
+                {vehiculosDesarmados.map(v => {
+                  const label = `${v.codigoVehiculo || v.codigo_vehiculo} — ${v.marcaNombre || v.marca} ${v.modelo} ${v.anio} (${v.estado})`;
+                  return (
+                    <Option key={v.id} value={v.id} label={label}>
+                      {label}
+                    </Option>
+                  );
+                })}
+              </Select>
+            </Form.Item>
+          )}
+
+
+
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '16px' }}>
@@ -480,6 +785,441 @@ const EditarRepuesto = () => {
               <Form.Item name="imagen_url" label="URL de Imagen (Opcional)">
                 <Input placeholder="https://ejemplo.com/imagen.jpg" />
               </Form.Item>
+
+              {esGenerico && (
+                <div style={{ backgroundColor: '#f6ffed', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+                  <h4 style={{ color: '#52c41a', marginBottom: '12px' }}>Clasificar Repuesto Genérico</h4>
+
+                  <Form.Item
+                    name="marca_id"
+                    label="Marca"
+                    rules={[{ required: true, message: 'Seleccione una marca' }]}
+                  >
+                    <Select
+                      placeholder="Seleccione una marca"
+                      loading={loadingMarcas}
+                      onChange={onMarcaChange}
+                      value={marcaSeleccionada}
+                      optionLabelProp="label"
+                      dropdownRender={(menu) => (
+                        <div>
+                          {menu}
+                          <Divider style={{ margin: '8px 0' }} />
+                          {nuevaMarcaModal ? (
+                            <div style={{ padding: '8px', display: 'flex', gap: '8px' }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                placeholder="Nombre de la marca"
+                                value={nuevaMarcaNombre}
+                                onChange={(e) => setNuevaMarcaNombre(e.target.value)}
+                                onPressEnter={handleNuevaMarca}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    setNuevaMarcaModal(false);
+                                    setNuevaMarcaNombre('');
+                                  }
+                                }}
+                                style={{ flex: 1 }}
+                              />
+                              <Button
+                                type="text"
+                                icon={<CheckOutlined style={{ color: '#52c41a' }} />}
+                                onClick={handleNuevaMarca}
+                                loading={creandoMarca}
+                                disabled={!nuevaMarcaNombre.trim()}
+                                title="Agregar"
+                              />
+                              <Button
+                                type="text"
+                                danger
+                                icon={<CloseOutlined />}
+                                onClick={() => {
+                                  setNuevaMarcaModal(false);
+                                  setNuevaMarcaNombre('');
+                                }}
+                                disabled={creandoMarca}
+                                title="Cancelar"
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#1890ff'
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setNuevaMarcaModal(true);
+                                setNuevaMarcaNombre('');
+                              }}
+                            >
+                              <PlusOutlined style={{ marginRight: 8 }} />
+                              Agregar nueva marca
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    >
+                      {marcas.map(marca => (
+                        <Option key={marca.id} value={marca.id} label={marca.nombre}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            {editingMarcaId === marca.id ? (
+                              <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
+                                <Input
+                                  value={editingMarcaNombre}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingMarcaNombre(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 1 }}
+                                  autoFocus
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: 'green' }} />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGuardarEdicionMarca();
+                                  }}
+                                  size="small"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CloseOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelarEdicionMarca();
+                                  }}
+                                  size="small"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span>{marca.nombre}</span>
+                                <Button
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditarMarca(marca);
+                                  }}
+                                  size="small"
+                                />
+                              </>
+                            )}
+                          </div>
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item
+                    name="modelo_id"
+                    label="Modelo"
+                    rules={[{ required: true, message: 'Seleccione un modelo' }]}
+                  >
+                    <Select
+                      placeholder="Seleccione un modelo"
+                      loading={loadingModelos}
+                      disabled={!marcaSeleccionada}
+                      onChange={onModeloChange}
+                      value={modeloSeleccionado}
+                      optionLabelProp="label"
+                      dropdownRender={(menu) => (
+                        <div>
+                          {menu}
+                          <Divider style={{ margin: '8px 0' }} />
+                          {nuevoModeloModal ? (
+                            <div style={{ padding: '8px', display: 'flex', gap: '8px' }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                placeholder="Nombre del modelo"
+                                value={nuevoModeloNombre}
+                                onChange={(e) => setNuevoModeloNombre(e.target.value)}
+                                onPressEnter={handleNuevoModelo}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    setNuevoModeloModal(false);
+                                    setNuevoModeloNombre('');
+                                  }
+                                }}
+                                style={{ flex: 1 }}
+                              />
+                              <Button
+                                type="text"
+                                icon={<CheckOutlined style={{ color: '#52c41a' }} />}
+                                onClick={handleNuevoModelo}
+                                loading={creandoModelo}
+                                disabled={!nuevoModeloNombre.trim()}
+                                title="Agregar"
+                              />
+                              <Button
+                                type="text"
+                                danger
+                                icon={<CloseOutlined />}
+                                onClick={() => {
+                                  setNuevoModeloModal(false);
+                                  setNuevoModeloNombre('');
+                                }}
+                                disabled={creandoModelo}
+                                title="Cancelar"
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#1890ff'
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setNuevoModeloModal(true);
+                                setNuevoModeloNombre('');
+                              }}
+                            >
+                              <PlusOutlined style={{ marginRight: 8 }} />
+                              Agregar nuevo modelo
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    >
+                      {modelos.map(modelo => (
+                        <Option key={modelo.id} value={modelo.id} label={modelo.nombre}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            {editingModeloId === modelo.id ? (
+                              <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
+                                <Input
+                                  value={editingModeloNombre}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingModeloNombre(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 1 }}
+                                  autoFocus
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: 'green' }} />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGuardarEdicionModelo();
+                                  }}
+                                  size="small"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CloseOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelarEdicionModelo();
+                                  }}
+                                  size="small"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span>{modelo.nombre}</span>
+                                <Button
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditarModelo(modelo);
+                                  }}
+                                  size="small"
+                                />
+                              </>
+                            )}
+                          </div>
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item
+                    name="generacion_id"
+                    label="Generación"
+                    rules={[{ required: true, message: 'Seleccione una generación' }]}
+                  >
+                    <Select
+                      placeholder="Seleccione una generación"
+                      loading={loadingGeneraciones}
+                      disabled={!modeloSeleccionado}
+                      onChange={onGeneracionChange}
+                      value={generacionSeleccionada}
+                      optionLabelProp="label"
+                      dropdownRender={(menu) => (
+                        <div>
+                          {menu}
+                          <Divider style={{ margin: '8px 0' }} />
+                          {nuevaGeneracionModal ? (
+                            <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                placeholder="Nombre de la generación"
+                                value={nuevaGeneracionNombre}
+                                onChange={(e) => setNuevaGeneracionNombre(e.target.value)}
+                                style={{ width: '100%' }}
+                              />
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <Input
+                                  size="small"
+                                  placeholder="Año inicio"
+                                  value={nuevaGeneracionAnioInicio}
+                                  onChange={(e) => setNuevaGeneracionAnioInicio(e.target.value)}
+                                  style={{ flex: 1 }}
+                                />
+                                <Input
+                                  size="small"
+                                  placeholder="Año fin"
+                                  value={nuevaGeneracionAnioFin}
+                                  onChange={(e) => setNuevaGeneracionAnioFin(e.target.value)}
+                                  style={{ flex: 1 }}
+                                />
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: '#52c41a' }} />}
+                                  onClick={handleNuevaGeneracion}
+                                  loading={creandoGeneracion}
+                                  disabled={!nuevaGeneracionNombre.trim() || !nuevaGeneracionAnioInicio || !nuevaGeneracionAnioFin}
+                                  title="Agregar"
+                                />
+                                <Button
+                                  type="text"
+                                  danger
+                                  icon={<CloseOutlined />}
+                                  onClick={() => {
+                                    setNuevaGeneracionModal(false);
+                                    setNuevaGeneracionNombre('');
+                                    setNuevaGeneracionAnioInicio('');
+                                    setNuevaGeneracionAnioFin('');
+                                  }}
+                                  disabled={creandoGeneracion}
+                                  title="Cancelar"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#1890ff'
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setNuevaGeneracionModal(true);
+                                setNuevaGeneracionNombre('');
+                                setNuevaGeneracionAnioInicio('');
+                                setNuevaGeneracionAnioFin('');
+                              }}
+                            >
+                              <PlusOutlined style={{ marginRight: 8 }} />
+                              Agregar nueva generación
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    >
+                      {generaciones.map(generacion => (
+                        <Option key={generacion.id} value={generacion.id} label={`${generacion.nombre} (${generacion.anioInicio || generacion.anio_inicio}-${generacion.anioFin || generacion.anio_fin})`}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            {editingGeneracionId === generacion.id ? (
+                              <div style={{ display: 'flex', width: '100%', gap: '8px', alignItems: 'center' }}>
+                                <Input
+                                  value={editingGeneracionNombre}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingGeneracionNombre(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 2 }}
+                                  autoFocus
+                                />
+                                <Input
+                                  value={editingGeneracionAnioInicio}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingGeneracionAnioInicio(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 1 }}
+                                  placeholder="Inicio"
+                                />
+                                <Input
+                                  value={editingGeneracionAnioFin}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingGeneracionAnioFin(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 1 }}
+                                  placeholder="Fin"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: 'green' }} />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGuardarEdicionGeneracion();
+                                  }}
+                                  size="small"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CloseOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelarEdicionGeneracion();
+                                  }}
+                                  size="small"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span>{generacion.nombre} ({generacion.anioInicio || generacion.anio_inicio}-{generacion.anioFin || generacion.anio_fin})</span>
+                                <Button
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditarGeneracion(generacion);
+                                  }}
+                                  size="small"
+                                />
+                              </>
+                            )}
+                          </div>
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </div>
+              )}
 
             </Col>
 
@@ -732,7 +1472,7 @@ const EditarRepuesto = () => {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <Button
               size="large"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/inventario')}
               style={{ borderRadius: '6px' }}
             >
               Cancelar

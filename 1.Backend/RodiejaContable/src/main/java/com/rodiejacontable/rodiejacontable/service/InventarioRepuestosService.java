@@ -28,9 +28,7 @@ public class InventarioRepuestosService {
 
     @Transactional
     public InventarioRepuestos crearRepuesto(InventarioRepuestos repuesto) {
-        if (repuesto.getVehiculoOrigenId() == null) {
-            throw new IllegalStateException("El ID del vehículo de origen es requerido");
-        }
+        // Se removió el requerimiento de vehiculoOrigenId para permitir repuestos genéricos
         
         if (repuesto.getEstado() == null) {
             repuesto.setEstado(com.rodiejacontable.database.jooq.enums.InventarioRepuestosEstado.STOCK);
@@ -91,6 +89,9 @@ public class InventarioRepuestosService {
         }
         if (repuestoActualizado.getVehiculoOrigenId() != null) {
             repuestoExistente.setVehiculoOrigenId(repuestoActualizado.getVehiculoOrigenId());
+        }
+        if (repuestoActualizado.getGeneracionId() != null) {
+            repuestoExistente.setGeneracionId(repuestoActualizado.getGeneracionId());
         }
         if (repuestoActualizado.getAnioRegistro() != null) {
             repuestoExistente.setAnioRegistro(repuestoActualizado.getAnioRegistro());

@@ -6,7 +6,7 @@ import { useQuery } from 'react-query';
 
 import { useTransaccion, useUpdateTransaccion } from '../../hooks/useFinanzas';
 import { useEmpleados } from '../../hooks/useEmpleados';
-import { useVehiculosParaTransacciones } from '../../hooks/useVehiculosParaTransacciones';
+import { useVehiculos } from '../../hooks/useVehiculos';
 import { getTiposTransacciones } from '../../api/transacciones';
 
 const { Title } = Typography;
@@ -20,7 +20,7 @@ const EditarTransaccion = () => {
   // Queries
   const { data: transaccion, isLoading: loadingTransaccion } = useTransaccion(id);
   const { data: empleados = [], isLoading: loadingEmpleados } = useEmpleados();
-  const { vehiculos = [], loadingVehiculos } = useVehiculosParaTransacciones();
+  const { data: vehiculos = [], isLoading: loadingVehiculos } = useVehiculos();
 
   const { data: tiposTransacciones = [], isLoading: loadingTipos } = useQuery(
     ['tiposTransacciones'],

@@ -36,6 +36,7 @@ import { generacionesAPI } from '../../api/generaciones';
 import { formatCurrency } from '../../utils/formatters';
 import api from '../../api/axios';
 import dayjs from 'dayjs';
+import ImageCarousel from '../../components/common/ImageCarousel';
 
 
 // Servicio para repuestos
@@ -146,9 +147,8 @@ const EditarVehiculo = () => {
     try {
       setLoading(true);
 
-      // Get vehicle by ID from the flat list (same approach as VehiculoDetalle)
-      const vehiculosResponse = await vehiculoService.getVehiculos();
-      const vehiculoEncontrado = vehiculosResponse.find(v => v.id === parseInt(id));
+      // Get vehicle by ID directly from API
+      const vehiculoEncontrado = await vehiculoService.getVehiculo(parseInt(id, 10));
 
       if (!vehiculoEncontrado) {
         throw new Error('Vehículo no encontrado');
@@ -158,7 +158,7 @@ const EditarVehiculo = () => {
       let vehiculoConGeneracion = vehiculoEncontrado;
 
       // If generacion is present but lacks nested modelo/marca, fetch them
-      if (vehiculoConGeneracion.generacion && !vehiculoConGeneracion.generacion.modelo) {
+      if (vehiculoConGeneracion.generacion && vehiculoConGeneracion.generacion.modeloId && !vehiculoConGeneracion.generacion.modelo) {
         try {
           const generacion = vehiculoConGeneracion.generacion;
 
@@ -528,12 +528,13 @@ const EditarVehiculo = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
             {/* Imagen */}
             <div style={{ flex: '0 0 220px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '180px' }}>
-              <Image
-                src={vehiculo?.imagenUrl || vehiculo?.imagen_url || 'https://via.placeholder.com/220x160?text=Sin+imagen'}
-                alt={`${marca} ${modelo}`}
-                style={{ width: '220px', height: '160px', objectFit: 'cover' }}
-                fallback="https://via.placeholder.com/220x160?text=Sin+imagen"
-                preview={false}
+              <ImageCarousel 
+                imageUrlString={vehiculo?.imagenUrl || vehiculo?.imagen_url || ''} 
+                alt={`${marca} ${modelo}`} 
+                width="220px" 
+                height="160px"
+                borderRadius="8px"
+                preview={true}
               />
             </div>
 
@@ -667,13 +668,13 @@ const EditarVehiculo = () => {
               </Row>
 
               {/* Sección: Información Financiera */}
-              <Typography.Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+              <Typography.Text strong style={{ color: '#cf1322', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                 Información Financiera
               </Typography.Text>
-              <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
+              <Divider style={{ marginTop: '8px', marginBottom: '16px', borderColor: '#cf1322' }} />
               <Row gutter={[16, 0]}>
                 <Col xs={24} sm={12} md={8}>
-                  <Form.Item label="Precio de Compra" name="precioCompra" rules={[{ required: true, message: 'Requerido' }]}>
+                  <Form.Item label={<span style={{ color: '#cf1322' }}>Precio de Compra</span>} name="precioCompra" rules={[{ required: true, message: 'Requerido' }]}>
                     <InputNumber
                       style={{ width: '100%' }}
                       formatter={v => `₡ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -683,7 +684,7 @@ const EditarVehiculo = () => {
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12} md={8}>
-                  <Form.Item label="Costo de Grúa" name="costoGrua">
+                  <Form.Item label={<span style={{ color: '#cf1322' }}>Costo de Grúa</span>} name="costoGrua">
                     <InputNumber
                       style={{ width: '100%' }}
                       formatter={v => `₡ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -693,7 +694,7 @@ const EditarVehiculo = () => {
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12} md={8}>
-                  <Form.Item label="Comisiones" name="comisiones">
+                  <Form.Item label={<span style={{ color: '#cf1322' }}>Comisiones</span>} name="comisiones">
                     <InputNumber
                       style={{ width: '100%' }}
                       formatter={v => `₡ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
