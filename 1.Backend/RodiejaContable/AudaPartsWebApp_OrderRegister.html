@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registro de Pedido - Proveedor</title>
+</head>
+<body>
+    <form name="aspnetForm" method="post" action="./frmOrderSupplierRegister.aspx?IdOrder=14485" id="aspnetForm">
+        <div class="header">
+            <h1>Registro de Pedido - Proveedor</h1>
+            <div>Pedido: 14485 | Estatus: En Procesamiento | Cotización: 13821</div>
+        </div>
+        
+        <div id="ctl00_cphBody_tbcAnswerQuotation">
+            <!-- Pestaña 1: Items del Pedido -->
+            <div id="ctl00_cphBody_tbcAnswerQuotation_tabItems">
+                <div class="contact-info">
+                    Nombre: ROBERTO VENEGAS SOLIS<br>
+                    Email: correo@ejemplo.com<br>
+                    Teléfono: 12345678
+                </div>
+                
+                <table class="grid" cellspacing="0" rules="all" border="1" id="ctl00_cphBody_tbcAnswerQuotation_tabItems_ucQuotationSupplierAnswerItems_gdvResult">
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>No. Parte</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Usada</td>
+                            <td>24431 4KT0A</td>
+                            <td>COB.BATERIA</td>
+                            <td>65000.00</td>
+                        </tr>
+                        <tr>
+                            <td>Usada</td>
+                            <td></td>
+                            <td>DEFLEC.AIR.INF.RADIA</td>
+                            <td>165000.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <input type="submit" name="ctl00$cphBody$btnNextStatusAction" value="Facturar" id="ctl00_cphBody_btnNextStatusAction" />
+            </div>
+
+            <!-- Pestaña 2: Datos Siniestro e Entrega -->
+            <div id="ctl00_cphBody_tbcAnswerQuotation_tabSinister">
+                <span id="ctl00_cphBody_tbcAnswerQuotation_tabSinister_ucSinisterData_lblInsuredName">AARON JESUS ALVARADO SOTO</span>
+                <span id="ctl00_cphBody_tbcAnswerQuotation_tabSinister_ucSinisterData_lblSinisterNumber">CAS-2431162-S7T5</span>
+                <span id="ctl00_cphBody_tbcAnswerQuotation_tabSinister_ucSinisterData_lblInsurer">INSCR</span>
+                
+                <span id="ctl00_cphBody_tbcAnswerQuotation_tabSinister_ucSinisterData_lblVehicle">NISSAN/NP300 2016</span>
+                <span id="ctl00_cphBody_tbcAnswerQuotation_tabSinister_ucSinisterData_lblVIN">VINXXXXXXXXXXX</span>
+                <span id="ctl00_cphBody_tbcAnswerQuotation_tabSinister_ucSinisterData_lblFeatures">F1 AIRE ACONDICIONADO, K2 PARRILLA CROMADA</span>
+            </div>
+
+            <!-- Pestaña 3: Facturas Fiscales -->
+            <div id="ctl00_cphBody_tbcAnswerQuotation_tabInvoices">
+                <p>0 records</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <h3>Total del pedido: <span id="ctl00_cphBody_lblTotal">₡ 230,000.00</span></h3>
+            <input type="submit" name="ctl00$cphBody$btnPrint" value="Imprimir" id="ctl00_cphBody_btnPrint" />
+            <input type="submit" name="ctl00$cphBody$btnPrintWithoutPrice" value="Imprimir sin Precio" id="ctl00_cphBody_btnPrintWithoutPrice" />
+            <input type="submit" name="ctl00$cphBody$btnFiles" value="Archivos" id="ctl00_cphBody_btnFiles" />
+            <input type="submit" name="ctl00$cphBody$btnBack" value="Volver" id="ctl00_cphBody_btnBack" />
+        </div>
+    </form>
+</body>
+</html>

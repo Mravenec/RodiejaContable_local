@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Búsqueda de Pedido - Proveedor</title>
+</head>
+<body>
+    <form name="aspnetForm" method="post" action="./frmOrderSupplierSearch.aspx" id="aspnetForm">
+        <div class="search-filters">
+            <select name="ctl00$cphBody$ddlAseguradora" id="ctl00_cphBody_ddlAseguradora"><option value="">Aseguradora</option></select>
+            <input name="ctl00$cphBody$txtNumeroPedido" type="text" id="ctl00_cphBody_txtNumeroPedido" placeholder="Número Pedido" />
+            <input name="ctl00$cphBody$txtPedidosCreadosDesde" type="text" id="ctl00_cphBody_txtPedidosCreadosDesde" />
+            <input name="ctl00$cphBody$txtPedidosCreadosHasta" type="text" id="ctl00_cphBody_txtPedidosCreadosHasta" />
+            <select name="ctl00$cphBody$ddlEstatusPedido" id="ctl00_cphBody_ddlEstatusPedido"><option value="">Estatus Pedido</option></select>
+            <select name="ctl00$cphBody$ddlArmadora" id="ctl00_cphBody_ddlArmadora"><option value="">Armadora</option></select>
+            <input name="ctl00$cphBody$txtChasisVIN" type="text" id="ctl00_cphBody_txtChasisVIN" />
+            <input name="ctl00$cphBody$txtMatricula" type="text" id="ctl00_cphBody_txtMatricula" />
+            <input name="ctl00$cphBody$txtNumeroSiniestro" type="text" id="ctl00_cphBody_txtNumeroSiniestro" />
+            
+            <input type="submit" name="ctl00$cphBody$btnSearch" value="Buscar" id="ctl00_cphBody_btnSearch" />
+            <input type="submit" name="ctl00$cphBody$btnClean" value="Limpiar Campos" id="ctl00_cphBody_btnClean" />
+        </div>
+
+        <table class="grid" cellspacing="0" rules="all" border="1" id="ctl00_cphBody_gdvResult" style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th>Aseguradora</th>
+                    <th>Pedido</th>
+                    <th>Cotización</th>
+                    <th>Previsión Entrega de Pieza</th>
+                    <th>Siniestro</th>
+                    <th>Taller Mecánico</th>
+                    <th>Matricula</th>
+                    <th>Armadora</th>
+                    <th>Total del Pedido</th>
+                    <th>Fecha/Hora Pedido</th>
+                    <th>Duración</th>
+                    <th>Estatus</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>INSCR</td>
+                    <td>14485</td>
+                    <td>13821</td>
+                    <td></td>
+                    <td>CAS-2431162-S7T5</td>
+                    <td>TALLER DE PRUEBA</td>
+                    <td>123456</td>
+                    <td>NISSAN</td>
+                    <td>₡ 230,000.00</td>
+                    <td>10/08/2026 10:00:00</td>
+                    <td>2 días</td>
+                    <td>En Procesamiento</td>
+                    <td>
+                        <a href="frmOrderSupplierRegister.aspx?IdOrder=14485">Visualizar</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </form>
+</body>
+</html>
