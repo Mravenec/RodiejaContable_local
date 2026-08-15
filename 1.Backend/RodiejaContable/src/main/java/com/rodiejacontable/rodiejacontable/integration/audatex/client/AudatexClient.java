@@ -1339,6 +1339,257 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
         return data;
     }
 
+
+    // ── ROD-XX: Sincronización de Pedidos ──────────────────────────────────────────
+
+    public void buscarTodosPedidosStreaming(String desde, String hasta,
+            Consumer<List<Map<String, Object>>> onPage) throws IOException {
+        scrapeStreamingPedidos(desde, hasta, onPage);
+    }
+
+    private void scrapeStreamingPedidos(String desde, String hasta,
+            Consumer<List<Map<String, Object>>> onPage) throws IOException {
+
+        if (desde != null && hasta != null) {
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            LocalDate start = LocalDate.parse(desde.trim(), formatter);
+            LocalDate end = LocalDate.parse(hasta.trim(), formatter);
+            if (!start.isAfter(end)) {
+                final int diasPorChunk = 3;
+                LocalDate chunkEnd = end;
+                while (!chunkEnd.isBefore(start)) {
+                    LocalDate chunkStart = chunkEnd.minusDays(diasPorChunk - 1);
+                    if (chunkStart.isBefore(start)) chunkStart = start;
+                    log.info("[Audatex] === Búsqueda Pedidos chunk {} → {} ===", chunkStart, chunkEnd);
+                    scrapeRangoFechasPedidos(chunkStart.toString(), chunkEnd.toString(), onPage);
+                    chunkEnd = chunkStart.minusDays(1);
+                    humanDelay();
+                }
+                return;
+            }
+        }
+        scrapeRangoFechasPedidos(desde, hasta, onPage);
+    }
+
+    private void scrapeRangoFechasPedidos(String desde, String hasta,
+            Consumer<List<Map<String, Object>>> onPage) throws IOException {
+
+        Map<String, String> cookies = sessionManager.getActiveCookies();
+        String refererUrl = sessionManager.getCurrentPanelUrl();
+        String orderSearchUrl = props.getQuotationSearchUrl().replace("frmQuotationSupplierSearch.aspx", "frmOrderSupplierSearch.aspx");
+        String searchUrl = orderSearchUrl;
+        
+        if (desde == null && hasta == null) {
+            searchUrl = orderSearchUrl + SEARCH_URL_ALL;
+        }
+
+        log.info("[Audatex] Buscando pedidos en: {}", searchUrl);
+
+        Connection.Response resp = Jsoup.connect(searchUrl)
+                .cookies(cookies)
+                .header("Referer", refererUrl)
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .followRedirects(true)
+                .method(Connection.Method.GET)
+                .userAgent(USER_AGENT)
+                .execute();
+
+        if (resp.url().toString().contains("frmLogin")) {
+            sessionManager.invalidate();
+            cookies = sessionManager.getActiveCookies();
+            resp = Jsoup.connect(searchUrl).cookies(cookies).method(Connection.Method.GET).userAgent(USER_AGENT).execute();
+        }
+
+        Document doc = resp.parse();
+        String finalStartDate = formatToPortalDate(desde);
+        String finalEndDate = formatToPortalDate(hasta);
+        String finalStatus = "";
+
+        if (desde == null && hasta == null) {
+            Element txtStart = doc.getElementById("ctl00_cphBody_txtStartDate");
+            if (txtStart != null) finalStartDate = txtStart.attr("value");
+            Element txtEnd = doc.getElementById("ctl00_cphBody_txtEndDate");
+            if (txtEnd != null) finalEndDate = txtEnd.attr("value");
+            Element ddlStatusEl = doc.getElementById("ctl00_cphBody_ddlStatus");
+            if (ddlStatusEl != null) {
+                Element selected = ddlStatusEl.select("option[selected]").first();
+                if (selected != null) finalStatus = selected.attr("value");
+            }
+        }
+
+        if (desde != null || hasta != null) {
+            Map<String, String> searchForm = extractFormFields(doc);
+            searchForm.put("__EVENTTARGET", "");
+            searchForm.put("__EVENTARGUMENT", "");
+            if (finalStartDate != null) searchForm.put("ctl00$cphBody$txtStartDate", finalStartDate);
+            if (finalEndDate != null)   searchForm.put("ctl00$cphBody$txtEndDate",   finalEndDate);
+            searchForm.put("ctl00$cphBody$ddlStatus", finalStatus);
+            searchForm.put("ctl00$cphBody$btnSearch", "Buscar");
+
+            resp = postForm(orderSearchUrl, cookies, searchForm);
+            cookies.putAll(resp.cookies());
+            doc = resp.parse();
+        }
+
+        List<Map<String, Object>> pag1 = parsearTablaPedidos(doc);
+        onPage.accept(pag1);
+
+        int totalPaginas = obtenerTotalPaginas(doc);
+        int pagina = 1;
+        while (pagina < totalPaginas) {
+            pagina++;
+            log.info("[Audatex] Paginando Pedidos a pág {}/{}", pagina, totalPaginas);
+            Map<String, String> pageForm = extractFormFields(doc);
+            pageForm.put("__EVENTTARGET", "ctl00$cphBody$gdvResult");
+            pageForm.put("__EVENTARGUMENT", "Page$" + pagina);
+            
+            resp = postFormAjax(orderSearchUrl, cookies, pageForm);
+            doc = resp.parse();
+            
+            List<Map<String, Object>> pagSig = parsearTablaPedidos(doc);
+            if (pagSig.isEmpty()) break;
+            onPage.accept(pagSig);
+            humanDelay();
+        }
+    }
+
+    public List<Map<String, String>> buscarDetallePedido(String wan) {
+        if (wan == null || wan.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        
+        List<Map<String, String>> repuestos = new ArrayList<>();
+        String url = props.getQuotationSearchUrl().replace("frmQuotationSupplierSearch.aspx", "frmOrderSupplierRegister.aspx") + "?IdOrder=" + java.net.URLEncoder.encode(wan, java.nio.charset.StandardCharsets.UTF_8) + "&CalledPage=OrderSupplierSearch";
+        String referer = props.getQuotationSearchUrl().replace("frmQuotationSupplierSearch.aspx", "frmOrderSupplierSearch.aspx");
+        try {
+            Thread.sleep(500 + (long)(Math.random() * 300));
+            Map<String, String> cookies = sessionManager.getActiveCookies();
+            org.jsoup.Connection.Response resp = Jsoup.connect(url)
+                    .cookies(cookies)
+                    .header("Referer", referer)
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .header("Accept-Language", "es-419,es;q=0.9")
+                    .header("sec-fetch-dest", "document")
+                    .header("sec-fetch-mode", "navigate")
+                    .header("sec-fetch-site", "same-origin")
+                    .header("Upgrade-Insecure-Requests", "1")
+                    .followRedirects(true)
+                    .timeout(300_000)
+                    .userAgent(USER_AGENT)
+                    .method(org.jsoup.Connection.Method.GET)
+                    .execute();
+
+            if (resp.url().toString().contains("frmLogin") || resp.url().toString().contains("AudaPartsSite")) {
+                log.warn("[AudatexClient] Sesión expirada al buscar detalle de pedido - re-autenticando");
+                sessionManager.invalidate();
+                cookies = sessionManager.getActiveCookies();
+                resp = Jsoup.connect(url)
+                        .cookies(cookies)
+                        .header("Referer", referer)
+                        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                        .header("Accept-Language", "es-419,es;q=0.9")
+                        .followRedirects(true)
+                        .timeout(300_000)
+                        .userAgent(USER_AGENT)
+                        .method(org.jsoup.Connection.Method.GET)
+                        .execute();
+            }
+            
+            Document doc = resp.parse();
+            Element table = doc.getElementById("ctl00_cphBody_tbcRegisterOrder_tabItemsOrder_ucOrderSupplierRegisterItems_gdvItemSupplier_ctl00");
+            if (table == null) table = doc.select("table[id*=gdvItemSupplier]").first();
+            if (table == null) {
+                log.warn("[AudatexClient] No se encontro la tabla de items para el pedido WAN {}", wan);
+                try {
+                    java.nio.file.Files.writeString(
+                        java.nio.file.Paths.get("debug_pedido_" + wan.replaceAll("[^a-zA-Z0-9_-]", "") + ".html"),
+                        doc.outerHtml()
+                    );
+                } catch (Exception ignored) {}
+                return repuestos;
+            }
+            
+            Elements rows = table.select("tr");
+            for (int i = 1; i < rows.size(); i++) {
+                Element row = rows.get(i);
+                if (row.hasClass("grid-footer")) continue;
+                Elements cols = row.select("td");
+                if (cols.size() < 6) continue;
+                
+                Map<String, String> item = new LinkedHashMap<>();
+                item.put("Estado", cols.get(0).text().trim());
+                item.put("No. Parte", cols.get(1).text().trim());
+                item.put("Descripción", cols.get(3).text().trim());
+                item.put("Precio", cols.get(5).text().trim());
+                
+                repuestos.add(item);
+            }
+            
+        } catch (Exception e) {
+            log.error("[AudatexClient] Error buscando detalle de pedido WAN {}: {}", wan, e.getMessage());
+        }
+        return repuestos;
+    }
+
+    private List<Map<String, Object>> parsearTablaPedidos(Document doc) {
+        List<Map<String, Object>> lista = new ArrayList<>();
+        Element table = doc.getElementById("ctl00_cphBody_gdvResult");
+        if (table == null) table = doc.select("table[id$=gdvResult]").first();
+        if (table == null) return lista;
+
+        Elements rows = table.select("tr");
+        for (int i = 1; i < rows.size(); i++) {
+            Elements cols = rows.get(i).select("td");
+            if (cols.size() < 8) continue;
+
+            Map<String, Object> pedido = new LinkedHashMap<>();
+            // Columnas reales del portal frmOrderSupplierSearch.aspx:
+            // 0=Aseguradora, 1=Pedido, 2=Cotización, 3=PrevisiónEntrega,
+            // 4=Siniestro, 5=TallerMecánico, 6=Matrícula, 7=Armadora,
+            // 8=TotalDelPedido, 9=Fecha/HoraPedido, 10=Duración, 11=Estatus, 12=Acciones
+            pedido.put("aseguradora", cols.get(0).text().trim());
+            pedido.put("numeroPedido", cols.get(1).text().trim());
+            pedido.put("cotizacionId", cols.get(2).text().trim());
+            pedido.put("previsionEntrega", cols.get(3).text().trim());
+            pedido.put("siniestro", cols.get(4).text().trim());
+            pedido.put("taller", cols.get(5).text().trim());
+            pedido.put("matricula", cols.get(6).text().trim());
+            pedido.put("armadora", cols.get(7).text().trim());
+            
+            if (cols.size() > 8) {
+                // Total del Pedido — viene como "₡ 230,000.00", limpiar para parsear
+                String totalStr = cols.get(8).text().trim()
+                        .replace("₡", "").replace(",", "").replace(" ", "");
+                try {
+                    pedido.put("totalPedido", Double.parseDouble(totalStr));
+                } catch (NumberFormatException e) {
+                    pedido.put("totalPedido", 0.0);
+                }
+            }
+            if (cols.size() > 9) {
+                pedido.put("fecha", cols.get(9).text().trim());
+            }
+            if (cols.size() > 10) {
+                pedido.put("duracion", cols.get(10).text().trim());
+            }
+            if (cols.size() > 11) {
+                pedido.put("estatus", cols.get(11).text().trim());
+            }
+
+            String rowHtml = rows.get(i).outerHtml();
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?:IdQuotation|IdOrder|WAN)=([^&\\\"'>]+)").matcher(rowHtml);
+            if (m.find()) {
+                pedido.put("wan", m.group(1));
+            } else {
+                m = java.util.regex.Pattern.compile("['\\\"]([A-Za-z0-9+/]{10,60}=*)['\\\"]").matcher(rowHtml);
+                if (m.find()) pedido.put("wan", m.group(1));
+            }
+            lista.add(pedido);
+        }
+        return lista;
+    }
+
+
     private void humanDelay() {
         try {
             long delay = props.getHumanDelayMs() + (long)(Math.random() * 400);

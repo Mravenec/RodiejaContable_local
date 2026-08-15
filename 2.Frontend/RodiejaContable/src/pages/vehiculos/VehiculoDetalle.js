@@ -26,9 +26,7 @@ import { audatexService } from '../../api';
 const repuestosService = {
   async getRepuestosPorVehiculo(vehiculoId) {
     try {
-      // Use the inventarioService to get all repuestos
-      const allRepuestos = await inventarioService.getRepuestos();
-      return allRepuestos.filter(repuesto => repuesto.vehiculoOrigenId === parseInt(vehiculoId));
+      return await inventarioService.getRepuestosPorVehiculo(vehiculoId);
     } catch (error) {
       console.error('Error fetching repuestos:', error);
       return [];
@@ -293,7 +291,25 @@ const VehiculoDetalle = () => {
     try {
       setLoadingRepuestos(true);
       const repuestosData = await repuestosService.getRepuestosPorVehiculo(vehiculoId);
-      setRepuestos(Array.isArray(repuestosData) ? repuestosData : []);
+      
+      // Intentar obtener las partes de vehículo para mapear los nombres si faltan
+      try {
+        const partesRes = await api.get('/partes-vehiculo');
+        const partesMap = (partesRes.data || []).reduce((acc, p) => {
+          acc[p.id] = p.nombre;
+          return acc;
+        }, {});
+        
+        const repuestosMapeados = repuestosData.map(r => ({
+          ...r,
+          parteVehiculo: r.parteVehiculo || partesMap[r.parteVehiculoId] || 'Desconocida'
+        }));
+        setRepuestos(Array.isArray(repuestosMapeados) ? repuestosMapeados : []);
+      } catch (e) {
+        console.error("Error al obtener partes:", e);
+        setRepuestos(Array.isArray(repuestosData) ? repuestosData : []);
+      }
+      
     } catch (error) {
       console.error('Error loading repuestos:', error);
       setRepuestos([]);
@@ -477,14 +493,16 @@ const VehiculoDetalle = () => {
         Volver a la lista
       </Button>
 
+      {console.log('🖼️ URL de imagen a renderizar:', vehiculo?.imagenUrl || vehiculo?.imagen_url)}
       <Card bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '24px' }}>
-            <div style={{ flex: '0 0 300px', marginRight: '24px', marginBottom: '16px' }}>
+            <div style={{ flex: '0 0 300px', marginRight: '24px', marginBottom: '16px', minHeight: '200px' }}>
               <ImageCarousel 
-                imageUrlString={vehiculo.imagenUrl} 
+                imageUrlString={vehiculo?.imagenUrl || vehiculo?.imagen_url || ''} 
                 alt={`${marca} ${modelo}`} 
                 width="100%" 
+                height="200px"
                 borderRadius="8px"
               />
             </div>
@@ -735,7 +753,6 @@ const VehiculoDetalle = () => {
                     <table className="ant-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr>
-                          <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Código</th>
                           <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Parte</th>
                           <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>Descripción</th>
                           <th style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #f0f0f0' }}>Precio Venta</th>
@@ -754,11 +771,8 @@ const VehiculoDetalle = () => {
                                 style={{ padding: 0, height: 'auto' }}
                                 onClick={() => navigate(`/inventario/${repuesto.id}`)}
                               >
-                                {repuesto.codigoRepuesto || 'Sin código'}
+                                <Tag color="blue" style={{ cursor: 'pointer' }}>{repuesto.parteVehiculo || 'N/A'}</Tag>
                               </Button>
-                            </td>
-                            <td style={{ padding: '8px' }}>
-                              <Tag color="blue">{repuesto.parteVehiculo || 'N/A'}</Tag>
                             </td>
                             <td style={{ padding: '8px' }}>{repuesto.descripcion || 'Sin descripción'}</td>
                             <td style={{ padding: '8px', textAlign: 'right' }}>

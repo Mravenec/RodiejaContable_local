@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Drawer, Table, Button, Select, InputNumber, message, Space, Typography, Tag, Switch, Card, Row, Col, Divider, Tooltip } from 'antd';
 import { CarOutlined, SendOutlined, StopOutlined, CheckOutlined, TagOutlined, DollarOutlined, ToolOutlined, CalendarOutlined } from '@ant-design/icons';
+import { audatexService } from '../../api';
 
 const { Text, Title } = Typography;
 const { Option } = Select;
@@ -121,8 +122,9 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
               repuestoId: repuestoId,
               cotizacionId: oportunidad.cotizacionId,
               precioOfrecido: precio,
-              tiempoEntrega: plazo.toString(),
-              condicionPieza: tipo,
+              diasEntrega: plazo.toString(),
+              tipoPieza: tipo,
+              descripcion: rep['Descripcion Pieza'] || rep.descripcion || `Repuesto #${repuestoId}`,
               notas: ''
             });
           }
@@ -138,17 +140,23 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
 
     setSubmitting(true);
     try {
-      for (const envio of envios) {
-        await fetch(`http://localhost:8080/api/audatex/cotizar`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(envio)
-        });
-      }
-      message.success('Cotización enviada exitosamente');
+      let totalPrecio = 0;
+      envios.forEach(e => totalPrecio += e.precioOfrecido);
+
+      const payload = {
+        cotizacionId: oportunidad.cotizacionId,
+        aseguradora: oportunidad.aseguradora,
+        vehiculo: `${oportunidad.armadora || oportunidad.marca || ''} ${oportunidad.modelo || ''}`.trim(),
+        siniestro: oportunidad.cotizacionId, // Fallback
+        totalPedido: totalPrecio,
+        estado: 'Aguardando Confirmación',
+        notas: 'Cotizado desde Drawer multi-pieza',
+        items: envios
+      };
+      
+      await audatexService.enviarCotizacion(payload);
+
+      message.success('Pedido creado exitosamente para Audatex InPart');
       onClose();
     } catch (error) {
       console.error('Error enviando cotización:', error);

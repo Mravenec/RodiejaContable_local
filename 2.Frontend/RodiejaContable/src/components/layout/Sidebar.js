@@ -80,6 +80,7 @@ const Sidebar = ({ collapsed }) => {
       children: [
         { key: '/audatex/oportunidades', label: 'Oportunidades' },
         { key: '/audatex/jerarquia', label: 'Jerarquía InPart' },
+        { key: '/audatex/pedidos', label: 'Pedidos' },
       ]
     },
     { 

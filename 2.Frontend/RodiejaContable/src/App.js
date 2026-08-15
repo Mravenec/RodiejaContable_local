@@ -41,7 +41,7 @@ import ReporteVehiculos from './pages/reportes/ReporteVehiculos';
 // Componentes de Audatex
 import OportunidadesAudatex from './pages/audatex/OportunidadesAudatex';
 import JerarquiaAudatex from './pages/audatex/JerarquiaAudatex';
-
+import PedidosAudatex from './pages/audatex/PedidosAudatex';
 // Componentes de configuración
 import Perfil from './pages/configuracion/Perfil';
 import Configuracion from './pages/configuracion/Configuracion';
@@ -475,6 +475,16 @@ function App() {
           <PrivateRoute>
             <MainLayout>
               <JerarquiaAudatex />
+            </MainLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/audatex/pedidos"
+        element={
+          <PrivateRoute>
+            <MainLayout>
+              <PedidosAudatex />
             </MainLayout>
           </PrivateRoute>
         }

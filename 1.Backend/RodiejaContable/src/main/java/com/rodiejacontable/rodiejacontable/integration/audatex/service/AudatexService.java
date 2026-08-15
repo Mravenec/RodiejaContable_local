@@ -1,15 +1,15 @@
 package com.rodiejacontable.rodiejacontable.integration.audatex.service;
 
-import com.rodiejacontable.database.jooq.enums.AudatexEnviosEstado;
+import com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado;
 import com.rodiejacontable.database.jooq.enums.InventarioRepuestosEstado;
-import com.rodiejacontable.database.jooq.tables.pojos.AudatexEnvios;
+import com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidos;
 import com.rodiejacontable.database.jooq.tables.pojos.Generaciones;
 import com.rodiejacontable.database.jooq.tables.pojos.InventarioRepuestos;
 import com.rodiejacontable.database.jooq.tables.pojos.Marcas;
 import com.rodiejacontable.database.jooq.tables.pojos.Modelos;
 import com.rodiejacontable.database.jooq.tables.pojos.Vehiculos;
 import com.rodiejacontable.rodiejacontable.integration.audatex.client.AudatexClient;
-import com.rodiejacontable.rodiejacontable.repository.AudatexEnviosRepository;
+import com.rodiejacontable.rodiejacontable.repository.AudatexPedidosRepository;
 import com.rodiejacontable.rodiejacontable.repository.GeneracionesRepository;
 import com.rodiejacontable.rodiejacontable.repository.InventarioRepuestosRepository;
 import com.rodiejacontable.rodiejacontable.repository.MarcasRepository;
@@ -28,7 +28,11 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.rodiejacontable.rodiejacontable.repository.AudatexPedidoItemsRepository;
+import com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidoItems;
+import java.math.BigDecimal;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -45,7 +49,8 @@ public class AudatexService {
     private static final Logger log = LoggerFactory.getLogger(AudatexService.class);
 
     private final AudatexClient client;
-    private final AudatexEnviosRepository audatexEnviosRepository;
+    private final AudatexPedidosRepository audatexPedidosRepository;
+    private final AudatexPedidoItemsRepository audatexPedidoItemsRepository;
     private final InventarioRepuestosRepository inventarioRepuestosRepository;
     private final VehiculosRepository vehiculosRepository;
     private final GeneracionesRepository generacionesRepository;
@@ -65,7 +70,8 @@ public class AudatexService {
 
     public AudatexService(
             AudatexClient client,
-            AudatexEnviosRepository audatexEnviosRepository,
+            AudatexPedidosRepository audatexPedidosRepository,
+            AudatexPedidoItemsRepository audatexPedidoItemsRepository,
             InventarioRepuestosRepository inventarioRepuestosRepository,
             VehiculosRepository vehiculosRepository,
             GeneracionesRepository generacionesRepository,
@@ -74,7 +80,8 @@ public class AudatexService {
             AudatexOportunidadesSyncRepository audatexOportunidadesSyncRepository,
             TransaccionesFinancierasRepository transaccionesFinancierasRepository) {
         this.client = client;
-        this.audatexEnviosRepository = audatexEnviosRepository;
+        this.audatexPedidosRepository = audatexPedidosRepository;
+        this.audatexPedidoItemsRepository = audatexPedidoItemsRepository;
         this.inventarioRepuestosRepository = inventarioRepuestosRepository;
         this.vehiculosRepository = vehiculosRepository;
         this.generacionesRepository = generacionesRepository;
@@ -421,8 +428,8 @@ public class AudatexService {
         return client.obtenerDetalleCotizacion(wan);
     }
 
-    public List<AudatexEnvios> obtenerEnviosPorRepuesto(Integer repuestoId) {
-        return audatexEnviosRepository.findByRepuestoId(repuestoId);
+    public List<AudatexPedidos> obtenerPedidos() {
+        return audatexPedidosRepository.findAll();
     }
 
     @CacheEvict(value = "audatexOportunidades", allEntries = true)
@@ -430,23 +437,99 @@ public class AudatexService {
         log.info("[AudatexService] Caché de oportunidades invalidado manualmente");
     }
 
-    @CacheEvict(value = "audatexOportunidades", allEntries = true)
-    public AudatexEnvios enviarCotizacion(AudatexEnvios envio) throws IOException {
-        log.info("[AudatexService] Enviando cotización para repuesto {} - Cotización {}",
-                envio.getRepuestoId(), envio.getCotizacionId());
+    public AudatexPedidos registrarPedido(Map<String, Object> payload) throws IOException {
+        log.info("[AudatexService] Registrando pedido {}", payload.get("numeroPedido"));
+        
+        AudatexPedidos pedido = new AudatexPedidos();
+        pedido.setCotizacionId((String) payload.get("cotizacionId"));
+        pedido.setAseguradora((String) payload.get("aseguradora"));
+        pedido.setVehiculo((String) payload.get("vehiculo"));
+        pedido.setSiniestro((String) payload.get("siniestro"));
+        
+        // Handle BigDecimal/Integer/Double for totalPedido
+        if (payload.get("totalPedido") != null) {
+            pedido.setTotalPedido(new BigDecimal(payload.get("totalPedido").toString()));
+        }
+        
+        // Convert to JOOQ enum using lookupLiteral
+        String estadoStr = (String) payload.getOrDefault("estado", "Aguardando Confirmación");
+        if (estadoStr.equals("COTIZADO")) estadoStr = "Aguardando Confirmación";
+        try {
+            pedido.setEstado(AudatexPedidosEstado.lookupLiteral(estadoStr));
+        } catch(Exception e) {
+            pedido.setEstado(AudatexPedidosEstado.Aguardando_Confirmación);
+        }
+        
+        pedido.setNotas((String) payload.get("notas"));
 
-        boolean exito = client.enviarCotizacion(
-                envio.getCotizacionId(),
-                envio.getPrecioOfrecido().toString(),
-                envio.getTiempoEntrega(),
-                envio.getCondicionPieza());
+        AudatexPedidos guardado = audatexPedidosRepository.save(pedido);
+        
+        if (payload.containsKey("items")) {
+            List<Map<String, Object>> itemsMap = (List<Map<String, Object>>) payload.get("items");
+            List<AudatexPedidoItems> itemsToSave = itemsMap.stream().map(im -> {
+                AudatexPedidoItems item = new AudatexPedidoItems();
+                item.setPedidoId(guardado.getId());
+                item.setRepuestoId((Integer) im.get("repuestoId"));
+                item.setPrecioOfrecido(new BigDecimal(im.get("precioOfrecido").toString()));
+                item.setCantidad((Integer) im.getOrDefault("cantidad", 1));
+                if (im.get("descripcion") != null) item.setDescripcion((String) im.get("descripcion"));
+                if (im.get("tipoPieza") != null) item.setTipoPieza((String) im.get("tipoPieza"));
+                if (im.get("diasEntrega") != null) item.setDiasEntrega(Integer.parseInt(im.get("diasEntrega").toString()));
+                return item;
+            }).collect(Collectors.toList());
+            
+            audatexPedidoItemsRepository.saveAll(itemsToSave);
+        }
 
-        envio.setWan(envio.getCotizacionId());
-        envio.setEstado(exito ? AudatexEnviosEstado.ENVIADA : AudatexEnviosEstado.PENDIENTE);
-        envio.setUsuarioEnvio("dvenegas");
-        envio.setNotas(exito ? "Envío exitoso" : "Fallo en envío");
+        return guardado;
+    }
 
-        return audatexEnviosRepository.save(envio);
+    public List<Map<String, Object>> obtenerPedidosConItems() {
+        List<AudatexPedidos> pedidos = audatexPedidosRepository.findAll();
+        List<Map<String, Object>> resultado = new java.util.ArrayList<>();
+        
+        for (AudatexPedidos pedido : pedidos) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", pedido.getId());
+            map.put("numeroPedido", pedido.getNumeroPedido());
+            map.put("cotizacionId", pedido.getCotizacionId());
+            map.put("siniestro", pedido.getSiniestro());
+            map.put("aseguradora", pedido.getAseguradora());
+            map.put("vehiculo", pedido.getVehiculo());
+            map.put("totalPedido", pedido.getTotalPedido());
+            map.put("estado", pedido.getEstado() != null ? pedido.getEstado().getLiteral() : "");
+            map.put("notas", pedido.getNotas());
+            map.put("fechaCreacion", pedido.getFechaCreacion());
+            
+            if (pedido.getDetalleJson() != null) {
+                try {
+                    Map<String, Object> jsonMap = objectMapper.readValue(pedido.getDetalleJson(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                    if (jsonMap.containsKey("fecha")) {
+                        map.put("fecha", jsonMap.get("fecha"));
+                    }
+                    if (jsonMap.containsKey("armadora")) {
+                        map.put("armadora", jsonMap.get("armadora"));
+                    }
+                    if (jsonMap.containsKey("matricula")) {
+                        map.put("matricula", jsonMap.get("matricula"));
+                    }
+                } catch (Exception e) {
+                    log.warn("Error parseando detalleJson del pedido {}: {}", pedido.getId(), e.getMessage());
+                }
+            }
+            
+            List<AudatexPedidoItems> items = audatexPedidoItemsRepository.findByPedidoId(pedido.getId());
+            map.put("items", items);
+            
+            resultado.add(map);
+        }
+        return resultado;
+    }
+
+    public AudatexPedidos facturarPedido(Integer pedidoId) throws IOException {
+        log.info("[AudatexService] Facturando (Entregado) pedido {}", pedidoId);
+        audatexPedidosRepository.updateEstado(pedidoId, AudatexPedidosEstado.Entregado);
+        return audatexPedidosRepository.findById(pedidoId).orElse(null);
     }
 
     private boolean coincideVehiculo(Map<String, Object> o, String marca, String modelo, Integer anio) {
@@ -669,6 +752,200 @@ public class AudatexService {
      * Dispara sync de 30 días en background. Retorna de inmediato si no hay otro
      * sync en curso.
      */
+
+    private final java.util.concurrent.atomic.AtomicBoolean syncPedidosIncrementalEnCurso = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    private com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado mapearEstatus(String estatus) {
+        if (estatus == null || estatus.trim().isEmpty()) return null;
+        String e = estatus.trim().toLowerCase();
+        if (e.contains("esperando") || e.contains("aguardando") || e.contains("cotizado")) {
+            return com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado.Aguardando_Confirmación;
+        }
+        if (e.contains("proceso") || e.contains("procesamiento")) {
+            return com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado.En_procesamiento;
+        }
+        if (e.contains("cancel")) {
+            return com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado.Cancelado;
+        }
+        if (e.contains("entregado")) {
+            return com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado.Entregado;
+        }
+        if (e.contains("recibido")) {
+            return com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado.Recibido;
+        }
+        return null;
+    }
+
+    public boolean iniciarSyncPedidosIncremental() {
+        if (!syncPedidosIncrementalEnCurso.compareAndSet(false, true)) {
+            log.info("[AudatexService] Sync de pedidos incremental ya en curso");
+            return false;
+        }
+        java.time.LocalDate hoy = java.time.LocalDate.now();
+        java.time.LocalDate desde = hoy.minusDays(SYNC_INCREMENTAL_DIAS);
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String desdeStr = desde.format(fmt);
+        String hastaStr = hoy.format(fmt);
+
+        Thread t = new Thread(() -> {
+            try {
+                log.info("[AudatexService] Sync pedidos incremental iniciado ({} → {})", desdeStr, hastaStr);
+                syncPedidosRange(desdeStr, hastaStr);
+            } finally {
+                syncPedidosIncrementalEnCurso.set(false);
+            }
+        }, "audatex-sync-pedidos");
+        t.setDaemon(true);
+        t.start();
+        return true;
+    }
+
+    private void syncPedidosRange(String desde, String hasta) {
+        try {
+            client.buscarTodosPedidosStreaming(desde, hasta, page -> {
+                for (Map<String, Object> pedido : page) {
+                    try {
+                        String wan = (String) pedido.get("wan");
+                        if (wan == null || wan.isEmpty()) continue;
+                        
+                        String aseguradora = (String) pedido.get("aseguradora");
+                        String numeroPedido = (String) pedido.get("numeroPedido");
+                        String cotizacionId = (String) pedido.get("cotizacionId");
+                        String siniestro = (String) pedido.get("siniestro");
+                        
+                        // Parsear total del pedido
+                        java.math.BigDecimal totalPedido = java.math.BigDecimal.ZERO;
+                        Object totalObj = pedido.get("totalPedido");
+                        if (totalObj instanceof Number) {
+                            totalPedido = java.math.BigDecimal.valueOf(((Number) totalObj).doubleValue());
+                        }
+                        
+                        // Mapear estatus del portal al enum
+                        String estatusPortal = (String) pedido.get("estatus");
+                        com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado estadoEnum = mapearEstatus(estatusPortal);
+                        
+                        // Check if it exists
+                        com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidos existing = audatexPedidosRepository.buscarPorWan(wan);
+                        
+                        if (existing != null) {
+                            existing.setUltimaVezVisto(java.time.LocalDateTime.now());
+                            if (numeroPedido != null && !numeroPedido.isEmpty()) {
+                                existing.setNumeroPedido(numeroPedido);
+                            }
+                            existing.setTotalPedido(totalPedido);
+                            if (estadoEnum != null) existing.setEstado(estadoEnum);
+                            existing.setDetalleJson(objectMapper.writeValueAsString(pedido));
+                            audatexPedidosRepository.actualizarSync(existing);
+                        } else {
+                            com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidos nuevo = new com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidos();
+                            nuevo.setWan(wan);
+                            nuevo.setAseguradora(aseguradora);
+                            nuevo.setNumeroPedido(numeroPedido);
+                            nuevo.setCotizacionId(cotizacionId != null ? cotizacionId : "COT-DESC");
+                            nuevo.setSiniestro(siniestro);
+                            nuevo.setTotalPedido(totalPedido);
+                            nuevo.setEstado(estadoEnum != null ? estadoEnum : com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado.Aguardando_Confirmación);
+                            nuevo.setUltimaVezVisto(java.time.LocalDateTime.now());
+                            nuevo.setDetalleJson(objectMapper.writeValueAsString(pedido));
+                            existing = audatexPedidosRepository.insertarSync(nuevo);
+                        }
+                        
+                        // Scrape items for this order and replace in DB
+                        if (existing.getId() != null && wan != null && !wan.isEmpty()) {
+                            List<Map<String, String>> detalles = client.buscarDetallePedido(wan);
+                            if (!detalles.isEmpty()) {
+                                audatexPedidoItemsRepository.deleteByPedidoId(existing.getId());
+                                List<com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidoItems> itemsToSave = new ArrayList<>();
+                                for (Map<String, String> d : detalles) {
+                                    com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidoItems item = new com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidoItems();
+                                    item.setPedidoId(existing.getId());
+                                    item.setRepuestoId(0); // Unmatched for now
+                                    item.setTipoPieza(d.get("Estado"));
+                                    item.setDescripcion(d.get("No. Parte") + " - " + d.get("Descripción"));
+                                    item.setCantidad(1); // Default to 1, portal doesn't show quantity easily in this view
+                                    item.setPrecioOfrecido(java.math.BigDecimal.ZERO);
+                                    String precioStr = d.get("Precio").replaceAll("[^0-9.]", "");
+                                    try {
+                                        if (precioStr != null && !precioStr.isEmpty()) {
+                                            item.setPrecioOfrecido(new java.math.BigDecimal(precioStr));
+                                        }
+                                    } catch (Exception ignored) { }
+                                    itemsToSave.add(item);
+                                }
+                                audatexPedidoItemsRepository.saveAll(itemsToSave);
+                                pedido.put("items", itemsToSave);
+                                existing.setDetalleJson(objectMapper.writeValueAsString(pedido));
+                                audatexPedidosRepository.actualizarSync(existing);
+                            }
+                        }
+                        
+                        // Prepare map for SSE
+                        Map<String, Object> delta = new java.util.HashMap<>(pedido);
+                        delta.put("isNew", existing == null);
+                        com.rodiejacontable.rodiejacontable.integration.audatex.controller.AudatexController.emitirDeltaPedido(delta);
+                        
+                    } catch (Exception ex) {
+                        log.error("[AudatexService] Error procesando pedido WAN={}: {}", pedido.get("wan"), ex.getMessage());
+                    }
+                }
+            });
+        } catch (java.io.IOException e) {
+            log.error("[AudatexService] Fallo conectando a Audatex en sync incremental: {}", e.getMessage());
+        }
+    }
+
+    public void syncItemsParaEntregados() {
+        new Thread(() -> {
+            try {
+                List<com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidos> pedidos = audatexPedidosRepository.findAll();
+                
+                for (com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidos pedido : pedidos) {
+                    if (pedido.getWan() == null || pedido.getWan().isEmpty()) continue;
+                    
+                    try {
+                        List<Map<String, String>> detalles = client.buscarDetallePedido(pedido.getWan());
+                        if (!detalles.isEmpty()) {
+                            audatexPedidoItemsRepository.deleteByPedidoId(pedido.getId());
+                            List<com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidoItems> itemsToSave = new ArrayList<>();
+                            for (Map<String, String> d : detalles) {
+                                com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidoItems item = new com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidoItems();
+                                item.setPedidoId(pedido.getId());
+                                item.setRepuestoId(0);
+                                item.setTipoPieza(d.get("Estado"));
+                                item.setDescripcion(d.get("No. Parte") + " - " + d.get("Descripción"));
+                                item.setCantidad(1);
+                                item.setPrecioOfrecido(java.math.BigDecimal.ZERO);
+                                String precioStr = d.get("Precio").replaceAll("[^0-9.]", "");
+                                try {
+                                    if (!precioStr.isEmpty()) {
+                                        item.setPrecioOfrecido(new java.math.BigDecimal(precioStr));
+                                    }
+                                } catch (Exception ignored) { }
+                                itemsToSave.add(item);
+                            }
+                            audatexPedidoItemsRepository.saveAll(itemsToSave);
+                            try {
+                                java.util.Map<String, Object> jsonMap = objectMapper.readValue(pedido.getDetalleJson(), new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>(){});
+                                jsonMap.put("items", itemsToSave);
+                                pedido.setDetalleJson(objectMapper.writeValueAsString(jsonMap));
+                                audatexPedidosRepository.actualizarSync(pedido);
+                            } catch (Exception ex) {
+                                log.error("Error actualizando detalle_json con items para {}: {}", pedido.getNumeroPedido(), ex.getMessage());
+                            }
+                            log.info("Synced items for pedido {}", pedido.getNumeroPedido());
+                            Thread.sleep(1000); // polite delay
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to sync items for pedido {}: {}", pedido.getNumeroPedido(), e.getMessage());
+                    }
+                }
+                log.info("Finished syncing historical items");
+            } catch (Exception e) {
+                log.error("Error in historical items sync", e);
+            }
+        }).start();
+    }
+
     public boolean iniciarSyncIncremental() {
         if (!syncIncrementalEnCurso.compareAndSet(false, true)) {
             log.info("[AudatexService] Sync incremental ya en curso — ignorando solicitud duplicada");

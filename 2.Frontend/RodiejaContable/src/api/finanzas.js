@@ -102,7 +102,6 @@ export const finanzasService = {
     }
   },
 
-  // Get transactions by vehicle ID
   getTransaccionesPorVehiculo: async (vehiculoId, params = {}) => {
     try {
       const { data } = await api.get(
@@ -112,6 +111,16 @@ export const finanzasService = {
       return sortTransaccionesDesc(data);
     } catch (error) {
       throw error?.response?.data || error?.message || 'Error al cargar transacciones del vehículo';
+    }
+  },
+
+  // Facturar un pedido Audatex
+  facturarPedidoAudatex: async (pedidoId) => {
+    try {
+      const response = await api.post('audatex/pedidos/facturar', { pedidoId });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
     }
   }
 };

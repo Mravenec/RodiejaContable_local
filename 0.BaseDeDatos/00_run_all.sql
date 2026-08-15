@@ -34,7 +34,7 @@ SOURCE DB/02_UsersAuth.sql;
 -- PASO 3: Integración Audatex — envíos de cotizaciones InPart
 --         Depende de: inventario_repuestos (01)
 -- ─────────────────────────────────────────────────────────────────
-SOURCE DB/03_AudatexEnvios.sql;
+SOURCE DB/03_AudatexPedidos.sql;
 
 -- ─────────────────────────────────────────────────────────────────
 -- PASO 4: Sincronización Audatex — Vista Materializada

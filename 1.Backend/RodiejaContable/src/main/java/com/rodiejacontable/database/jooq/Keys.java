@@ -5,8 +5,9 @@ package com.rodiejacontable.database.jooq;
 
 
 import com.rodiejacontable.database.jooq.tables.Address;
-import com.rodiejacontable.database.jooq.tables.AudatexEnvios;
 import com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync;
+import com.rodiejacontable.database.jooq.tables.AudatexPedidoItems;
+import com.rodiejacontable.database.jooq.tables.AudatexPedidos;
 import com.rodiejacontable.database.jooq.tables.Empleados;
 import com.rodiejacontable.database.jooq.tables.Generaciones;
 import com.rodiejacontable.database.jooq.tables.HistorialRepuestos;
@@ -26,8 +27,9 @@ import com.rodiejacontable.database.jooq.tables.UserProfilepicture;
 import com.rodiejacontable.database.jooq.tables.Users;
 import com.rodiejacontable.database.jooq.tables.Vehiculos;
 import com.rodiejacontable.database.jooq.tables.records.AddressRecord;
-import com.rodiejacontable.database.jooq.tables.records.AudatexEnviosRecord;
 import com.rodiejacontable.database.jooq.tables.records.AudatexOportunidadesSyncRecord;
+import com.rodiejacontable.database.jooq.tables.records.AudatexPedidoItemsRecord;
+import com.rodiejacontable.database.jooq.tables.records.AudatexPedidosRecord;
 import com.rodiejacontable.database.jooq.tables.records.EmpleadosRecord;
 import com.rodiejacontable.database.jooq.tables.records.GeneracionesRecord;
 import com.rodiejacontable.database.jooq.tables.records.HistorialRepuestosRecord;
@@ -66,8 +68,10 @@ public class Keys {
     // -------------------------------------------------------------------------
 
     public static final UniqueKey<AddressRecord> KEY_ADDRESS_PRIMARY = Internal.createUniqueKey(Address.ADDRESS, DSL.name("KEY_address_PRIMARY"), new TableField[] { Address.ADDRESS.USER_ID }, true);
-    public static final UniqueKey<AudatexEnviosRecord> KEY_AUDATEX_ENVIOS_PRIMARY = Internal.createUniqueKey(AudatexEnvios.AUDATEX_ENVIOS, DSL.name("KEY_audatex_envios_PRIMARY"), new TableField[] { AudatexEnvios.AUDATEX_ENVIOS.ID }, true);
     public static final UniqueKey<AudatexOportunidadesSyncRecord> KEY_AUDATEX_OPORTUNIDADES_SYNC_PRIMARY = Internal.createUniqueKey(AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC, DSL.name("KEY_audatex_oportunidades_sync_PRIMARY"), new TableField[] { AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC.WAN }, true);
+    public static final UniqueKey<AudatexPedidoItemsRecord> KEY_AUDATEX_PEDIDO_ITEMS_PRIMARY = Internal.createUniqueKey(AudatexPedidoItems.AUDATEX_PEDIDO_ITEMS, DSL.name("KEY_audatex_pedido_items_PRIMARY"), new TableField[] { AudatexPedidoItems.AUDATEX_PEDIDO_ITEMS.ID }, true);
+    public static final UniqueKey<AudatexPedidosRecord> KEY_AUDATEX_PEDIDOS_NUMERO_PEDIDO = Internal.createUniqueKey(AudatexPedidos.AUDATEX_PEDIDOS, DSL.name("KEY_audatex_pedidos_numero_pedido"), new TableField[] { AudatexPedidos.AUDATEX_PEDIDOS.NUMERO_PEDIDO }, true);
+    public static final UniqueKey<AudatexPedidosRecord> KEY_AUDATEX_PEDIDOS_PRIMARY = Internal.createUniqueKey(AudatexPedidos.AUDATEX_PEDIDOS, DSL.name("KEY_audatex_pedidos_PRIMARY"), new TableField[] { AudatexPedidos.AUDATEX_PEDIDOS.ID }, true);
     public static final UniqueKey<EmpleadosRecord> KEY_EMPLEADOS_NOMBRE = Internal.createUniqueKey(Empleados.EMPLEADOS, DSL.name("KEY_empleados_nombre"), new TableField[] { Empleados.EMPLEADOS.NOMBRE }, true);
     public static final UniqueKey<EmpleadosRecord> KEY_EMPLEADOS_PRIMARY = Internal.createUniqueKey(Empleados.EMPLEADOS, DSL.name("KEY_empleados_PRIMARY"), new TableField[] { Empleados.EMPLEADOS.ID }, true);
     public static final UniqueKey<GeneracionesRecord> KEY_GENERACIONES_PRIMARY = Internal.createUniqueKey(Generaciones.GENERACIONES, DSL.name("KEY_generaciones_PRIMARY"), new TableField[] { Generaciones.GENERACIONES.ID }, true);
@@ -104,7 +108,7 @@ public class Keys {
     // -------------------------------------------------------------------------
 
     public static final ForeignKey<AddressRecord, UsersRecord> ADDRESS_IBFK_1 = Internal.createForeignKey(Address.ADDRESS, DSL.name("address_ibfk_1"), new TableField[] { Address.ADDRESS.USER_ID }, Keys.KEY_USERS_PRIMARY, new TableField[] { Users.USERS.ID }, true);
-    public static final ForeignKey<AudatexEnviosRecord, InventarioRepuestosRecord> AUDATEX_ENVIOS_IBFK_1 = Internal.createForeignKey(AudatexEnvios.AUDATEX_ENVIOS, DSL.name("audatex_envios_ibfk_1"), new TableField[] { AudatexEnvios.AUDATEX_ENVIOS.REPUESTO_ID }, Keys.KEY_INVENTARIO_REPUESTOS_PRIMARY, new TableField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.ID }, true);
+    public static final ForeignKey<AudatexPedidoItemsRecord, AudatexPedidosRecord> AUDATEX_PEDIDO_ITEMS_IBFK_1 = Internal.createForeignKey(AudatexPedidoItems.AUDATEX_PEDIDO_ITEMS, DSL.name("audatex_pedido_items_ibfk_1"), new TableField[] { AudatexPedidoItems.AUDATEX_PEDIDO_ITEMS.PEDIDO_ID }, Keys.KEY_AUDATEX_PEDIDOS_PRIMARY, new TableField[] { AudatexPedidos.AUDATEX_PEDIDOS.ID }, true);
     public static final ForeignKey<GeneracionesRecord, ModelosRecord> GENERACIONES_IBFK_1 = Internal.createForeignKey(Generaciones.GENERACIONES, DSL.name("generaciones_ibfk_1"), new TableField[] { Generaciones.GENERACIONES.MODELO_ID }, Keys.KEY_MODELOS_PRIMARY, new TableField[] { Modelos.MODELOS.ID }, true);
     public static final ForeignKey<HistorialRepuestosRecord, InventarioRepuestosRecord> HISTORIAL_REPUESTOS_IBFK_1 = Internal.createForeignKey(HistorialRepuestos.HISTORIAL_REPUESTOS, DSL.name("historial_repuestos_ibfk_1"), new TableField[] { HistorialRepuestos.HISTORIAL_REPUESTOS.REPUESTO_ID }, Keys.KEY_INVENTARIO_REPUESTOS_PRIMARY, new TableField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.ID }, true);
     public static final ForeignKey<HistorialTransaccionesRecord, TransaccionesFinancierasRecord> HISTORIAL_TRANSACCIONES_IBFK_1 = Internal.createForeignKey(HistorialTransacciones.HISTORIAL_TRANSACCIONES, DSL.name("historial_transacciones_ibfk_1"), new TableField[] { HistorialTransacciones.HISTORIAL_TRANSACCIONES.TRANSACCION_ID }, Keys.KEY_TRANSACCIONES_FINANCIERAS_PRIMARY, new TableField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ID }, true);

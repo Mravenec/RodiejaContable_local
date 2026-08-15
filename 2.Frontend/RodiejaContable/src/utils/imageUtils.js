@@ -5,7 +5,7 @@ export const formatImageUrl = (url) => {
   const gdriveRegex = /drive\.google\.com\/file\/d\/([^\/]+)/;
   const match = trimmed.match(gdriveRegex);
   if (match && match[1]) {
-    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
   }
   return trimmed;
 };

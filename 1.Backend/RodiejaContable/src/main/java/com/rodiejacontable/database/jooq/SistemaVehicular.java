@@ -5,8 +5,9 @@ package com.rodiejacontable.database.jooq;
 
 
 import com.rodiejacontable.database.jooq.tables.Address;
-import com.rodiejacontable.database.jooq.tables.AudatexEnvios;
 import com.rodiejacontable.database.jooq.tables.AudatexOportunidadesSync;
+import com.rodiejacontable.database.jooq.tables.AudatexPedidoItems;
+import com.rodiejacontable.database.jooq.tables.AudatexPedidos;
 import com.rodiejacontable.database.jooq.tables.Empleados;
 import com.rodiejacontable.database.jooq.tables.Generaciones;
 import com.rodiejacontable.database.jooq.tables.HistorialRepuestos;
@@ -67,14 +68,19 @@ public class SistemaVehicular extends SchemaImpl {
     public final Address ADDRESS = Address.ADDRESS;
 
     /**
-     * The table <code>sistema_vehicular.audatex_envios</code>.
-     */
-    public final AudatexEnvios AUDATEX_ENVIOS = AudatexEnvios.AUDATEX_ENVIOS;
-
-    /**
      * The table <code>sistema_vehicular.audatex_oportunidades_sync</code>.
      */
     public final AudatexOportunidadesSync AUDATEX_OPORTUNIDADES_SYNC = AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC;
+
+    /**
+     * The table <code>sistema_vehicular.audatex_pedido_items</code>.
+     */
+    public final AudatexPedidoItems AUDATEX_PEDIDO_ITEMS = AudatexPedidoItems.AUDATEX_PEDIDO_ITEMS;
+
+    /**
+     * The table <code>sistema_vehicular.audatex_pedidos</code>.
+     */
+    public final AudatexPedidos AUDATEX_PEDIDOS = AudatexPedidos.AUDATEX_PEDIDOS;
 
     /**
      * The table <code>sistema_vehicular.empleados</code>.
@@ -253,8 +259,9 @@ public class SistemaVehicular extends SchemaImpl {
     public final List<Table<?>> getTables() {
         return Arrays.asList(
             Address.ADDRESS,
-            AudatexEnvios.AUDATEX_ENVIOS,
             AudatexOportunidadesSync.AUDATEX_OPORTUNIDADES_SYNC,
+            AudatexPedidoItems.AUDATEX_PEDIDO_ITEMS,
+            AudatexPedidos.AUDATEX_PEDIDOS,
             Empleados.EMPLEADOS,
             Generaciones.GENERACIONES,
             HistorialRepuestos.HISTORIAL_REPUESTOS,

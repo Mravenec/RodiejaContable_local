@@ -1,7 +1,7 @@
 package com.rodiejacontable.rodiejacontable.integration.audatex.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rodiejacontable.database.jooq.tables.pojos.AudatexEnvios;
+import com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidos;
 import com.rodiejacontable.rodiejacontable.integration.audatex.service.AudatexExcelExportService;
 import com.rodiejacontable.rodiejacontable.integration.audatex.service.AudatexService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
@@ -126,6 +126,42 @@ public class AudatexController {
         ));
     }
 
+
+    @PostMapping("/pedidos/sync/incremental")
+    public ResponseEntity<?> syncIncrementalPedidos() {
+        boolean iniciado = audatexService.iniciarSyncPedidosIncremental();
+        if (!iniciado) {
+            return ResponseEntity.ok(Map.of("mensaje", "Sincronización incremental ya en curso", "enCurso", true));
+        }
+        return ResponseEntity.accepted().body(Map.of("mensaje", "Sincronización incremental iniciada en background", "enCurso", true));
+    }
+
+    private static final java.util.List<SseEmitter> pedidosEmitters = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    @GetMapping(value = "/pedidos/sync/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamPedidosSyncDeltas() {
+        SseEmitter emitter = new SseEmitter(3600_000L); // 1 hora de timeout
+        pedidosEmitters.add(emitter);
+        emitter.onCompletion(() -> pedidosEmitters.remove(emitter));
+        emitter.onTimeout(() -> pedidosEmitters.remove(emitter));
+        emitter.onError((e) -> pedidosEmitters.remove(emitter));
+        return emitter;
+    }
+
+    public static void emitirDeltaPedido(Map<String, Object> pedido) {
+        if (pedidosEmitters.isEmpty()) return;
+        java.util.List<SseEmitter> muertos = new java.util.ArrayList<>();
+        for (SseEmitter emitter : pedidosEmitters) {
+            try {
+                String json = SSE_MAPPER.writeValueAsString(pedido);
+                emitter.send(SseEmitter.event().name("deltaPedido").data(json));
+            } catch (Exception e) {
+                muertos.add(emitter);
+            }
+        }
+        pedidosEmitters.removeAll(muertos);
+    }
+
     private static final java.util.List<SseEmitter> deltaEmitters = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     @GetMapping(value = "/oportunidades/sync/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -199,6 +235,18 @@ public class AudatexController {
         }
     }
 
+    @GetMapping("/pedidos/sync-entregados-items")
+    public ResponseEntity<?> syncEntregadosItems() {
+        try {
+            log.info("[Audatex] Manual sync of historical Entregados items requested");
+            audatexService.syncItemsParaEntregados();
+            return ResponseEntity.ok(Map.of("mensaje", "Sync started in background"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/oportunidades/batch")
     public ResponseEntity<?> obtenerOportunidadesBatch() {
         try {
@@ -212,41 +260,45 @@ public class AudatexController {
         }
     }
 
-    @PostMapping("/cotizar")
+    @PostMapping("/pedidos")
     @RateLimiter(name = "audatexEnvios", fallbackMethod = "enviarCotizacionRateLimitFallback")
-    public ResponseEntity<?> enviarCotizacion(@RequestBody AudatexEnvios envio) {
+    public ResponseEntity<?> registrarPedido(@RequestBody java.util.Map<String, Object> payload) {
         try {
-            log.info("[Audatex] POST /cotizar - repuesto {} cotización {}", envio.getRepuestoId(), envio.getCotizacionId());
-
-            if (envio.getRepuestoId() == null || envio.getCotizacionId() == null
-                    || envio.getPrecioOfrecido() == null || envio.getTiempoEntrega() == null) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("error", "Datos incompletos: repuestoId, cotizacionId, precioOfrecido y tiempoEntrega son requeridos"));
-            }
-
-            AudatexEnvios guardado = audatexService.enviarCotizacion(envio);
-
-            if (com.rodiejacontable.database.jooq.enums.AudatexEnviosEstado.ENVIADA.equals(guardado.getEstado())) {
-                return ResponseEntity.ok(Map.of(
-                        "mensaje", "Cotización enviada exitosamente",
-                        "envio", guardado,
-                        "estado", "ENVIADA"
-                ));
-            }
-
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(Map.of("error", "El portal Audatex rechazó la cotización o falló el envío"));
+            log.info("[Audatex] POST /pedidos - cotización {}", payload.get("cotizacionId"));
+            AudatexPedidos guardado = audatexService.registrarPedido(payload);
+            return ResponseEntity.ok(Map.of(
+                    "mensaje", "Pedido registrado exitosamente",
+                    "pedido", guardado,
+                    "estado", guardado.getEstado()
+            ));
         } catch (Exception e) {
-            log.error("[Audatex] Error enviando cotización: {}", e.getMessage(), e);
+            log.error("[Audatex] Error registrando pedido: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Error interno: " + e.getMessage()));
         }
     }
 
-    private ResponseEntity<?> enviarCotizacionRateLimitFallback(AudatexEnvios envio, Exception exception) {
-        log.warn("[Audatex] Rate limit excedido en enviarCotizacion - usando fallback");
+    private ResponseEntity<?> enviarCotizacionRateLimitFallback(java.util.Map<String, Object> envio, Exception exception) {
+        log.warn("[Audatex] Rate limit excedido en registrarPedido - usando fallback");
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(Map.of("error", "Demasiados envíos. Por favor espere un momento antes de intentar nuevamente."));
+    }
+
+    @PostMapping("/pedidos/facturar")
+    public ResponseEntity<?> facturarPedido(@RequestBody Map<String, Object> payload) {
+        try {
+            Integer pedidoId = (Integer) payload.get("pedidoId");
+            log.info("[Audatex] POST /pedidos/facturar - pedidoId {}", pedidoId);
+            AudatexPedidos facturado = audatexService.facturarPedido(pedidoId);
+            return ResponseEntity.ok(Map.of(
+                    "mensaje", "Pedido facturado exitosamente",
+                    "pedido", facturado
+            ));
+        } catch (Exception e) {
+            log.error("[Audatex] Error facturando pedido: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/oportunidades/{wan}/detalle")
@@ -262,15 +314,14 @@ public class AudatexController {
         }
     }
 
-    @GetMapping("/envios/por-repuesto/{repuestoId}")
-    public ResponseEntity<?> obtenerEnviosPorRepuesto(@PathVariable Integer repuestoId) {
+    @GetMapping("/pedidos")
+    public ResponseEntity<?> obtenerPedidos() {
         try {
-            log.info("[Audatex] GET /envios/por-repuesto/{}", repuestoId);
-            List<AudatexEnvios> envios = audatexService.obtenerEnviosPorRepuesto(repuestoId);
-            log.info("[Audatex] {} envíos encontrados para repuesto {}", envios.size(), repuestoId);
-            return ResponseEntity.ok(Map.of("total", envios.size(), "envios", envios));
+            log.info("[Audatex] GET /pedidos");
+            java.util.List<java.util.Map<String, Object>> pedidos = audatexService.obtenerPedidosConItems();
+            return ResponseEntity.ok(java.util.Map.of("total", pedidos.size(), "pedidos", pedidos));
         } catch (Exception e) {
-            log.error("[Audatex] Error consultando envíos por repuesto: {}", e.getMessage(), e);
+            log.error("[Audatex] Error consultando pedidos: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Error interno: " + e.getMessage()));
         }

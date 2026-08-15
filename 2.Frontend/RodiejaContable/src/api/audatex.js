@@ -11,6 +11,11 @@ export const audatexAPI = {
     return axios.get('/audatex/oportunidades/sync', { params, timeout: 60000 });
   },
 
+  // Obtener la lista de pedidos audatex
+  obtenerPedidos: () => {
+    return axios.get('/audatex/pedidos');
+  },
+
   // Disparar sincronización incremental de 30 días en background
   syncIncremental: () => {
     return axios.post('/audatex/oportunidades/sync/incremental', null, { timeout: 15000 });
@@ -33,7 +38,7 @@ export const audatexAPI = {
 
   // Enviar una cotización al portal de Audatex
   enviarCotizacion: (data) => {
-    return axios.post('/audatex/cotizar', data, { timeout: 60000 });
+    return axios.post('/audatex/pedidos', data, { timeout: 60000 });
   },
 
   // Invalidar caché (forzar sincronización)

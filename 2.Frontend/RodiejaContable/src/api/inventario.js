@@ -26,6 +26,19 @@ class InventarioService {
     }
   }
 
+  // Get spare parts by vehicle origin
+  async getRepuestosPorVehiculo(vehiculoId) {
+    try {
+      const response = await api.get(`/inventario-repuestos/vehiculo/${vehiculoId}`);
+      if (!response.data) return [];
+      return response.data.map(item => this._mapRepuesto(item));
+    } catch (error) {
+      if (error.response && error.response.status === 204) return [];
+      console.error(`Error fetching spare parts for vehicle ${vehiculoId}:`, error);
+      throw error;
+    }
+  }
+
   // Delete spare part
   async eliminarRepuesto(id) {
     try {
