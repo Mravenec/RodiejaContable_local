@@ -479,6 +479,12 @@ public class AudatexService {
             }).collect(Collectors.toList());
             
             audatexPedidoItemsRepository.saveAll(itemsToSave);
+            
+            // Enviar a Audatex
+            boolean exitoEnvio = client.enviarCotizacion(pedido.getCotizacionId(), itemsMap);
+            if (!exitoEnvio) {
+                log.warn("[AudatexService] El envío a Audatex falló o no se pudo verificar para la cotización {}", pedido.getCotizacionId());
+            }
         }
 
         return guardado;

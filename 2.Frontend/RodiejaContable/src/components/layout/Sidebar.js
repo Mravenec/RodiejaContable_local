@@ -19,7 +19,7 @@ const { Text } = Typography;
 const Sidebar = ({ collapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, hasAccess } = useAuth();
 
   // Para manejar responsividad interna si es necesario
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -33,27 +33,27 @@ const Sidebar = ({ collapsed }) => {
   }, []);
 
   const items = [
-    { key: '/', icon: <HomeOutlined />, label: 'Inicio' },
-    {
+    hasAccess('inicio_dashboard') ? { key: '/', icon: <HomeOutlined />, label: 'Inicio' } : null,
+    (hasAccess('vehiculos_lista') || hasAccess('vehiculos_jerarquia')) ? {
       key: 'vehiculos',
       icon: <CarOutlined />,
       label: 'Vehículos',
       children: [
-        { key: '/vehiculos', label: 'Lista de Vehículos' },
-        { key: '/vehiculos/jerarquia', label: 'Ver por Generaciones' },
-        user?.rol !== 'CONTADOR' ? { key: '/vehiculos/nuevo', label: 'Nuevo Vehículo' } : null,
+        hasAccess('vehiculos_lista') ? { key: '/vehiculos', label: 'Lista de Vehículos' } : null,
+        hasAccess('vehiculos_jerarquia') ? { key: '/vehiculos/jerarquia', label: 'Ver por Generaciones' } : null,
+        user?.rol !== 'CONTADOR' && hasAccess('vehiculos_lista') ? { key: '/vehiculos/nuevo', label: 'Nuevo Vehículo' } : null,
       ].filter(Boolean)
-    },
-    {
+    } : null,
+    hasAccess('inventario_lista') ? {
       key: 'inventario',
       icon: <ToolOutlined />,
       label: 'Inventario',
       children: [
         { key: '/inventario', label: 'Lista de Repuestos' },
-        { key: '/inventario/nuevo', label: 'Nuevo Repuesto' },
-      ]
-    },
-    {
+        user?.rol !== 'CONTADOR' ? { key: '/inventario/nuevo', label: 'Nuevo Repuesto' } : null,
+      ].filter(Boolean)
+    } : null,
+    hasAccess('finanzas_lista') ? {
       key: 'finanzas',
       icon: <DollarOutlined />,
       label: 'Finanzas',
@@ -61,35 +61,43 @@ const Sidebar = ({ collapsed }) => {
         { key: '/finanzas', label: 'Transacciones' },
         user?.rol !== 'CONTADOR' ? { key: '/finanzas/nueva', label: 'Nueva Transacción' } : null,
       ].filter(Boolean)
-    },
-    {
+    } : null,
+    (hasAccess('reportes_general') || hasAccess('reportes_ventas') || hasAccess('reportes_vehiculos') || hasAccess('reportes_repuestos')) ? {
       key: 'reportes',
       icon: <BarChartOutlined />,
       label: 'Reportes',
       children: [
-        { key: '/reportes', label: 'General' },
-        { key: '/reportes/ventas', label: 'Ventas Empleados' },
-        { key: '/reportes/vehiculos', label: 'Vehículos' },
-        { key: '/reportes/repuestos', label: 'Repuestos' }
-      ]
-    },
-    {
+        hasAccess('reportes_general') ? { key: '/reportes', label: 'General' } : null,
+        hasAccess('reportes_ventas') ? { key: '/reportes/ventas', label: 'Ventas Empleados' } : null,
+        hasAccess('reportes_vehiculos') ? { key: '/reportes/vehiculos', label: 'Vehículos' } : null,
+        hasAccess('reportes_repuestos') ? { key: '/reportes/repuestos', label: 'Repuestos' } : null
+      ].filter(Boolean)
+    } : null,
+    (hasAccess('audatex_oportunidades') || hasAccess('audatex_jerarquia') || hasAccess('audatex_pedidos')) ? {
       key: 'audatex',
       icon: <SendOutlined />,
       label: 'Cotizaciones InPart',
       children: [
-        { key: '/audatex/oportunidades', label: 'Oportunidades' },
-        // { key: '/audatex/jerarquia', label: 'Jerarquía InPart' },
-        { key: '/audatex/pedidos', label: 'Pedidos' },
-      ]
-    },
-    {
+        hasAccess('audatex_oportunidades') ? { key: '/audatex/oportunidades', label: 'Oportunidades' } : null,
+        hasAccess('audatex_jerarquia') ? { key: '/audatex/jerarquia', label: 'Jerarquía InPart' } : null,
+        hasAccess('audatex_pedidos') ? { key: '/audatex/pedidos', label: 'Pedidos' } : null,
+      ].filter(Boolean)
+    } : null,
+    hasAccess('configuracion_ajustes') ? {
       key: 'configuracion',
       icon: <SettingOutlined />,
       label: 'Configuración',
       children: [
-        { key: '/configuracion/perfil', label: 'Mi Perfil' },
+        { key: '/configuracion/perfil', label: 'Mi Perfil' }, // Perfil siempre visible si entran a configuración
         { key: '/configuracion/ajustes', label: 'Ajustes' },
+      ]
+    } : {
+      // Fallback si no tiene permisos de ajustes, al menos que vea su perfil
+      key: 'configuracion',
+      icon: <SettingOutlined />,
+      label: 'Configuración',
+      children: [
+        { key: '/configuracion/perfil', label: 'Mi Perfil' }
       ]
     },
     {
@@ -101,7 +109,7 @@ const Sidebar = ({ collapsed }) => {
         navigate('/login');
       }
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <Sider

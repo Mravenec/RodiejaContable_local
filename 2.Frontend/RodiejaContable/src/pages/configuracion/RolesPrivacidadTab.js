@@ -54,35 +54,46 @@ const RolesPrivacidadTab = () => {
   };
 
   const handlePermisoChange = async (submoduloId, field, value) => {
+    let currentSub = null;
+
     const updatedPermisos = permisos.map(mod => {
       const updatedSubmodulos = mod.submodulos.map(sub => {
         if (sub.id === submoduloId) {
-          return { ...sub, [field]: value };
+          let updatedSub = { ...sub, [field]: value };
+          
+          if (field === 'canView' && !value) {
+            updatedSub.canCreate = false;
+            updatedSub.canEdit = false;
+            updatedSub.canDelete = false;
+          }
+          
+          if (['canCreate', 'canEdit', 'canDelete'].includes(field) && value) {
+            updatedSub.canView = true;
+          }
+
+          currentSub = updatedSub;
+          return updatedSub;
         }
         return sub;
       });
       return { ...mod, submodulos: updatedSubmodulos };
     });
+    
     setPermisos(updatedPermisos);
 
-    let currentSub = null;
-    updatedPermisos.forEach(m => {
-      m.submodulos.forEach(s => {
-        if (s.id === submoduloId) currentSub = s;
-      });
-    });
-
-    try {
-      await rolesService.updatePermiso(selectedRol, submoduloId, {
-        canView: currentSub.canView,
-        canCreate: currentSub.canCreate,
-        canEdit: currentSub.canEdit,
-        canDelete: currentSub.canDelete
-      });
-      message.success("Permiso actualizado");
-    } catch (err) {
-      console.error("Error updating permiso", err);
-      message.error("Error al actualizar el permiso");
+    if (currentSub) {
+      try {
+        await rolesService.updatePermiso(selectedRol, submoduloId, {
+          canView: currentSub.canView,
+          canCreate: currentSub.canCreate,
+          canEdit: currentSub.canEdit,
+          canDelete: currentSub.canDelete
+        });
+        message.success("Permiso actualizado");
+      } catch (err) {
+        console.error("Error updating permiso", err);
+        message.error("Error al actualizar el permiso");
+      }
     }
   };
 
@@ -132,6 +143,7 @@ const RolesPrivacidadTab = () => {
       align: 'center',
       render: (val, record) => {
         if (record.isModule) return null;
+        if (!record.canView) return <span style={{ color: '#cbd5e1' }}>-</span>;
         return <Switch checked={val} onChange={(checked) => handlePermisoChange(record.id, 'canCreate', checked)} />;
       }
     },
@@ -143,6 +155,7 @@ const RolesPrivacidadTab = () => {
       align: 'center',
       render: (val, record) => {
         if (record.isModule) return null;
+        if (!record.canView) return <span style={{ color: '#cbd5e1' }}>-</span>;
         return <Switch checked={val} onChange={(checked) => handlePermisoChange(record.id, 'canEdit', checked)} />;
       }
     },
@@ -154,6 +167,7 @@ const RolesPrivacidadTab = () => {
       align: 'center',
       render: (val, record) => {
         if (record.isModule) return null;
+        if (!record.canView) return <span style={{ color: '#cbd5e1' }}>-</span>;
         return <Switch checked={val} onChange={(checked) => handlePermisoChange(record.id, 'canDelete', checked)} />;
       }
     }

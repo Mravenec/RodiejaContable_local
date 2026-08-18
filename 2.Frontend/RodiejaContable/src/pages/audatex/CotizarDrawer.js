@@ -119,6 +119,7 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
 
           if (!hasError) {
             envios.push({
+              idx: idx,
               repuestoId: repuestoId,
               cotizacionId: oportunidad.cotizacionId,
               precioOfrecido: precio,

@@ -329,7 +329,7 @@ public class AudatexClient {
     @CircuitBreaker(name = "audatexClient", fallbackMethod = "enviarCotizacionFallback")
     @Retry(name = "audatexClient")
     @TimeLimiter(name = "audatexClient")
-    public boolean enviarCotizacion(String wan, String precio, String tiempo, String condicion) throws IOException {
+    public boolean enviarCotizacion(String wan, List<Map<String, Object>> items) throws IOException {
         Map<String, String> cookies = sessionManager.getActiveCookies();
 
         // URL de detalle de cotización (ejemplo basado en estructura típica de ASP.NET)
@@ -340,6 +340,7 @@ public class AudatexClient {
         // 1. Navegar a la página de detalle
         Connection.Response resp = Jsoup.connect(detalleUrl)
                 .cookies(cookies)
+                .timeout(60000)
                 .header("Referer", props.getQuotationSearchUrl())
                 .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
                 .header("Accept-Language", "es-419,es;q=0.9")
@@ -362,6 +363,7 @@ public class AudatexClient {
             cookies = sessionManager.getActiveCookies();
             resp = Jsoup.connect(detalleUrl)
                     .cookies(cookies)
+                    .timeout(60000)
                     .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
                     .header("Accept-Language", "es-419,es;q=0.9")
                     .header("sec-ch-ua", "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"")
@@ -382,11 +384,36 @@ public class AudatexClient {
         // 2. Extraer ViewState y hidden inputs
         Map<String, String> formData = extractFormFields(doc);
 
-        // 3. Llenar campos del formulario (nombres de campos son hipótesis - necesitan validación real)
-        // Estos nombres deben ajustarse según la estructura real del formulario de Audatex
-        formData.put("txtPrecio", precio);
-        formData.put("txtTiempo", tiempo);
-        formData.put("txtCondicion", condicion);
+        // 3. Llenar campos del formulario iterando la lista de items
+        if (items != null) {
+            for (Map<String, Object> item : items) {
+                if (!item.containsKey("idx")) continue;
+                
+                int idx = ((Number) item.get("idx")).intValue();
+                String aspIdx = String.format("%02d", idx);
+                
+                String tipoPiezaStr = (String) item.get("tipoPieza");
+                String partTypeCtl;
+                if ("Original".equalsIgnoreCase(tipoPiezaStr)) {
+                    partTypeCtl = "ctl02";
+                } else if ("Genérica".equalsIgnoreCase(tipoPiezaStr) || "Generica".equalsIgnoreCase(tipoPiezaStr)) {
+                    partTypeCtl = "ctl03";
+                } else {
+                    partTypeCtl = "ctl04"; // Usada u otro
+                }
+                
+                String prefix = "ctl00$cphBody$tbcAnswerQuotation$tabItems$ucQuotationSupplierAnswerItems$dtlAnswerPendingItem$ctl" + aspIdx + "$gdvPart$" + partTypeCtl + "$";
+                
+                String precioStr = item.get("precioOfrecido") != null ? item.get("precioOfrecido").toString() : "";
+                String plazoStr = item.get("diasEntrega") != null ? item.get("diasEntrega").toString() : "";
+                
+                formData.put(prefix + "txtItemPrice", precioStr);
+                formData.put(prefix + "ddlDeliveryDeadLine", plazoStr);
+            }
+        }
+        
+        // Simular click en botón Enviar
+        formData.put("ctl00$cphBody$btnSend", "Enviar");
 
         // 4. Submit el formulario
         humanDelay(); // Delay humano antes de submit
@@ -394,6 +421,7 @@ public class AudatexClient {
         String submitUrl = resp.url().toString();
         Connection.Response submitResp = Jsoup.connect(submitUrl)
                 .cookies(cookies)
+                .timeout(60000)
                 .data(formData)
                 .header("Referer", submitUrl)
                 .header("Origin", "https://inpart-la.audatex.com.mx")
@@ -452,7 +480,7 @@ public class AudatexClient {
      * Fallback method para enviarCotizacion.
      * Se ejecuta cuando el circuito está abierto o hay fallos repetidos.
      */
-    private boolean enviarCotizacionFallback(String wan, String precio, String tiempo, String condicion, Exception exception) {
+    private boolean enviarCotizacionFallback(String wan, List<Map<String, Object>> items, Exception exception) {
         log.warn("[Audatex] Circuit breaker activado en enviarCotizacion - usando fallback. Error: {}", exception.getMessage());
         return false;
     }
