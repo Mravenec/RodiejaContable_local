@@ -1,6 +1,9 @@
 USE sistema_vehicular;
 
 -- Eliminar tablas si existen (útil para pruebas, cuidado en producción)
+DROP TABLE IF EXISTS rol_permisos;
+DROP TABLE IF EXISTS submodulos;
+DROP TABLE IF EXISTS modulos;
 DROP TABLE IF EXISTS user_profilePicture;
 DROP TABLE IF EXISTS phones;
 DROP TABLE IF EXISTS address;
@@ -129,3 +132,86 @@ VALUES (
 
 -- Actualizar el nombre del contador por defecto
 UPDATE personal_data SET full_name = 'Contador' WHERE user_id = (SELECT id FROM users WHERE email = 'contador@rodieja.com');
+
+-- 5. Módulos y Submódulos
+CREATE TABLE modulos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    clave VARCHAR(50) NOT NULL UNIQUE,
+    icono VARCHAR(50)
+);
+
+CREATE TABLE submodulos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    modulo_id INT NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    clave VARCHAR(50) NOT NULL UNIQUE,
+    FOREIGN KEY (modulo_id) REFERENCES modulos(id) ON DELETE CASCADE
+);
+
+-- 6. Permisos por Rol
+CREATE TABLE rol_permisos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rol_id INT NOT NULL,
+    submodulo_id INT NOT NULL,
+    can_view BOOLEAN DEFAULT FALSE,
+    can_create BOOLEAN DEFAULT FALSE,
+    can_edit BOOLEAN DEFAULT FALSE,
+    can_delete BOOLEAN DEFAULT FALSE,
+    UNIQUE KEY uk_rol_submodulo (rol_id, submodulo_id),
+    FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (submodulo_id) REFERENCES submodulos(id) ON DELETE CASCADE
+);
+
+-- Inserción de Módulos (basados en Sidebar)
+INSERT INTO modulos (nombre, clave, icono) VALUES 
+('Inicio', 'inicio', 'HomeOutlined'),
+('Vehículos', 'vehiculos', 'CarOutlined'),
+('Inventario', 'inventario', 'ToolOutlined'),
+('Finanzas', 'finanzas', 'DollarOutlined'),
+('Reportes', 'reportes', 'BarChartOutlined'),
+('Cotizaciones InPart', 'audatex', 'SendOutlined'),
+('Configuración', 'configuracion', 'SettingOutlined');
+
+-- Inserción de Submódulos
+-- Inicio
+INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 
+((SELECT id FROM modulos WHERE clave = 'inicio'), 'Dashboard', 'inicio_dashboard');
+-- Vehículos
+INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 
+((SELECT id FROM modulos WHERE clave = 'vehiculos'), 'Lista de Vehículos', 'vehiculos_lista'),
+((SELECT id FROM modulos WHERE clave = 'vehiculos'), 'Generaciones', 'vehiculos_jerarquia');
+-- Inventario
+INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 
+((SELECT id FROM modulos WHERE clave = 'inventario'), 'Lista de Repuestos', 'inventario_lista');
+-- Finanzas
+INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 
+((SELECT id FROM modulos WHERE clave = 'finanzas'), 'Transacciones', 'finanzas_lista');
+-- Reportes
+INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 
+((SELECT id FROM modulos WHERE clave = 'reportes'), 'Reporte General', 'reportes_general'),
+((SELECT id FROM modulos WHERE clave = 'reportes'), 'Ventas Empleados', 'reportes_ventas'),
+((SELECT id FROM modulos WHERE clave = 'reportes'), 'Reportes Vehículos', 'reportes_vehiculos'),
+((SELECT id FROM modulos WHERE clave = 'reportes'), 'Reportes Repuestos', 'reportes_repuestos');
+-- Audatex
+INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 
+((SELECT id FROM modulos WHERE clave = 'audatex'), 'Oportunidades', 'audatex_oportunidades'),
+((SELECT id FROM modulos WHERE clave = 'audatex'), 'Jerarquía InPart', 'audatex_jerarquia'),
+((SELECT id FROM modulos WHERE clave = 'audatex'), 'Pedidos', 'audatex_pedidos');
+-- Configuracion
+INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 
+((SELECT id FROM modulos WHERE clave = 'configuracion'), 'Ajustes de Privacidad', 'configuracion_ajustes');
+
+-- Inicializar Permisos
+-- Admin tiene todo
+INSERT INTO rol_permisos (rol_id, submodulo_id, can_view, can_create, can_edit, can_delete)
+SELECT r.id, s.id, TRUE, TRUE, TRUE, TRUE 
+FROM roles r CROSS JOIN submodulos s
+WHERE r.nombre = 'ADMIN';
+
+-- Contador tiene solo vista de algunos
+INSERT INTO rol_permisos (rol_id, submodulo_id, can_view, can_create, can_edit, can_delete)
+SELECT r.id, s.id, TRUE, FALSE, FALSE, FALSE 
+FROM roles r CROSS JOIN submodulos s
+WHERE r.nombre = 'CONTADOR' 
+  AND s.clave IN ('inicio_dashboard', 'vehiculos_lista', 'inventario_lista', 'finanzas_lista', 'reportes_general');

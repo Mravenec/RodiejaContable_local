@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Typography } from 'antd';
-import { 
-  HomeOutlined, 
-  CarOutlined, 
-  ToolOutlined, 
-  DollarOutlined, 
+import {
+  HomeOutlined,
+  CarOutlined,
+  ToolOutlined,
+  DollarOutlined,
   BarChartOutlined,
   SettingOutlined,
   LogoutOutlined,
@@ -20,7 +20,7 @@ const Sidebar = ({ collapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  
+
   // Para manejar responsividad interna si es necesario
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -34,9 +34,9 @@ const Sidebar = ({ collapsed }) => {
 
   const items = [
     { key: '/', icon: <HomeOutlined />, label: 'Inicio' },
-    { 
-      key: 'vehiculos', 
-      icon: <CarOutlined />, 
+    {
+      key: 'vehiculos',
+      icon: <CarOutlined />,
       label: 'Vehículos',
       children: [
         { key: '/vehiculos', label: 'Lista de Vehículos' },
@@ -44,27 +44,27 @@ const Sidebar = ({ collapsed }) => {
         user?.rol !== 'CONTADOR' ? { key: '/vehiculos/nuevo', label: 'Nuevo Vehículo' } : null,
       ].filter(Boolean)
     },
-    { 
-      key: 'inventario', 
-      icon: <ToolOutlined />, 
+    {
+      key: 'inventario',
+      icon: <ToolOutlined />,
       label: 'Inventario',
       children: [
         { key: '/inventario', label: 'Lista de Repuestos' },
         { key: '/inventario/nuevo', label: 'Nuevo Repuesto' },
       ]
     },
-    { 
-      key: 'finanzas', 
-      icon: <DollarOutlined />, 
+    {
+      key: 'finanzas',
+      icon: <DollarOutlined />,
       label: 'Finanzas',
       children: [
         { key: '/finanzas', label: 'Transacciones' },
         user?.rol !== 'CONTADOR' ? { key: '/finanzas/nueva', label: 'Nueva Transacción' } : null,
       ].filter(Boolean)
     },
-    { 
-      key: 'reportes', 
-      icon: <BarChartOutlined />, 
+    {
+      key: 'reportes',
+      icon: <BarChartOutlined />,
       label: 'Reportes',
       children: [
         { key: '/reportes', label: 'General' },
@@ -73,28 +73,28 @@ const Sidebar = ({ collapsed }) => {
         { key: '/reportes/repuestos', label: 'Repuestos' }
       ]
     },
-    { 
-      key: 'audatex', 
-      icon: <SendOutlined />, 
+    {
+      key: 'audatex',
+      icon: <SendOutlined />,
       label: 'Cotizaciones InPart',
       children: [
         { key: '/audatex/oportunidades', label: 'Oportunidades' },
-        { key: '/audatex/jerarquia', label: 'Jerarquía InPart' },
+        // { key: '/audatex/jerarquia', label: 'Jerarquía InPart' },
         { key: '/audatex/pedidos', label: 'Pedidos' },
       ]
     },
-    { 
-      key: 'configuracion', 
-      icon: <SettingOutlined />, 
+    {
+      key: 'configuracion',
+      icon: <SettingOutlined />,
       label: 'Configuración',
       children: [
         { key: '/configuracion/perfil', label: 'Mi Perfil' },
         { key: '/configuracion/ajustes', label: 'Ajustes' },
       ]
     },
-    { 
-      key: 'cerrar-sesion', 
-      icon: <LogoutOutlined />, 
+    {
+      key: 'cerrar-sesion',
+      icon: <LogoutOutlined />,
       label: 'Cerrar Sesión',
       onClick: () => {
         logout();
@@ -104,9 +104,9 @@ const Sidebar = ({ collapsed }) => {
   ];
 
   return (
-    <Sider 
-      trigger={null} 
-      collapsible 
+    <Sider
+      trigger={null}
+      collapsible
       collapsed={collapsed}
       breakpoint="lg"
       collapsedWidth={isMobile ? 0 : 80}
@@ -123,13 +123,13 @@ const Sidebar = ({ collapsed }) => {
         backgroundColor: '#001529' // Manteniendo el color oscuro clásico
       }}
     >
-      <div style={{ 
+      <div style={{
         height: collapsed ? 40 : 'auto',
         minHeight: 40,
-        margin: '16px', 
+        margin: '16px',
         padding: collapsed ? 0 : '12px 16px',
-        display: 'flex', 
-        alignItems: 'center', 
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
         borderRadius: '8px',
@@ -140,7 +140,7 @@ const Sidebar = ({ collapsed }) => {
         cursor: 'pointer',
         overflow: 'hidden'
       }} onClick={() => navigate('/')}>
-        <Text style={{ 
+        <Text style={{
           color: 'white',
           fontSize: collapsed ? '16px' : '16px',
           fontWeight: 600,
@@ -153,7 +153,7 @@ const Sidebar = ({ collapsed }) => {
           {collapsed ? 'RC' : 'Rodieja Contable'}
         </Text>
       </div>
-      
+
       <Menu
         theme="dark"
         mode="inline"

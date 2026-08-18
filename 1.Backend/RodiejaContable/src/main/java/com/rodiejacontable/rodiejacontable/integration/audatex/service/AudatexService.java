@@ -513,6 +513,9 @@ public class AudatexService {
                     if (jsonMap.containsKey("matricula")) {
                         map.put("matricula", jsonMap.get("matricula"));
                     }
+                    if (jsonMap.containsKey("datosCotizacion")) {
+                        map.put("datosCotizacion", jsonMap.get("datosCotizacion"));
+                    }
                 } catch (Exception e) {
                     log.warn("Error parseando detalleJson del pedido {}: {}", pedido.getId(), e.getMessage());
                 }
@@ -852,8 +855,13 @@ public class AudatexService {
                         
                         // Scrape items for this order and replace in DB
                         if (existing.getId() != null && wan != null && !wan.isEmpty()) {
-                            List<Map<String, String>> detalles = client.buscarDetallePedido(wan);
-                            if (!detalles.isEmpty()) {
+                            Map<String, Object> detalleRes = client.buscarDetallePedido(wan);
+                            @SuppressWarnings("unchecked")
+                            List<Map<String, String>> detalles = (List<Map<String, String>>) detalleRes.get("repuestos");
+                            @SuppressWarnings("unchecked")
+                            Map<String, String> datosCotizacion = (Map<String, String>) detalleRes.get("datosCotizacion");
+                            
+                            if (!detalles.isEmpty() || !datosCotizacion.isEmpty()) {
                                 audatexPedidoItemsRepository.deleteByPedidoId(existing.getId());
                                 List<com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidoItems> itemsToSave = new ArrayList<>();
                                 for (Map<String, String> d : detalles) {
@@ -864,7 +872,16 @@ public class AudatexService {
                                     item.setDescripcion(d.get("No. Parte") + " - " + d.get("Descripción"));
                                     item.setCantidad(1); // Default to 1, portal doesn't show quantity easily in this view
                                     item.setPrecioOfrecido(java.math.BigDecimal.ZERO);
-                                    String precioStr = d.get("Precio").replaceAll("[^0-9.]", "");
+                                    String rawPrecio = d.get("Precio").replace("₡", "").trim();
+                                    rawPrecio = rawPrecio.replace(" ", "");
+                                    int lastComma = rawPrecio.lastIndexOf(',');
+                                    int lastDot = rawPrecio.lastIndexOf('.');
+                                    if (lastComma > lastDot) {
+                                        rawPrecio = rawPrecio.replace(".", "").replace(",", ".");
+                                    } else if (lastDot > lastComma) {
+                                        rawPrecio = rawPrecio.replace(",", "");
+                                    }
+                                    String precioStr = rawPrecio.replaceAll("[^0-9.]", "");
                                     try {
                                         if (precioStr != null && !precioStr.isEmpty()) {
                                             item.setPrecioOfrecido(new java.math.BigDecimal(precioStr));
@@ -874,6 +891,9 @@ public class AudatexService {
                                 }
                                 audatexPedidoItemsRepository.saveAll(itemsToSave);
                                 pedido.put("items", itemsToSave);
+                                if (datosCotizacion != null && !datosCotizacion.isEmpty()) {
+                                    pedido.put("datosCotizacion", datosCotizacion);
+                                }
                                 existing.setDetalleJson(objectMapper.writeValueAsString(pedido));
                                 audatexPedidosRepository.actualizarSync(existing);
                             }
@@ -903,8 +923,13 @@ public class AudatexService {
                     if (pedido.getWan() == null || pedido.getWan().isEmpty()) continue;
                     
                     try {
-                        List<Map<String, String>> detalles = client.buscarDetallePedido(pedido.getWan());
-                        if (!detalles.isEmpty()) {
+                        Map<String, Object> detalleRes = client.buscarDetallePedido(pedido.getWan());
+                        @SuppressWarnings("unchecked")
+                        List<Map<String, String>> detalles = (List<Map<String, String>>) detalleRes.get("repuestos");
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> datosCotizacion = (Map<String, String>) detalleRes.get("datosCotizacion");
+                        
+                        if (!detalles.isEmpty() || !datosCotizacion.isEmpty()) {
                             audatexPedidoItemsRepository.deleteByPedidoId(pedido.getId());
                             List<com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidoItems> itemsToSave = new ArrayList<>();
                             for (Map<String, String> d : detalles) {
@@ -915,7 +940,16 @@ public class AudatexService {
                                 item.setDescripcion(d.get("No. Parte") + " - " + d.get("Descripción"));
                                 item.setCantidad(1);
                                 item.setPrecioOfrecido(java.math.BigDecimal.ZERO);
-                                String precioStr = d.get("Precio").replaceAll("[^0-9.]", "");
+                                String rawPrecio = d.get("Precio").replace("₡", "").trim();
+                                rawPrecio = rawPrecio.replace(" ", "");
+                                int lastComma = rawPrecio.lastIndexOf(',');
+                                int lastDot = rawPrecio.lastIndexOf('.');
+                                if (lastComma > lastDot) {
+                                    rawPrecio = rawPrecio.replace(".", "").replace(",", ".");
+                                } else if (lastDot > lastComma) {
+                                    rawPrecio = rawPrecio.replace(",", "");
+                                }
+                                String precioStr = rawPrecio.replaceAll("[^0-9.]", "");
                                 try {
                                     if (!precioStr.isEmpty()) {
                                         item.setPrecioOfrecido(new java.math.BigDecimal(precioStr));
@@ -927,6 +961,9 @@ public class AudatexService {
                             try {
                                 java.util.Map<String, Object> jsonMap = objectMapper.readValue(pedido.getDetalleJson(), new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>(){});
                                 jsonMap.put("items", itemsToSave);
+                                if (datosCotizacion != null && !datosCotizacion.isEmpty()) {
+                                    jsonMap.put("datosCotizacion", datosCotizacion);
+                                }
                                 pedido.setDetalleJson(objectMapper.writeValueAsString(jsonMap));
                                 audatexPedidosRepository.actualizarSync(pedido);
                             } catch (Exception ex) {

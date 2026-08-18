@@ -16,11 +16,14 @@ import com.rodiejacontable.database.jooq.tables.HistorialVehiculos;
 import com.rodiejacontable.database.jooq.tables.InventarioRepuestos;
 import com.rodiejacontable.database.jooq.tables.Marcas;
 import com.rodiejacontable.database.jooq.tables.Modelos;
+import com.rodiejacontable.database.jooq.tables.Modulos;
 import com.rodiejacontable.database.jooq.tables.PagosComisiones;
 import com.rodiejacontable.database.jooq.tables.ParteVehiculo;
 import com.rodiejacontable.database.jooq.tables.PersonalData;
 import com.rodiejacontable.database.jooq.tables.Phones;
+import com.rodiejacontable.database.jooq.tables.RolPermisos;
 import com.rodiejacontable.database.jooq.tables.Roles;
+import com.rodiejacontable.database.jooq.tables.Submodulos;
 import com.rodiejacontable.database.jooq.tables.TiposTransacciones;
 import com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras;
 import com.rodiejacontable.database.jooq.tables.UserProfilepicture;
@@ -109,6 +112,11 @@ public class Tables {
     public static final Modelos MODELOS = Modelos.MODELOS;
 
     /**
+     * The table <code>sistema_vehicular.modulos</code>.
+     */
+    public static final Modulos MODULOS = Modulos.MODULOS;
+
+    /**
      * The table <code>sistema_vehicular.pagos_comisiones</code>.
      */
     public static final PagosComisiones PAGOS_COMISIONES = PagosComisiones.PAGOS_COMISIONES;
@@ -129,9 +137,19 @@ public class Tables {
     public static final Phones PHONES = Phones.PHONES;
 
     /**
+     * The table <code>sistema_vehicular.rol_permisos</code>.
+     */
+    public static final RolPermisos ROL_PERMISOS = RolPermisos.ROL_PERMISOS;
+
+    /**
      * The table <code>sistema_vehicular.roles</code>.
      */
     public static final Roles ROLES = Roles.ROLES;
+
+    /**
+     * The table <code>sistema_vehicular.submodulos</code>.
+     */
+    public static final Submodulos SUBMODULOS = Submodulos.SUBMODULOS;
 
     /**
      * The table <code>sistema_vehicular.tipos_transacciones</code>.

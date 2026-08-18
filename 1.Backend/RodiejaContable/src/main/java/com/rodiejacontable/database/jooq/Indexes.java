@@ -12,6 +12,8 @@ import com.rodiejacontable.database.jooq.tables.HistorialTransacciones;
 import com.rodiejacontable.database.jooq.tables.HistorialVehiculos;
 import com.rodiejacontable.database.jooq.tables.InventarioRepuestos;
 import com.rodiejacontable.database.jooq.tables.PagosComisiones;
+import com.rodiejacontable.database.jooq.tables.RolPermisos;
+import com.rodiejacontable.database.jooq.tables.Submodulos;
 import com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras;
 import com.rodiejacontable.database.jooq.tables.Vehiculos;
 
@@ -61,6 +63,8 @@ public class Indexes {
     public static final Index TRANSACCIONES_FINANCIERAS_IDX_VEHICULO = Internal.createIndex(DSL.name("idx_vehiculo"), TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, new OrderField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.VEHICULO_ID }, false);
     public static final Index HISTORIAL_VEHICULOS_IDX_VEHICULO_FECHA = Internal.createIndex(DSL.name("idx_vehiculo_fecha"), HistorialVehiculos.HISTORIAL_VEHICULOS, new OrderField[] { HistorialVehiculos.HISTORIAL_VEHICULOS.VEHICULO_ID, HistorialVehiculos.HISTORIAL_VEHICULOS.FECHA_CAMBIO }, false);
     public static final Index INVENTARIO_REPUESTOS_IDX_VEHICULO_ORIGEN = Internal.createIndex(DSL.name("idx_vehiculo_origen"), InventarioRepuestos.INVENTARIO_REPUESTOS, new OrderField[] { InventarioRepuestos.INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID }, false);
+    public static final Index SUBMODULOS_MODULO_ID = Internal.createIndex(DSL.name("modulo_id"), Submodulos.SUBMODULOS, new OrderField[] { Submodulos.SUBMODULOS.MODULO_ID }, false);
     public static final Index AUDATEX_PEDIDO_ITEMS_PEDIDO_ID = Internal.createIndex(DSL.name("pedido_id"), AudatexPedidoItems.AUDATEX_PEDIDO_ITEMS, new OrderField[] { AudatexPedidoItems.AUDATEX_PEDIDO_ITEMS.PEDIDO_ID }, false);
     public static final Index TRANSACCIONES_FINANCIERAS_REPUESTO_ID = Internal.createIndex(DSL.name("repuesto_id"), TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS, new OrderField[] { TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.REPUESTO_ID }, false);
+    public static final Index ROL_PERMISOS_SUBMODULO_ID = Internal.createIndex(DSL.name("submodulo_id"), RolPermisos.ROL_PERMISOS, new OrderField[] { RolPermisos.ROL_PERMISOS.SUBMODULO_ID }, false);
 }

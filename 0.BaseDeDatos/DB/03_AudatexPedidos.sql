@@ -50,10 +50,10 @@ CREATE TABLE audatex_pedido_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Mocks iniciales (para pruebas locales)
-INSERT INTO audatex_pedidos (numero_pedido, cotizacion_id, siniestro, aseguradora, vehiculo, vin, total_pedido, estado, notas) VALUES 
-('PED-9001', 'COT-12345', 'SIN-888', 'Axa Seguros', 'Nissan Versa 2021', '3N1CN8V2XLL123', 1500.00, 'Entregado', 'Prueba Facturado'),
-(NULL, 'COT-12346', 'SIN-889', 'GNP Seguros', 'Ford Figo 2018', '3FADP4G22JM123', 800.00, 'Aguardando Confirmación', 'Solo cotización enviada');
+-- INSERT INTO audatex_pedidos (numero_pedido, cotizacion_id, siniestro, aseguradora, vehiculo, vin, total_pedido, estado, notas) VALUES 
+-- ('PED-9001', 'COT-12345', 'SIN-888', 'Axa Seguros', 'Nissan Versa 2021', '3N1CN8V2XLL123', 1500.00, 'Entregado', 'Prueba Facturado'),
+-- (NULL, 'COT-12346', 'SIN-889', 'GNP Seguros', 'Ford Figo 2018', '3FADP4G22JM123', 800.00, 'Aguardando Confirmación', 'Solo cotización enviada');
 
-INSERT INTO audatex_pedido_items (pedido_id, repuesto_id, precio_ofrecido, cantidad) VALUES 
-(1, 1, 1500.00, 1),
-(2, 2, 800.00, 1);
+-- INSERT INTO audatex_pedido_items (pedido_id, repuesto_id, precio_ofrecido, cantidad) VALUES 
+-- (1, 1, 1500.00, 1),
+-- (2, 2, 800.00, 1);

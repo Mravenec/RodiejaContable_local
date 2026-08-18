@@ -6,7 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
+import com.rodiejacontable.rodiejacontable.dto.UserListDTO;
 
 @RestController
 @RequestMapping("/api/users")
@@ -14,6 +16,11 @@ public class UserController {
 
     @Autowired
     private UsersService usersService;
+
+    @GetMapping
+    public ResponseEntity<List<UserListDTO>> getUsers() {
+        return ResponseEntity.ok(usersService.getUsers());
+    }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -44,5 +51,19 @@ public class UserController {
         }
 
         return ResponseEntity.internalServerError().body(Map.of("message", "Error al crear el usuario."));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteUser(@PathVariable Integer id) {
+        try {
+            boolean success = usersService.deleteUser(id);
+            if (success) {
+                return ResponseEntity.ok(Map.of("message", "Usuario eliminado exitosamente"));
+            }
+            return ResponseEntity.badRequest().body(Map.of("message", "No se puede eliminar el usuario administrador o el usuario no existe."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "No se pudo eliminar el usuario, puede estar en uso por otros registros."));
+        }
     }
 }

@@ -511,6 +511,16 @@ function App() {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/configuracion/ajustes"
+        element={
+          <PrivateRoute>
+            <MainLayout>
+              <Configuracion />
+            </MainLayout>
+          </PrivateRoute>
+        }
+      />
 
       {/* Rutas de utilidad */}
       <Route

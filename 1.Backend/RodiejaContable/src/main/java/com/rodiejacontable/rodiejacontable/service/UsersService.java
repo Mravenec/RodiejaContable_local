@@ -6,6 +6,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import com.rodiejacontable.rodiejacontable.dto.UserListDTO;
+
 @Service
 public class UsersService {
 
@@ -35,5 +38,14 @@ public class UsersService {
             return true;
         }
         return false;
+    }
+
+    public List<UserListDTO> getUsers() {
+        return usersRepository.findAllUsers();
+    }
+
+    @Transactional
+    public boolean deleteUser(Integer id) {
+        return usersRepository.deleteUser(id);
     }
 }

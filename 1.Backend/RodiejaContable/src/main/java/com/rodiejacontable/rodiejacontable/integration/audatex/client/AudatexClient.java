@@ -1453,12 +1453,17 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
         }
     }
 
-    public List<Map<String, String>> buscarDetallePedido(String wan) {
+    public Map<String, Object> buscarDetallePedido(String wan) {
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        List<Map<String, String>> repuestos = new ArrayList<>();
+        Map<String, String> datosCotizacion = new java.util.LinkedHashMap<>();
+        result.put("repuestos", repuestos);
+        result.put("datosCotizacion", datosCotizacion);
+
         if (wan == null || wan.isEmpty()) {
-            return java.util.Collections.emptyList();
+            return result;
         }
         
-        List<Map<String, String>> repuestos = new ArrayList<>();
         String url = props.getQuotationSearchUrl().replace("frmQuotationSupplierSearch.aspx", "frmOrderSupplierRegister.aspx") + "?IdOrder=" + java.net.URLEncoder.encode(wan, java.nio.charset.StandardCharsets.UTF_8) + "&CalledPage=OrderSupplierSearch";
         String referer = props.getQuotationSearchUrl().replace("frmQuotationSupplierSearch.aspx", "frmOrderSupplierSearch.aspx");
         try {
@@ -1496,6 +1501,51 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
             }
             
             Document doc = resp.parse();
+            datosCotizacion.putAll(parsearDatosCotizacion(doc));
+
+            boolean requiresTabPost = datosCotizacion.getOrDefault("Marca", "").isEmpty() || 
+                                      datosCotizacion.getOrDefault("Matricula", "").isEmpty() || 
+                                      datosCotizacion.getOrDefault("Año Modelo", "").isEmpty();
+                                      
+            if (requiresTabPost) {
+                try {
+                    java.util.Map<String, String> formData = extractFormFields(doc);
+                    formData.put("__EVENTTARGET", "ctl00$cphBody$tbcRegisterOrder");
+                    formData.put("__EVENTARGUMENT", "activeTabChanged:1");
+                    
+                    String clientStateKey = "ctl00_cphBody_tbcRegisterOrder_ClientState";
+                    if (formData.containsKey("ctl00$cphBody$tbcRegisterOrder_ClientState")) {
+                        clientStateKey = "ctl00$cphBody$tbcRegisterOrder_ClientState";
+                    }
+                    formData.put(clientStateKey, "{\"ActiveTabIndex\":1,\"TabEnabledState\":[true,true],\"TabWasLoadedOnceState\":[true,false]}");
+                    formData.put("ctl00$smMain", "ctl00$smMain|ctl00$cphBody$tbcRegisterOrder");
+                    
+                    org.jsoup.Connection.Response postResp = Jsoup.connect(url)
+                            .cookies(cookies)
+                            .header("Referer", url)
+                            .header("Accept", "*/*")
+                            .header("Accept-Language", "es-419,es;q=0.9")
+                            .header("X-MicrosoftAjax", "Delta=true")
+                            .header("X-Requested-With", "XMLHttpRequest")
+                            .header("Cache-Control", "no-cache")
+                            .userAgent(USER_AGENT)
+                            .method(org.jsoup.Connection.Method.POST)
+                            .data(formData)
+                            .timeout(300_000)
+                            .execute();
+                    
+                    Document postDoc = Jsoup.parse(postResp.body());
+                    java.util.Map<String, String> datosPost = parsearDatosCotizacion(postDoc);
+                    for (java.util.Map.Entry<String, String> entry : datosPost.entrySet()) {
+                        if (entry.getValue() != null && !entry.getValue().isEmpty() && !entry.getValue().equals("-")) {
+                            datosCotizacion.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                } catch (Exception postEx) {
+                    log.warn("[Audatex] Error al hacer POST para tab de datos (Pedido): {}", postEx.getMessage());
+                }
+            }
+
             Element table = doc.getElementById("ctl00_cphBody_tbcRegisterOrder_tabItemsOrder_ucOrderSupplierRegisterItems_gdvItemSupplier_ctl00");
             if (table == null) table = doc.select("table[id*=gdvItemSupplier]").first();
             if (table == null) {
@@ -1506,7 +1556,7 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
                         doc.outerHtml()
                     );
                 } catch (Exception ignored) {}
-                return repuestos;
+                return result;
             }
             
             Elements rows = table.select("tr");
@@ -1528,7 +1578,7 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
         } catch (Exception e) {
             log.error("[AudatexClient] Error buscando detalle de pedido WAN {}: {}", wan, e.getMessage());
         }
-        return repuestos;
+        return result;
     }
 
     private List<Map<String, Object>> parsearTablaPedidos(Document doc) {
@@ -1557,11 +1607,24 @@ private List<Map<String, String>> parsearRepuestosDeDoc(Document doc) {
             pedido.put("armadora", cols.get(7).text().trim());
             
             if (cols.size() > 8) {
-                // Total del Pedido — viene como "₡ 230,000.00", limpiar para parsear
-                String totalStr = cols.get(8).text().trim()
-                        .replace("₡", "").replace(",", "").replace(" ", "");
+                // Total del Pedido — viene como "₡ 230 000,00" o "230,000.00"
+                String rawTotal = cols.get(8).text().trim().replace("₡", "").trim();
+                rawTotal = rawTotal.replace(" ", ""); // quitar separadores de miles con espacio
+
+                int lastComma = rawTotal.lastIndexOf(',');
+                int lastDot = rawTotal.lastIndexOf('.');
+
+                if (lastComma > lastDot) {
+                    // La coma es el separador decimal ("230.000,00" o "230000,00")
+                    rawTotal = rawTotal.replace(".", "");
+                    rawTotal = rawTotal.replace(",", ".");
+                } else if (lastDot > lastComma) {
+                    // El punto es el separador decimal ("230,000.00" o "230000.00")
+                    rawTotal = rawTotal.replace(",", "");
+                }
+
                 try {
-                    pedido.put("totalPedido", Double.parseDouble(totalStr));
+                    pedido.put("totalPedido", Double.parseDouble(rawTotal));
                 } catch (NumberFormatException e) {
                     pedido.put("totalPedido", 0.0);
                 }

@@ -54,9 +54,9 @@ const MainLayout = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider 
-        trigger={null} 
-        collapsible 
+      <Sider
+        trigger={null}
+        collapsible
         collapsed={collapsed}
         width={250}
         className="site-layout-background"
@@ -67,7 +67,7 @@ const MainLayout = () => {
             {!collapsed ? 'Rodieja S.A.' : 'RSA'}
           </h2>
         </div>
-        
+
         <Menu
           theme="light"
           mode="inline"
@@ -77,7 +77,7 @@ const MainLayout = () => {
           <Menu.Item key="dashboard" icon={<DashboardOutlined />}>
             <Link to="/">Dashboard</Link>
           </Menu.Item>
-          
+
           <Menu.SubMenu key="vehiculos" icon={<CarOutlined />} title="Vehículos">
             <Menu.Item key="vehiculos-lista">
               <Link to="/vehiculos">Lista de Vehículos</Link>
@@ -86,7 +86,7 @@ const MainLayout = () => {
               <Link to="/vehiculos/nuevo">Nuevo Vehículo</Link>
             </Menu.Item>
           </Menu.SubMenu>
-          
+
           <Menu.SubMenu key="inventario" icon={<ToolOutlined />} title="Inventario">
             <Menu.Item key="inventario-lista">
               <Link to="/inventario">Lista de Repuestos</Link>
@@ -95,30 +95,30 @@ const MainLayout = () => {
               <Link to="/inventario/nuevo">Nuevo Repuesto</Link>
             </Menu.Item>
           </Menu.SubMenu>
-          
+
           <Menu.Item key="finanzas" icon={<MoneyCollectOutlined />}>
             <Link to="/finanzas">Finanzas</Link>
           </Menu.Item>
-          
+
           <Menu.SubMenu key="audatex" icon={<ShoppingCartOutlined />} title="Audatex InPart">
             <Menu.Item key="audatex-oportunidades">
               <Link to="/audatex/oportunidades">Oportunidades Globales</Link>
             </Menu.Item>
-            <Menu.Item key="audatex-jerarquia">
+            {/* <Menu.Item key="audatex-jerarquia">
               <Link to="/audatex/jerarquia">Jerarquía InPart</Link>
-            </Menu.Item>
+            </Menu.Item> */}
           </Menu.SubMenu>
 
           <Menu.Item key="reportes" icon={<BarChartOutlined />}>
             <Link to="/reportes">Reportes</Link>
           </Menu.Item>
-          
+
           <Menu.Item key="configuracion" icon={<SettingOutlined />}>
             <Link to="/configuracion">Configuración</Link>
           </Menu.Item>
         </Menu>
       </Sider>
-      
+
       <Layout className="site-layout">
         <Header style={{ padding: 0, background: '#fff', display: 'flex', alignItems: 'center' }}>
           {React.createElement(collapsed ? MenuUnfoldOutlined : MenuFoldOutlined, {
@@ -126,13 +126,13 @@ const MainLayout = () => {
             onClick: () => setCollapsed(!collapsed),
             style: { fontSize: '18px', padding: '0 24px', cursor: 'pointer' },
           })}
-          
+
           <div style={{ marginLeft: 'auto', paddingRight: '24px', display: 'flex', alignItems: 'center' }}>
             <Dropdown overlay={userMenu} placement="bottomRight">
               <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                <Avatar 
-                  style={{ backgroundColor: '#1890ff' }} 
-                  icon={<UserOutlined />} 
+                <Avatar
+                  style={{ backgroundColor: '#1890ff' }}
+                  icon={<UserOutlined />}
                 />
                 <span style={{ marginLeft: '8px', marginRight: '8px' }}>
                   {user?.nombre || 'Usuario'}
@@ -141,8 +141,8 @@ const MainLayout = () => {
             </Dropdown>
           </div>
         </Header>
-        
-        <Content style={{ 
+
+        <Content style={{
           margin: '24px 16px',
           padding: '24px 24px 24px',
           minHeight: 'calc(100vh - 112px)',

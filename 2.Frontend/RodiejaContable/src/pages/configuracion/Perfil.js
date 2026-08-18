@@ -3,7 +3,6 @@ import { Card, Typography, Form, Input, Button, message, Row, Col, Avatar, Modal
 import { UserOutlined, MailOutlined, LockOutlined, SaveOutlined, PlusOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../api/auth';
-import { usersService } from '../../api/users';
 import './Perfil.css';
 
 const { Title } = Typography;
@@ -11,38 +10,7 @@ const { Title } = Typography;
 const Perfil = () => {
   const { user, setUser } = useAuth();
   const [form] = Form.useForm();
-  const [newUserForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [creatingUser, setCreatingUser] = useState(false);
-
-  const handleCreateUser = async (values) => {
-    setCreatingUser(true);
-    try {
-      await usersService.createUser({
-        nombre: values.nombre,
-        email: values.email,
-        password: values.password,
-        rol: values.rol
-      });
-
-      message.success({
-        content: 'Usuario creado exitosamente',
-        style: { marginTop: '10vh' }
-      });
-
-      setIsModalVisible(false);
-      newUserForm.resetFields();
-    } catch (error) {
-      console.error('Error al crear usuario:', error);
-      message.error({
-        content: typeof error === 'string' ? error : 'Error al crear el usuario',
-        style: { marginTop: '10vh' }
-      });
-    } finally {
-      setCreatingUser(false);
-    }
-  };
 
   useEffect(() => {
     if (user) {
@@ -122,22 +90,6 @@ const Perfil = () => {
             {user?.rol || 'ADMIN'}
           </div>
         </div>
-        {user?.rol === 'ADMIN' && (
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={() => setIsModalVisible(true)}
-            style={{ 
-              marginLeft: 'auto',
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              borderColor: 'rgba(255, 255, 255, 0.4)',
-              color: 'white',
-              backdropFilter: 'blur(4px)'
-            }}
-          >
-            Agregar Perfil
-          </Button>
-        )}
       </div>
 
       <Row justify="center">
@@ -226,76 +178,6 @@ const Perfil = () => {
           </Card>
         </Col>
       </Row>
-
-      <Modal
-        title="Crear Nuevo Usuario"
-        open={isModalVisible}
-        onCancel={() => {
-          setIsModalVisible(false);
-          newUserForm.resetFields();
-        }}
-        footer={null}
-        destroyOnClose
-      >
-        <Form
-          form={newUserForm}
-          layout="vertical"
-          onFinish={handleCreateUser}
-          autoComplete="off"
-        >
-          <Form.Item
-            name="nombre"
-            label="Nombre Completo"
-            rules={[{ required: true, message: 'Por favor ingrese el nombre del usuario' }]}
-          >
-            <Input prefix={<UserOutlined style={{ color: '#bfbfbf' }} />} placeholder="Ej. Ana Gómez" />
-          </Form.Item>
-          <Form.Item
-            name="email"
-            label="Correo Electrónico"
-            rules={[
-              { required: true, message: 'Por favor ingrese el correo' },
-              { type: 'email', message: 'Ingrese un correo válido' }
-            ]}
-          >
-            <Input prefix={<MailOutlined style={{ color: '#bfbfbf' }} />} placeholder="nuevo@rodieja.com" />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            label="Contraseña"
-            rules={[
-              { required: true, message: 'Por favor ingrese una contraseña' },
-              { min: 6, message: 'La contraseña debe tener al menos 6 caracteres' }
-            ]}
-          >
-            <Input.Password prefix={<LockOutlined style={{ color: '#bfbfbf' }} />} placeholder="••••••••" />
-          </Form.Item>
-          <Form.Item
-            name="rol"
-            label="Rol de Usuario"
-            rules={[{ required: true, message: 'Por favor seleccione un rol' }]}
-            initialValue="CONTADOR"
-          >
-            <Select>
-              <Select.Option value="ADMIN">Administrador</Select.Option>
-              <Select.Option value="CONTADOR">Contador</Select.Option>
-            </Select>
-          </Form.Item>
-          <Form.Item style={{ marginTop: 24, marginBottom: 0, textAlign: 'right' }}>
-            <Button onClick={() => setIsModalVisible(false)} style={{ marginRight: 8 }}>
-              Cancelar
-            </Button>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              loading={creatingUser}
-              style={{ backgroundColor: '#4C1D95', borderColor: '#4C1D95' }}
-            >
-              Crear Usuario
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 };

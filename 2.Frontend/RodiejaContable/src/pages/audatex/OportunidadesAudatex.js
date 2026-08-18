@@ -11,6 +11,8 @@ import {
   FilterOutlined,
   LoadingOutlined,
   FormOutlined,
+  UpOutlined,
+  DownOutlined
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
@@ -91,7 +93,7 @@ const parseFechaCotizacion = (dateStr) => {
     }
   }
   const d = dayjs(dateStr);
-  return d.isValid() ? d.valueOf() : 0;
+  return d.isValid() ? d.isValid() ? d.valueOf() : 0 : 0;
 };
 
 const normalizeString = (str) => (str || '').toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -102,11 +104,11 @@ const HighlightText = ({ text, highlight }) => {
   const normText = normalizeString(strText);
   const normHighlight = normalizeString(highlight.toString());
   if (!normHighlight) return <>{text}</>;
-  
+
   const parts = [];
   let startIndex = 0;
   let index = normText.indexOf(normHighlight, startIndex);
-  
+
   while (index !== -1) {
     parts.push(strText.slice(startIndex, index));
     parts.push(
@@ -118,7 +120,7 @@ const HighlightText = ({ text, highlight }) => {
     index = normText.indexOf(normHighlight, startIndex);
   }
   parts.push(strText.slice(startIndex));
-  
+
   return <>{parts}</>;
 };
 
@@ -160,6 +162,7 @@ const OportunidadesAudatex = () => {
   const [streaming, setStreaming] = useState(false);
   const [filtros, setFiltros] = useState({ ...defaultFiltros });
   const [appliedFiltros, setAppliedFiltros] = useState({ ...defaultFiltros });
+  const [mostrarFiltros, setMostrarFiltros] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
@@ -422,10 +425,10 @@ const OportunidadesAudatex = () => {
     // ── Hoja 1: Oportunidades — azul corporativo ──────────────────────────
     const oportHeaders = ['Cotizacion ID', 'Marca', 'Modelo', 'Año', 'Provincia', 'Canton', 'Direccion', 'Taller', 'Poliza', 'Fecha', 'Pendientes', 'Total Repuestos'];
     const oportData = oportunidadesFiltradas.map(({ _key, repuestos, ...row }) => {
-      const repuestosFiltrados = !mRepuesto ? (repuestos || []) : (repuestos || []).filter(r => 
-        normalizeString(r['Grupo Pieza']).includes(mRepuesto) || 
-        normalizeString(r['PartNumber']).includes(mRepuesto) || 
-        normalizeString(r['Part Serial Number']).includes(mRepuesto) || 
+      const repuestosFiltrados = !mRepuesto ? (repuestos || []) : (repuestos || []).filter(r =>
+        normalizeString(r['Grupo Pieza']).includes(mRepuesto) ||
+        normalizeString(r['PartNumber']).includes(mRepuesto) ||
+        normalizeString(r['Part Serial Number']).includes(mRepuesto) ||
         normalizeString(r['Descripcion Pieza']).includes(mRepuesto)
       );
 
@@ -470,10 +473,10 @@ const OportunidadesAudatex = () => {
     let lastCotizId = null;
 
     oportunidadesFiltradas.forEach(({ repuestos, cotizacionId, taller, aseguradora }) => {
-      const repuestosFiltrados = !mRepuesto ? (repuestos || []) : (repuestos || []).filter(r => 
-        normalizeString(r['Grupo Pieza']).includes(mRepuesto) || 
-        normalizeString(r['PartNumber']).includes(mRepuesto) || 
-        normalizeString(r['Part Serial Number']).includes(mRepuesto) || 
+      const repuestosFiltrados = !mRepuesto ? (repuestos || []) : (repuestos || []).filter(r =>
+        normalizeString(r['Grupo Pieza']).includes(mRepuesto) ||
+        normalizeString(r['PartNumber']).includes(mRepuesto) ||
+        normalizeString(r['Part Serial Number']).includes(mRepuesto) ||
         normalizeString(r['Descripcion Pieza']).includes(mRepuesto)
       );
 
@@ -604,7 +607,7 @@ const OportunidadesAudatex = () => {
     //   setup2 → startedRef=false → startedRef=true → abre stream2 (este es el real)
     if (startedRef.current) return;
     startedRef.current = true;
-    cargarOportunidadesStream(appliedFiltros, { triggerSync: false });
+    cargarOportunidadesStream(appliedFiltros, { triggerSync: true });
     return () => {
       startedRef.current = false;
       if (abortRef.current) abortRef.current.abort();
@@ -645,15 +648,15 @@ const OportunidadesAudatex = () => {
         return getAnioSeguro(record);
       }
     },
-    { 
+    {
       title: 'Provincia', key: 'estado',
       render: (_, record) => getProvinciaSegura(record) || '-'
     },
-    { 
+    {
       title: 'Cantón', key: 'ciudad',
       render: (_, record) => getCantonSeguro(record) || '-'
     },
-    { 
+    {
       title: 'Dirección', key: 'colonia',
       render: (_, record) => getDireccionSegura(record) || '-'
     },
@@ -674,9 +677,9 @@ const OportunidadesAudatex = () => {
     {
       title: 'Acciones', key: 'acciones',
       render: (_, record) => (
-        <Button 
-          type="primary" 
-          size="middle" 
+        <Button
+          type="primary"
+          size="middle"
           shape="round"
           icon={<FormOutlined />}
           style={{
@@ -712,10 +715,10 @@ const OportunidadesAudatex = () => {
       const matchMarca = !mMarca || vMarca.includes(mMarca);
       const matchModelo = !mModelo || vModelo.includes(mModelo);
       const matchAnio = !mAnio || vAnio.includes(mAnio);
-      const matchRepuesto = !mRepuesto || (Array.isArray(op.repuestos) && op.repuestos.some(r => 
-        normalizeString(r['Grupo Pieza']).includes(mRepuesto) || 
-        normalizeString(r['PartNumber']).includes(mRepuesto) || 
-        normalizeString(r['Part Serial Number']).includes(mRepuesto) || 
+      const matchRepuesto = !mRepuesto || (Array.isArray(op.repuestos) && op.repuestos.some(r =>
+        normalizeString(r['Grupo Pieza']).includes(mRepuesto) ||
+        normalizeString(r['PartNumber']).includes(mRepuesto) ||
+        normalizeString(r['Part Serial Number']).includes(mRepuesto) ||
         normalizeString(r['Descripcion Pieza']).includes(mRepuesto)
       ));
 
@@ -839,20 +842,21 @@ const OportunidadesAudatex = () => {
       )}
 
       {/* Filtros */}
-      <Card 
-        bordered={false} 
-        style={{ 
-          marginBottom: '24px', 
-          borderRadius: '16px', 
+      <Card
+        bordered={false}
+        style={{
+          marginBottom: '24px',
+          borderRadius: '16px',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
           background: '#ffffff'
         }}
         bodyStyle={{ padding: '24px' }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <Title level={5} style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mostrarFiltros ? '20px' : '0' }}>
+          <Title level={5} style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setMostrarFiltros(!mostrarFiltros)}>
             <FilterOutlined style={{ marginRight: '8px', color: '#3b82f6' }} />
             Filtros de Búsqueda
+            {mostrarFiltros ? <UpOutlined style={{ marginLeft: '8px', fontSize: '12px', color: '#94a3b8' }} /> : <DownOutlined style={{ marginLeft: '8px', fontSize: '12px', color: '#94a3b8' }} />}
           </Title>
           <Space>
             <Button onClick={handleLimpiar} style={{ borderRadius: '8px' }}>
@@ -864,104 +868,106 @@ const OportunidadesAudatex = () => {
           </Space>
         </div>
 
-        <Row gutter={[16, 20]}>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Marca</div>
-            <Input
-              placeholder="Ej: Toyota"
-              value={filtros.marca}
-              onChange={(e) => setFiltros({ ...filtros, marca: e.target.value })}
-              style={{ width: '100%', borderRadius: '8px' }}
-              prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Modelo</div>
-            <Input
-              placeholder="Ej: Yaris"
-              value={filtros.modelo}
-              onChange={(e) => setFiltros({ ...filtros, modelo: e.target.value })}
-              style={{ width: '100%', borderRadius: '8px' }}
-              prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Año</div>
-            <Input
-              placeholder="Ej: 2020"
-              value={filtros.anio}
-              onChange={(e) => setFiltros({ ...filtros, anio: e.target.value })}
-              style={{ width: '100%', borderRadius: '8px' }}
-              prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Repuesto</div>
-            <Input
-              placeholder="Ej: Bumper"
-              value={filtros.repuesto}
-              onChange={(e) => setFiltros({ ...filtros, repuesto: e.target.value })}
-              style={{ width: '100%', borderRadius: '8px' }}
-              prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
-              allowClear
-            />
-          </Col>
+        {mostrarFiltros && (
+          <Row gutter={[16, 20]}>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Marca</div>
+              <Input
+                placeholder="Ej: Toyota"
+                value={filtros.marca}
+                onChange={(e) => setFiltros({ ...filtros, marca: e.target.value })}
+                style={{ width: '100%', borderRadius: '8px' }}
+                prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
+                allowClear
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Modelo</div>
+              <Input
+                placeholder="Ej: Yaris"
+                value={filtros.modelo}
+                onChange={(e) => setFiltros({ ...filtros, modelo: e.target.value })}
+                style={{ width: '100%', borderRadius: '8px' }}
+                prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
+                allowClear
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Año</div>
+              <Input
+                placeholder="Ej: 2020"
+                value={filtros.anio}
+                onChange={(e) => setFiltros({ ...filtros, anio: e.target.value })}
+                style={{ width: '100%', borderRadius: '8px' }}
+                prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
+                allowClear
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Repuesto</div>
+              <Input
+                placeholder="Ej: Bumper"
+                value={filtros.repuesto}
+                onChange={(e) => setFiltros({ ...filtros, repuesto: e.target.value })}
+                style={{ width: '100%', borderRadius: '8px' }}
+                prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
+                allowClear
+              />
+            </Col>
 
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Provincia</div>
-            <Select
-              placeholder="Seleccione"
-              allowClear
-              loading={loadingProvincias}
-              value={filtros.provincia}
-              onChange={(val) => setFiltros({ ...filtros, provincia: val, canton: null })}
-              style={{ width: '100%' }}
-              options={provincias.map(p => ({ value: p.id, label: p.nombre }))}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Cantón</div>
-            <Select
-              placeholder="Seleccione"
-              allowClear
-              loading={loadingCantones}
-              disabled={!filtros.provincia}
-              value={filtros.canton}
-              onChange={(val) => setFiltros({ ...filtros, canton: val })}
-              style={{ width: '100%' }}
-              options={cantones.map(c => ({ value: c.id, label: c.nombre }))}
-            />
-          </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Provincia</div>
+              <Select
+                placeholder="Seleccione"
+                allowClear
+                loading={loadingProvincias}
+                value={filtros.provincia}
+                onChange={(val) => setFiltros({ ...filtros, provincia: val, canton: null })}
+                style={{ width: '100%' }}
+                options={provincias.map(p => ({ value: p.id, label: p.nombre }))}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Cantón</div>
+              <Select
+                placeholder="Seleccione"
+                allowClear
+                loading={loadingCantones}
+                disabled={!filtros.provincia}
+                value={filtros.canton}
+                onChange={(val) => setFiltros({ ...filtros, canton: val })}
+                style={{ width: '100%' }}
+                options={cantones.map(c => ({ value: c.id, label: c.nombre }))}
+              />
+            </Col>
 
-          <Col xs={24} sm={12} md={8} lg={8}>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Rango de Fechas</div>
-            <RangePicker
-              value={[filtros.desde, filtros.hasta]}
-              onChange={(dates) =>
-                setFiltros({ ...filtros, desde: dates ? dates[0] : null, hasta: dates ? dates[1] : null })
-              }
-              format="YYYY-MM-DD"
-              placeholder={['Desde', 'Hasta']}
-              style={{ width: '100%', borderRadius: '8px' }}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={8} lg={4}>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Min. Pendientes</div>
-            <Input
-              type="number"
-              placeholder="Ej: 1"
-              value={filtros.minPendientes}
-              onChange={(e) =>
-                setFiltros({ ...filtros, minPendientes: e.target.value ? parseInt(e.target.value) : null })
-              }
-              style={{ width: '100%', borderRadius: '8px' }}
-              allowClear
-            />
-          </Col>
-        </Row>
+            <Col xs={24} sm={12} md={8} lg={8}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Rango de Fechas</div>
+              <RangePicker
+                value={[filtros.desde, filtros.hasta]}
+                onChange={(dates) =>
+                  setFiltros({ ...filtros, desde: dates ? dates[0] : null, hasta: dates ? dates[1] : null })
+                }
+                format="YYYY-MM-DD"
+                placeholder={['Desde', 'Hasta']}
+                style={{ width: '100%', borderRadius: '8px' }}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Min. Pendientes</div>
+              <Input
+                type="number"
+                placeholder="Ej: 1"
+                value={filtros.minPendientes}
+                onChange={(e) =>
+                  setFiltros({ ...filtros, minPendientes: e.target.value ? parseInt(e.target.value) : null })
+                }
+                style={{ width: '100%', borderRadius: '8px' }}
+                allowClear
+              />
+            </Col>
+          </Row>
+        )}
       </Card>
 
       {/* Tabla progresiva — Ant Design maneja la paginación internamente */}
@@ -981,10 +987,10 @@ const OportunidadesAudatex = () => {
                 let repuestos = record.repuestos || [];
                 const mRepuesto = normalizeString(appliedFiltros.repuesto);
                 if (mRepuesto) {
-                  repuestos = repuestos.filter(r => 
-                    normalizeString(r['Grupo Pieza']).includes(mRepuesto) || 
-                    normalizeString(r['PartNumber']).includes(mRepuesto) || 
-                    normalizeString(r['Part Serial Number']).includes(mRepuesto) || 
+                  repuestos = repuestos.filter(r =>
+                    normalizeString(r['Grupo Pieza']).includes(mRepuesto) ||
+                    normalizeString(r['PartNumber']).includes(mRepuesto) ||
+                    normalizeString(r['Part Serial Number']).includes(mRepuesto) ||
                     normalizeString(r['Descripcion Pieza']).includes(mRepuesto)
                   );
                 }
@@ -1028,41 +1034,44 @@ const OportunidadesAudatex = () => {
                 const generalDatos = Object.entries(filteredDatos).filter(([k]) => !grupoVehiculo.includes(k) && !grupoTaller.includes(k));
 
                 const renderDesc = (arr) => (
-                  <Descriptions bordered size="small" column={2}>
+                  <Descriptions bordered size="small" column={1}>
                     {arr.map(([key, value]) => (
-                      <Descriptions.Item label={<span style={{ color: '#64748b' }}>{key}</span>} key={key} span={key === 'Descripción' || key === 'Características Vehículo' ? 2 : 1}>
-                        <strong style={{ color: '#334155' }}>{value}</strong>
+                      <Descriptions.Item label={<span style={{ color: '#64748b', fontSize: 12 }}>{key}</span>} key={key}>
+                        <strong style={{ color: '#334155', fontSize: 12 }}>{value}</strong>
                       </Descriptions.Item>
                     ))}
                   </Descriptions>
                 );
 
+                const cardStyle = { background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', height: '100%' };
+                const titleStyle = { marginTop: 0, marginBottom: '8px', color: '#1e40af', fontSize: '13px', fontWeight: 600 };
+
                 const datosTab = (
                   <div style={{ padding: '8px 0' }}>
-                    <Row gutter={[24, 24]}>
-                      <Col xs={24} lg={12}>
-                        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-                          <Typography.Title level={5} style={{ marginTop: 0, color: '#1e40af' }}>Información del Siniestro</Typography.Title>
-                          {generalDatos.length > 0 ? renderDesc(generalDatos) : <p style={{ color: '#94a3b8' }}>No hay datos de siniestro</p>}
+                    <Row gutter={[16, 16]} align="stretch">
+                      <Col xs={24} md={10}>
+                        <div style={cardStyle}>
+                          <Typography.Title level={5} style={titleStyle}>Información del Siniestro</Typography.Title>
+                          {generalDatos.length > 0 ? renderDesc(generalDatos) : <p style={{ color: '#94a3b8', margin: 0 }}>No hay datos de siniestro</p>}
                         </div>
                       </Col>
-                      <Col xs={24} lg={12}>
-                        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-                          <Typography.Title level={5} style={{ marginTop: 0, color: '#1e40af' }}>Detalles del Vehículo</Typography.Title>
-                          {vehiculoDatos.length > 0 ? renderDesc(vehiculoDatos) : <p style={{ color: '#94a3b8' }}>No hay datos del vehículo</p>}
+                      <Col xs={24} md={10}>
+                        <div style={cardStyle}>
+                          <Typography.Title level={5} style={titleStyle}>Detalles del Vehículo</Typography.Title>
+                          {vehiculoDatos.length > 0 ? renderDesc(vehiculoDatos) : <p style={{ color: '#94a3b8', margin: 0 }}>No hay datos del vehículo</p>}
                         </div>
                       </Col>
-                      <Col xs={24}>
-                        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-                          <Typography.Title level={5} style={{ marginTop: 0, color: '#1e40af' }}>Lugar de Entrega / Taller</Typography.Title>
-                          <Descriptions bordered size="small" column={{ xxl: 4, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
+                      <Col xs={24} md={10}>
+                        <div style={cardStyle}>
+                          <Typography.Title level={5} style={titleStyle}>Lugar de Entrega / Taller</Typography.Title>
+                          <Descriptions bordered size="small" column={1}>
                             {tallerDatos.map(([key, value]) => (
-                              <Descriptions.Item label={<span style={{ color: '#64748b' }}>{key}</span>} key={key}>
-                                <strong style={{ color: '#334155' }}>{value}</strong>
+                              <Descriptions.Item label={<span style={{ color: '#64748b', fontSize: 12 }}>{key}</span>} key={key}>
+                                <strong style={{ color: '#334155', fontSize: 12 }}>{value}</strong>
                               </Descriptions.Item>
                             ))}
                           </Descriptions>
-                          {tallerDatos.length === 0 && <p style={{ color: '#94a3b8' }}>No hay datos del taller</p>}
+                          {tallerDatos.length === 0 && <p style={{ color: '#94a3b8', margin: 0 }}>No hay datos del taller</p>}
                         </div>
                       </Col>
                     </Row>
@@ -1100,13 +1109,13 @@ const OportunidadesAudatex = () => {
         </div>
       </Card>
 
-      <CotizarDrawer 
-        visible={drawerVisible} 
+      <CotizarDrawer
+        visible={drawerVisible}
         onClose={() => {
           setDrawerVisible(false);
           setOportunidadSeleccionada(null);
-        }} 
-        oportunidad={oportunidadSeleccionada} 
+        }}
+        oportunidad={oportunidadSeleccionada}
         filtroRepuesto={appliedFiltros.repuesto}
       />
     </div>

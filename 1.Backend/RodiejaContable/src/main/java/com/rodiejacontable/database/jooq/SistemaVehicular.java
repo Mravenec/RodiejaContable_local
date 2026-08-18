@@ -16,11 +16,14 @@ import com.rodiejacontable.database.jooq.tables.HistorialVehiculos;
 import com.rodiejacontable.database.jooq.tables.InventarioRepuestos;
 import com.rodiejacontable.database.jooq.tables.Marcas;
 import com.rodiejacontable.database.jooq.tables.Modelos;
+import com.rodiejacontable.database.jooq.tables.Modulos;
 import com.rodiejacontable.database.jooq.tables.PagosComisiones;
 import com.rodiejacontable.database.jooq.tables.ParteVehiculo;
 import com.rodiejacontable.database.jooq.tables.PersonalData;
 import com.rodiejacontable.database.jooq.tables.Phones;
+import com.rodiejacontable.database.jooq.tables.RolPermisos;
 import com.rodiejacontable.database.jooq.tables.Roles;
+import com.rodiejacontable.database.jooq.tables.Submodulos;
 import com.rodiejacontable.database.jooq.tables.TiposTransacciones;
 import com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras;
 import com.rodiejacontable.database.jooq.tables.UserProfilepicture;
@@ -123,6 +126,11 @@ public class SistemaVehicular extends SchemaImpl {
     public final Modelos MODELOS = Modelos.MODELOS;
 
     /**
+     * The table <code>sistema_vehicular.modulos</code>.
+     */
+    public final Modulos MODULOS = Modulos.MODULOS;
+
+    /**
      * The table <code>sistema_vehicular.pagos_comisiones</code>.
      */
     public final PagosComisiones PAGOS_COMISIONES = PagosComisiones.PAGOS_COMISIONES;
@@ -143,9 +151,19 @@ public class SistemaVehicular extends SchemaImpl {
     public final Phones PHONES = Phones.PHONES;
 
     /**
+     * The table <code>sistema_vehicular.rol_permisos</code>.
+     */
+    public final RolPermisos ROL_PERMISOS = RolPermisos.ROL_PERMISOS;
+
+    /**
      * The table <code>sistema_vehicular.roles</code>.
      */
     public final Roles ROLES = Roles.ROLES;
+
+    /**
+     * The table <code>sistema_vehicular.submodulos</code>.
+     */
+    public final Submodulos SUBMODULOS = Submodulos.SUBMODULOS;
 
     /**
      * The table <code>sistema_vehicular.tipos_transacciones</code>.
@@ -270,11 +288,14 @@ public class SistemaVehicular extends SchemaImpl {
             InventarioRepuestos.INVENTARIO_REPUESTOS,
             Marcas.MARCAS,
             Modelos.MODELOS,
+            Modulos.MODULOS,
             PagosComisiones.PAGOS_COMISIONES,
             ParteVehiculo.PARTE_VEHICULO,
             PersonalData.PERSONAL_DATA,
             Phones.PHONES,
+            RolPermisos.ROL_PERMISOS,
             Roles.ROLES,
+            Submodulos.SUBMODULOS,
             TiposTransacciones.TIPOS_TRANSACCIONES,
             TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS,
             UserProfilepicture.USER_PROFILEPICTURE,
