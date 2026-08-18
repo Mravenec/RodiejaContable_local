@@ -20,7 +20,7 @@ import * as XLSX from 'xlsx-js-style';
 import { useGeo } from '../../hooks/useGeo';
 import CotizarDrawer from './CotizarDrawer';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { RangePicker } = DatePicker;
 
 const getSafeString = (val) => (val && val !== 'null' && val !== '-' ? val.trim() : '');
@@ -65,12 +65,6 @@ const getDireccionSegura = (row) => {
   return '-';
 };
 
-const getDistritoSeguro = (row) => {
-  let d = getSafeString(row.distrito);
-  if (d) return d;
-  if (row.datosCotizacion) return getSafeString(row.datosCotizacion['Distrito']) || getSafeString(row.datosCotizacion['Colonia']) || '-';
-  return '-';
-};
 
 const parseFechaCotizacion = (dateStr) => {
   if (!dateStr) return 0;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tabs, Typography } from 'antd';
+import { Tabs } from 'antd';
 import { TeamOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import UsuariosTab from './UsuariosTab';
 import RolesPrivacidadTab from './RolesPrivacidadTab';

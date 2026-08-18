@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { List, Button, Tooltip, message, Avatar, Space, Typography, Form, Input, Select, Modal } from 'antd';
-import { UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined, MailOutlined, FieldTimeOutlined, LockOutlined } from '@ant-design/icons';
+import { UserOutlined, PlusOutlined, DeleteOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
 import { usersService } from '../../api/users';
 import './Settings.css';
 

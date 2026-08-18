@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Form, Input, Button, message, Row, Col, Avatar, Modal, Select } from 'antd';
-import { UserOutlined, MailOutlined, LockOutlined, SaveOutlined, PlusOutlined } from '@ant-design/icons';
+import { Card, Typography, Form, Input, Button, message, Row, Col, Avatar } from 'antd';
+import { UserOutlined, MailOutlined, LockOutlined, SaveOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../api/auth';
 import './Perfil.css';

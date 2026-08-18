@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, Table, Typography, Tag, Button, message, Space, Input, DatePicker, Row, Col, Select, Tabs, Descriptions } from 'antd';
-import { ReloadOutlined, SyncOutlined, LoadingOutlined, SearchOutlined, StopOutlined, DownloadOutlined, FilterOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SyncOutlined, LoadingOutlined, SearchOutlined, DownloadOutlined, FilterOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
 import { audatexAPI } from '../../api/audatex';
-import finanzasService from '../../api/finanzas';
 import { useGeo } from '../../hooks/useGeo';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
@@ -94,7 +93,7 @@ const PedidosAudatex = () => {
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [facturando, setFacturando] = useState({});
+
   const [filtros, setFiltros] = useState({ ...defaultFiltros });
   const [appliedFiltros, setAppliedFiltros] = useState({ ...defaultFiltros });
   const [mostrarFiltros, setMostrarFiltros] = useState(true);
@@ -285,20 +284,6 @@ const PedidosAudatex = () => {
       detenerCola();
     };
   }, [cargarPedidosStream, detenerCola]);
-
-  const handleFacturar = async (pedidoId) => {
-    try {
-      setFacturando((prev) => ({ ...prev, [pedidoId]: true }));
-      await finanzasService.facturarPedidoAudatex(pedidoId);
-      message.success('Pedido facturado exitosamente. Se generó la transacción financiera.');
-      cargarPedidosStream();
-    } catch (error) {
-      console.error('Error al facturar pedido:', error);
-      message.error(error.message || 'Error al intentar facturar el pedido');
-    } finally {
-      setFacturando((prev) => ({ ...prev, [pedidoId]: false }));
-    }
-  };
 
   const getStatusTag = (status) => {
     switch (status) {
