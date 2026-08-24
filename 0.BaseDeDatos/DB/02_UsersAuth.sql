@@ -196,7 +196,7 @@ INSERT INTO submodulos (modulo_id, nombre, clave) VALUES
 -- Audatex
 INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 
 ((SELECT id FROM modulos WHERE clave = 'audatex'), 'Oportunidades', 'audatex_oportunidades'),
-((SELECT id FROM modulos WHERE clave = 'audatex'), 'Jerarquía InPart', 'audatex_jerarquia'),
+-- ((SELECT id FROM modulos WHERE clave = 'audatex'), 'Jerarquía InPart', 'audatex_jerarquia'),
 ((SELECT id FROM modulos WHERE clave = 'audatex'), 'Pedidos', 'audatex_pedidos');
 -- Configuracion
 INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 

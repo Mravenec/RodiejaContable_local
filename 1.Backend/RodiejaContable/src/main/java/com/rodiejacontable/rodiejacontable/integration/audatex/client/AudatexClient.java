@@ -340,7 +340,7 @@ public class AudatexClient {
         // 1. Navegar a la página de detalle
         Connection.Response resp = Jsoup.connect(detalleUrl)
                 .cookies(cookies)
-                .timeout(60000)
+                .timeout(300000)
                 .header("Referer", props.getQuotationSearchUrl())
                 .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
                 .header("Accept-Language", "es-419,es;q=0.9")
@@ -363,7 +363,7 @@ public class AudatexClient {
             cookies = sessionManager.getActiveCookies();
             resp = Jsoup.connect(detalleUrl)
                     .cookies(cookies)
-                    .timeout(60000)
+                    .timeout(300000)
                     .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
                     .header("Accept-Language", "es-419,es;q=0.9")
                     .header("sec-ch-ua", "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"")
@@ -421,7 +421,7 @@ public class AudatexClient {
         String submitUrl = resp.url().toString();
         Connection.Response submitResp = Jsoup.connect(submitUrl)
                 .cookies(cookies)
-                .timeout(60000)
+                .timeout(300000)
                 .data(formData)
                 .header("Referer", submitUrl)
                 .header("Origin", "https://inpart-la.audatex.com.mx")

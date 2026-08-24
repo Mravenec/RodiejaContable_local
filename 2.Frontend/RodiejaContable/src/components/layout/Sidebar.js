@@ -79,7 +79,7 @@ const Sidebar = ({ collapsed }) => {
       label: 'Cotizaciones InPart',
       children: [
         hasAccess('audatex_oportunidades') ? { key: '/audatex/oportunidades', label: 'Oportunidades' } : null,
-        hasAccess('audatex_jerarquia') ? { key: '/audatex/jerarquia', label: 'Jerarquía InPart' } : null,
+        // hasAccess('audatex_jerarquia') ? { key: '/audatex/jerarquia', label: 'Jerarquía InPart' } : null,
         hasAccess('audatex_pedidos') ? { key: '/audatex/pedidos', label: 'Pedidos' } : null,
       ].filter(Boolean)
     } : null,

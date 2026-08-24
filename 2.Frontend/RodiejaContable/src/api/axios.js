@@ -8,7 +8,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
-  timeout: 10000, // 10 seconds timeout
+  timeout: 300000, // 5 minutes timeout for long Audatex requests
 });
 
 // Request interceptor
