@@ -7,6 +7,12 @@ export const formatImageUrl = (url) => {
   if (match && match[1]) {
     return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
   }
+  
+  // If it's a relative URL from our backend uploads, point to the backend server
+  if (trimmed.startsWith('/uploads/')) {
+    return `http://localhost:8080${trimmed}`;
+  }
+  
   return trimmed;
 };
 

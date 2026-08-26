@@ -5,7 +5,6 @@ import {
   Button,
   Typography,
   Tabs,
-  Image,
   Tag,
   Spin,
   message,
@@ -16,6 +15,7 @@ import {
   Select,
   Switch,
   Space,
+  Upload,
   Row,
   Col,
   Divider,
@@ -26,6 +26,8 @@ import {
   MoneyCollectOutlined,
   ToolOutlined,
   FileTextOutlined,
+  UploadOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { useUpdateVehiculo } from '../../hooks/useVehiculos';
 import vehiculoService from '../../api/vehiculos';
@@ -131,6 +133,7 @@ const EditarVehiculo = () => {
   const [loadingGeneraciones, setLoadingGeneraciones] = useState(false);
   const [loadingTransacciones, setLoadingTransacciones] = useState(false);
   const [loadingRepuestos, setLoadingRepuestos] = useState(false);
+  const [imagenUrlValue, setImagenUrlValue] = useState(null);
 
   // Use the same update logic as the hook
   const updateVehiculo = useUpdateVehiculo({
@@ -220,6 +223,7 @@ const EditarVehiculo = () => {
 
       // Handle both imagenUrl and imagen_url field names
       const imagenUrl = vehiculo.imagenUrl || vehiculo.imagen_url || '';
+      setImagenUrlValue(imagenUrl);
 
       // Handle date parsing more robustly
       let fechaIngresoDayjs = null;
@@ -360,7 +364,7 @@ const EditarVehiculo = () => {
         costoGrua: values.costoGrua ? parseFloat(values.costoGrua) : 0,
         comisiones: values.comisiones ? parseFloat(values.comisiones) : 0,
         precioVenta: values.precioVenta ? parseFloat(values.precioVenta) : null,
-        imagenUrl: values.imagenUrl || '',
+        imagenUrl: values.imagenUrl || imagenUrlValue || '',
         fechaIngreso: values.fechaIngreso && values.fechaIngreso.isValid() ? values.fechaIngreso.format('YYYY-MM-DD') : null,
         fechaVenta: values.fechaVenta && values.fechaVenta.isValid() ? values.fechaVenta.format('YYYY-MM-DD') : null,
         estado: values.estado,
@@ -623,8 +627,59 @@ const EditarVehiculo = () => {
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12} md={8}>
-                  <Form.Item label="URL de Imagen" name="imagenUrl">
-                    <Input placeholder="https://ejemplo.com/imagen.jpg" />
+                  <Form.Item label="Foto del vehículo (Subir o URL)">
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <Upload
+                          name="file"
+                          action="http://localhost:8080/api/upload/vehiculo"
+                          headers={{
+                            Authorization: `Bearer ${localStorage.getItem('token')}`
+                          }}
+                          listType="picture"
+                          maxCount={1}
+                          showUploadList={false}
+                          style={{ flex: 1 }}
+                          onChange={(info) => {
+                            if (info.file.status === 'done') {
+                              message.success(`${info.file.name} subido exitosamente`);
+                              const serverUrl = info.file.response.url;
+                              form.setFieldsValue({ imagenUrl: serverUrl });
+                              setImagenUrlValue(serverUrl);
+                              setVehiculo(prev => ({...prev, imagenUrl: serverUrl}));
+                            } else if (info.file.status === 'error') {
+                              message.error(`${info.file.name} falló al subir.`);
+                            }
+                          }}
+                        >
+                          <Button icon={<UploadOutlined />} style={{ width: '100%' }}>Seleccionar archivo</Button>
+                        </Upload>
+                        <Button 
+                          icon={<DeleteOutlined />} 
+                          danger
+                          title="Limpiar imagen"
+                          onClick={() => {
+                            form.setFieldsValue({ imagenUrl: '' });
+                            setImagenUrlValue('');
+                            setVehiculo(prev => ({...prev, imagenUrl: ''}));
+                          }}
+                          disabled={!imagenUrlValue}
+                        />
+                      </div>
+                      <Form.Item 
+                        name="imagenUrl" 
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input 
+                          placeholder="https://ejemplo.com/imagen.jpg o ruta local" 
+                          allowClear
+                          onChange={(e) => {
+                            setImagenUrlValue(e.target.value);
+                            setVehiculo(prev => ({...prev, imagenUrl: e.target.value}));
+                          }}
+                        />
+                      </Form.Item>
+                    </Space>
                   </Form.Item>
                 </Col>
               </Row>

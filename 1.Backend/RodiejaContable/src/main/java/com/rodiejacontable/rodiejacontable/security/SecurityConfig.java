@@ -42,7 +42,7 @@ public class SecurityConfig {
                 // Los dispatches ASYNC y ERROR son callbacks internos de Tomcat/SSE,
                 // no requests nuevas del cliente — no requieren re-autenticación.
                 .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
-                .requestMatchers("/api/auth/**", "/api/audatex/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/audatex/**", "/uploads/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -66,7 +66,7 @@ public class SecurityConfig {
         // Allow all frontend origins to prevent CORS issues locally and on network
         configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "Cache-Control"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "Cache-Control", "X-Requested-With"));
         configuration.setAllowCredentials(true);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

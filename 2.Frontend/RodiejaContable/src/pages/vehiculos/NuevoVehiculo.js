@@ -15,7 +15,9 @@ import {
   Row,
   Col,
   Divider,
-  Tag
+  Tag,
+  Upload,
+  Space
 } from 'antd';
 import {
   SaveOutlined,
@@ -24,6 +26,8 @@ import {
   CloseOutlined,
   CheckOutlined,
   EditOutlined,
+  UploadOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { Loading } from '../../components/Loading';
 import { useMarcas } from '../../hooks/useMarcas';
@@ -83,6 +87,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
   const [transmisionValue, setTransmisionValue] = useState('Automatico');
   const [combustibleValue, setCombustibleValue] = useState('Gasolina');
   const [cilindrajeValue, setCilindrajeValue] = useState('');
+  const [imagenUrlValue, setImagenUrlValue] = useState(null);
 
   // Estado para el modal de nueva marca
   const [nuevaMarcaModal, setNuevaMarcaModal] = useState(false);
@@ -163,7 +168,14 @@ const NuevoVehiculo = ({ editMode = false }) => {
     }
 
     setAniosDisponibles(anios.sort((a, b) => b - a)); // Orden descendente
-  }, [selectedGeneracionId, generaciones]);
+    
+    // Auto-seleccionar el año fin (o el mayor año disponible)
+    if (anios.length > 0) {
+      const maxAnio = Math.max(...anios);
+      setAnioValue(maxAnio);
+      form.setFieldsValue({ anio: maxAnio });
+    }
+  }, [selectedGeneracionId, generaciones, form]);
 
 
 
@@ -204,6 +216,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
       setTransmisionValue(data.transmision || 'Automatico');
       setCombustibleValue(data.combustible || 'Gasolina');
       setCilindrajeValue(data.cilindraje || '');
+      setImagenUrlValue(data.imagenUrl || null);
 
       // Crear objeto con los datos formateados para el formulario
       const datosFormateados = {
@@ -661,7 +674,6 @@ const NuevoVehiculo = ({ editMode = false }) => {
         precioCompra: formData.precioCompra,
         costoGrua: formData.costoGrua,
         comisiones: formData.comisiones,
-        imagenUrl: formData.imagenUrl || null,
         fechaIngreso: formData.fechaIngreso,
         estado: formData.estado,
         notas: formData.notas,
@@ -669,13 +681,14 @@ const NuevoVehiculo = ({ editMode = false }) => {
         traccion: traccionValue,
         transmision: transmisionValue,
         combustible: combustibleValue,
-        cilindraje: formData.cilindraje || cilindrajeValue || null
+        cilindraje: formData.cilindraje || cilindrajeValue || null,
+        imagenUrl: formData.imagenUrl || imagenUrlValue || null
       };
 
       console.log('📤 Datos finales a enviar:', vehiculoData);
 
       // Validar estructura antes de enviar
-      const requiredFields = ['generacionId', 'anio', 'precioCompra', 'fechaIngreso', 'estado'];
+      const requiredFields = ['generacionId', 'anio', 'precioCompra', 'fechaIngreso', 'estado', 'traccion', 'transmision', 'combustible'];
       const missingFields = requiredFields.filter(field =>
         vehiculoData[field] === null || vehiculoData[field] === undefined
       );
@@ -1396,6 +1409,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 name="traccion"
                 label="Tracción"
                 preserve={true}
+                rules={[{ required: true, message: 'Por favor seleccione la tracción' }]}
               >
                 <Select
                   placeholder="Selecciona la tracción"
@@ -1420,6 +1434,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 name="transmision"
                 label="Transmisión"
                 preserve={true}
+                rules={[{ required: true, message: 'Por favor seleccione la transmisión' }]}
               >
                 <Select
                   placeholder="Selecciona la transmisión"
@@ -1444,6 +1459,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
                 name="combustible"
                 label="Combustible"
                 preserve={true}
+                rules={[{ required: true, message: 'Por favor seleccione el combustible' }]}
               >
                 <Select
                   placeholder="Selecciona el tipo de combustible"
@@ -1603,22 +1619,55 @@ const NuevoVehiculo = ({ editMode = false }) => {
       title: 'Imágenes',
       content: (
         <div>
-          <Form.Item
-            name="imagenUrl"
-            label="URL de la imagen principal"
-            rules={[{
-              required: false,
-              type: 'url',
-              message: 'Por favor ingresa una URL válida'
-            }]}
-          >
-            <Input
-              placeholder="https://ejemplo.com/imagen.jpg"
-              allowClear
-            />
+          <Form.Item label="Foto del vehículo (Subir o URL)">
+            <Space direction="vertical" style={{ width: '100%', maxWidth: '400px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Upload
+                  name="file"
+                  action="http://localhost:8080/api/upload/vehiculo"
+                  headers={{
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                  }}
+                  listType="picture"
+                  maxCount={1}
+                  showUploadList={false}
+                  style={{ flex: 1 }}
+                  onChange={(info) => {
+                    if (info.file.status === 'done') {
+                      message.success(`${info.file.name} subido exitosamente`);
+                      const serverUrl = info.file.response.url;
+                      form.setFieldsValue({ imagenUrl: serverUrl });
+                      setImagenUrlValue(serverUrl);
+                    } else if (info.file.status === 'error') {
+                      message.error(`${info.file.name} falló al subir.`);
+                    }
+                  }}
+                >
+                  <Button icon={<UploadOutlined />} style={{ width: '100%' }}>Seleccionar archivo</Button>
+                </Upload>
+                <Button 
+                  icon={<DeleteOutlined />} 
+                  danger
+                  title="Limpiar imagen"
+                  onClick={() => {
+                    form.setFieldsValue({ imagenUrl: '' });
+                    setImagenUrlValue('');
+                  }}
+                  disabled={!imagenUrlValue}
+                />
+              </div>
+              <Form.Item 
+                name="imagenUrl" 
+                style={{ marginBottom: 0 }}
+              >
+                <Input 
+                  placeholder="https://ejemplo.com/imagen.jpg o ruta local" 
+                  allowClear 
+                  onChange={(e) => setImagenUrlValue(e.target.value)}
+                />
+              </Form.Item>
+            </Space>
           </Form.Item>
-
-
         </div>
       ),
     },

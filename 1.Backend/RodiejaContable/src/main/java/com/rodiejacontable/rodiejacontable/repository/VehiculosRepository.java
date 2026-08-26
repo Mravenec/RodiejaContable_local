@@ -149,7 +149,8 @@ public class VehiculosRepository {
     }
     
     public boolean delete(Integer id) {
-        return dsl.deleteFrom(VEHICULOS)
+        return dsl.update(VEHICULOS)
+                 .set(VEHICULOS.ACTIVO, (byte) 0)
                  .where(VEHICULOS.ID.eq(id))
                  .execute() > 0;
     }

@@ -243,7 +243,7 @@ const VehiculoDetalle = () => {
   };
 
   // Load transactions for the vehicle
-  const loadTransactions = async (vehiculoId) => {
+  const loadTransactions = useCallback(async (vehiculoId) => {
     
     if (!vehiculoId) {
       console.error('No vehicle ID provided to loadTransactions');
@@ -284,10 +284,10 @@ const VehiculoDetalle = () => {
     } finally {
       setLoadingTransacciones(false);
     }
-  };
+  }, []);
 
   // Load repuestos for the vehicle
-  const loadRepuestos = async (vehiculoId) => {
+  const loadRepuestos = useCallback(async (vehiculoId) => {
     try {
       setLoadingRepuestos(true);
       const repuestosData = await repuestosService.getRepuestosPorVehiculo(vehiculoId);
@@ -317,7 +317,7 @@ const VehiculoDetalle = () => {
     } finally {
       setLoadingRepuestos(false);
     }
-  };
+  }, []);
 
   // ROD-22: Cargar oportunidades de Audatex por repuesto en batch
   const cargarOportunidadesPorRepuesto = async () => {
