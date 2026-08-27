@@ -4,10 +4,24 @@
 package com.rodiejacontable.database.jooq.tables.pojos;
 
 
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoBodega;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoCarton;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoCondicion;
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoEstado;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoEstante;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoHorizontal;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoMalla;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoNivel;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoPared;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoPiso;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoPlastica;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoZona;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+import org.jooq.types.UInteger;
 
 
 /**
@@ -21,6 +35,7 @@ public class VistaInventarioCompleto implements Serializable {
     private Integer id;
     private String codigoRepuesto;
     private String codigoUbicacion;
+    private String imagenUrl;
     private Integer parteVehiculoId;
     private String parteVehiculo;
     private String descripcion;
@@ -29,9 +44,25 @@ public class VistaInventarioCompleto implements Serializable {
     private BigDecimal precioMayoreo;
     private BigDecimal formula_15;
     private BigDecimal formula_30;
+    private VistaInventarioCompletoBodega bodega;
+    private VistaInventarioCompletoZona zona;
+    private VistaInventarioCompletoPared pared;
+    private VistaInventarioCompletoMalla malla;
+    private VistaInventarioCompletoHorizontal horizontal;
+    private VistaInventarioCompletoEstante estante;
+    private VistaInventarioCompletoNivel nivel;
+    private VistaInventarioCompletoPiso piso;
+    private VistaInventarioCompletoPlastica plastica;
+    private VistaInventarioCompletoCarton carton;
+    private String posicion;
+    private UInteger cantidad;
     private VistaInventarioCompletoEstado estado;
+    private VistaInventarioCompletoCondicion condicion;
     private Short anioRegistro;
     private Byte mesRegistro;
+    private LocalDateTime fechaCreacion;
+    private LocalDateTime fechaActualizacion;
+    private Byte activo;
     private String codigoVehiculo;
     private String marca;
     private String modelo;
@@ -45,6 +76,7 @@ public class VistaInventarioCompleto implements Serializable {
         this.id = value.id;
         this.codigoRepuesto = value.codigoRepuesto;
         this.codigoUbicacion = value.codigoUbicacion;
+        this.imagenUrl = value.imagenUrl;
         this.parteVehiculoId = value.parteVehiculoId;
         this.parteVehiculo = value.parteVehiculo;
         this.descripcion = value.descripcion;
@@ -53,9 +85,25 @@ public class VistaInventarioCompleto implements Serializable {
         this.precioMayoreo = value.precioMayoreo;
         this.formula_15 = value.formula_15;
         this.formula_30 = value.formula_30;
+        this.bodega = value.bodega;
+        this.zona = value.zona;
+        this.pared = value.pared;
+        this.malla = value.malla;
+        this.horizontal = value.horizontal;
+        this.estante = value.estante;
+        this.nivel = value.nivel;
+        this.piso = value.piso;
+        this.plastica = value.plastica;
+        this.carton = value.carton;
+        this.posicion = value.posicion;
+        this.cantidad = value.cantidad;
         this.estado = value.estado;
+        this.condicion = value.condicion;
         this.anioRegistro = value.anioRegistro;
         this.mesRegistro = value.mesRegistro;
+        this.fechaCreacion = value.fechaCreacion;
+        this.fechaActualizacion = value.fechaActualizacion;
+        this.activo = value.activo;
         this.codigoVehiculo = value.codigoVehiculo;
         this.marca = value.marca;
         this.modelo = value.modelo;
@@ -68,6 +116,7 @@ public class VistaInventarioCompleto implements Serializable {
         Integer id,
         String codigoRepuesto,
         String codigoUbicacion,
+        String imagenUrl,
         Integer parteVehiculoId,
         String parteVehiculo,
         String descripcion,
@@ -76,9 +125,25 @@ public class VistaInventarioCompleto implements Serializable {
         BigDecimal precioMayoreo,
         BigDecimal formula_15,
         BigDecimal formula_30,
+        VistaInventarioCompletoBodega bodega,
+        VistaInventarioCompletoZona zona,
+        VistaInventarioCompletoPared pared,
+        VistaInventarioCompletoMalla malla,
+        VistaInventarioCompletoHorizontal horizontal,
+        VistaInventarioCompletoEstante estante,
+        VistaInventarioCompletoNivel nivel,
+        VistaInventarioCompletoPiso piso,
+        VistaInventarioCompletoPlastica plastica,
+        VistaInventarioCompletoCarton carton,
+        String posicion,
+        UInteger cantidad,
         VistaInventarioCompletoEstado estado,
+        VistaInventarioCompletoCondicion condicion,
         Short anioRegistro,
         Byte mesRegistro,
+        LocalDateTime fechaCreacion,
+        LocalDateTime fechaActualizacion,
+        Byte activo,
         String codigoVehiculo,
         String marca,
         String modelo,
@@ -89,6 +154,7 @@ public class VistaInventarioCompleto implements Serializable {
         this.id = id;
         this.codigoRepuesto = codigoRepuesto;
         this.codigoUbicacion = codigoUbicacion;
+        this.imagenUrl = imagenUrl;
         this.parteVehiculoId = parteVehiculoId;
         this.parteVehiculo = parteVehiculo;
         this.descripcion = descripcion;
@@ -97,9 +163,25 @@ public class VistaInventarioCompleto implements Serializable {
         this.precioMayoreo = precioMayoreo;
         this.formula_15 = formula_15;
         this.formula_30 = formula_30;
+        this.bodega = bodega;
+        this.zona = zona;
+        this.pared = pared;
+        this.malla = malla;
+        this.horizontal = horizontal;
+        this.estante = estante;
+        this.nivel = nivel;
+        this.piso = piso;
+        this.plastica = plastica;
+        this.carton = carton;
+        this.posicion = posicion;
+        this.cantidad = cantidad;
         this.estado = estado;
+        this.condicion = condicion;
         this.anioRegistro = anioRegistro;
         this.mesRegistro = mesRegistro;
+        this.fechaCreacion = fechaCreacion;
+        this.fechaActualizacion = fechaActualizacion;
+        this.activo = activo;
         this.codigoVehiculo = codigoVehiculo;
         this.marca = marca;
         this.modelo = modelo;
@@ -154,6 +236,23 @@ public class VistaInventarioCompleto implements Serializable {
      */
     public VistaInventarioCompleto setCodigoUbicacion(String codigoUbicacion) {
         this.codigoUbicacion = codigoUbicacion;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.imagen_url</code>.
+     */
+    public String getImagenUrl() {
+        return this.imagenUrl;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.imagen_url</code>.
+     */
+    public VistaInventarioCompleto setImagenUrl(String imagenUrl) {
+        this.imagenUrl = imagenUrl;
         return this;
     }
 
@@ -295,6 +394,206 @@ public class VistaInventarioCompleto implements Serializable {
 
     /**
      * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.bodega</code>.
+     */
+    public VistaInventarioCompletoBodega getBodega() {
+        return this.bodega;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.bodega</code>.
+     */
+    public VistaInventarioCompleto setBodega(VistaInventarioCompletoBodega bodega) {
+        this.bodega = bodega;
+        return this;
+    }
+
+    /**
+     * Getter for <code>sistema_vehicular.vista_inventario_completo.zona</code>.
+     */
+    public VistaInventarioCompletoZona getZona() {
+        return this.zona;
+    }
+
+    /**
+     * Setter for <code>sistema_vehicular.vista_inventario_completo.zona</code>.
+     */
+    public VistaInventarioCompleto setZona(VistaInventarioCompletoZona zona) {
+        this.zona = zona;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.pared</code>.
+     */
+    public VistaInventarioCompletoPared getPared() {
+        return this.pared;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.pared</code>.
+     */
+    public VistaInventarioCompleto setPared(VistaInventarioCompletoPared pared) {
+        this.pared = pared;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.malla</code>.
+     */
+    public VistaInventarioCompletoMalla getMalla() {
+        return this.malla;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.malla</code>.
+     */
+    public VistaInventarioCompleto setMalla(VistaInventarioCompletoMalla malla) {
+        this.malla = malla;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.horizontal</code>.
+     */
+    public VistaInventarioCompletoHorizontal getHorizontal() {
+        return this.horizontal;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.horizontal</code>.
+     */
+    public VistaInventarioCompleto setHorizontal(VistaInventarioCompletoHorizontal horizontal) {
+        this.horizontal = horizontal;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.estante</code>.
+     */
+    public VistaInventarioCompletoEstante getEstante() {
+        return this.estante;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.estante</code>.
+     */
+    public VistaInventarioCompleto setEstante(VistaInventarioCompletoEstante estante) {
+        this.estante = estante;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.nivel</code>.
+     */
+    public VistaInventarioCompletoNivel getNivel() {
+        return this.nivel;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.nivel</code>.
+     */
+    public VistaInventarioCompleto setNivel(VistaInventarioCompletoNivel nivel) {
+        this.nivel = nivel;
+        return this;
+    }
+
+    /**
+     * Getter for <code>sistema_vehicular.vista_inventario_completo.piso</code>.
+     */
+    public VistaInventarioCompletoPiso getPiso() {
+        return this.piso;
+    }
+
+    /**
+     * Setter for <code>sistema_vehicular.vista_inventario_completo.piso</code>.
+     */
+    public VistaInventarioCompleto setPiso(VistaInventarioCompletoPiso piso) {
+        this.piso = piso;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.plastica</code>.
+     */
+    public VistaInventarioCompletoPlastica getPlastica() {
+        return this.plastica;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.plastica</code>.
+     */
+    public VistaInventarioCompleto setPlastica(VistaInventarioCompletoPlastica plastica) {
+        this.plastica = plastica;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.carton</code>.
+     */
+    public VistaInventarioCompletoCarton getCarton() {
+        return this.carton;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.carton</code>.
+     */
+    public VistaInventarioCompleto setCarton(VistaInventarioCompletoCarton carton) {
+        this.carton = carton;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.posicion</code>.
+     */
+    public String getPosicion() {
+        return this.posicion;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.posicion</code>.
+     */
+    public VistaInventarioCompleto setPosicion(String posicion) {
+        this.posicion = posicion;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.cantidad</code>.
+     */
+    public UInteger getCantidad() {
+        return this.cantidad;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.cantidad</code>.
+     */
+    public VistaInventarioCompleto setCantidad(UInteger cantidad) {
+        this.cantidad = cantidad;
+        return this;
+    }
+
+    /**
+     * Getter for
      * <code>sistema_vehicular.vista_inventario_completo.estado</code>.
      */
     public VistaInventarioCompletoEstado getEstado() {
@@ -307,6 +606,23 @@ public class VistaInventarioCompleto implements Serializable {
      */
     public VistaInventarioCompleto setEstado(VistaInventarioCompletoEstado estado) {
         this.estado = estado;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.condicion</code>.
+     */
+    public VistaInventarioCompletoCondicion getCondicion() {
+        return this.condicion;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.condicion</code>.
+     */
+    public VistaInventarioCompleto setCondicion(VistaInventarioCompletoCondicion condicion) {
+        this.condicion = condicion;
         return this;
     }
 
@@ -341,6 +657,57 @@ public class VistaInventarioCompleto implements Serializable {
      */
     public VistaInventarioCompleto setMesRegistro(Byte mesRegistro) {
         this.mesRegistro = mesRegistro;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.fecha_creacion</code>.
+     */
+    public LocalDateTime getFechaCreacion() {
+        return this.fechaCreacion;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.fecha_creacion</code>.
+     */
+    public VistaInventarioCompleto setFechaCreacion(LocalDateTime fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.fecha_actualizacion</code>.
+     */
+    public LocalDateTime getFechaActualizacion() {
+        return this.fechaActualizacion;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.fecha_actualizacion</code>.
+     */
+    public VistaInventarioCompleto setFechaActualizacion(LocalDateTime fechaActualizacion) {
+        this.fechaActualizacion = fechaActualizacion;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_inventario_completo.activo</code>.
+     */
+    public Byte getActivo() {
+        return this.activo;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.vista_inventario_completo.activo</code>.
+     */
+    public VistaInventarioCompleto setActivo(Byte activo) {
+        this.activo = activo;
         return this;
     }
 
@@ -473,6 +840,12 @@ public class VistaInventarioCompleto implements Serializable {
         }
         else if (!this.codigoUbicacion.equals(other.codigoUbicacion))
             return false;
+        if (this.imagenUrl == null) {
+            if (other.imagenUrl != null)
+                return false;
+        }
+        else if (!this.imagenUrl.equals(other.imagenUrl))
+            return false;
         if (this.parteVehiculoId == null) {
             if (other.parteVehiculoId != null)
                 return false;
@@ -521,11 +894,89 @@ public class VistaInventarioCompleto implements Serializable {
         }
         else if (!this.formula_30.equals(other.formula_30))
             return false;
+        if (this.bodega == null) {
+            if (other.bodega != null)
+                return false;
+        }
+        else if (!this.bodega.equals(other.bodega))
+            return false;
+        if (this.zona == null) {
+            if (other.zona != null)
+                return false;
+        }
+        else if (!this.zona.equals(other.zona))
+            return false;
+        if (this.pared == null) {
+            if (other.pared != null)
+                return false;
+        }
+        else if (!this.pared.equals(other.pared))
+            return false;
+        if (this.malla == null) {
+            if (other.malla != null)
+                return false;
+        }
+        else if (!this.malla.equals(other.malla))
+            return false;
+        if (this.horizontal == null) {
+            if (other.horizontal != null)
+                return false;
+        }
+        else if (!this.horizontal.equals(other.horizontal))
+            return false;
+        if (this.estante == null) {
+            if (other.estante != null)
+                return false;
+        }
+        else if (!this.estante.equals(other.estante))
+            return false;
+        if (this.nivel == null) {
+            if (other.nivel != null)
+                return false;
+        }
+        else if (!this.nivel.equals(other.nivel))
+            return false;
+        if (this.piso == null) {
+            if (other.piso != null)
+                return false;
+        }
+        else if (!this.piso.equals(other.piso))
+            return false;
+        if (this.plastica == null) {
+            if (other.plastica != null)
+                return false;
+        }
+        else if (!this.plastica.equals(other.plastica))
+            return false;
+        if (this.carton == null) {
+            if (other.carton != null)
+                return false;
+        }
+        else if (!this.carton.equals(other.carton))
+            return false;
+        if (this.posicion == null) {
+            if (other.posicion != null)
+                return false;
+        }
+        else if (!this.posicion.equals(other.posicion))
+            return false;
+        if (this.cantidad == null) {
+            if (other.cantidad != null)
+                return false;
+        }
+        else if (!this.cantidad.equals(other.cantidad))
+            return false;
         if (this.estado == null) {
             if (other.estado != null)
                 return false;
         }
         else if (!this.estado.equals(other.estado))
+            return false;
+        if (this.condicion == null) {
+            if (other.condicion != null)
+                return false;
+        }
+        else if (!this.condicion.equals(other.condicion))
             return false;
         if (this.anioRegistro == null) {
             if (other.anioRegistro != null)
@@ -538,6 +989,24 @@ public class VistaInventarioCompleto implements Serializable {
                 return false;
         }
         else if (!this.mesRegistro.equals(other.mesRegistro))
+            return false;
+        if (this.fechaCreacion == null) {
+            if (other.fechaCreacion != null)
+                return false;
+        }
+        else if (!this.fechaCreacion.equals(other.fechaCreacion))
+            return false;
+        if (this.fechaActualizacion == null) {
+            if (other.fechaActualizacion != null)
+                return false;
+        }
+        else if (!this.fechaActualizacion.equals(other.fechaActualizacion))
+            return false;
+        if (this.activo == null) {
+            if (other.activo != null)
+                return false;
+        }
+        else if (!this.activo.equals(other.activo))
             return false;
         if (this.codigoVehiculo == null) {
             if (other.codigoVehiculo != null)
@@ -585,6 +1054,7 @@ public class VistaInventarioCompleto implements Serializable {
         result = prime * result + ((this.id == null) ? 0 : this.id.hashCode());
         result = prime * result + ((this.codigoRepuesto == null) ? 0 : this.codigoRepuesto.hashCode());
         result = prime * result + ((this.codigoUbicacion == null) ? 0 : this.codigoUbicacion.hashCode());
+        result = prime * result + ((this.imagenUrl == null) ? 0 : this.imagenUrl.hashCode());
         result = prime * result + ((this.parteVehiculoId == null) ? 0 : this.parteVehiculoId.hashCode());
         result = prime * result + ((this.parteVehiculo == null) ? 0 : this.parteVehiculo.hashCode());
         result = prime * result + ((this.descripcion == null) ? 0 : this.descripcion.hashCode());
@@ -593,9 +1063,25 @@ public class VistaInventarioCompleto implements Serializable {
         result = prime * result + ((this.precioMayoreo == null) ? 0 : this.precioMayoreo.hashCode());
         result = prime * result + ((this.formula_15 == null) ? 0 : this.formula_15.hashCode());
         result = prime * result + ((this.formula_30 == null) ? 0 : this.formula_30.hashCode());
+        result = prime * result + ((this.bodega == null) ? 0 : this.bodega.hashCode());
+        result = prime * result + ((this.zona == null) ? 0 : this.zona.hashCode());
+        result = prime * result + ((this.pared == null) ? 0 : this.pared.hashCode());
+        result = prime * result + ((this.malla == null) ? 0 : this.malla.hashCode());
+        result = prime * result + ((this.horizontal == null) ? 0 : this.horizontal.hashCode());
+        result = prime * result + ((this.estante == null) ? 0 : this.estante.hashCode());
+        result = prime * result + ((this.nivel == null) ? 0 : this.nivel.hashCode());
+        result = prime * result + ((this.piso == null) ? 0 : this.piso.hashCode());
+        result = prime * result + ((this.plastica == null) ? 0 : this.plastica.hashCode());
+        result = prime * result + ((this.carton == null) ? 0 : this.carton.hashCode());
+        result = prime * result + ((this.posicion == null) ? 0 : this.posicion.hashCode());
+        result = prime * result + ((this.cantidad == null) ? 0 : this.cantidad.hashCode());
         result = prime * result + ((this.estado == null) ? 0 : this.estado.hashCode());
+        result = prime * result + ((this.condicion == null) ? 0 : this.condicion.hashCode());
         result = prime * result + ((this.anioRegistro == null) ? 0 : this.anioRegistro.hashCode());
         result = prime * result + ((this.mesRegistro == null) ? 0 : this.mesRegistro.hashCode());
+        result = prime * result + ((this.fechaCreacion == null) ? 0 : this.fechaCreacion.hashCode());
+        result = prime * result + ((this.fechaActualizacion == null) ? 0 : this.fechaActualizacion.hashCode());
+        result = prime * result + ((this.activo == null) ? 0 : this.activo.hashCode());
         result = prime * result + ((this.codigoVehiculo == null) ? 0 : this.codigoVehiculo.hashCode());
         result = prime * result + ((this.marca == null) ? 0 : this.marca.hashCode());
         result = prime * result + ((this.modelo == null) ? 0 : this.modelo.hashCode());
@@ -612,6 +1098,7 @@ public class VistaInventarioCompleto implements Serializable {
         sb.append(id);
         sb.append(", ").append(codigoRepuesto);
         sb.append(", ").append(codigoUbicacion);
+        sb.append(", ").append(imagenUrl);
         sb.append(", ").append(parteVehiculoId);
         sb.append(", ").append(parteVehiculo);
         sb.append(", ").append(descripcion);
@@ -620,9 +1107,25 @@ public class VistaInventarioCompleto implements Serializable {
         sb.append(", ").append(precioMayoreo);
         sb.append(", ").append(formula_15);
         sb.append(", ").append(formula_30);
+        sb.append(", ").append(bodega);
+        sb.append(", ").append(zona);
+        sb.append(", ").append(pared);
+        sb.append(", ").append(malla);
+        sb.append(", ").append(horizontal);
+        sb.append(", ").append(estante);
+        sb.append(", ").append(nivel);
+        sb.append(", ").append(piso);
+        sb.append(", ").append(plastica);
+        sb.append(", ").append(carton);
+        sb.append(", ").append(posicion);
+        sb.append(", ").append(cantidad);
         sb.append(", ").append(estado);
+        sb.append(", ").append(condicion);
         sb.append(", ").append(anioRegistro);
         sb.append(", ").append(mesRegistro);
+        sb.append(", ").append(fechaCreacion);
+        sb.append(", ").append(fechaActualizacion);
+        sb.append(", ").append(activo);
         sb.append(", ").append(codigoVehiculo);
         sb.append(", ").append(marca);
         sb.append(", ").append(modelo);

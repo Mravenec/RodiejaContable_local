@@ -5,27 +5,35 @@ package com.rodiejacontable.database.jooq.tables;
 
 
 import com.rodiejacontable.database.jooq.SistemaVehicular;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoBodega;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoCarton;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoCondicion;
 import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoEstado;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoEstante;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoHorizontal;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoMalla;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoNivel;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoPared;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoPiso;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoPlastica;
+import com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoZona;
 import com.rodiejacontable.database.jooq.tables.records.VistaInventarioCompletoRecord;
 
 import java.math.BigDecimal;
-import java.util.function.Function;
+import java.time.LocalDateTime;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
-import org.jooq.Function20;
 import org.jooq.Name;
 import org.jooq.Record;
-import org.jooq.Records;
-import org.jooq.Row20;
 import org.jooq.Schema;
-import org.jooq.SelectField;
 import org.jooq.Table;
 import org.jooq.TableField;
 import org.jooq.TableOptions;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
+import org.jooq.types.UInteger;
 
 
 /**
@@ -66,6 +74,12 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
      * <code>sistema_vehicular.vista_inventario_completo.codigo_ubicacion</code>.
      */
     public final TableField<VistaInventarioCompletoRecord, String> CODIGO_UBICACION = createField(DSL.name("codigo_ubicacion"), SQLDataType.VARCHAR(100).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.imagen_url</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, String> IMAGEN_URL = createField(DSL.name("imagen_url"), SQLDataType.CLOB.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.CLOB)), this, "");
 
     /**
      * The column
@@ -117,9 +131,85 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
 
     /**
      * The column
+     * <code>sistema_vehicular.vista_inventario_completo.bodega</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoBodega> BODEGA = createField(DSL.name("bodega"), SQLDataType.VARCHAR(2).defaultValue(DSL.field(DSL.raw("'0-'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoBodega.class), this, "");
+
+    /**
+     * The column <code>sistema_vehicular.vista_inventario_completo.zona</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoZona> ZONA = createField(DSL.name("zona"), SQLDataType.VARCHAR(4).defaultValue(DSL.field(DSL.raw("'0-'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoZona.class), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.pared</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoPared> PARED = createField(DSL.name("pared"), SQLDataType.VARCHAR(3).defaultValue(DSL.field(DSL.raw("'0-'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoPared.class), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.malla</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoMalla> MALLA = createField(DSL.name("malla"), SQLDataType.VARCHAR(4).defaultValue(DSL.field(DSL.raw("'0-'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoMalla.class), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.horizontal</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoHorizontal> HORIZONTAL = createField(DSL.name("horizontal"), SQLDataType.VARCHAR(3).defaultValue(DSL.field(DSL.raw("'0-'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoHorizontal.class), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.estante</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoEstante> ESTANTE = createField(DSL.name("estante"), SQLDataType.VARCHAR(3).defaultValue(DSL.field(DSL.raw("'E1'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoEstante.class), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.nivel</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoNivel> NIVEL = createField(DSL.name("nivel"), SQLDataType.VARCHAR(4).defaultValue(DSL.field(DSL.raw("'0-'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoNivel.class), this, "");
+
+    /**
+     * The column <code>sistema_vehicular.vista_inventario_completo.piso</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoPiso> PISO = createField(DSL.name("piso"), SQLDataType.VARCHAR(4).defaultValue(DSL.field(DSL.raw("'P1-'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoPiso.class), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.plastica</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoPlastica> PLASTICA = createField(DSL.name("plastica"), SQLDataType.VARCHAR(5).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoPlastica.class), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.carton</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoCarton> CARTON = createField(DSL.name("carton"), SQLDataType.VARCHAR(5).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoCarton.class), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.posicion</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, String> POSICION = createField(DSL.name("posicion"), SQLDataType.VARCHAR(10).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.cantidad</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, UInteger> CANTIDAD = createField(DSL.name("cantidad"), SQLDataType.INTEGERUNSIGNED.nullable(false).defaultValue(DSL.field(DSL.raw("1"), SQLDataType.INTEGERUNSIGNED)), this, "");
+
+    /**
+     * The column
      * <code>sistema_vehicular.vista_inventario_completo.estado</code>.
      */
     public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoEstado> ESTADO = createField(DSL.name("estado"), SQLDataType.VARCHAR(13).defaultValue(DSL.field(DSL.raw("'STOCK'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoEstado.class), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.condicion</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, VistaInventarioCompletoCondicion> CONDICION = createField(DSL.name("condicion"), SQLDataType.VARCHAR(5).defaultValue(DSL.field(DSL.raw("'100%-'"), SQLDataType.VARCHAR)).asEnumDataType(com.rodiejacontable.database.jooq.enums.VistaInventarioCompletoCondicion.class), this, "");
 
     /**
      * The column
@@ -132,6 +222,24 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
      * <code>sistema_vehicular.vista_inventario_completo.mes_registro</code>.
      */
     public final TableField<VistaInventarioCompletoRecord, Byte> MES_REGISTRO = createField(DSL.name("mes_registro"), SQLDataType.TINYINT.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.TINYINT)), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.fecha_creacion</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.fecha_actualizacion</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.vista_inventario_completo.activo</code>.
+     */
+    public final TableField<VistaInventarioCompletoRecord, Byte> ACTIVO = createField(DSL.name("activo"), SQLDataType.TINYINT.defaultValue(DSL.field(DSL.raw("1"), SQLDataType.TINYINT)), this, "");
 
     /**
      * The column
@@ -174,7 +282,7 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
     }
 
     private VistaInventarioCompleto(Name alias, Table<VistaInventarioCompletoRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_inventario_completo` as select `ir`.`id` AS `id`,`ir`.`codigo_repuesto` AS `codigo_repuesto`,`ir`.`codigo_ubicacion` AS `codigo_ubicacion`,`ir`.`parte_Vehiculo_id` AS `parte_vehiculo_id`,`pv`.`nombre` AS `parte_vehiculo`,`ir`.`descripcion` AS `descripcion`,`ir`.`precio_costo` AS `precio_costo`,`ir`.`precio_venta` AS `precio_venta`,`ir`.`precio_mayoreo` AS `precio_mayoreo`,`ir`.`formula_15` AS `formula_15`,`ir`.`formula_30` AS `formula_30`,`ir`.`estado` AS `estado`,`ir`.`anio_registro` AS `anio_registro`,`ir`.`mes_registro` AS `mes_registro`,`v`.`codigo_vehiculo` AS `codigo_vehiculo`,`vvc`.`marca` AS `marca`,`vvc`.`modelo` AS `modelo`,`vvc`.`generacion` AS `generacion`,`vvc`.`anio` AS `anio_vehiculo`,`vvc`.`clave_generacion` AS `clave_generacion` from (((`sistema_vehicular`.`inventario_repuestos` `ir` left join `sistema_vehicular`.`vehiculos` `v` on(`ir`.`vehiculo_origen_id` = `v`.`id`)) left join `sistema_vehicular`.`parte_vehiculo` `pv` on(`ir`.`parte_Vehiculo_id` = `pv`.`id`)) left join `sistema_vehicular`.`vista_vehiculos_completa` `vvc` on(`v`.`id` = `vvc`.`id`))"));
+        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_inventario_completo` as select `ir`.`id` AS `id`,`ir`.`codigo_repuesto` AS `codigo_repuesto`,`ir`.`codigo_ubicacion` AS `codigo_ubicacion`,`ir`.`imagen_url` AS `imagen_url`,`ir`.`parte_Vehiculo_id` AS `parte_vehiculo_id`,`pv`.`nombre` AS `parte_vehiculo`,`ir`.`descripcion` AS `descripcion`,`ir`.`precio_costo` AS `precio_costo`,`ir`.`precio_venta` AS `precio_venta`,`ir`.`precio_mayoreo` AS `precio_mayoreo`,`ir`.`formula_15` AS `formula_15`,`ir`.`formula_30` AS `formula_30`,`ir`.`bodega` AS `bodega`,`ir`.`zona` AS `zona`,`ir`.`pared` AS `pared`,`ir`.`malla` AS `malla`,`ir`.`horizontal` AS `horizontal`,`ir`.`estante` AS `estante`,`ir`.`nivel` AS `nivel`,`ir`.`piso` AS `piso`,`ir`.`plastica` AS `plastica`,`ir`.`carton` AS `carton`,`ir`.`posicion` AS `posicion`,`ir`.`cantidad` AS `cantidad`,`ir`.`estado` AS `estado`,`ir`.`condicion` AS `condicion`,`ir`.`anio_registro` AS `anio_registro`,`ir`.`mes_registro` AS `mes_registro`,`ir`.`fecha_creacion` AS `fecha_creacion`,`ir`.`fecha_actualizacion` AS `fecha_actualizacion`,`ir`.`activo` AS `activo`,`v`.`codigo_vehiculo` AS `codigo_vehiculo`,`vvc`.`marca` AS `marca`,`vvc`.`modelo` AS `modelo`,`vvc`.`generacion` AS `generacion`,`vvc`.`anio` AS `anio_vehiculo`,`vvc`.`clave_generacion` AS `clave_generacion` from (((`sistema_vehicular`.`inventario_repuestos` `ir` left join `sistema_vehicular`.`vehiculos` `v` on(`ir`.`vehiculo_origen_id` = `v`.`id`)) left join `sistema_vehicular`.`parte_vehiculo` `pv` on(`ir`.`parte_Vehiculo_id` = `pv`.`id`)) left join `sistema_vehicular`.`vista_vehiculos_completa` `vvc` on(`v`.`id` = `vvc`.`id`))"));
     }
 
     /**
@@ -247,29 +355,5 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
     @Override
     public VistaInventarioCompleto rename(Table<?> name) {
         return new VistaInventarioCompleto(name.getQualifiedName(), null);
-    }
-
-    // -------------------------------------------------------------------------
-    // Row20 type methods
-    // -------------------------------------------------------------------------
-
-    @Override
-    public Row20<Integer, String, String, Integer, String, String, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, VistaInventarioCompletoEstado, Short, Byte, String, String, String, String, Integer, String> fieldsRow() {
-        return (Row20) super.fieldsRow();
-    }
-
-    /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
-     */
-    public <U> SelectField<U> mapping(Function20<? super Integer, ? super String, ? super String, ? super Integer, ? super String, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCompletoEstado, ? super Short, ? super Byte, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super String, ? extends U> from) {
-        return convertFrom(Records.mapping(from));
-    }
-
-    /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Class,
-     * Function)}.
-     */
-    public <U> SelectField<U> mapping(Class<U> toType, Function20<? super Integer, ? super String, ? super String, ? super Integer, ? super String, ? super String, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super VistaInventarioCompletoEstado, ? super Short, ? super Byte, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super String, ? extends U> from) {
-        return convertFrom(toType, Records.mapping(from));
     }
 }

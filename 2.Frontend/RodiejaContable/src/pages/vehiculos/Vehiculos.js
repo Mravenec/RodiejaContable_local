@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Card, Table, Button, Space, Typography, Input, Select, Tag, Spin, Row, Col } from 'antd';
+import { Card, Table, Button, Space, Typography, Input, Select, Tag, Spin, Row, Col, Image } from 'antd';
 import { SearchOutlined, PlusOutlined, ReloadOutlined, CarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useVehiculos } from '../../hooks/useVehiculos';
 import { formatCurrency } from '../../utils/formatters';
+import { formatImageUrl } from '../../utils/imageUtils';
 import { useAuth } from '../../context/AuthContext';
 import './vehiculos.css';
 
@@ -39,6 +40,39 @@ const Vehiculos = () => {
   };
 
   const columns = [
+    {
+      title: 'Imagen',
+      key: 'imagenUrl',
+      width: 100,
+      render: (_, record) => {
+        const url = record.imagenUrl || record.imagen_url;
+        return url ? (
+          <Image
+            width={60}
+            height={60}
+            src={formatImageUrl(url.split(',')[0])} // Toma la primera imagen si hay varias
+            alt="Vehículo"
+            style={{ objectFit: 'cover', borderRadius: '4px' }}
+            fallback="https://via.placeholder.com/60?text=Sin+imagen"
+          />
+        ) : (
+          <div style={{
+            width: 60,
+            height: 60,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#f0f0f0',
+            color: '#999',
+            fontSize: 10,
+            textAlign: 'center',
+            borderRadius: '4px'
+          }}>
+            Sin<br/>imagen
+          </div>
+        );
+      },
+    },
     {
       title: 'Código',
       dataIndex: 'codigoVehiculo',

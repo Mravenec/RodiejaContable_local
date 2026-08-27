@@ -35,4 +35,22 @@ public class FileUploadController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
+    @PostMapping("/repuesto")
+    public ResponseEntity<Map<String, String>> uploadRepuestoImage(@RequestParam("file") MultipartFile file) {
+        try {
+            String fileUrl = fileUploadService.guardarImagenRepuesto(file);
+            Map<String, String> response = new HashMap<>();
+            response.put("url", fileUrl);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (IOException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Error al procesar el archivo: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
 }

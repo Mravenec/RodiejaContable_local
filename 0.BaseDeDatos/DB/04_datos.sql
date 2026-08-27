@@ -116,7 +116,7 @@ INSERT INTO inventario_repuestos (
     'STOCK',                         -- estado
     '50%-',                          -- condicion (usado en buen estado)
     CURRENT_DATE(),                  -- fecha_creacion (triggers calculan año/mes)
-    'https://tu-cdn.com/repuestos/motor_civic_15t.jpg'  -- ✅ imagen_url
+    'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80'  -- ✅ imagen_url
 );
 
 SELECT * FROM inventario_repuestos; -- Ver códigos generados automáticos
@@ -320,7 +320,7 @@ CALL sp_insertar_repuesto_con_generacion_sin_vehiculo(
     70000.00, 110000.00, 95000.00,      -- p_precio_costo, p_precio_venta, p_precio_mayoreo
     'R-', 'Z2-', 'PN-', 'V10', 'E2', 'P3-', -- p_bodega, p_zona, p_pared, p_malla, p_estante, p_piso
     'STOCK', '100%-',                   -- p_estado, p_condicion
-    'https://tu-cdn.com/repuestos/bomba_corolla.jpg', -- p_imagen_url
+    'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400&q=80', -- p_imagen_url
     1                                   -- p_cantidad
 );
 -- Crea:
@@ -369,7 +369,7 @@ CALL sp_insertar_repuesto_con_generacion_sin_vehiculo(
     'P3-',            -- piso
     'STOCK',          -- estado inicial del repuesto
     '100%-',          -- condición del repuesto
-    'https://tu-cdn.com/repuestos/embrague_civic.jpg', -- p_imagen_url
+    'https://images.unsplash.com/photo-1579208030886-b937da0925dc?w=400&q=80', -- p_imagen_url
     1                 -- p_cantidad
 );
 
