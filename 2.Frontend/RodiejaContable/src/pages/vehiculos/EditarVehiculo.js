@@ -39,6 +39,7 @@ import { formatCurrency } from '../../utils/formatters';
 import api from '../../api/axios';
 import dayjs from 'dayjs';
 import ImageCarousel from '../../components/common/ImageCarousel';
+import { API_BASE_URL } from '../../api/config';
 
 
 // Servicio para repuestos
@@ -632,7 +633,7 @@ const EditarVehiculo = () => {
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <Upload
                           name="file"
-                          action="http://localhost:8080/api/upload/vehiculo"
+                          action={`${API_BASE_URL}/api/upload/vehiculo`}
                           headers={{
                             Authorization: `Bearer ${localStorage.getItem('token')}`
                           }}

@@ -13,10 +13,11 @@ import generacionesService from './generaciones';
 import partesVehiculoService from './partesVehiculo';
 import audatexService from './audatex';
 import geoService from './geo';
+import { API_BASE_URL } from './config';
 
 // Configuración global de axios
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: `${API_BASE_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },

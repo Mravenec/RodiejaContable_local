@@ -19,6 +19,7 @@ import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
 import { useGeo } from '../../hooks/useGeo';
 import CotizarDrawer from './CotizarDrawer';
+import { API_BASE_URL } from '../../api/config';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -266,7 +267,7 @@ const OportunidadesAudatex = () => {
 
     // 1. Carga instantánea desde BD (sin setOportunidades([]))
     try {
-      const getResponse = await fetch(`http://localhost:8080/api/audatex/oportunidades/sync?${params.toString()}`, {
+      const getResponse = await fetch(`${API_BASE_URL}/api/audatex/oportunidades/sync?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (getResponse.ok) {
@@ -290,7 +291,7 @@ const OportunidadesAudatex = () => {
     setStreaming(false);
 
     // 3. SSE para deltas (UPSERT / CERRADA) — en background, no bloquea la UI
-    const url = `http://localhost:8080/api/audatex/oportunidades/sync/stream`;
+    const url = `${API_BASE_URL}/api/audatex/oportunidades/sync/stream`;
 
     (async () => {
       try {

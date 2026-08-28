@@ -34,6 +34,7 @@ import { useModelos } from '../../hooks/useModelos';
 import { useGeneraciones } from '../../hooks/useGeneraciones';
 import { useVehiculosParaTransacciones } from '../../hooks/useVehiculosParaTransacciones';
 import { usePartesVehiculo } from '../../hooks/usePartesVehiculo';
+import { API_BASE_URL } from '../../api/config';
 import api from '../../api/axios';
 
 const { Title, Text } = Typography;
@@ -840,7 +841,7 @@ const NuevoRepuesto = () => {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <Upload
                       name="file"
-                      action="http://localhost:8080/api/upload/repuesto"
+                      action={`${API_BASE_URL}/api/upload/repuesto`}
                       headers={{
                         Authorization: `Bearer ${localStorage.getItem('token')}`
                       }}

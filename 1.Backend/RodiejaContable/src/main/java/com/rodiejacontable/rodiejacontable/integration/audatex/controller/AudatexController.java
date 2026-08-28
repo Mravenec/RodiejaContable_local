@@ -22,7 +22,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/audatex")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+        "https://contabilidad.tuprimernegocio.org"
+})
 public class AudatexController {
 
     private static final Logger log = LoggerFactory.getLogger(AudatexController.class);

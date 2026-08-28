@@ -15,7 +15,9 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/pagos-comisiones")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+        "https://contabilidad.tuprimernegocio.org"
+})
 public class PagosComisionesController {
 
     @Autowired

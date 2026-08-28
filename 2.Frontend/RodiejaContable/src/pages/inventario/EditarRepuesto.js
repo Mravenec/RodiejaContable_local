@@ -37,6 +37,7 @@ import { useVehiculosParaTransacciones } from '../../hooks/useVehiculosParaTrans
 import { useMarcas } from '../../hooks/useMarcas';
 import { useModelos } from '../../hooks/useModelos';
 import { useGeneraciones } from '../../hooks/useGeneraciones';
+import { API_BASE_URL } from '../../api/config';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -793,7 +794,7 @@ const EditarRepuesto = () => {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <Upload
                       name="file"
-                      action="http://localhost:8080/api/upload/repuesto"
+                      action={`${API_BASE_URL}/api/upload/repuesto`}
                       headers={{
                         Authorization: `Bearer ${localStorage.getItem('token')}`
                       }}

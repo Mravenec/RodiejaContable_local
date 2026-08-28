@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../api/config';
+
 export const formatImageUrl = (url) => {
   if (!url) return '';
   const trimmed = url.trim();
@@ -10,7 +12,7 @@ export const formatImageUrl = (url) => {
   
   // If it's a relative URL from our backend uploads, point to the backend server
   if (trimmed.startsWith('/uploads/')) {
-    return `http://localhost:8080${trimmed}`;
+    return `${API_BASE_URL}${trimmed}`;
   }
   
   return trimmed;
