@@ -74,17 +74,6 @@ class InventarioService {
     }
   }
 
-  // Get parts by vehicle
-  async getRepuestosPorVehiculo(vehiculoId) {
-    try {
-      const response = await api.get(`/inventario-repuestos/vehiculo/${vehiculoId}`);
-      return response.data.map(item => this._mapRepuesto(item));
-    } catch (error) {
-      console.error(`Error getting parts for vehicle ${vehiculoId}:`, error);
-      throw error;
-    }
-  }
-
   // Create new spare part (CON vehículo origen)
   async crearRepuesto(repuestoData) {
     try {

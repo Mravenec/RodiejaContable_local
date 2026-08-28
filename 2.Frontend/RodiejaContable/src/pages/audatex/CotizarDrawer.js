@@ -1,19 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Drawer, Table, Button, Select, InputNumber, message, Space, Typography, Tag, Switch, Card, Row, Col, Divider, Tooltip } from 'antd';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Drawer, Table, Button, Select, InputNumber, message, Space, Typography, Tag, Switch, Card, Row, Col, Tooltip } from 'antd';
 import { CarOutlined, SendOutlined, StopOutlined, CheckOutlined, TagOutlined, DollarOutlined, ToolOutlined, CalendarOutlined } from '@ant-design/icons';
 import { audatexService } from '../../api';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
 const TIPOS_PIEZA = ['Original', 'Genérica', 'Usada'];
-const RAZONES_NO_COTIZAR = [
-  'Sin existencias',
-  'No trabajamos la marca',
-  'Pieza descontinuada',
-  'No se vende por separado',
-  'Otro'
-];
 
 const normalizeString = (str) => {
   if (!str) return '';
@@ -25,14 +18,19 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
   const [submitting, setSubmitting] = useState(false);
 
   const mRepuesto = normalizeString(filtroRepuesto);
-  const repuestosFiltrados = (oportunidad?.repuestos || []).map((r, idx) => ({ ...r, originalIdx: idx })).filter(r => {
-    if (!mRepuesto) return true;
-    return normalizeString(r['Grupo Pieza']).includes(mRepuesto) || 
-           normalizeString(r['PartNumber']).includes(mRepuesto) || 
-           normalizeString(r['Part Serial Number']).includes(mRepuesto) || 
-           normalizeString(r['Descripcion Pieza']).includes(mRepuesto) ||
-           normalizeString(r.descripcion).includes(mRepuesto);
-  });
+  const repuestosFiltrados = useMemo(
+    () => (oportunidad?.repuestos || [])
+      .map((r, idx) => ({ ...r, originalIdx: idx }))
+      .filter(r => {
+        if (!mRepuesto) return true;
+        return normalizeString(r['Grupo Pieza']).includes(mRepuesto) ||
+               normalizeString(r['PartNumber']).includes(mRepuesto) ||
+               normalizeString(r['Part Serial Number']).includes(mRepuesto) ||
+               normalizeString(r['Descripcion Pieza']).includes(mRepuesto) ||
+               normalizeString(r.descripcion).includes(mRepuesto);
+      }),
+    [oportunidad, mRepuesto]
+  );
 
   useEffect(() => {
     if (visible && oportunidad) {
@@ -48,7 +46,7 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
       });
       setFormData(initialData);
     }
-  }, [visible, oportunidad]);
+  }, [visible, oportunidad, repuestosFiltrados]);
 
   const updateRow = (idx, field, value) => {
     setFormData(prev => {

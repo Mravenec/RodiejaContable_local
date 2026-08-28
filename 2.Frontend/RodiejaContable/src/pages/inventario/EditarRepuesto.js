@@ -60,7 +60,7 @@ const EditarRepuesto = () => {
 
   const queryClient = useQueryClient();
   const { data: partesVehiculo = [], isLoading: loadingPartes } = usePartesVehiculo();
-  const { data: vehiculosDesarmados = [], isLoading: loadingVehiculos } = useVehiculosParaTransacciones();
+  const { data: vehiculosDesarmados = [] } = useVehiculosParaTransacciones();
 
   // Estados para la cadena de selección (solo para repuestos genéricos)
   const [marcaSeleccionada, setMarcaSeleccionada] = useState(null);
