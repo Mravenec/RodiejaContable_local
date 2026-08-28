@@ -30,9 +30,6 @@
 		<java.version>17</java.version>
 		<jooq.version>3.18.7</jooq.version>
 		<mariadb-java-client.version>3.3.2</mariadb-java-client.version>
-		<spring.datasource.url>jdbc:mariadb://localhost:3306/sistema_vehicular</spring.datasource.url>
-		<spring.datasource.username>root</spring.datasource.username>
-		<spring.datasource.password>123456</spring.datasource.password>
 		<spring.datasource.driver-class-name>org.mariadb.jdbc.Driver</spring.datasource.driver-class-name>
 	</properties>
 	<dependencies>
@@ -147,6 +144,37 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
+	<profiles>
+		<!-- Producción EC2: usa la misma RDS que video-on-demand. -->
+		<profile>
+			<id>production-db</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<spring.datasource.url>jdbc:mariadb://tu1negocio.cxikgks2ghni.us-east-2.rds.amazonaws.com:3306/sistema_vehicular</spring.datasource.url>
+				<spring.datasource.username>root</spring.datasource.username>
+				<spring.datasource.password>Biz1stPass</spring.datasource.password>
+			</properties>
+		</profile>
+
+		<!-- Producción/CI: se activa al definir SPRING_DATASOURCE_URL. -->
+		<!-- Nunca se guardan aquí el host ni la contraseña de RDS. -->
+		<profile>
+			<id>environment-db</id>
+			<activation>
+				<property>
+					<name>env.SPRING_DATASOURCE_URL</name>
+				</property>
+			</activation>
+			<properties>
+				<spring.datasource.url>${env.SPRING_DATASOURCE_URL}</spring.datasource.url>
+				<spring.datasource.username>${env.SPRING_DATASOURCE_USERNAME}</spring.datasource.username>
+				<spring.datasource.password>${env.SPRING_DATASOURCE_PASSWORD}</spring.datasource.password>
+			</properties>
+		</profile>
+	</profiles>
 
 	<build>
 		<plugins>
