@@ -12,7 +12,7 @@ import java.time.LocalDate;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class VistaExcelVentasMesCompleta implements Serializable {
 
     private static final long serialVersionUID = 1L;
