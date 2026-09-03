@@ -61,6 +61,12 @@ public class VistaVehiculosCompleta extends TableImpl<VistaVehiculosCompletaReco
     public final TableField<VistaVehiculosCompletaRecord, String> CODIGO_VEHICULO = createField(DSL.name("codigo_vehiculo"), SQLDataType.VARCHAR(20).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.VARCHAR)), this, "");
 
     /**
+     * The column
+     * <code>sistema_vehicular.vista_vehiculos_completa.imagen_url</code>.
+     */
+    public final TableField<VistaVehiculosCompletaRecord, String> IMAGEN_URL = createField(DSL.name("imagen_url"), SQLDataType.CLOB.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.CLOB)), this, "");
+
+    /**
      * The column <code>sistema_vehicular.vista_vehiculos_completa.anio</code>.
      */
     public final TableField<VistaVehiculosCompletaRecord, Integer> ANIO = createField(DSL.name("anio"), SQLDataType.INTEGER.nullable(false), this, "");
@@ -193,13 +199,13 @@ public class VistaVehiculosCompleta extends TableImpl<VistaVehiculosCompletaReco
      * The column
      * <code>sistema_vehicular.vista_vehiculos_completa.total_ingresos_vehiculo</code>.
      */
-    public final TableField<VistaVehiculosCompletaRecord, BigDecimal> TOTAL_INGRESOS_VEHICULO = createField(DSL.name("total_ingresos_vehiculo"), SQLDataType.DECIMAL(34, 2).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.DECIMAL)), this, "");
+    public final TableField<VistaVehiculosCompletaRecord, BigDecimal> TOTAL_INGRESOS_VEHICULO = createField(DSL.name("total_ingresos_vehiculo"), SQLDataType.DECIMAL(34, 2).nullable(false).defaultValue(DSL.field(DSL.raw("0.00"), SQLDataType.DECIMAL)), this, "");
 
     /**
      * The column
      * <code>sistema_vehicular.vista_vehiculos_completa.total_egresos_vehiculo</code>.
      */
-    public final TableField<VistaVehiculosCompletaRecord, BigDecimal> TOTAL_EGRESOS_VEHICULO = createField(DSL.name("total_egresos_vehiculo"), SQLDataType.DECIMAL(34, 2).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.DECIMAL)), this, "");
+    public final TableField<VistaVehiculosCompletaRecord, BigDecimal> TOTAL_EGRESOS_VEHICULO = createField(DSL.name("total_egresos_vehiculo"), SQLDataType.DECIMAL(34, 2).nullable(false).defaultValue(DSL.field(DSL.raw("0.00"), SQLDataType.DECIMAL)), this, "");
 
     /**
      * The column
@@ -212,7 +218,7 @@ public class VistaVehiculosCompleta extends TableImpl<VistaVehiculosCompletaReco
     }
 
     private VistaVehiculosCompleta(Name alias, Table<VistaVehiculosCompletaRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_vehiculos_completa` as select `v`.`id` AS `id`,`v`.`codigo_vehiculo` AS `codigo_vehiculo`,`v`.`anio` AS `anio`,`v`.`precio_compra` AS `precio_compra`,`v`.`costo_grua` AS `costo_grua`,`v`.`comisiones` AS `comisiones`,`v`.`inversion_total` AS `inversion_total`,`v`.`precio_venta` AS `precio_venta`,`v`.`fecha_ingreso` AS `fecha_ingreso`,`v`.`fecha_venta` AS `fecha_venta`,`v`.`estado` AS `estado`,`v`.`activo` AS `activo`,`v`.`notas` AS `notas`,`v`.`traccion` AS `traccion`,`v`.`transmision` AS `transmision`,`v`.`combustible` AS `combustible`,`v`.`cilindraje` AS `cilindraje`,`m`.`nombre` AS `marca`,`mo`.`nombre` AS `modelo`,`g`.`nombre` AS `generacion`,`g`.`descripcion` AS `generacion_descripcion`,`g`.`anio_inicio` AS `anio_inicio`,`g`.`anio_fin` AS `anio_fin`,concat(`m`.`nombre`,'-',`mo`.`nombre`,'-',`g`.`nombre`) AS `clave_generacion`,coalesce(`ingresos`.`total_ingresos`,0) AS `total_ingresos_vehiculo`,coalesce(`egresos`.`total_egresos`,0) AS `total_egresos_vehiculo`,coalesce(`ingresos`.`total_ingresos`,0) - coalesce(`egresos`.`total_egresos`,0) - `v`.`inversion_total` AS `balance_neto_vehiculo` from (((((`sistema_vehicular`.`vehiculos` `v` join `sistema_vehicular`.`generaciones` `g` on(`v`.`generacion_id` = `g`.`id`)) join `sistema_vehicular`.`modelos` `mo` on(`g`.`modelo_id` = `mo`.`id`)) join `sistema_vehicular`.`marcas` `m` on(`mo`.`marca_id` = `m`.`id`)) left join (select `tf`.`vehiculo_id` AS `vehiculo_id`,sum(`tf`.`monto`) AS `total_ingresos` from (`sistema_vehicular`.`transacciones_financieras` `tf` join `sistema_vehicular`.`tipos_transacciones` `tt` on(`tf`.`tipo_transaccion_id` = `tt`.`id`)) where `tf`.`activo` = 1 and `tt`.`categoria` = 'INGRESO' and `tf`.`vehiculo_id` is not null group by `tf`.`vehiculo_id`) `ingresos` on(`v`.`id` = `ingresos`.`vehiculo_id`)) left join (select `tf`.`vehiculo_id` AS `vehiculo_id`,sum(`tf`.`monto`) AS `total_egresos` from (`sistema_vehicular`.`transacciones_financieras` `tf` join `sistema_vehicular`.`tipos_transacciones` `tt` on(`tf`.`tipo_transaccion_id` = `tt`.`id`)) where `tf`.`activo` = 1 and `tt`.`categoria` = 'EGRESO' and `tf`.`vehiculo_id` is not null group by `tf`.`vehiculo_id`) `egresos` on(`v`.`id` = `egresos`.`vehiculo_id`))"));
+        super(alias, null, aliased, parameters, DSL.comment("VIEW"), TableOptions.view("create view `vista_vehiculos_completa` as select `v`.`id` AS `id`,`v`.`codigo_vehiculo` AS `codigo_vehiculo`,`v`.`imagen_url` AS `imagen_url`,`v`.`anio` AS `anio`,`v`.`precio_compra` AS `precio_compra`,`v`.`costo_grua` AS `costo_grua`,`v`.`comisiones` AS `comisiones`,`v`.`inversion_total` AS `inversion_total`,`v`.`precio_venta` AS `precio_venta`,`v`.`fecha_ingreso` AS `fecha_ingreso`,`v`.`fecha_venta` AS `fecha_venta`,`v`.`estado` AS `estado`,`v`.`activo` AS `activo`,`v`.`notas` AS `notas`,`v`.`traccion` AS `traccion`,`v`.`transmision` AS `transmision`,`v`.`combustible` AS `combustible`,`v`.`cilindraje` AS `cilindraje`,`m`.`nombre` AS `marca`,`mo`.`nombre` AS `modelo`,`g`.`nombre` AS `generacion`,`g`.`descripcion` AS `generacion_descripcion`,`g`.`anio_inicio` AS `anio_inicio`,`g`.`anio_fin` AS `anio_fin`,concat(`m`.`nombre`,'-',`mo`.`nombre`,'-',`g`.`nombre`) AS `clave_generacion`,coalesce(`ingresos`.`total_ingresos`,0) AS `total_ingresos_vehiculo`,coalesce(`egresos`.`total_egresos`,0) AS `total_egresos_vehiculo`,coalesce(`ingresos`.`total_ingresos`,0) - coalesce(`egresos`.`total_egresos`,0) - `v`.`inversion_total` AS `balance_neto_vehiculo` from (((((`sistema_vehicular`.`vehiculos` `v` join `sistema_vehicular`.`generaciones` `g` on(`v`.`generacion_id` = `g`.`id`)) join `sistema_vehicular`.`modelos` `mo` on(`g`.`modelo_id` = `mo`.`id`)) join `sistema_vehicular`.`marcas` `m` on(`mo`.`marca_id` = `m`.`id`)) left join (select `tf`.`vehiculo_id` AS `vehiculo_id`,sum(`tf`.`monto`) AS `total_ingresos` from (`sistema_vehicular`.`transacciones_financieras` `tf` join `sistema_vehicular`.`tipos_transacciones` `tt` on(`tf`.`tipo_transaccion_id` = `tt`.`id`)) where `tf`.`activo` = 1 and `tt`.`categoria` = 'INGRESO' and `tf`.`vehiculo_id` is not null group by `tf`.`vehiculo_id`) `ingresos` on(`v`.`id` = `ingresos`.`vehiculo_id`)) left join (select `tf`.`vehiculo_id` AS `vehiculo_id`,sum(`tf`.`monto`) AS `total_egresos` from (`sistema_vehicular`.`transacciones_financieras` `tf` join `sistema_vehicular`.`tipos_transacciones` `tt` on(`tf`.`tipo_transaccion_id` = `tt`.`id`)) where `tf`.`activo` = 1 and `tt`.`categoria` = 'EGRESO' and `tf`.`vehiculo_id` is not null group by `tf`.`vehiculo_id`) `egresos` on(`v`.`id` = `egresos`.`vehiculo_id`))"));
     }
 
     /**

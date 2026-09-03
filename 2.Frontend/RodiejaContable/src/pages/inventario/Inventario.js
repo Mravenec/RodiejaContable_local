@@ -32,6 +32,7 @@ import InventarioService from '../../api/inventario';
 import { usePartesVehiculo } from '../../hooks/usePartesVehiculo';
 import { audatexService } from '../../api';
 import { useRepuesto } from '../../hooks/useInventario';
+import { formatImageUrl } from '../../utils/imageUtils';
 
 const StockCell = ({ record }) => {
   const { data: repuesto, isLoading } = useRepuesto(record.id);
@@ -182,7 +183,7 @@ const Inventario = () => {
           <Image
             width={50}
             height={50}
-            src={imagenUrl}
+            src={formatImageUrl(imagenUrl)}
             alt="Imagen del repuesto"
             style={{ objectFit: 'cover' }}
             fallback="https://via.placeholder.com/50?text=Sin+imagen"

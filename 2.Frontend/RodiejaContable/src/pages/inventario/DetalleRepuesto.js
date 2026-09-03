@@ -11,7 +11,6 @@ import {
   Row, 
   Col, 
   Statistic,
-  Image,
   message,
   Table
 } from 'antd';
@@ -26,6 +25,7 @@ import vehiculoService from '../../api/vehiculos';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import { audatexService } from '../../api';
 import ModalCotizarInPart from '../../components/audatex/ModalCotizarInPart';
+import ImageCarousel from '../../components/common/ImageCarousel';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -258,14 +258,13 @@ const DetalleRepuesto = () => {
             <Row gutter={[24, 24]}>
               <Col xs={24} md={8}>
                 <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                  <Image
-                    width={200}
-                    src={repuesto.imagenUrl}
+                  <ImageCarousel
+                    imageUrlString={repuesto.imagenUrl || ''}
                     alt={repuesto.descripcion}
-                    fallback="https://via.placeholder.com/200?text=Sin+imagen"
+                    width="100%"
+                    height="auto"
                     style={{ 
                       maxWidth: '100%',
-                      height: 'auto',
                       borderRadius: 8,
                       border: '1px solid #f0f0f0'
                     }}

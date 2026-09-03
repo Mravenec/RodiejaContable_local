@@ -57,10 +57,27 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
     }
 
     /**
+     * Setter for
+     * <code>sistema_vehicular.vista_vehiculos_completa.imagen_url</code>.
+     */
+    public VistaVehiculosCompletaRecord setImagenUrl(String value) {
+        set(2, value);
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.vista_vehiculos_completa.imagen_url</code>.
+     */
+    public String getImagenUrl() {
+        return (String) get(2);
+    }
+
+    /**
      * Setter for <code>sistema_vehicular.vista_vehiculos_completa.anio</code>.
      */
     public VistaVehiculosCompletaRecord setAnio(Integer value) {
-        set(2, value);
+        set(3, value);
         return this;
     }
 
@@ -68,7 +85,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * Getter for <code>sistema_vehicular.vista_vehiculos_completa.anio</code>.
      */
     public Integer getAnio() {
-        return (Integer) get(2);
+        return (Integer) get(3);
     }
 
     /**
@@ -76,7 +93,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.precio_compra</code>.
      */
     public VistaVehiculosCompletaRecord setPrecioCompra(BigDecimal value) {
-        set(3, value);
+        set(4, value);
         return this;
     }
 
@@ -85,7 +102,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.precio_compra</code>.
      */
     public BigDecimal getPrecioCompra() {
-        return (BigDecimal) get(3);
+        return (BigDecimal) get(4);
     }
 
     /**
@@ -93,7 +110,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.costo_grua</code>.
      */
     public VistaVehiculosCompletaRecord setCostoGrua(BigDecimal value) {
-        set(4, value);
+        set(5, value);
         return this;
     }
 
@@ -102,7 +119,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.costo_grua</code>.
      */
     public BigDecimal getCostoGrua() {
-        return (BigDecimal) get(4);
+        return (BigDecimal) get(5);
     }
 
     /**
@@ -110,7 +127,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.comisiones</code>.
      */
     public VistaVehiculosCompletaRecord setComisiones(BigDecimal value) {
-        set(5, value);
+        set(6, value);
         return this;
     }
 
@@ -119,7 +136,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.comisiones</code>.
      */
     public BigDecimal getComisiones() {
-        return (BigDecimal) get(5);
+        return (BigDecimal) get(6);
     }
 
     /**
@@ -127,7 +144,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.inversion_total</code>.
      */
     public VistaVehiculosCompletaRecord setInversionTotal(BigDecimal value) {
-        set(6, value);
+        set(7, value);
         return this;
     }
 
@@ -136,7 +153,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.inversion_total</code>.
      */
     public BigDecimal getInversionTotal() {
-        return (BigDecimal) get(6);
+        return (BigDecimal) get(7);
     }
 
     /**
@@ -144,7 +161,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.precio_venta</code>.
      */
     public VistaVehiculosCompletaRecord setPrecioVenta(BigDecimal value) {
-        set(7, value);
+        set(8, value);
         return this;
     }
 
@@ -153,7 +170,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.precio_venta</code>.
      */
     public BigDecimal getPrecioVenta() {
-        return (BigDecimal) get(7);
+        return (BigDecimal) get(8);
     }
 
     /**
@@ -161,7 +178,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.fecha_ingreso</code>.
      */
     public VistaVehiculosCompletaRecord setFechaIngreso(LocalDate value) {
-        set(8, value);
+        set(9, value);
         return this;
     }
 
@@ -170,7 +187,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.fecha_ingreso</code>.
      */
     public LocalDate getFechaIngreso() {
-        return (LocalDate) get(8);
+        return (LocalDate) get(9);
     }
 
     /**
@@ -178,7 +195,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.fecha_venta</code>.
      */
     public VistaVehiculosCompletaRecord setFechaVenta(LocalDate value) {
-        set(9, value);
+        set(10, value);
         return this;
     }
 
@@ -187,7 +204,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.fecha_venta</code>.
      */
     public LocalDate getFechaVenta() {
-        return (LocalDate) get(9);
+        return (LocalDate) get(10);
     }
 
     /**
@@ -195,7 +212,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.estado</code>.
      */
     public VistaVehiculosCompletaRecord setEstado(VistaVehiculosCompletaEstado value) {
-        set(10, value);
+        set(11, value);
         return this;
     }
 
@@ -204,7 +221,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.estado</code>.
      */
     public VistaVehiculosCompletaEstado getEstado() {
-        return (VistaVehiculosCompletaEstado) get(10);
+        return (VistaVehiculosCompletaEstado) get(11);
     }
 
     /**
@@ -212,7 +229,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.activo</code>.
      */
     public VistaVehiculosCompletaRecord setActivo(Byte value) {
-        set(11, value);
+        set(12, value);
         return this;
     }
 
@@ -221,14 +238,14 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.activo</code>.
      */
     public Byte getActivo() {
-        return (Byte) get(11);
+        return (Byte) get(12);
     }
 
     /**
      * Setter for <code>sistema_vehicular.vista_vehiculos_completa.notas</code>.
      */
     public VistaVehiculosCompletaRecord setNotas(String value) {
-        set(12, value);
+        set(13, value);
         return this;
     }
 
@@ -236,7 +253,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * Getter for <code>sistema_vehicular.vista_vehiculos_completa.notas</code>.
      */
     public String getNotas() {
-        return (String) get(12);
+        return (String) get(13);
     }
 
     /**
@@ -244,7 +261,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.traccion</code>.
      */
     public VistaVehiculosCompletaRecord setTraccion(VistaVehiculosCompletaTraccion value) {
-        set(13, value);
+        set(14, value);
         return this;
     }
 
@@ -253,7 +270,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.traccion</code>.
      */
     public VistaVehiculosCompletaTraccion getTraccion() {
-        return (VistaVehiculosCompletaTraccion) get(13);
+        return (VistaVehiculosCompletaTraccion) get(14);
     }
 
     /**
@@ -261,7 +278,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.transmision</code>.
      */
     public VistaVehiculosCompletaRecord setTransmision(VistaVehiculosCompletaTransmision value) {
-        set(14, value);
+        set(15, value);
         return this;
     }
 
@@ -270,7 +287,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.transmision</code>.
      */
     public VistaVehiculosCompletaTransmision getTransmision() {
-        return (VistaVehiculosCompletaTransmision) get(14);
+        return (VistaVehiculosCompletaTransmision) get(15);
     }
 
     /**
@@ -278,7 +295,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.combustible</code>.
      */
     public VistaVehiculosCompletaRecord setCombustible(VistaVehiculosCompletaCombustible value) {
-        set(15, value);
+        set(16, value);
         return this;
     }
 
@@ -287,7 +304,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.combustible</code>.
      */
     public VistaVehiculosCompletaCombustible getCombustible() {
-        return (VistaVehiculosCompletaCombustible) get(15);
+        return (VistaVehiculosCompletaCombustible) get(16);
     }
 
     /**
@@ -295,7 +312,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.cilindraje</code>.
      */
     public VistaVehiculosCompletaRecord setCilindraje(String value) {
-        set(16, value);
+        set(17, value);
         return this;
     }
 
@@ -304,14 +321,14 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.cilindraje</code>.
      */
     public String getCilindraje() {
-        return (String) get(16);
+        return (String) get(17);
     }
 
     /**
      * Setter for <code>sistema_vehicular.vista_vehiculos_completa.marca</code>.
      */
     public VistaVehiculosCompletaRecord setMarca(String value) {
-        set(17, value);
+        set(18, value);
         return this;
     }
 
@@ -319,7 +336,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * Getter for <code>sistema_vehicular.vista_vehiculos_completa.marca</code>.
      */
     public String getMarca() {
-        return (String) get(17);
+        return (String) get(18);
     }
 
     /**
@@ -327,7 +344,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.modelo</code>.
      */
     public VistaVehiculosCompletaRecord setModelo(String value) {
-        set(18, value);
+        set(19, value);
         return this;
     }
 
@@ -336,7 +353,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.modelo</code>.
      */
     public String getModelo() {
-        return (String) get(18);
+        return (String) get(19);
     }
 
     /**
@@ -344,7 +361,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.generacion</code>.
      */
     public VistaVehiculosCompletaRecord setGeneracion(String value) {
-        set(19, value);
+        set(20, value);
         return this;
     }
 
@@ -353,7 +370,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.generacion</code>.
      */
     public String getGeneracion() {
-        return (String) get(19);
+        return (String) get(20);
     }
 
     /**
@@ -361,7 +378,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.generacion_descripcion</code>.
      */
     public VistaVehiculosCompletaRecord setGeneracionDescripcion(String value) {
-        set(20, value);
+        set(21, value);
         return this;
     }
 
@@ -370,7 +387,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.generacion_descripcion</code>.
      */
     public String getGeneracionDescripcion() {
-        return (String) get(20);
+        return (String) get(21);
     }
 
     /**
@@ -378,7 +395,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.anio_inicio</code>.
      */
     public VistaVehiculosCompletaRecord setAnioInicio(Integer value) {
-        set(21, value);
+        set(22, value);
         return this;
     }
 
@@ -387,7 +404,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.anio_inicio</code>.
      */
     public Integer getAnioInicio() {
-        return (Integer) get(21);
+        return (Integer) get(22);
     }
 
     /**
@@ -395,7 +412,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.anio_fin</code>.
      */
     public VistaVehiculosCompletaRecord setAnioFin(Integer value) {
-        set(22, value);
+        set(23, value);
         return this;
     }
 
@@ -404,7 +421,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.anio_fin</code>.
      */
     public Integer getAnioFin() {
-        return (Integer) get(22);
+        return (Integer) get(23);
     }
 
     /**
@@ -412,7 +429,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.clave_generacion</code>.
      */
     public VistaVehiculosCompletaRecord setClaveGeneracion(String value) {
-        set(23, value);
+        set(24, value);
         return this;
     }
 
@@ -421,7 +438,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.clave_generacion</code>.
      */
     public String getClaveGeneracion() {
-        return (String) get(23);
+        return (String) get(24);
     }
 
     /**
@@ -429,7 +446,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.total_ingresos_vehiculo</code>.
      */
     public VistaVehiculosCompletaRecord setTotalIngresosVehiculo(BigDecimal value) {
-        set(24, value);
+        set(25, value);
         return this;
     }
 
@@ -438,7 +455,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.total_ingresos_vehiculo</code>.
      */
     public BigDecimal getTotalIngresosVehiculo() {
-        return (BigDecimal) get(24);
+        return (BigDecimal) get(25);
     }
 
     /**
@@ -446,7 +463,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.total_egresos_vehiculo</code>.
      */
     public VistaVehiculosCompletaRecord setTotalEgresosVehiculo(BigDecimal value) {
-        set(25, value);
+        set(26, value);
         return this;
     }
 
@@ -455,7 +472,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.total_egresos_vehiculo</code>.
      */
     public BigDecimal getTotalEgresosVehiculo() {
-        return (BigDecimal) get(25);
+        return (BigDecimal) get(26);
     }
 
     /**
@@ -463,7 +480,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.balance_neto_vehiculo</code>.
      */
     public VistaVehiculosCompletaRecord setBalanceNetoVehiculo(BigDecimal value) {
-        set(26, value);
+        set(27, value);
         return this;
     }
 
@@ -472,7 +489,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
      * <code>sistema_vehicular.vista_vehiculos_completa.balance_neto_vehiculo</code>.
      */
     public BigDecimal getBalanceNetoVehiculo() {
-        return (BigDecimal) get(26);
+        return (BigDecimal) get(27);
     }
 
     // -------------------------------------------------------------------------
@@ -489,11 +506,12 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
     /**
      * Create a detached, initialised VistaVehiculosCompletaRecord
      */
-    public VistaVehiculosCompletaRecord(Integer id, String codigoVehiculo, Integer anio, BigDecimal precioCompra, BigDecimal costoGrua, BigDecimal comisiones, BigDecimal inversionTotal, BigDecimal precioVenta, LocalDate fechaIngreso, LocalDate fechaVenta, VistaVehiculosCompletaEstado estado, Byte activo, String notas, VistaVehiculosCompletaTraccion traccion, VistaVehiculosCompletaTransmision transmision, VistaVehiculosCompletaCombustible combustible, String cilindraje, String marca, String modelo, String generacion, String generacionDescripcion, Integer anioInicio, Integer anioFin, String claveGeneracion, BigDecimal totalIngresosVehiculo, BigDecimal totalEgresosVehiculo, BigDecimal balanceNetoVehiculo) {
+    public VistaVehiculosCompletaRecord(Integer id, String codigoVehiculo, String imagenUrl, Integer anio, BigDecimal precioCompra, BigDecimal costoGrua, BigDecimal comisiones, BigDecimal inversionTotal, BigDecimal precioVenta, LocalDate fechaIngreso, LocalDate fechaVenta, VistaVehiculosCompletaEstado estado, Byte activo, String notas, VistaVehiculosCompletaTraccion traccion, VistaVehiculosCompletaTransmision transmision, VistaVehiculosCompletaCombustible combustible, String cilindraje, String marca, String modelo, String generacion, String generacionDescripcion, Integer anioInicio, Integer anioFin, String claveGeneracion, BigDecimal totalIngresosVehiculo, BigDecimal totalEgresosVehiculo, BigDecimal balanceNetoVehiculo) {
         super(VistaVehiculosCompleta.VISTA_VEHICULOS_COMPLETA);
 
         setId(id);
         setCodigoVehiculo(codigoVehiculo);
+        setImagenUrl(imagenUrl);
         setAnio(anio);
         setPrecioCompra(precioCompra);
         setCostoGrua(costoGrua);
@@ -531,6 +549,7 @@ public class VistaVehiculosCompletaRecord extends TableRecordImpl<VistaVehiculos
         if (value != null) {
             setId(value.getId());
             setCodigoVehiculo(value.getCodigoVehiculo());
+            setImagenUrl(value.getImagenUrl());
             setAnio(value.getAnio());
             setPrecioCompra(value.getPrecioCompra());
             setCostoGrua(value.getCostoGrua());

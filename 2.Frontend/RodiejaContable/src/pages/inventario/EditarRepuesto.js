@@ -15,7 +15,9 @@ import {
   Divider,
   Tag,
   Spin,
-  Checkbox
+  Checkbox,
+  Upload,
+  Space
 } from 'antd';
 import {
   SaveOutlined,
@@ -23,7 +25,9 @@ import {
   PlusOutlined,
   CheckOutlined,
   CloseOutlined,
-  EditOutlined
+  EditOutlined,
+  UploadOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import InventarioService from '../../api/inventario';
 import vehiculoService from '../../api/vehiculos';
@@ -48,6 +52,7 @@ const EditarRepuesto = () => {
   const [repuestoActual, setRepuestoActual] = useState(null);
   const [vehiculoOrigen, setVehiculoOrigen] = useState(null);
   const [ubicacionFisicaHabilitada, setUbicacionFisicaHabilitada] = useState(false);
+  const [imagenUrlValue, setImagenUrlValue] = useState(null);
 
   const [precioCostoUnitario, setPrecioCostoUnitario] = useState(0);
   const [cantidad, setCantidad] = useState(1);
@@ -334,6 +339,7 @@ const EditarRepuesto = () => {
         if (!data) throw new Error("No se encontraron los datos del repuesto");
 
         setRepuestoActual(data);
+        setImagenUrlValue(data.imagenUrl || null);
 
         // Si pertenece a un vehículo, obtener sus datos
         if (data.vehiculoOrigenId) {
@@ -527,7 +533,7 @@ const EditarRepuesto = () => {
         plastica: ubicacionFisicaHabilitada ? values.plastica : null,
         carton: ubicacionFisicaHabilitada ? values.carton : null,
         posicion: ubicacionFisicaHabilitada ? values.posicion : null,
-        imagenUrl: values.imagen_url || null
+        imagenUrl: values.imagen_url || imagenUrlValue || null
       };
 
       await InventarioService.actualizarRepuesto(id, payload);
@@ -782,8 +788,54 @@ const EditarRepuesto = () => {
                 <TextArea rows={3} placeholder="Descripción detallada del repuesto" />
               </Form.Item>
 
-              <Form.Item name="imagen_url" label="URL de Imagen (Opcional)">
-                <Input placeholder="https://ejemplo.com/imagen.jpg" />
+              <Form.Item label="Foto del repuesto (Subir o URL)">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Upload
+                      name="file"
+                      action="http://localhost:8080/api/upload/repuesto"
+                      headers={{
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                      }}
+                      listType="picture"
+                      maxCount={1}
+                      showUploadList={false}
+                      style={{ flex: 1 }}
+                      onChange={(info) => {
+                        if (info.file.status === 'done') {
+                          message.success(`${info.file.name} subido exitosamente`);
+                          const serverUrl = info.file.response.url;
+                          form.setFieldsValue({ imagen_url: serverUrl });
+                          setImagenUrlValue(serverUrl);
+                        } else if (info.file.status === 'error') {
+                          message.error(`${info.file.name} falló al subir.`);
+                        }
+                      }}
+                    >
+                      <Button icon={<UploadOutlined />} style={{ width: '100%' }}>Seleccionar archivo</Button>
+                    </Upload>
+                    <Button 
+                      icon={<DeleteOutlined />} 
+                      danger
+                      title="Limpiar imagen"
+                      onClick={() => {
+                        form.setFieldsValue({ imagen_url: '' });
+                        setImagenUrlValue('');
+                      }}
+                      disabled={!imagenUrlValue}
+                    />
+                  </div>
+                  <Form.Item 
+                    name="imagen_url" 
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input 
+                      placeholder="https://ejemplo.com/imagen.jpg o ruta local" 
+                      allowClear 
+                      onChange={(e) => setImagenUrlValue(e.target.value)}
+                    />
+                  </Form.Item>
+                </Space>
               </Form.Item>
 
               {esGenerico && (
