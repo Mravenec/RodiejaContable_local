@@ -71,7 +71,7 @@ public class ParteVehiculo extends TableImpl<ParteVehiculoRecord> {
     /**
      * The column <code>sistema_vehicular.parte_vehiculo.fecha_creacion</code>.
      */
-    public final TableField<ParteVehiculoRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<ParteVehiculoRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     private ParteVehiculo(Name alias, Table<ParteVehiculoRecord> aliased) {
         this(alias, aliased, null);

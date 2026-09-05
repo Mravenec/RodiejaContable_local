@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Typography, Tabs, Image, Tag, Spin, message, Row, Col, Divider } from 'antd';
+import { Card, Button, Typography, Tabs, Tag, Spin, message, Row, Col, Divider } from 'antd';
 import { 
   ArrowLeftOutlined, 
   EditOutlined, 
@@ -342,7 +342,7 @@ const VehiculoDetalle = () => {
       loadTransactions(vehiculo.id);
       loadRepuestos(vehiculo.id);
     }
-  }, [vehiculo?.id]);
+  }, [vehiculo?.id, loadTransactions, loadRepuestos]);
 
   // ROD-22: Cargar oportunidades cuando se cargan los repuestos
   useEffect(() => {

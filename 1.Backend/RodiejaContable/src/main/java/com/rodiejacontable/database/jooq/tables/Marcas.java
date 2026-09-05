@@ -71,7 +71,7 @@ public class Marcas extends TableImpl<MarcasRecord> {
     /**
      * The column <code>sistema_vehicular.marcas.fecha_creacion</code>.
      */
-    public final TableField<MarcasRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<MarcasRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     private Marcas(Name alias, Table<MarcasRecord> aliased) {
         this(alias, aliased, null);

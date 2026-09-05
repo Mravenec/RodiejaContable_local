@@ -71,7 +71,7 @@ public class Empleados extends TableImpl<EmpleadosRecord> {
     /**
      * The column <code>sistema_vehicular.empleados.fecha_creacion</code>.
      */
-    public final TableField<EmpleadosRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<EmpleadosRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     private Empleados(Name alias, Table<EmpleadosRecord> aliased) {
         this(alias, aliased, null);

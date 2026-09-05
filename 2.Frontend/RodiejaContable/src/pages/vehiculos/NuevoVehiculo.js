@@ -34,6 +34,7 @@ import { useMarcas } from '../../hooks/useMarcas';
 import { useModelos } from '../../hooks/useModelos';
 import { useGeneraciones } from '../../hooks/useGeneraciones';
 import { useCreateVehiculo, useUpdateVehiculo, useVehiculo } from '../../hooks/useVehiculos';
+import { API_BASE_URL } from '../../api/config';
 
 const { Title, Text } = Typography;
 const { Step } = Steps;
@@ -1624,7 +1625,7 @@ const NuevoVehiculo = ({ editMode = false }) => {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <Upload
                   name="file"
-                  action="http://localhost:8080/api/upload/vehiculo"
+                  action={`${API_BASE_URL}/api/upload/vehiculo`}
                   headers={{
                     Authorization: `Bearer ${localStorage.getItem('token')}`
                   }}

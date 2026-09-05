@@ -110,7 +110,7 @@ public class VistaResumenPagosComisiones extends TableImpl<VistaResumenPagosComi
      * The column
      * <code>sistema_vehicular.vista_resumen_pagos_comisiones.fecha_registro</code>.
      */
-    public final TableField<VistaResumenPagosComisionesRecord, LocalDateTime> FECHA_REGISTRO = createField(DSL.name("fecha_registro"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<VistaResumenPagosComisionesRecord, LocalDateTime> FECHA_REGISTRO = createField(DSL.name("fecha_registro"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column

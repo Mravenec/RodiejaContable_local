@@ -1,4 +1,5 @@
 import axios from './axios';
+import { API_BASE_URL } from './config';
 
 export const audatexAPI = {
   // Obtener todas las oportunidades activas, opcionalmente filtradas
@@ -54,7 +55,7 @@ export const audatexAPI = {
   // Obtener exportación Excel XLSX
   exportarExcelUrl: (params) => {
     const query = new URLSearchParams(params).toString();
-    return `http://localhost:8080/api/audatex/oportunidades/export${query ? '?' + query : ''}`;
+    return `${API_BASE_URL}/api/audatex/oportunidades/export${query ? '?' + query : ''}`;
   },
 
   // Descargar exportación Excel XLSX como blob

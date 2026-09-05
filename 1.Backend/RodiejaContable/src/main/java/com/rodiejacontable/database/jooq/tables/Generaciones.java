@@ -114,7 +114,7 @@ public class Generaciones extends TableImpl<GeneracionesRecord> {
     /**
      * The column <code>sistema_vehicular.generaciones.fecha_creacion</code>.
      */
-    public final TableField<GeneracionesRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<GeneracionesRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     private Generaciones(Name alias, Table<GeneracionesRecord> aliased) {
         this(alias, aliased, null);

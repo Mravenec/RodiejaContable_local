@@ -164,12 +164,12 @@ public class Vehiculos extends TableImpl<VehiculosRecord> {
     /**
      * The column <code>sistema_vehicular.vehiculos.fecha_creacion</code>.
      */
-    public final TableField<VehiculosRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<VehiculosRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column <code>sistema_vehicular.vehiculos.fecha_actualizacion</code>.
      */
-    public final TableField<VehiculosRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<VehiculosRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     private Vehiculos(Name alias, Table<VehiculosRecord> aliased) {
         this(alias, aliased, null);

@@ -229,13 +229,13 @@ public class InventarioRepuestos extends TableImpl<InventarioRepuestosRecord> {
      * The column
      * <code>sistema_vehicular.inventario_repuestos.fecha_creacion</code>.
      */
-    public final TableField<InventarioRepuestosRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<InventarioRepuestosRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column
      * <code>sistema_vehicular.inventario_repuestos.fecha_actualizacion</code>.
      */
-    public final TableField<InventarioRepuestosRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<InventarioRepuestosRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column <code>sistema_vehicular.inventario_repuestos.activo</code>.

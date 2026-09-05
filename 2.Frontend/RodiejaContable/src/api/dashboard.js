@@ -248,7 +248,7 @@ class DashboardService {
   async getVentasMensuales() {
     try {
       // Estos son los controles que deben funcionar según el archivo .http:
-      // GET http://localhost:8080/api/analisis-financiero
+      // GET /api/analisis-financiero
       const response = await api.get('/analisis-financiero');
       return response.data;
     } catch (error) {
@@ -262,7 +262,7 @@ class DashboardService {
     console.log('=== INICIANDO getComisionesVendedores ===');
     try {
       // Estos son los controles que deben funcionar según el archivo .http:
-      // GET http://localhost:8080/api/v1/ventas-empleados
+      // GET /api/v1/ventas-empleados
       console.log('Fetching comisiones from: /v1/ventas-empleados');
       const response = await api.get('/v1/ventas-empleados');
       console.log('Comisiones response crudo:', response.data);

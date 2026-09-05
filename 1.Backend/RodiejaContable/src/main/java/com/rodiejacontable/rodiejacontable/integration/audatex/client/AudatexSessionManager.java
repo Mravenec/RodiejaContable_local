@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -45,6 +46,9 @@ public class AudatexSessionManager {
 
     /** Lock para evitar logins paralelos */
     private final ReentrantLock loginLock = new ReentrantLock();
+
+    /** Usuario con el que se abrió la sesión activa (para logs). */
+    private String activeUsername = "";
 
     public AudatexSessionManager(AudatexProperties props) {
         this.props = props;
@@ -80,6 +84,7 @@ public class AudatexSessionManager {
             sessionCookies.clear();
             lastLoginTime = Instant.EPOCH;
             currentPanelUrl = "";
+            activeUsername = "";
             log.info("[Audatex] Sesión invalidada manualmente");
         } finally {
             loginLock.unlock();
@@ -108,6 +113,32 @@ public class AudatexSessionManager {
     }
 
     private void doLogin() throws IOException {
+        List<AudatexProperties.AudatexCredential> credentials = props.loginCredentialChain();
+        if (credentials.isEmpty()) {
+            throw new IOException("[Audatex] No hay credenciales configuradas (audatex.username / audatex.password)");
+        }
+
+        IOException lastError = null;
+        for (AudatexProperties.AudatexCredential credential : credentials) {
+            try {
+                log.info("[Audatex] Intentando login con usuario {}", credential.username());
+                attemptLoginWithCredential(credential.username(), credential.password());
+                activeUsername = credential.username();
+                return;
+            } catch (IOException ex) {
+                lastError = ex;
+                log.warn("[Audatex] Login fallido con {} — probando siguiente credencial si existe: {}",
+                        credential.username(), ex.getMessage());
+                humanDelay();
+            }
+        }
+
+        throw lastError != null
+                ? lastError
+                : new IOException("[Audatex] Login fallido con todas las credenciales configuradas");
+    }
+
+    private void attemptLoginWithCredential(String username, String password) throws IOException {
         // 1. GET para obtener el ViewState
         Connection.Response getResp = Jsoup.connect(props.getPortalUrl())
                 .followRedirects(true)
@@ -132,8 +163,8 @@ public class AudatexSessionManager {
 
         // 2. Armar payload de login
         Map<String, String> formData = extractHiddenInputs(loginDoc);
-        formData.put("ctl00$cphBody$ucLogin$txtLogin", props.getUsername());
-        formData.put("ctl00$cphBody$ucLogin$txtPassword", props.getPassword());
+        formData.put("ctl00$cphBody$ucLogin$txtLogin", username);
+        formData.put("ctl00$cphBody$ucLogin$txtPassword", password);
         formData.put("ctl00$cphBody$ucLogin$chkTermsConditions", "on");
         formData.put("ctl00$cphBody$ucLogin$btnSignIn", "Sign In");
 
@@ -168,7 +199,8 @@ public class AudatexSessionManager {
             this.sessionCookies = cookies;
             this.lastLoginTime = java.time.Instant.now();
             this.currentPanelUrl = currentUrl;
-            log.info("[Audatex] Login exitoso (sin sesión concurrente). Sesión válida por {} min", props.getSessionTtlMin());
+            log.info("[Audatex] Login exitoso con {} (sin sesión concurrente). Sesión válida por {} min",
+                    username, props.getSessionTtlMin());
             return;
         }
 
@@ -179,8 +211,8 @@ public class AudatexSessionManager {
 
             String confirmUrl = resolveFormAction(postDoc, currentUrl);
             Map<String, String> confirmData = extractHiddenInputs(postDoc);
-            confirmData.put("ctl00$cphBody$ucLogin$txtLogin", props.getUsername());
-            confirmData.put("ctl00$cphBody$ucLogin$txtPassword", props.getPassword());
+            confirmData.put("ctl00$cphBody$ucLogin$txtLogin", username);
+            confirmData.put("ctl00$cphBody$ucLogin$txtPassword", password);
             confirmData.put("ctl00$cphBody$ucLogin$chkTermsConditions", "on");
             confirmData.put("ctl00$cphBody$ucLogin$ucNeoMessageRemoveConcurrentLogin$btnYes", "Si");
 
@@ -239,7 +271,8 @@ public class AudatexSessionManager {
             this.sessionCookies = cookies;
             this.lastLoginTime = java.time.Instant.now();
             this.currentPanelUrl = currentUrl;
-            log.info("[Audatex] Login exitoso (post-sesión-concurrente). Sesión válida por {} min", props.getSessionTtlMin());
+            log.info("[Audatex] Login exitoso con {} (post-sesión-concurrente). Sesión válida por {} min",
+                    username, props.getSessionTtlMin());
             return;
         }
 

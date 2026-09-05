@@ -101,7 +101,7 @@ public class HistorialTransacciones extends TableImpl<HistorialTransaccionesReco
      * The column
      * <code>sistema_vehicular.historial_transacciones.fecha_cambio</code>.
      */
-    public final TableField<HistorialTransaccionesRecord, LocalDateTime> FECHA_CAMBIO = createField(DSL.name("fecha_cambio"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<HistorialTransaccionesRecord, LocalDateTime> FECHA_CAMBIO = createField(DSL.name("fecha_cambio"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column

@@ -167,13 +167,13 @@ public class TransaccionesFinancieras extends TableImpl<TransaccionesFinancieras
      * The column
      * <code>sistema_vehicular.transacciones_financieras.fecha_creacion</code>.
      */
-    public final TableField<TransaccionesFinancierasRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<TransaccionesFinancierasRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column
      * <code>sistema_vehicular.transacciones_financieras.fecha_actualizacion</code>.
      */
-    public final TableField<TransaccionesFinancierasRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<TransaccionesFinancierasRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     private TransaccionesFinancieras(Name alias, Table<TransaccionesFinancierasRecord> aliased) {
         this(alias, aliased, null);

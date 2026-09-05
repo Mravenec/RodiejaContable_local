@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidos;
 import com.rodiejacontable.rodiejacontable.integration.audatex.service.AudatexExcelExportService;
 import com.rodiejacontable.rodiejacontable.integration.audatex.service.AudatexService;
+import com.rodiejacontable.rodiejacontable.integration.audatex.support.SseStreamSupport;
+import jakarta.servlet.http.HttpServletResponse;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +24,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/audatex")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+        "https://contabilidad.tuprimernegocio.org"
+})
 public class AudatexController {
 
     private static final Logger log = LoggerFactory.getLogger(AudatexController.class);
@@ -139,13 +143,8 @@ public class AudatexController {
     private static final java.util.List<SseEmitter> pedidosEmitters = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     @GetMapping(value = "/pedidos/sync/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamPedidosSyncDeltas() {
-        SseEmitter emitter = new SseEmitter(3600_000L); // 1 hora de timeout
-        pedidosEmitters.add(emitter);
-        emitter.onCompletion(() -> pedidosEmitters.remove(emitter));
-        emitter.onTimeout(() -> pedidosEmitters.remove(emitter));
-        emitter.onError((e) -> pedidosEmitters.remove(emitter));
-        return emitter;
+    public SseEmitter streamPedidosSyncDeltas(HttpServletResponse response) {
+        return SseStreamSupport.registerPassiveStream(pedidosEmitters, response, "pedidos/sync/stream");
     }
 
     public static void emitirDeltaPedido(Map<String, Object> pedido) {
@@ -165,14 +164,8 @@ public class AudatexController {
     private static final java.util.List<SseEmitter> deltaEmitters = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     @GetMapping(value = "/oportunidades/sync/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamSyncDeltas() {
-        SseEmitter emitter = new SseEmitter(3600_000L); // 1 hora de timeout
-        deltaEmitters.add(emitter);
-        emitter.onCompletion(() -> deltaEmitters.remove(emitter));
-        emitter.onTimeout(() -> deltaEmitters.remove(emitter));
-        emitter.onError((e) -> deltaEmitters.remove(emitter));
-        
-        return emitter;
+    public SseEmitter streamSyncDeltas(HttpServletResponse response) {
+        return SseStreamSupport.registerPassiveStream(deltaEmitters, response, "oportunidades/sync/stream");
     }
 
     public static void emitirDelta(Map<String, Object> oportunidad) {
@@ -203,7 +196,7 @@ public class AudatexController {
             @RequestParam(required = false) Integer minPendientes) {
 
         log.warn("[Audatex] GET /oportunidades/stream está deprecado — usar sync incremental + /sync/stream");
-        SseEmitter emitter = new SseEmitter(3600_000L);
+        SseEmitter emitter = new SseEmitter(3_600_000L);
         log.info("[Audatex] SSE /oportunidades/stream — armadora={}, aseguradora={}, desde={}, hasta={}",
                 armadora, aseguradora, desde, hasta);
         audatexService.streamOportunidades(armadora, aseguradora, desde, hasta, minPendientes, emitter);

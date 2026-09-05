@@ -107,7 +107,7 @@ public class VistaAuditoriaCompleta extends TableImpl<VistaAuditoriaCompletaReco
      * The column
      * <code>sistema_vehicular.vista_auditoria_completa.fecha_cambio</code>.
      */
-    public final TableField<VistaAuditoriaCompletaRecord, LocalDateTime> FECHA_CAMBIO = createField(DSL.name("fecha_cambio"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<VistaAuditoriaCompletaRecord, LocalDateTime> FECHA_CAMBIO = createField(DSL.name("fecha_cambio"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("'0000-00-00 00:00:00'"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column

@@ -227,13 +227,13 @@ public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRe
      * The column
      * <code>sistema_vehicular.vista_inventario_completo.fecha_creacion</code>.
      */
-    public final TableField<VistaInventarioCompletoRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<VistaInventarioCompletoRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column
      * <code>sistema_vehicular.vista_inventario_completo.fecha_actualizacion</code>.
      */
-    public final TableField<VistaInventarioCompletoRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<VistaInventarioCompletoRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column

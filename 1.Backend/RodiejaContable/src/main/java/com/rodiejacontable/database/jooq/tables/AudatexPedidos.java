@@ -132,13 +132,13 @@ public class AudatexPedidos extends TableImpl<AudatexPedidosRecord> {
     /**
      * The column <code>sistema_vehicular.audatex_pedidos.fecha_creacion</code>.
      */
-    public final TableField<AudatexPedidosRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<AudatexPedidosRecord, LocalDateTime> FECHA_CREACION = createField(DSL.name("fecha_creacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column
      * <code>sistema_vehicular.audatex_pedidos.fecha_actualizacion</code>.
      */
-    public final TableField<AudatexPedidosRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<AudatexPedidosRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     private AudatexPedidos(Name alias, Table<AudatexPedidosRecord> aliased) {
         this(alias, aliased, null);

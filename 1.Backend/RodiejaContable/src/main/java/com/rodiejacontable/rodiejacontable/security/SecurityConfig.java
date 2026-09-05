@@ -63,8 +63,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow all frontend origins to prevent CORS issues locally and on network
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedOriginPatterns(List.of(
+                "https://contabilidad.tuprimernegocio.org",
+                "https://*.netlify.app",
+                "http://localhost:3000",
+                "http://localhost:8080"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "Cache-Control", "X-Requested-With"));
         configuration.setAllowCredentials(true);

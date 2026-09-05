@@ -385,8 +385,6 @@ const VehiculosJerarquicos = () => {
   const [repuestos, setRepuestos] = useState({});
   const [loadingTransacciones, setLoadingTransacciones] = useState({});
   const [loadingRepuestos, setLoadingRepuestos] = useState({});
-  const [showRawData, setShowRawData] = useState(false);
-  const [rawData, setRawData] = useState(null);
 
   // State for search and expanded sections
   const [searchQuery, setSearchQuery] = useState('');
@@ -487,8 +485,6 @@ const VehiculosJerarquicos = () => {
       yearsBuckets.forEach((arr, key) => {
         if (arr.length === 1) byYearsUnique.set(key, arr[0]);
       });
-
-      setRawData({ vehiculosAgrupados: vehData, generaciones: gensList });
 
       // ✅ Normalizamos e INYECTAMOS los totales por generación con los nuevos índices
       const datos = normalizarEOrdenar(vehData, {

@@ -109,13 +109,13 @@ public class PagosComisiones extends TableImpl<PagosComisionesRecord> {
      * The column
      * <code>sistema_vehicular.pagos_comisiones.fecha_registro</code>.
      */
-    public final TableField<PagosComisionesRecord, LocalDateTime> FECHA_REGISTRO = createField(DSL.name("fecha_registro"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<PagosComisionesRecord, LocalDateTime> FECHA_REGISTRO = createField(DSL.name("fecha_registro"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column
      * <code>sistema_vehicular.pagos_comisiones.fecha_actualizacion</code>.
      */
-    public final TableField<PagosComisionesRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<PagosComisionesRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
     private PagosComisiones(Name alias, Table<PagosComisionesRecord> aliased) {
         this(alias, aliased, null);
