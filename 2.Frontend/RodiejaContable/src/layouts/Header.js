@@ -8,7 +8,7 @@ import {
   SettingOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 const { Header: AntdHeader } = Layout;
 const { Text } = Typography;
@@ -70,31 +70,27 @@ const Header = ({ collapsed, toggleCollapse, isMobile = false }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        position: 'fixed',
-        width: '100%',
-        zIndex: 1,
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
         boxShadow: '0 1px 4px rgba(0,21,41,.08)',
         height: '64px',
         lineHeight: '64px'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        {(isMobile || !collapsed) && (
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={toggleCollapse}
-            style={{
-              fontSize: '16px',
-              width: 64,
-              height: 64,
-              display: isMobile ? 'inline-flex' : 'none',
-              '@media (min-width: 768px)': {
-                display: collapsed ? 'inline-flex' : 'none'
-              }
-            }}
-          />
-        )}
+        <Button
+          type="text"
+          icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          onClick={toggleCollapse}
+          style={{
+            fontSize: '16px',
+            width: isMobile ? 48 : 64,
+            height: 64,
+            display: 'inline-flex',
+            padding: 0
+          }}
+        />
         <div style={{
           marginLeft: '16px',
           fontSize: '20px',
@@ -107,7 +103,8 @@ const Header = ({ collapsed, toggleCollapse, isMobile = false }) => {
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
           textFillColor: 'transparent',
-          padding: '4px 0'
+          padding: '4px 0',
+          display: isMobile ? 'none' : 'block'
         }}>
           Rodieja Contable
         </div>
@@ -119,22 +116,22 @@ const Header = ({ collapsed, toggleCollapse, isMobile = false }) => {
             display: 'flex', 
             alignItems: 'center', 
             cursor: 'pointer', 
-            padding: '8px',
-            maxWidth: '180px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}>
+            padding: '8px 16px',
+            borderRadius: '24px',
+            transition: 'background 0.3s',
+            background: 'rgba(0,0,0,0.02)'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.06)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'}>
             <Avatar 
               style={{ backgroundColor: '#1890ff' }} 
               icon={<UserOutlined />} 
             />
-            <div style={{ marginLeft: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              <Text strong>{user?.name || 'Usuario'}</Text>
-              <Text type="secondary" style={{ display: 'block', fontSize: '12px' }}>
-                {user?.role || 'Administrador'}
-              </Text>
-            </div>
+            {!isMobile && (
+              <div style={{ marginLeft: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <Text strong>{user?.nombre || user?.name || user?.email?.split('@')[0] || ''}</Text>
+              </div>
+            )}
           </div>
         </Dropdown>
       </div>

@@ -6,7 +6,6 @@ import { useVehiculos } from '../../hooks/useVehiculos';
 import { formatCurrency } from '../../utils/formatters';
 import { formatImageUrl } from '../../utils/imageUtils';
 import { useAuth } from '../../context/AuthContext';
-import './vehiculos.css';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -144,29 +143,12 @@ const Vehiculos = () => {
           {estado?.toLowerCase()?.replace('_', ' ') || '-'}
         </Tag>
       ),
-    },
-    {
-      title: 'Acciones',
-      key: 'acciones',
-      width: 120,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            onClick={() => navigate(`/vehiculos/${record.id}`)}
-            style={{ padding: '4px 0' }}
-          >
-            Ver
-          </Button>
-        </Space>
-      ),
-    },
+    }
   ];
 
   if (isError) {
     return (
-      <div className="vehiculos-container">
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Title level={2} style={{ margin: 0 }}>Vehículos</Title>
           <Button
@@ -187,17 +169,19 @@ const Vehiculos = () => {
 
 
   return (
-    <div className="vehiculos-container" style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '40px' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px 40px' }}>
       {/* ── Header de navegación ─────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <Title level={3} style={{ margin: 0, fontWeight: 600 }}>Gestión de Vehículos</Title>
           <Text type="secondary" style={{ display: 'block' }}>Administra el inventario de vehículos disponibles</Text>
         </div>
-        <Space>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
           <Button
             icon={<CarOutlined />}
             onClick={() => navigate('/vehiculos/jerarquia')}
+            size="large"
+            style={{ minWidth: '180px', borderRadius: '6px' }}
           >
             Ver por Generaciones
           </Button>
@@ -207,12 +191,12 @@ const Vehiculos = () => {
               icon={<PlusOutlined />}
               onClick={() => navigate('/vehiculos/nuevo')}
               size="large"
-              style={{ borderRadius: '6px' }}
+              style={{ minWidth: '180px', borderRadius: '6px' }}
             >
               Agregar Vehículo
             </Button>
           )}
-        </Space>
+        </div>
       </div>
 
       <Card
@@ -267,6 +251,10 @@ const Vehiculos = () => {
         }}>
           <Spin spinning={isLoading}>
             <Table
+              onRow={(record) => ({
+                onClick: () => navigate(`/vehiculos/${record.id}`),
+                style: { cursor: 'pointer' }
+              })}
               columns={columns}
               dataSource={tableData}
               rowKey="id"
@@ -281,7 +269,7 @@ const Vehiculos = () => {
                 size: 'small',
                 style: {
                   margin: '16px 16px 0',
-                  paddingBottom: '16px'
+                paddingBottom: '16px'
                 }
               }}
               locale={{
@@ -291,7 +279,6 @@ const Vehiculos = () => {
                 minWidth: '800px',
                 border: 'none'
               }}
-              className="custom-table"
             />
           </Spin>
         </div>

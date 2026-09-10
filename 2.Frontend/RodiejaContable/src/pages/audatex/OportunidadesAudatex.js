@@ -157,7 +157,7 @@ const OportunidadesAudatex = () => {
   const [streaming, setStreaming] = useState(false);
   const [filtros, setFiltros] = useState({ ...defaultFiltros });
   const [appliedFiltros, setAppliedFiltros] = useState({ ...defaultFiltros });
-  const [mostrarFiltros, setMostrarFiltros] = useState(true);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
@@ -776,7 +776,7 @@ const OportunidadesAudatex = () => {
   }, [oportunidadesFiltradas]);
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div className="table-container">
 
       {/* Encabezado */}
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
@@ -784,19 +784,19 @@ const OportunidadesAudatex = () => {
           <Title level={3} style={{ margin: 0, fontWeight: 700 }}>🛒 Cotizaciones InPart · Vista Global</Title>
           <div style={{ color: '#8c8c8c', fontSize: '14px', marginTop: '4px' }}>Todas las oportunidades abiertas en Audatex que matchean con tu inventario</div>
         </div>
-        <Space>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
           {streaming && (
             <Button danger onClick={handleDetener} icon={<LoadingOutlined spin />}>
               Detener
             </Button>
           )}
-          <Button type="default" icon={<ReloadOutlined />} onClick={handleSincronizar} disabled={streaming && oportunidades.length === 0} style={{ color: '#1890ff', borderColor: '#1890ff' }}>
+          <Button type="default" icon={<ReloadOutlined />} onClick={handleSincronizar} disabled={streaming && oportunidades.length === 0} size="large" style={{ minWidth: '180px', color: '#1890ff', borderColor: '#1890ff', borderRadius: '6px' }}>
             Refrescar
           </Button>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} style={{ background: '#52c41a', borderColor: '#52c41a' }}>
+          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} size="large" style={{ minWidth: '180px', background: '#52c41a', borderColor: '#52c41a', borderRadius: '6px' }}>
             Exportar Excel del rango
           </Button>
-        </Space>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -847,7 +847,7 @@ const OportunidadesAudatex = () => {
         }}
         bodyStyle={{ padding: '24px' }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mostrarFiltros ? '20px' : '0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: mostrarFiltros ? '20px' : '0' }}>
           <Title level={5} style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setMostrarFiltros(!mostrarFiltros)}>
             <FilterOutlined style={{ marginRight: '8px', color: '#3b82f6' }} />
             Filtros de Búsqueda
@@ -968,7 +968,7 @@ const OportunidadesAudatex = () => {
       {/* Tabla progresiva — Ant Design maneja la paginación internamente */}
       <Card>
         <div ref={tableRef}>
-          <Table
+          <Table scroll={{ x: 'max-content' }}
             columns={columns}
             dataSource={oportunidadesFiltradas}
             rowKey={(record) => record._key}
@@ -1099,7 +1099,6 @@ const OportunidadesAudatex = () => {
                 tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               },
             }}
-            scroll={{ x: 1200 }}
           />
         </div>
       </Card>

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { List, Button, Tooltip, message, Avatar, Space, Typography, Form, Input, Select, Modal } from 'antd';
 import { UserOutlined, PlusOutlined, DeleteOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
 import { usersService } from '../../api/users';
-import './Settings.css';
+import { useAuth } from '../../context/AuthContext';
+import '../../styles/Settings.css';
 
 const { Text } = Typography;
 
 const UsuariosTab = () => {
+  const { user: currentUser } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -105,7 +107,7 @@ const UsuariosTab = () => {
             <List.Item
               className="premium-list-item"
               actions={[
-                user.rol !== 'ADMIN' && (
+                (user.rol !== 'ADMIN' || (user.email !== currentUser?.email && usuarios.filter(u => u.rol === 'ADMIN').length > 1)) && (
                   <Tooltip title="Eliminar Usuario" key="delete">
                     <Button 
                       type="text" 
@@ -136,8 +138,8 @@ const UsuariosTab = () => {
                   </div>
                 }
                 title={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-                    <Text style={{ fontSize: '16px', fontWeight: 600, color: '#1e293b' }}>{user.nombre}</Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                    <Text style={{ fontSize: '16px', fontWeight: 600, color: '#1e293b', wordBreak: 'break-word' }}>{user.nombre}</Text>
                     <span className={`user-role-tag ${getRoleClass(user.rol)}`} style={{ fontSize: '12px' }}>
                       {user.rol || 'Sin Rol'}
                     </span>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Typography } from 'antd';
+import React from 'react';
+import { Layout, Menu, Typography, Drawer } from 'antd';
 import {
   HomeOutlined,
   CarOutlined,
@@ -11,26 +11,15 @@ import {
   SendOutlined
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 const { Sider } = Layout;
 const { Text } = Typography;
 
-const Sidebar = ({ collapsed }) => {
+const Sidebar = ({ collapsed, isMobile, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, hasAccess } = useAuth();
-
-  // Para manejar responsividad interna si es necesario
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const items = [
     hasAccess('inicio_dashboard') ? { key: '/', icon: <HomeOutlined />, label: 'Inicio' } : null,
@@ -111,31 +100,13 @@ const Sidebar = ({ collapsed }) => {
     },
   ].filter(Boolean);
 
-  return (
-    <Sider
-      trigger={null}
-      collapsible
-      collapsed={collapsed}
-      breakpoint="lg"
-      collapsedWidth={isMobile ? 0 : 80}
-      width={220}
-      style={{
-        overflow: 'auto',
-        height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        zIndex: 1001, // Asegurar que esté por encima del contenido en móviles
-        boxShadow: '2px 0 8px 0 rgba(29,35,41,.05)',
-        backgroundColor: '#001529' // Manteniendo el color oscuro clásico
-      }}
-    >
+  const siderContent = (
+    <>
       <div style={{
-        height: collapsed ? 40 : 'auto',
+        height: collapsed && !isMobile ? 40 : 'auto',
         minHeight: 40,
         margin: '16px',
-        padding: collapsed ? 0 : '12px 16px',
+        padding: collapsed && !isMobile ? 0 : '12px 16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -150,7 +121,7 @@ const Sidebar = ({ collapsed }) => {
       }} onClick={() => navigate('/')}>
         <Text style={{
           color: 'white',
-          fontSize: collapsed ? '16px' : '16px',
+          fontSize: collapsed && !isMobile ? '16px' : '16px',
           fontWeight: 600,
           whiteSpace: 'nowrap',
           margin: 0,
@@ -158,7 +129,7 @@ const Sidebar = ({ collapsed }) => {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          {collapsed ? 'RC' : 'Rodieja Contable'}
+          {(collapsed && !isMobile) ? 'RC' : 'Rodieja Contable'}
         </Text>
       </div>
 
@@ -168,12 +139,67 @@ const Sidebar = ({ collapsed }) => {
         selectedKeys={[location.pathname]}
         defaultOpenKeys={[location.pathname.split('/')[1] || '']}
         items={items}
-        onClick={({ key }) => key !== 'cerrar-sesion' && navigate(key)}
+        onClick={({ key }) => {
+          if (key !== 'cerrar-sesion') navigate(key);
+          if (isMobile && onClose) onClose();
+        }}
         style={{
           borderRight: 0,
           padding: '0 8px'
         }}
       />
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer
+        placement="left"
+        closable={false}
+        onClose={onClose}
+        open={!collapsed}
+        bodyStyle={{ padding: 0, backgroundColor: '#001529' }}
+        width={250}
+        zIndex={1050}
+      >
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={false}
+          width={250}
+          style={{
+            height: '100vh',
+            boxShadow: 'none',
+            backgroundColor: '#001529'
+          }}
+        >
+          {siderContent}
+        </Sider>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Sider
+      trigger={null}
+      collapsible
+      collapsed={collapsed}
+      breakpoint="lg"
+      collapsedWidth={80}
+      width={220}
+      style={{
+        overflow: 'auto',
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 1001,
+        boxShadow: '2px 0 8px 0 rgba(29,35,41,.05)',
+        backgroundColor: '#001529'
+      }}
+    >
+      {siderContent}
     </Sider>
   );
 };

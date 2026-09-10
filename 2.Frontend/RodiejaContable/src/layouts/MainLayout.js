@@ -142,9 +142,7 @@ const MainLayout = () => {
           </div>
         </Header>
 
-        <Content style={{
-          margin: '24px 16px',
-          padding: '24px 24px 24px',
+        <Content className="main-layout-content" style={{
           minHeight: 'calc(100vh - 112px)',
           background: '#fff',
           borderRadius: '8px',

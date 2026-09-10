@@ -16,7 +16,6 @@ import {
   Button,
   DatePicker,
   Input,
-  Space,
   message
 } from 'antd';
 import {
@@ -294,78 +293,82 @@ const Reportes = () => {
   };
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <Title level={2} style={{ margin: 0, fontSize: '24px' }}>Reportes Generales</Title>
+    <div className="table-container">
+      <div className="d-flex mb-24" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <Title level={2} className="m-0 text-24">Reportes Generales</Title>
 
         {/* ROD-17: Botón de exportar oportunidades Audatex */}
-        <Space>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end', width: '100%' }}>
           <DatePicker.RangePicker
             value={fechaRange}
             onChange={setFechaRange}
             format="YYYY-MM-DD"
             placeholder={['Desde', 'Hasta']}
-            style={{ marginRight: 8 }}
+            size="large"
+            style={{ flex: '1 1 auto', minWidth: '220px', maxWidth: '350px' }}
           />
           <Input
             placeholder="Filtrar por marca/modelo"
             value={marcaFiltro}
             onChange={(e) => setMarcaFiltro(e.target.value)}
-            style={{ width: 200, marginRight: 8 }}
+            size="large"
+            style={{ flex: '1 1 auto', minWidth: '180px', maxWidth: '300px' }}
           />
           <Button
             type="primary"
             icon={<FileExcelOutlined />}
             onClick={handleExportarAudatex}
             loading={loading.exportarAudatex}
+            size="large"
+            style={{ minWidth: '180px', maxWidth: '200px', borderRadius: '6px' }}
           >
-            Exportar Oportunidades InPart
+            Audatex
           </Button>
-        </Space>
+        </div>
       </div>
 
       {/* Métricas principales */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-8 shadow-sm border-light" loading={loading.general}>
             <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Totales</span>}
+              title={<span className="text-gray text-14 font-medium">Ventas Totales</span>}
               value={metricas.totalVentas}
-              prefix={<ShoppingCartOutlined style={{ fontSize: '20px' }} />}
+              prefix={<ShoppingCartOutlined className="text-20" />}
               suffix="unidades"
               valueStyle={{ color: '#1890ff', fontWeight: 600, fontSize: '24px' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-8 shadow-sm border-light" loading={loading.general}>
             <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
+              title={<span className="text-gray text-14 font-medium">Ingresos Totales</span>}
               value={metricas.totalIngresos}
               precision={2}
-              prefix={<DollarOutlined style={{ fontSize: '20px' }} />}
+              prefix={<DollarOutlined className="text-20" />}
               valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
               formatter={value => formatCurrency(value)}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-8 shadow-sm border-light" loading={loading.general}>
             <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Vehículos en Stock</span>}
+              title={<span className="text-gray text-14 font-medium">Vehículos en Stock</span>}
               value={metricas.vehiculosStock}
-              prefix={<CarOutlined style={{ fontSize: '20px' }} />}
+              prefix={<CarOutlined className="text-20" />}
               valueStyle={{ color: '#722ed1', fontWeight: 600, fontSize: '24px' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-8 shadow-sm border-light" loading={loading.general}>
             <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Tasa de Conversión</span>}
+              title={<span className="text-gray text-14 font-medium">Tasa de Conversión</span>}
               value={metricas.tasaConversion}
               suffix="%"
-              prefix={<TrophyOutlined style={{ fontSize: '20px' }} />}
+              prefix={<TrophyOutlined className="text-20" />}
               valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: '24px' }}
             />
           </Card>
@@ -377,18 +380,18 @@ const Reportes = () => {
         <Col xs={24}>
           <Card
             title={
-              <span style={{ fontWeight: 600, fontSize: '18px' }}>
-                <CalendarOutlined style={{ marginRight: 8 }} />
+              <span className="font-semibold text-18">
+                <CalendarOutlined className="mr-8" />
                 Ingresos Mensuales
               </span>
             }
             bordered={false}
-            style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
+            className="mb-24 rounded-8 shadow-sm border-light"
             headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
             bodyStyle={{ padding: '0' }}
           >
-            <div style={{ padding: '24px' }}>
-              <Table
+            <div className="table-container">
+              <Table scroll={{ x: 'max-content' }}
                 dataSource={ventasMensuales}
                 loading={loading.general}
                 columns={[
@@ -425,9 +428,9 @@ const Reportes = () => {
 
         {/* Sección de Resúmenes */}
         <Col xs={24}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', marginTop: '8px' }}>
-            <BarChartOutlined style={{ fontSize: '20px', marginRight: '8px', color: '#1890ff' }} />
-            <Title level={4} style={{ margin: 0 }}>Flujo Financiero</Title>
+          <div className="d-flex align-center mb-16 mt-8">
+            <BarChartOutlined className="text-20 mr-8 text-primary" />
+            <Title level={4} className="m-0">Flujo Financiero</Title>
           </div>
         </Col>
 
@@ -451,7 +454,7 @@ const Reportes = () => {
             </div>
 
             {/* Detalles numéricos */}
-            <div style={{ padding: '24px' }}>
+            <div className="table-container">
               <Row gutter={[16, 16]}>
                 <Col span={12}>
                   <Statistic
@@ -498,7 +501,7 @@ const Reportes = () => {
             </div>
 
             {/* Detalles numéricos */}
-            <div style={{ padding: '24px' }}>
+            <div className="table-container">
               <Row gutter={[16, 16]}>
                 <Col span={12}>
                   <Statistic
@@ -545,7 +548,7 @@ const Reportes = () => {
             </div>
 
             {/* Detalles numéricos */}
-            <div style={{ padding: '24px' }}>
+            <div className="table-container">
               <Row gutter={[16, 16]}>
                 <Col span={12}>
                   <Statistic
@@ -583,8 +586,8 @@ const Reportes = () => {
             headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
             bodyStyle={{ padding: '0' }}
           >
-            <div style={{ padding: '24px' }}>
-              <Table
+            <div className="table-container">
+              <Table scroll={{ x: 'max-content' }}
                 dataSource={topEmpleados}
                 loading={loading.general}
                 columns={[
@@ -629,8 +632,8 @@ const Reportes = () => {
             headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
             bodyStyle={{ padding: '0' }}
           >
-            <div style={{ padding: '24px' }}>
-              <Table
+            <div className="table-container">
+              <Table scroll={{ x: 'max-content' }}
                 dataSource={comisiones}
                 loading={loading.general}
                 columns={[

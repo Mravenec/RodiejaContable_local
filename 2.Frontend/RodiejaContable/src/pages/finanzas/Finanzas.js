@@ -305,21 +305,15 @@ const Finanzas = () => {
               type="text" 
               danger
               icon={<UndoOutlined />} 
-              onClick={() => confirmarReembolso(record)}
+              onClick={(e) => { e.stopPropagation(); confirmarReembolso(record); }}
               title="Reembolsar Transacción"
             />
           )}
-          <Button 
-            type="text" 
-            icon={<EyeOutlined />} 
-            onClick={() => verDetalle(record)}
-            title="Ver detalles"
-          />
           {user?.rol !== 'CONTADOR' && (
             <Button 
               type="text" 
               icon={<EditOutlined />} 
-              onClick={() => editarTransaccion(record)}
+              onClick={(e) => { e.stopPropagation(); editarTransaccion(record); }}
               title="Editar"
             />
           )}
@@ -328,7 +322,7 @@ const Finanzas = () => {
               type="text" 
               danger 
               icon={<DeleteOutlined />} 
-              onClick={() => confirmarEliminar(record)}
+              onClick={(e) => { e.stopPropagation(); confirmarEliminar(record); }}
               title="Eliminar"
             />
           )}
@@ -515,7 +509,7 @@ const Finanzas = () => {
               icon={<PlusOutlined />} 
               onClick={handleNuevaTransaccion}
               size="large"
-              style={{ borderRadius: '6px' }}
+              style={{ minWidth: '180px', borderRadius: '6px' }}
             >
               Nueva Transacción
             </Button>
@@ -712,8 +706,13 @@ const Finanzas = () => {
           </div>
         )}
         
-        <div style={{ padding: '24px' }}>
-          <Table
+        <div className="table-container">
+          <Table 
+            scroll={{ x: 'max-content' }}
+            onRow={(record) => ({
+              onClick: () => verDetalle(record),
+              style: { cursor: 'pointer' }
+            })}
             columns={columns}
             dataSource={transacciones}
             rowKey="codigoTransaccion"
@@ -726,7 +725,6 @@ const Finanzas = () => {
               showQuickJumper: true,
             }}
             onChange={handleTableChange}
-            scroll={{ x: 'max-content' }}
           />
         </div>
       </Card>

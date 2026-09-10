@@ -3,7 +3,7 @@ import { Card, Typography, Form, Input, Button, message, Row, Col, Avatar } from
 import { UserOutlined, MailOutlined, LockOutlined, SaveOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../api/auth';
-import './Perfil.css';
+import '../../styles/Perfil.css';
 
 const { Title } = Typography;
 
@@ -67,7 +67,7 @@ const Perfil = () => {
   };
 
   return (
-    <div className="perfil-container" style={{ maxWidth: '800px' }}>
+    <div className="perfil-container p-24 mx-auto" style={{ maxWidth: '800px' }}>
       <div className="perfil-header-card" style={{ 
         padding: '20px 24px', 
         display: 'flex', 
