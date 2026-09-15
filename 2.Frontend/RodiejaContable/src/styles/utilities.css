@@ -1,0 +1,67 @@
+/* utilities.css - Clases utilitarias globales */
+
+/* Márgenes */
+.m-0 { margin: 0 !important; }
+.mt-4 { margin-top: 4px !important; }
+.mt-8 { margin-top: 8px !important; }
+.mb-4 { margin-bottom: 4px !important; }
+.mb-8 { margin-bottom: 8px !important; }
+.mb-16 { margin-bottom: 16px !important; }
+.mb-24 { margin-bottom: 24px !important; }
+.mr-8 { margin-right: 8px !important; }
+.ml-8 { margin-left: 8px !important; }
+.mx-auto { margin-left: auto !important; margin-right: auto !important; }
+
+/* Paddings */
+.p-0 { padding: 0 !important; }
+.p-24 { padding: 24px !important; }
+.px-24 { padding-left: 24px !important; padding-right: 24px !important; }
+.py-24 { padding-top: 24px !important; padding-bottom: 24px !important; }
+
+/* Display & Layout */
+.d-block { display: block !important; }
+.d-flex { display: flex !important; }
+.flex-column { flex-direction: column !important; }
+.flex-center { justify-content: center !important; align-items: center !important; }
+
+/* Dimensiones */
+.w-100 { width: 100% !important; }
+.w-60 { width: 60% !important; }
+.w-40 { width: 40% !important; }
+.min-h-280 { min-height: 280px !important; }
+
+/* Bordes (Radios) */
+.rounded-4 { border-radius: 4px !important; }
+.rounded-6 { border-radius: 6px !important; }
+.rounded-8 { border-radius: 8px !important; }
+.rounded-12 { border-radius: 12px !important; }
+.rounded-l-6 { border-radius: 6px 0 0 6px !important; }
+.rounded-r-6 { border-radius: 0 6px 6px 0 !important; }
+.border-light { border: 1px solid #f0f0f0 !important; }
+
+/* Sombras y Fondos */
+.shadow-sm { box-shadow: 0 1px 2px -2px rgba(0, 0, 0, 0.16) !important; }
+.shadow-md { box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important; }
+.bg-white { background: #fff !important; }
+.bg-transparent { background: transparent !important; }
+.bg-success { background-color: #52c41a !important; }
+.border-success { border-color: #52c41a !important; }
+
+/* Texto y Tipografía */
+.text-dark { color: #262626 !important; }
+.text-primary { color: #1890ff !important; }
+.text-gray { color: #8c8c8c !important; }
+.text-gray-light { color: #999 !important; }
+.text-white { color: #ffffff !important; }
+
+.text-12 { font-size: 12px !important; }
+.text-14 { font-size: 14px !important; }
+.text-15 { font-size: 15px !important; }
+.text-16 { font-size: 16px !important; }
+.text-18 { font-size: 18px !important; }
+.text-20 { font-size: 20px !important; }
+.text-24 { font-size: 24px !important; }
+
+.font-medium { font-weight: 500 !important; }
+.font-semibold { font-weight: 600 !important; }
+.font-bold { font-weight: 700 !important; }

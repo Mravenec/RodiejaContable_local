@@ -748,7 +748,7 @@ const ReporteVehiculos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Desglose de Periodos</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table
+                  <Table scroll={{ x: 'max-content' }}
                     columns={columnasReporte}
                     dataSource={data}
                     rowKey="periodo"
@@ -796,7 +796,7 @@ const ReporteVehiculos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Listado de Vehículos (Excepto Desarmados)</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table
+                  <Table scroll={{ x: 'max-content' }}
                     columns={columnasVehiculos}
                     dataSource={vehiculosFiltrados}
                     rowKey="id"
@@ -823,7 +823,7 @@ const ReporteVehiculos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Trazabilidad Operativa (Compras, Reparaciones, Ventas)</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table
+                  <Table scroll={{ x: 'max-content' }}
                     columns={columnasMovimientos}
                     dataSource={movimientos}
                     rowKey="id"

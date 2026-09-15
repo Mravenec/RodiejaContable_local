@@ -357,7 +357,7 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
         </Row>
       </Card>
 
-      <Table
+      <Table scroll={{ x: 'max-content' }}
         dataSource={repuestosFiltrados}
         columns={columns}
         rowKey={(record) => record.originalIdx}

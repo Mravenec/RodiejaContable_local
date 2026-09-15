@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Table, Typography, Tag, Button, Space, Modal } from 'antd';
+import { Card, Table, Typography, Tag, Button, Modal } from 'antd';
 import { ReloadOutlined, EyeOutlined } from '@ant-design/icons';
 import { useJerarquiaAudatex } from '../../hooks/useJerarquiaAudatex';
 
@@ -140,17 +140,17 @@ const JerarquiaAudatex = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div className="table-container">
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <Title level={3} style={{ margin: 0, fontWeight: 700 }}>🛒 Cotizaciones InPart · Jerarquía</Title>
           <div style={{ color: '#8c8c8c', fontSize: '14px', marginTop: '4px' }}>Distribución de oportunidades de Audatex vs el Stock en Inventario</div>
         </div>
-        <Space>
-          <Button type="default" icon={<ReloadOutlined />} onClick={refetch} disabled={loading} style={{ color: '#1890ff', borderColor: '#1890ff' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
+          <Button type="default" icon={<ReloadOutlined />} onClick={refetch} disabled={loading} size="large" style={{ minWidth: '180px', color: '#1890ff', borderColor: '#1890ff', borderRadius: '6px' }}>
             Refrescar
           </Button>
-        </Space>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
@@ -169,7 +169,7 @@ const JerarquiaAudatex = () => {
       </div>
 
       <Card>
-        <Table
+        <Table scroll={{ x: 'max-content' }}
           columns={columns}
           dataSource={dataSource}
           loading={loading}
@@ -188,7 +188,7 @@ const JerarquiaAudatex = () => {
         footer={null}
         width={900}
       >
-        <Table 
+        <Table scroll={{ x: 'max-content' }} 
            dataSource={selectedOps}
            rowKey="cotizacionId"
            pagination={{ pageSize: 10 }}

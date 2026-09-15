@@ -30,7 +30,7 @@ import org.jooq.impl.TableImpl;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class VistaVehiculosCompleta extends TableImpl<VistaVehiculosCompletaRecord> {
 
     private static final long serialVersionUID = 1L;

@@ -1400,18 +1400,18 @@ const VehiculosJerarquicos = () => {
   return (
     <div className="vehiculos-jerarquicos">
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: 24 }}>
           <div>
-            <h1>Vehículos</h1>
+            <h1 style={{ margin: 0 }}>Vehículos</h1>
             <Text type="secondary">Vista jerárquica de vehículos agrupados por marca, modelo y generación</Text>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flex: '1 1 auto', justifyContent: 'flex-end', width: '100%' }}>
             <Input.Search
-              placeholder="Buscar por marca, modelo, generación o código de vehículo..."
+              placeholder="Buscar por marca, modelo, generación o código..."
               allowClear
               enterButton={<SearchOutlined />}
               onSearch={handleSearch}
-              style={{ width: 300 }}
+              style={{ width: '100%', maxWidth: '350px' }}
               onChange={(e) => handleSearch(e.target.value)}
               value={searchQuery}
             />

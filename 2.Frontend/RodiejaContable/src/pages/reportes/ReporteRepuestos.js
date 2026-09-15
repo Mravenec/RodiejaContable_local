@@ -681,13 +681,13 @@ const ReporteRepuestos = () => {
       {/* Control Panel de Filtros */}
       <Collapse
         defaultActiveKey={['1']}
-        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px -2px rgba(0, 0, 0, 0.16)', background: '#fff' }}
+        className="mb-24 rounded-8 shadow-sm bg-white"
         items={[
           {
             key: '1',
             label: (
-              <Text strong style={{ fontSize: '15px', color: '#262626' }}>
-                <FilterOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+              <Text strong className="text-15 text-dark">
+                <FilterOutlined className="mr-8 text-primary" />
                 Parámetros de Análisis
               </Text>
             ),
@@ -878,7 +878,7 @@ const ReporteRepuestos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Desglose de Periodos</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table
+                  <Table scroll={{ x: 'max-content' }}
                     columns={columnasReporte}
                     dataSource={data}
                     rowKey="periodo"
@@ -926,7 +926,7 @@ const ReporteRepuestos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Vehículos Autorizados para Extracción de Partes</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table
+                  <Table scroll={{ x: 'max-content' }}
                     columns={columnasVehiculos}
                     dataSource={vehiculosDesarmados}
                     rowKey="id"
@@ -953,7 +953,7 @@ const ReporteRepuestos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Trazabilidad Operativa (Compras, Ventas y Devoluciones)</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table
+                  <Table scroll={{ x: 'max-content' }}
                     columns={columnasMovimientos}
                     dataSource={movimientos}
                     rowKey="id"

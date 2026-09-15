@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Select, Table, Switch, message, Spin, Typography } from 'antd';
 import rolesService from '../../api/roles';
-import './Settings.css';
+import '../../styles/Settings.css';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -175,9 +175,9 @@ const RolesPrivacidadTab = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Roles y Privacidad</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <Text style={{ fontWeight: 500, color: '#64748b' }}>Seleccionar Rol:</Text>
           {loadingRoles ? (
             <Spin size="small" />
@@ -197,7 +197,7 @@ const RolesPrivacidadTab = () => {
       </div>
 
       <div style={{ background: '#ffffff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
-        <Table 
+        <Table scroll={{ x: 'max-content' }} 
           columns={columns} 
           dataSource={tableData} 
           pagination={false}

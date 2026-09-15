@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class VistaResumenPagosComisiones implements Serializable {
 
     private static final long serialVersionUID = 1L;

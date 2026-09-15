@@ -97,7 +97,7 @@ const PedidosAudatex = () => {
 
   const [filtros, setFiltros] = useState({ ...defaultFiltros });
   const [appliedFiltros, setAppliedFiltros] = useState({ ...defaultFiltros });
-  const [mostrarFiltros, setMostrarFiltros] = useState(true);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
   const { provincias, cantones, loadingProvincias, loadingCantones, fetchProvincias, fetchCantones } = useGeo();
 
@@ -535,31 +535,31 @@ const PedidosAudatex = () => {
 
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <Space>
+    <div className="table-container">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+        <Space wrap>
           <Title level={3} style={{ margin: 0 }}>Pedidos Audatex InPart</Title>
           {syncing && <Tag icon={<SyncOutlined spin />} color="processing">Sincronizando...</Tag>}
           {streaming && <Tag icon={<LoadingOutlined spin />} color="orange">Streaming...</Tag>}
           <Text type="secondary">{pedidosFiltrados.length} pedidos</Text>
         </Space>
-        <Space>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
           {streaming && (
             <Button danger onClick={handleDetener} icon={<LoadingOutlined spin />}>
               Detener
             </Button>
           )}
-          <Button type="default" icon={<ReloadOutlined />} onClick={() => cargarPedidosStream({ triggerSync: true })} disabled={streaming && pedidos.length === 0} style={{ color: '#1890ff', borderColor: '#1890ff' }}>
+          <Button type="default" icon={<ReloadOutlined />} onClick={() => cargarPedidosStream({ triggerSync: true })} disabled={streaming && pedidos.length === 0} size="large" style={{ minWidth: '180px', color: '#1890ff', borderColor: '#1890ff', borderRadius: '6px' }}>
             Refrescar
           </Button>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} style={{ background: '#52c41a', borderColor: '#52c41a' }}>
+          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} size="large" style={{ minWidth: '180px', background: '#52c41a', borderColor: '#52c41a', borderRadius: '6px' }}>
             Exportar Excel
           </Button>
-        </Space>
+        </div>
       </div>
 
       <Card bordered={false} style={{ marginBottom: '24px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', background: '#ffffff' }} bodyStyle={{ padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mostrarFiltros ? '20px' : '0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: mostrarFiltros ? '20px' : '0' }}>
           <Title level={5} style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setMostrarFiltros(!mostrarFiltros)}>
             <FilterOutlined style={{ marginRight: '8px', color: '#3b82f6' }} />
             Filtros de Búsqueda
@@ -639,13 +639,12 @@ const PedidosAudatex = () => {
       </Card>
 
       <Card bodyStyle={{ padding: 0 }}>
-        <Table
+        <Table scroll={{ x: 'max-content' }}
           columns={columns}
           dataSource={pedidosFiltrados}
           rowKey={(r) => r._key ?? r.id ?? r.wan ?? r.cotizacionId}
           loading={loading}
           pagination={{ pageSize: 15 }}
-          scroll={{ x: 'max-content' }}
           expandable={{
             rowExpandable: (record) => {
               return Array.isArray(record.items) && record.items.length > 0;

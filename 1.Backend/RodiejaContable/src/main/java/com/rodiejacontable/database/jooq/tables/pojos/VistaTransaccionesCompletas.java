@@ -15,7 +15,7 @@ import java.time.LocalDate;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class VistaTransaccionesCompletas implements Serializable {
 
     private static final long serialVersionUID = 1L;

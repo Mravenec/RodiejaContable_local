@@ -366,7 +366,7 @@ const VehiculoDetalle = () => {
 
   if (isError || !vehiculo) {
     return (
-      <div style={{ padding: '24px' }}>
+      <div className="table-container">
         <Button 
           type="link" 
           icon={<ArrowLeftOutlined />} 
@@ -483,7 +483,7 @@ const VehiculoDetalle = () => {
   const { marca, modelo } = getMarcaModelo();
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div className="table-container">
       <Button 
         type="link" 
         icon={<ArrowLeftOutlined />} 
@@ -494,10 +494,10 @@ const VehiculoDetalle = () => {
       </Button>
 
       {console.log('🖼️ URL de imagen a renderizar:', vehiculo?.imagenUrl || vehiculo?.imagen_url)}
-      <Card bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
+      <Card className="detalle-card" bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '24px' }}>
-            <div style={{ flex: '0 0 300px', marginRight: '24px', marginBottom: '16px', minHeight: '200px' }}>
+          <div className="vehiculo-header-container" style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '24px' }}>
+            <div className="vehiculo-image-container" style={{ flex: '0 0 300px', marginRight: '24px', marginBottom: '16px', minHeight: '200px' }}>
               <ImageCarousel 
                 imageUrlString={vehiculo?.imagenUrl || vehiculo?.imagen_url || ''} 
                 alt={`${marca} ${modelo}`} 
@@ -506,9 +506,9 @@ const VehiculoDetalle = () => {
                 borderRadius="8px"
               />
             </div>
-            <div style={{ flex: 1, minWidth: '300px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <div style={{ marginBottom: '16px' }}>
+            <div className="vehiculo-info-container" style={{ flex: 1, minWidth: '300px' }}>
+              <div className="vehiculo-info-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div className="vehiculo-info-left" style={{ marginBottom: '16px' }}>
                   <Title level={2} style={{ marginBottom: '8px' }}>
                     {marca} {modelo} {vehiculo.anio || 'Sin año'}
                   </Title>
@@ -520,7 +520,7 @@ const VehiculoDetalle = () => {
                     <strong>Código:</strong> {vehiculo.codigoVehiculo || 'Sin código'}
                   </Text>
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                <div className="vehiculo-info-right" style={{ textAlign: 'right' }}>
                   <Title level={3} style={{ color: '#1890ff', marginBottom: '4px' }}>
                     {formatCurrency(vehiculo.precioVenta || vehiculo.precioCompra || 0)}
                   </Title>
@@ -534,7 +534,7 @@ const VehiculoDetalle = () => {
                       </Text>
                     </div>
                   )}
-                  <div style={{ marginTop: '16px' }}>
+                  <div className="vehiculo-actions-container" style={{ marginTop: '16px' }}>
                     {user?.rol !== 'CONTADOR' && (
                       <Button 
                         type="primary" 

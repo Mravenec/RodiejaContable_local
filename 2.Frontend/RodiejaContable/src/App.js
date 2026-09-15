@@ -51,8 +51,8 @@ import NotFound from './pages/NotFound';
 import Unauthorized from './pages/Unauthorized';
 
 // Componente de menú lateral
-import Sidebar from './components/layout/Sidebar';
-import Header from './components/layout/Header';
+import Sidebar from './layouts/Sidebar';
+import Header from './layouts/Header';
 
 // Componente para rutas privadas
 const PrivateRoute = ({ children, roles = [] }) => {
@@ -115,8 +115,8 @@ const AuthRoute = ({ children }) => {
 // Componente de layout principal
 const MainLayout = ({ children }) => {
   const LayoutWrapper = ({ children }) => {
-    const [collapsed, setCollapsed] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [collapsed, setCollapsed] = useState(window.innerWidth <= 768);
     const { user } = useAuth();
 
     useEffect(() => {
@@ -166,12 +166,12 @@ const MainLayout = ({ children }) => {
 
     return (
       <Layout style={{ minHeight: '100vh' }}>
-        <Sidebar menuItems={menuItems} collapsed={collapsed} />
-        <Layout style={{ marginLeft: collapsed ? '80px' : '200px', transition: 'margin-left 0.2s' }}>
-          <div style={{ height: '64px', background: '#141414', borderBottom: '1px solid #303030' }}>
+        <Sidebar menuItems={menuItems} collapsed={collapsed} isMobile={isMobile} onClose={() => setCollapsed(true)} />
+        <Layout style={{ marginLeft: isMobile ? 0 : (collapsed ? '80px' : '200px'), transition: 'margin-left 0.2s' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 99, height: '64px', background: '#141414', borderBottom: '1px solid #303030' }}>
             <Header 
               collapsed={collapsed} 
-              onCollapse={() => setCollapsed(!collapsed)} 
+              toggleCollapse={() => setCollapsed(!collapsed)} 
               user={user}
               isMobile={isMobile}
             />
@@ -185,9 +185,9 @@ const MainLayout = ({ children }) => {
             overflow: 'auto',
             flex: '1 1 auto',
             ...(isMobile ? {
-              margin: '16px 8px 56px',
-              padding: '16px',
-              minHeight: 'calc(100vh - 56px - 56px - 24px)'
+              margin: '12px 0px 56px',
+              padding: '8px',
+              minHeight: 'calc(100vh - 56px - 56px - 12px)'
             } : {})
           }}>
             {children}

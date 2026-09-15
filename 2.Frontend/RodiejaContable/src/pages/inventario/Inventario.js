@@ -354,27 +354,25 @@ const Inventario = () => {
         <Space size="middle">
           <Button
             type="text"
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/inventario/${record.id}`)}
-          />
-          <Button
-            type="text"
             icon={<EditOutlined />}
-            onClick={() => navigate(`/inventario/editar/${record.id}`)}
+            onClick={(e) => { e.stopPropagation(); navigate(`/inventario/editar/${record.id}`); }}
           />
           <Popconfirm
             title="¿Eliminar permanentemente?"
             description="Si tiene transacciones asociadas, la eliminación fallará."
-            onConfirm={() => handleDelete(record.id)}
+            onConfirm={(e) => { e.stopPropagation(); handleDelete(record.id); }}
+            onCancel={(e) => e.stopPropagation()}
             okText="Sí, eliminar"
             cancelText="Cancelar"
             okButtonProps={{ danger: true }}
           >
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+              />
+            </div>
           </Popconfirm>
         </Space>
       ),
@@ -394,7 +392,7 @@ const Inventario = () => {
           icon={<PlusOutlined />}
           onClick={() => navigate('/inventario/nuevo')}
           size="large"
-          style={{ borderRadius: '6px' }}
+          style={{ minWidth: '180px', borderRadius: '6px' }}
         >
           Nuevo Repuesto
         </Button>
@@ -406,26 +404,33 @@ const Inventario = () => {
         bodyStyle={{ padding: '24px' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: '12px' }}>
-          <Space>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 auto', width: '100%' }}>
             <Search
               placeholder="Buscar por código..."
               allowClear
               enterButton={<SearchOutlined />}
               size="large"
-              style={{ width: 300 }}
+              style={{ flex: '1 1 auto', minWidth: '200px', maxWidth: '400px' }}
               onSearch={handleSearch}
             />
             <Button
+              size="large"
               icon={<FilterOutlined />}
               onClick={() => setFilterVisible(true)}
+              style={{ flex: '1 1 auto', maxWidth: '120px' }}
             >
               Filtros
             </Button>
-          </Space>
+          </div>
         </div>
 
         <Spin spinning={loading}>
-          <Table
+          <Table 
+            scroll={{ x: 'max-content' }}
+            onRow={(record) => ({
+              onClick: () => navigate(`/inventario/${record.id}`),
+              style: { cursor: 'pointer' }
+            })}
             columns={columns}
             dataSource={data}
             pagination={{
@@ -439,7 +444,6 @@ const Inventario = () => {
             onChange={handleTableChange}
             rowKey="id"
             style={{ marginTop: 16 }}
-            scroll={{ x: 'max-content' }}
           />
         </Spin>
       </Card>

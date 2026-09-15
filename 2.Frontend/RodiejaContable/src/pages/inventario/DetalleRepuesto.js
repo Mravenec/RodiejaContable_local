@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Card, 
-  Button, 
-  Descriptions, 
-  Typography, 
-  Tabs, 
-  Tag, 
-  Divider, 
-  Row, 
-  Col, 
+import {
+  Card,
+  Button,
+  Descriptions,
+  Typography,
+  Tabs,
+  Tag,
+  Divider,
+  Row,
+  Col,
   Statistic,
   message,
   Table
 } from 'antd';
-import { 
-  ArrowLeftOutlined, 
+import {
+  ArrowLeftOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   SyncOutlined
@@ -61,7 +61,7 @@ const DetalleRepuesto = () => {
         setLoading(true);
         const data = await InventarioService.getRepuestoPorId(id);
         setRepuesto(data);
-        
+
         if (data.vehiculoOrigenId) {
           try {
             const vData = await vehiculoService.getVehiculoCompletoPorId(data.vehiculoOrigenId);
@@ -87,14 +87,14 @@ const DetalleRepuesto = () => {
       try {
         setLoadingMovimientos(true);
         const data = await transaccionesCompletasService.getTransacciones();
-        const filtrados = data.filter(t => 
-          (t.repuestoId && t.repuestoId.toString() === id.toString()) || 
+        const filtrados = data.filter(t =>
+          (t.repuestoId && t.repuestoId.toString() === id.toString()) ||
           (t.codigoRepuesto && repuesto.codigo && t.codigoRepuesto === repuesto.codigo)
         );
-        
+
         filtrados.sort((a, b) => {
-           const getVal = f => f ? (Array.isArray(f) ? new Date(f[0], f[1]-1, f[2]).getTime() : new Date(f).getTime()) : 0;
-           return getVal(b.fecha) - getVal(a.fecha);
+          const getVal = f => f ? (Array.isArray(f) ? new Date(f[0], f[1] - 1, f[2]).getTime() : new Date(f).getTime()) : 0;
+          return getVal(b.fecha) - getVal(a.fecha);
         });
         setMovimientos(filtrados);
       } catch (error) {
@@ -221,16 +221,16 @@ const DetalleRepuesto = () => {
 
   return (
     <div className="container">
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-        <Button 
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: 16 }}>
+        <Button
           type="text"
-          icon={<ArrowLeftOutlined />} 
+          icon={<ArrowLeftOutlined />}
           onClick={() => navigate('/inventario')}
-          style={{ marginRight: 16 }}
+          style={{ margin: 0 }}
         >
           Volver
         </Button>
-        <Title level={2} style={{ margin: 0, marginRight: 16 }}>Detalle del Repuesto</Title>
+        <Title level={2} style={{ margin: 0 }}>Detalle del Repuesto</Title>
         {repuesto.vehiculoOrigenId ? (
           <Tag color="purple" style={{ fontSize: '14px', padding: '4px 8px' }}>
             Vehículo Desarmado: {vehiculoOrigen ? `${vehiculoOrigen.marcaNombre || ''} ${vehiculoOrigen.modelo || ''} ${vehiculoOrigen.anio || ''}` : ''} (ID: {repuesto.vehiculoOrigenId})
@@ -241,9 +241,9 @@ const DetalleRepuesto = () => {
           </Tag>
         )}
       </div>
-      
+
       <Card>
-        <Tabs 
+        <Tabs
           activeKey={activeTab}
           onChange={(key) => {
             setActiveTab(key);
@@ -263,7 +263,7 @@ const DetalleRepuesto = () => {
                     alt={repuesto.descripcion}
                     width="100%"
                     height="auto"
-                    style={{ 
+                    style={{
                       maxWidth: '100%',
                       borderRadius: 8,
                       border: '1px solid #f0f0f0'
@@ -271,15 +271,15 @@ const DetalleRepuesto = () => {
                   />
                 </div>
                 <Card>
-                  <Statistic 
-                    title="Precio de Venta" 
+                  <Statistic
+                    title="Precio de Venta"
                     value={repuesto.precioVentaFormatted || '₡0'}
                     valueStyle={{ color: '#3f8600', fontSize: '1.5rem' }}
                   />
                   <Divider style={{ margin: '16px 0' }} />
-                  <Statistic 
-                    title="Stock Disponible" 
-                    value={repuesto.cantidad} 
+                  <Statistic
+                    title="Stock Disponible"
+                    value={repuesto.cantidad}
                     suffix="unidades"
                     valueStyle={{ color: repuesto.cantidad > 0 ? '#3f8600' : '#cf1322' }}
                   />
@@ -291,8 +291,8 @@ const DetalleRepuesto = () => {
                 </Card>
               </Col>
               <Col xs={24} md={16}>
-                <Descriptions 
-                  bordered 
+                <Descriptions
+                  bordered
                   column={1}
                   size="middle"
                   labelStyle={{ fontWeight: 'bold', width: '200px' }}
@@ -333,23 +333,23 @@ const DetalleRepuesto = () => {
               </Col>
             </Row>
           </TabPane>
-          
+
           <TabPane tab="Historial" key="2">
             <Card bordered={false}>
-              <Table 
-                columns={columnasMovimientos} 
-                dataSource={movimientos} 
-                rowKey="id" 
+              <Table scroll={{ x: 'max-content' }}
+                columns={columnasMovimientos}
+                dataSource={movimientos}
+                rowKey="id"
                 loading={loadingMovimientos}
                 pagination={{ defaultPageSize: 10 }}
                 locale={{ emptyText: 'No hay movimientos registrados para este repuesto.' }}
               />
             </Card>
           </TabPane>
-          
+
           <TabPane tab="Oportunidades InPart" key="3">
             <Card bordered={false}>
-              <Table 
+              <Table scroll={{ x: 'max-content' }}
                 columns={[
                   {
                     title: 'Marca', key: 'marca',
@@ -412,8 +412,8 @@ const DetalleRepuesto = () => {
                     title: 'Acciones',
                     key: 'acciones',
                     render: (_, record) => (
-                      <Button 
-                        type="primary" 
+                      <Button
+                        type="primary"
                         size="small"
                         disabled={repuesto.cantidad <= 0 || repuesto.estado !== 'STOCK'}
                         onClick={() => {
@@ -431,14 +431,13 @@ const DetalleRepuesto = () => {
                 loading={loadingOportunidades}
                 pagination={{ defaultPageSize: 10 }}
                 locale={{ emptyText: 'No hay oportunidades de Audatex para este repuesto.' }}
-                scroll={{ x: 'max-content' }}
               />
             </Card>
           </TabPane>
-          
+
           <TabPane tab="Mis Envíos" key="4">
             <Card bordered={false}>
-              <Table 
+              <Table scroll={{ x: 'max-content' }}
                 columns={[
                   {
                     title: 'Cotización ID',
@@ -497,7 +496,6 @@ const DetalleRepuesto = () => {
                 loading={loadingEnvios}
                 pagination={{ defaultPageSize: 10 }}
                 locale={{ emptyText: 'No hay envíos de cotizaciones para este repuesto.' }}
-                scroll={{ x: 'max-content' }}
               />
             </Card>
           </TabPane>

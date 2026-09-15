@@ -39,7 +39,7 @@ import org.jooq.types.UInteger;
 /**
  * VIEW
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class VistaInventarioCompleto extends TableImpl<VistaInventarioCompletoRecord> {
 
     private static final long serialVersionUID = 1L;
