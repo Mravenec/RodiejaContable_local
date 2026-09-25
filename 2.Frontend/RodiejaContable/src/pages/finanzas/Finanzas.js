@@ -21,7 +21,6 @@ import {
   SearchOutlined, 
   FilterOutlined, 
   ReloadOutlined, 
-  EyeOutlined, 
   EditOutlined, 
   DeleteOutlined,
   PlusOutlined,

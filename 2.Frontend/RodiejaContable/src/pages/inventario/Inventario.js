@@ -22,7 +22,6 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   SyncOutlined,
-  EyeOutlined,
   EditOutlined,
   DeleteOutlined,
   ToolOutlined
