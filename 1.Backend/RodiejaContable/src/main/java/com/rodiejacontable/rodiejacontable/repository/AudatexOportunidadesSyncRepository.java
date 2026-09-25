@@ -87,7 +87,6 @@ public class AudatexOportunidadesSyncRepository {
         var query = dsl.select(
                     AUDATEX_OPORTUNIDADES_SYNC.fields()
                 )
-                .select(org.jooq.impl.DSL.field("estado_interaccion", String.class).as("estado_interaccion"))
                 .from(AUDATEX_OPORTUNIDADES_SYNC)
                 .where(AUDATEX_OPORTUNIDADES_SYNC.ESTADO.eq(
                         com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA));
