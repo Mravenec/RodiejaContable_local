@@ -10,11 +10,8 @@ import {
   ReloadOutlined,
   FilterOutlined,
   LoadingOutlined,
-  FormOutlined,
   UpOutlined,
-  DownOutlined,
-  CheckCircleOutlined,
-  EyeOutlined
+  DownOutlined
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
