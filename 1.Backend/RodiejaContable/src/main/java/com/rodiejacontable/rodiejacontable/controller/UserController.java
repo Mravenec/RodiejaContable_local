@@ -66,4 +66,20 @@ public class UserController {
             return ResponseEntity.internalServerError().body(Map.of("message", "No se pudo eliminar el usuario, puede estar en uso por otros registros."));
         }
     }
+
+    @PutMapping("/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateUserRole(@PathVariable Integer id, @RequestBody Map<String, String> payload) {
+        String rolNombre = payload.get("rol");
+        if (rolNombre == null || rolNombre.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "El rol es obligatorio."));
+        }
+
+        boolean success = usersService.updateUserRole(id, rolNombre);
+        if (success) {
+            return ResponseEntity.ok(Map.of("message", "Rol actualizado exitosamente"));
+        }
+
+        return ResponseEntity.badRequest().body(Map.of("message", "Error al actualizar el rol. Verifique que el usuario o rol existen."));
+    }
 }

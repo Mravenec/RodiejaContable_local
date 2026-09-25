@@ -12,7 +12,9 @@ import {
   LoadingOutlined,
   FormOutlined,
   UpOutlined,
-  DownOutlined
+  DownOutlined,
+  CheckCircleOutlined,
+  EyeOutlined
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
@@ -611,6 +613,36 @@ const OportunidadesAudatex = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleMarcarRevisada = async (wan, e) => {
+    e.stopPropagation();
+    try {
+      await audatexService.marcarRevisada(wan);
+      message.success('Oportunidad marcada como revisada');
+      setOportunidades(prev => prev.map(o => o.wan === wan ? { ...o, estado_interaccion: 'REVISADA' } : o));
+    } catch (err) {
+      console.error('Error al marcar revisada:', err);
+      message.error('Error al marcar como revisada');
+    }
+  };
+
+  const getRowClassName = (record) => {
+    if (record.estado_interaccion === 'REVISADA') return 'row-revisada';
+    
+    const createdAt = record.creado_en || record.fechaCotizacion;
+    if (createdAt) {
+      let opDate = null;
+      if (typeof createdAt === 'string' && createdAt.includes('/')) {
+        opDate = parseFechaCotizacion(createdAt);
+      } else {
+        opDate = dayjs(createdAt).valueOf();
+      }
+      const diffMins = (Date.now() - opDate) / (1000 * 60);
+      if (diffMins > 30) return 'row-pendiente';
+    }
+    return 'row-nueva';
+  };
+
   // ── Columnas ──────────────────────────────────────────────────────────────
   const columns = [
     { title: 'Cotización ID', dataIndex: 'cotizacionId', key: 'cotizacionId' },
@@ -668,30 +700,6 @@ const OportunidadesAudatex = () => {
       render: (v) => (
         <Tag color={v > 0 ? 'orange' : 'green'} style={{ fontWeight: 'bold' }}>{v}</Tag>
       ),
-    },
-    {
-      title: 'Acciones', key: 'acciones',
-      render: (_, record) => (
-        <Button
-          type="primary"
-          size="middle"
-          shape="round"
-          icon={<FormOutlined />}
-          style={{
-            background: 'linear-gradient(90deg, #1890ff, #096dd9)',
-            border: 'none',
-            fontWeight: 'bold',
-            padding: '0 20px'
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            setOportunidadSeleccionada(record);
-            setDrawerVisible(true);
-          }}
-        >
-          Cotizar
-        </Button>
-      )
     }
   ];
 
@@ -967,16 +975,28 @@ const OportunidadesAudatex = () => {
 
       {/* Tabla progresiva — Ant Design maneja la paginación internamente */}
       <Card>
+        <style>{`
+          .row-nueva { background-color: #f6ffed !important; border-left: 4px solid #52c41a; }
+          .row-pendiente { background-color: #fffbe6 !important; border-left: 4px solid #faad14; }
+          .row-revisada { opacity: 0.65; background-color: #fafafa !important; border-left: 4px solid #d9d9d9; }
+          .row-revisada:hover { opacity: 1; }
+        `}</style>
         <div ref={tableRef}>
           <Table scroll={{ x: 'max-content' }}
             columns={columns}
             dataSource={oportunidadesFiltradas}
+            rowClassName={getRowClassName}
             rowKey={(record) => record._key}
             loading={streaming && oportunidades.length === 0}
             expandable={{
               expandRowByClick: false,
               expandedRowKeys,
               onExpandedRowsChange: setExpandedRowKeys,
+              onExpand: (expanded, record) => {
+                if (expanded && record.estado_interaccion !== 'REVISADA') {
+                  handleMarcarRevisada(record.wan, { stopPropagation: () => {} });
+                }
+              },
               rowExpandable: (record) => Array.isArray(record.repuestos) && record.repuestos.length > 0,
               expandedRowRender: (record) => {
                 let repuestos = record.repuestos || [];

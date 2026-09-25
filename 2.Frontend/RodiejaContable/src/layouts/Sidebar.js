@@ -30,7 +30,7 @@ const Sidebar = ({ collapsed, isMobile, onClose }) => {
       children: [
         hasAccess('vehiculos_lista') ? { key: '/vehiculos', label: 'Lista de Vehículos' } : null,
         hasAccess('vehiculos_jerarquia') ? { key: '/vehiculos/jerarquia', label: 'Ver por Generaciones' } : null,
-        user?.rol !== 'CONTADOR' && hasAccess('vehiculos_lista') ? { key: '/vehiculos/nuevo', label: 'Nuevo Vehículo' } : null,
+        !['CONTADOR', 'COLABORADOR'].includes(user?.rol) && hasAccess('vehiculos_lista') ? { key: '/vehiculos/nuevo', label: 'Nuevo Vehículo' } : null,
       ].filter(Boolean)
     } : null,
     hasAccess('inventario_lista') ? {
@@ -39,7 +39,7 @@ const Sidebar = ({ collapsed, isMobile, onClose }) => {
       label: 'Inventario',
       children: [
         { key: '/inventario', label: 'Lista de Repuestos' },
-        user?.rol !== 'CONTADOR' ? { key: '/inventario/nuevo', label: 'Nuevo Repuesto' } : null,
+        !['CONTADOR', 'COLABORADOR'].includes(user?.rol) ? { key: '/inventario/nuevo', label: 'Nuevo Repuesto' } : null,
       ].filter(Boolean)
     } : null,
     hasAccess('finanzas_lista') ? {
@@ -48,7 +48,7 @@ const Sidebar = ({ collapsed, isMobile, onClose }) => {
       label: 'Finanzas',
       children: [
         { key: '/finanzas', label: 'Transacciones' },
-        user?.rol !== 'CONTADOR' ? { key: '/finanzas/nueva', label: 'Nueva Transacción' } : null,
+        !['CONTADOR', 'COLABORADOR'].includes(user?.rol) ? { key: '/finanzas/nueva', label: 'Nueva Transacción' } : null,
       ].filter(Boolean)
     } : null,
     (hasAccess('reportes_general') || hasAccess('reportes_ventas') || hasAccess('reportes_vehiculos') || hasAccess('reportes_repuestos')) ? {

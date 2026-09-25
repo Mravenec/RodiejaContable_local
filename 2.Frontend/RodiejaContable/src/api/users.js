@@ -19,6 +19,14 @@ export const usersService = {
     } catch (error) {
       throw error.response?.data?.message || error.response?.data || error.message;
     }
+  },
+  updateUserRole: async (id, roleName) => {
+    try {
+      const response = await api.put(`/users/${id}/role`, { rol: roleName });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || error.response?.data || error.message;
+    }
   }
 };
 

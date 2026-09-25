@@ -85,4 +85,12 @@ public class UsersRepository {
         int deleted = dsl.deleteFrom(USERS).where(USERS.ID.eq(id)).execute();
         return deleted > 0;
     }
+
+    public boolean updateUserRole(Integer userId, Integer roleId) {
+        int updated = dsl.update(USERS)
+                         .set(USERS.ROL_ID, roleId)
+                         .where(USERS.ID.eq(userId))
+                         .execute();
+        return updated > 0;
+    }
 }

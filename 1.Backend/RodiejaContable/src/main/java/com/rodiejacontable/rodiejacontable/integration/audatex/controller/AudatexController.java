@@ -367,4 +367,17 @@ public class AudatexController {
                 "timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         ));
     }
+
+    @PutMapping("/oportunidades/revisada")
+    public ResponseEntity<?> marcarComoRevisada(@RequestBody Map<String, String> payload) {
+        String wan = payload.get("wan");
+        try {
+            audatexService.marcarOportunidadComoRevisada(wan);
+            return ResponseEntity.ok(Map.of("mensaje", "Oportunidad marcada como revisada", "wan", wan));
+        } catch (Exception e) {
+            log.error("[Audatex] Error marcando oportunidad {} como revisada: {}", wan, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error marcando oportunidad: " + e.getMessage()));
+        }
+    }
 }

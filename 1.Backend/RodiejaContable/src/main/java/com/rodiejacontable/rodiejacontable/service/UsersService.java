@@ -48,4 +48,13 @@ public class UsersService {
     public boolean deleteUser(Integer id) {
         return usersRepository.deleteUser(id);
     }
+
+    @Transactional
+    public boolean updateUserRole(Integer userId, String roleName) {
+        Integer roleId = getRoleId(roleName);
+        if (roleId == null) {
+            return false;
+        }
+        return usersRepository.updateUserRole(userId, roleId);
+    }
 }
