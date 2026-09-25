@@ -84,7 +84,11 @@ public class AudatexOportunidadesSyncRepository {
     }
 
     public List<Map<String, Object>> getOportunidadesActivas(String armadora, String aseguradora, Integer minPendientes) {
-        var query = dsl.selectFrom(AUDATEX_OPORTUNIDADES_SYNC)
+        var query = dsl.select(
+                    AUDATEX_OPORTUNIDADES_SYNC.fields()
+                )
+                .select(org.jooq.impl.DSL.field("estado_interaccion", String.class).as("estado_interaccion"))
+                .from(AUDATEX_OPORTUNIDADES_SYNC)
                 .where(AUDATEX_OPORTUNIDADES_SYNC.ESTADO.eq(
                         com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA));
 
@@ -99,5 +103,9 @@ public class AudatexOportunidadesSyncRepository {
         }
 
         return query.orderBy(AUDATEX_OPORTUNIDADES_SYNC.ULTIMA_VEZ_VISTO.desc()).fetchMaps();
+    }
+
+    public int markAsRevisada(String wan) {
+        return dsl.execute("UPDATE audatex_oportunidades_sync SET estado_interaccion = 'REVISADA' WHERE wan = ?", wan);
     }
 }

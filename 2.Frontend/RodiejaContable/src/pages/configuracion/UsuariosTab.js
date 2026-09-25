@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { List, Button, Tooltip, message, Avatar, Space, Typography, Form, Input, Select, Modal } from 'antd';
-import { UserOutlined, PlusOutlined, DeleteOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
+import { UserOutlined, PlusOutlined, DeleteOutlined, EditOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
 import { usersService } from '../../api/users';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/Settings.css';
@@ -16,6 +16,12 @@ const UsuariosTab = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [newUserForm] = Form.useForm();
+
+  // Edit Role Modal states
+  const [isEditRoleModalVisible, setIsEditRoleModalVisible] = useState(false);
+  const [updatingRole, setUpdatingRole] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editRoleForm] = Form.useForm();
 
   useEffect(() => {
     fetchUsuarios();
@@ -76,6 +82,28 @@ const UsuariosTab = () => {
     });
   };
 
+  const handleEditRoleClick = (user) => {
+    setEditingUser(user);
+    editRoleForm.setFieldsValue({ rol: user.rol });
+    setIsEditRoleModalVisible(true);
+  };
+
+  const handleUpdateRole = async (values) => {
+    if (!editingUser) return;
+    setUpdatingRole(true);
+    try {
+      await usersService.updateUserRole(editingUser.id, values.rol);
+      message.success('Rol actualizado exitosamente');
+      setIsEditRoleModalVisible(false);
+      fetchUsuarios();
+    } catch (error) {
+      console.error('Error al actualizar rol:', error);
+      message.error(typeof error === 'string' ? error : 'Error al actualizar el rol');
+    } finally {
+      setUpdatingRole(false);
+    }
+  };
+
   const getRoleClass = (role) => {
     const r = role?.toLowerCase() || '';
     if (r.includes('admin')) return 'user-role-admin';
@@ -108,14 +136,24 @@ const UsuariosTab = () => {
               className="premium-list-item"
               actions={[
                 (user.rol !== 'ADMIN' || (user.email !== currentUser?.email && usuarios.filter(u => u.rol === 'ADMIN').length > 1)) && (
-                  <Tooltip title="Eliminar Usuario" key="delete">
-                    <Button 
-                      type="text" 
-                      className="user-action-btn" 
-                      icon={<DeleteOutlined style={{ color: '#ef4444' }} />} 
-                      onClick={() => handleDeleteUser(user.id)}
-                    />
-                  </Tooltip>
+                  <Space key="actions">
+                    <Tooltip title="Editar Rol">
+                      <Button 
+                        type="text" 
+                        className="user-action-btn" 
+                        icon={<EditOutlined style={{ color: '#0284c7' }} />} 
+                        onClick={() => handleEditRoleClick(user)}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Eliminar Usuario">
+                      <Button 
+                        type="text" 
+                        className="user-action-btn" 
+                        icon={<DeleteOutlined style={{ color: '#ef4444' }} />} 
+                        onClick={() => handleDeleteUser(user.id)}
+                      />
+                    </Tooltip>
+                  </Space>
                 )
               ].filter(Boolean)}
             >
@@ -217,6 +255,7 @@ const UsuariosTab = () => {
             <Select size="large">
               <Select.Option value="ADMIN">Administrador</Select.Option>
               <Select.Option value="CONTADOR">Contador</Select.Option>
+              <Select.Option value="COLABORADOR">Colaborador</Select.Option>
             </Select>
           </Form.Item>
           
@@ -232,6 +271,58 @@ const UsuariosTab = () => {
               className="premium-submit-btn"
             >
               Crear Usuario
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={<span style={{ fontWeight: 600, fontSize: '18px' }}>Editar Rol de Usuario</span>}
+        open={isEditRoleModalVisible}
+        onCancel={() => {
+          setIsEditRoleModalVisible(false);
+          setEditingUser(null);
+        }}
+        footer={null}
+        destroyOnClose
+        centered
+        className="premium-modal"
+      >
+        {editingUser && (
+          <div style={{ marginBottom: 16 }}>
+            <Text type="secondary">Actualizando rol para: </Text>
+            <Text strong>{editingUser.nombre}</Text>
+          </div>
+        )}
+        <Form
+          form={editRoleForm}
+          layout="vertical"
+          onFinish={handleUpdateRole}
+        >
+          <Form.Item
+            name="rol"
+            label={<span style={{ fontWeight: 500 }}>Nuevo Rol</span>}
+            rules={[{ required: true, message: 'Por favor seleccione un rol' }]}
+          >
+            <Select size="large">
+              <Select.Option value="ADMIN">Administrador</Select.Option>
+              <Select.Option value="CONTADOR">Contador</Select.Option>
+              <Select.Option value="COLABORADOR">Colaborador</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item style={{ marginTop: 32, marginBottom: 0, textAlign: 'right' }}>
+            <Button size="large" onClick={() => setIsEditRoleModalVisible(false)} style={{ marginRight: 12, borderRadius: '8px', fontWeight: 500 }}>
+              Cancelar
+            </Button>
+            <Button 
+              size="large"
+              type="primary" 
+              htmlType="submit" 
+              loading={updatingRole}
+              className="premium-submit-btn"
+            >
+              Guardar Cambios
             </Button>
           </Form.Item>
         </Form>

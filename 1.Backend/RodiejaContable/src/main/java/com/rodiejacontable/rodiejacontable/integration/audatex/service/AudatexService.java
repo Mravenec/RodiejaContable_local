@@ -1141,6 +1141,7 @@ public class AudatexService {
         m.put("fechaCotizacion", r.get("fecha_cotizacion"));
         m.put("pendientes", r.get("pendientes"));
         m.put("estado", r.get("estado") != null ? r.get("estado").toString() : null);
+        m.put("estado_interaccion", r.get("estado_interaccion") != null ? r.get("estado_interaccion").toString() : null);
         m.put("ultima_vez_visto", r.get("ultima_vez_visto"));
 
         Object json = r.get("detalle_json");
@@ -1253,5 +1254,9 @@ public class AudatexService {
 
             o.put("matchInventario", hasMatch);
         }
+    }
+
+    public void marcarOportunidadComoRevisada(String wan) {
+        audatexOportunidadesSyncRepository.markAsRevisada(wan);
     }
 }

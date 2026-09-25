@@ -52,6 +52,11 @@ export const audatexAPI = {
     return axios.get('/audatex/status');
   },
 
+  // Marcar oportunidad como revisada
+  marcarRevisada: (wan) => {
+    return axios.put(`/audatex/oportunidades/revisada`, { wan });
+  },
+
   // Obtener exportación Excel XLSX
   exportarExcelUrl: (params) => {
     const query = new URLSearchParams(params).toString();
