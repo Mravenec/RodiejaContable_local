@@ -206,7 +206,7 @@ const OportunidadesAudatex = () => {
       finalizarStreamSiColaVacia();
       return;
     }
-    if (item.cerrada) {
+    if (item.cerrada && item.estado_interaccion !== 'COTIZACION_ENVIADA') {
       setOportunidades((prev) => prev.filter((o) => !sameOportunidad(o, item)));
     } else {
       setOportunidades((prev) => {
@@ -624,6 +624,7 @@ const OportunidadesAudatex = () => {
   };
 
   const getRowClassName = (record) => {
+    if (record.estado_interaccion === 'COTIZACION_ENVIADA') return 'row-enviada';
     if (record.estado_interaccion === 'REVISADA') return 'row-revisada';
     
     const createdAt = record.creado_en || record.fechaCotizacion;
@@ -973,8 +974,8 @@ const OportunidadesAudatex = () => {
       {/* Tabla progresiva — Ant Design maneja la paginación internamente */}
       <Card>
         <style>{`
-          .row-nueva { background-color: #f6ffed !important; border-left: 4px solid #52c41a; }
-          .row-pendiente { background-color: #fffbe6 !important; border-left: 4px solid #faad14; }
+          .row-enviada { background-color: #f6ffed !important; border-left: 4px solid #52c41a; }
+          .row-pendiente, .row-nueva { background-color: #fff9e6 !important; border-left: 4px solid #ffd666; }
           .row-revisada { opacity: 0.65; background-color: #fafafa !important; border-left: 4px solid #d9d9d9; }
           .row-revisada:hover { opacity: 1; }
         `}</style>

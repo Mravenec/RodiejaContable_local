@@ -84,13 +84,15 @@ public class AudatexOportunidadesSyncRepository {
     }
 
     public List<Map<String, Object>> getOportunidadesActivas(String armadora, String aseguradora, Integer minPendientes) {
-        var query = dsl.select(
-                    AUDATEX_OPORTUNIDADES_SYNC.fields()
-                )
-                .select(org.jooq.impl.DSL.field("estado_interaccion", String.class).as("estado_interaccion"))
+        var fieldsList = new java.util.ArrayList<org.jooq.Field<?>>(java.util.Arrays.asList(AUDATEX_OPORTUNIDADES_SYNC.fields()));
+        fieldsList.remove(AUDATEX_OPORTUNIDADES_SYNC.ESTADO_INTERACCION);
+        fieldsList.add(org.jooq.impl.DSL.field("estado_interaccion", String.class).as("estado_interaccion"));
+
+        var query = dsl.select(fieldsList)
                 .from(AUDATEX_OPORTUNIDADES_SYNC)
                 .where(AUDATEX_OPORTUNIDADES_SYNC.ESTADO.eq(
-                        com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA));
+                        com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado.ACTIVA)
+                    .or(org.jooq.impl.DSL.field("estado_interaccion", String.class).eq("COTIZACION_ENVIADA")));
 
         if (aseguradora != null && !aseguradora.trim().isEmpty()) {
             query = query.and(AUDATEX_OPORTUNIDADES_SYNC.ASEGURADORA.containsIgnoreCase(aseguradora.trim()));
