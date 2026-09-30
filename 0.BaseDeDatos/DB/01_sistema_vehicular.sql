@@ -758,11 +758,12 @@ CREATE TRIGGER tr_generar_codigo_transaccion
 BEFORE INSERT ON transacciones_financieras
 FOR EACH ROW
 BEGIN
-    DECLARE contador INT;
-    SELECT COUNT(*) + 1 INTO contador FROM transacciones_financieras 
+    DECLARE max_contador INT;
+    SELECT IFNULL(MAX(CAST(RIGHT(codigo_transaccion, 4) AS UNSIGNED)), 0) INTO max_contador 
+    FROM transacciones_financieras 
     WHERE YEAR(fecha) = YEAR(NEW.fecha) AND MONTH(fecha) = MONTH(NEW.fecha);
     
-    SET NEW.codigo_transaccion = CONCAT('TRX-', YEAR(NEW.fecha), LPAD(MONTH(NEW.fecha), 2, '0'), '-', LPAD(contador, 4, '0'));
+    SET NEW.codigo_transaccion = CONCAT('TRX-', YEAR(NEW.fecha), LPAD(MONTH(NEW.fecha), 2, '0'), '-', LPAD(max_contador + 1, 4, '0'));
 END//
 DELIMITER ;
 
