@@ -5,6 +5,7 @@ package com.rodiejacontable.database.jooq.tables.pojos;
 
 
 import com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstado;
+import com.rodiejacontable.database.jooq.enums.AudatexOportunidadesSyncEstadoInteraccion;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -31,6 +32,7 @@ public class AudatexOportunidadesSync implements Serializable {
     private String fechaCotizacion;
     private Integer pendientes;
     private AudatexOportunidadesSyncEstado estado;
+    private AudatexOportunidadesSyncEstadoInteraccion estadoInteraccion;
     private LocalDateTime ultimaVezVisto;
     private LocalDateTime creadoEn;
     private LocalDateTime actualizadoEn;
@@ -52,6 +54,7 @@ public class AudatexOportunidadesSync implements Serializable {
         this.fechaCotizacion = value.fechaCotizacion;
         this.pendientes = value.pendientes;
         this.estado = value.estado;
+        this.estadoInteraccion = value.estadoInteraccion;
         this.ultimaVezVisto = value.ultimaVezVisto;
         this.creadoEn = value.creadoEn;
         this.actualizadoEn = value.actualizadoEn;
@@ -72,6 +75,7 @@ public class AudatexOportunidadesSync implements Serializable {
         String fechaCotizacion,
         Integer pendientes,
         AudatexOportunidadesSyncEstado estado,
+        AudatexOportunidadesSyncEstadoInteraccion estadoInteraccion,
         LocalDateTime ultimaVezVisto,
         LocalDateTime creadoEn,
         LocalDateTime actualizadoEn,
@@ -90,6 +94,7 @@ public class AudatexOportunidadesSync implements Serializable {
         this.fechaCotizacion = fechaCotizacion;
         this.pendientes = pendientes;
         this.estado = estado;
+        this.estadoInteraccion = estadoInteraccion;
         this.ultimaVezVisto = ultimaVezVisto;
         this.creadoEn = creadoEn;
         this.actualizadoEn = actualizadoEn;
@@ -317,6 +322,23 @@ public class AudatexOportunidadesSync implements Serializable {
 
     /**
      * Getter for
+     * <code>sistema_vehicular.audatex_oportunidades_sync.estado_interaccion</code>.
+     */
+    public AudatexOportunidadesSyncEstadoInteraccion getEstadoInteraccion() {
+        return this.estadoInteraccion;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.audatex_oportunidades_sync.estado_interaccion</code>.
+     */
+    public AudatexOportunidadesSync setEstadoInteraccion(AudatexOportunidadesSyncEstadoInteraccion estadoInteraccion) {
+        this.estadoInteraccion = estadoInteraccion;
+        return this;
+    }
+
+    /**
+     * Getter for
      * <code>sistema_vehicular.audatex_oportunidades_sync.ultima_vez_visto</code>.
      */
     public LocalDateTime getUltimaVezVisto() {
@@ -470,6 +492,12 @@ public class AudatexOportunidadesSync implements Serializable {
         }
         else if (!this.estado.equals(other.estado))
             return false;
+        if (this.estadoInteraccion == null) {
+            if (other.estadoInteraccion != null)
+                return false;
+        }
+        else if (!this.estadoInteraccion.equals(other.estadoInteraccion))
+            return false;
         if (this.ultimaVezVisto == null) {
             if (other.ultimaVezVisto != null)
                 return false;
@@ -514,6 +542,7 @@ public class AudatexOportunidadesSync implements Serializable {
         result = prime * result + ((this.fechaCotizacion == null) ? 0 : this.fechaCotizacion.hashCode());
         result = prime * result + ((this.pendientes == null) ? 0 : this.pendientes.hashCode());
         result = prime * result + ((this.estado == null) ? 0 : this.estado.hashCode());
+        result = prime * result + ((this.estadoInteraccion == null) ? 0 : this.estadoInteraccion.hashCode());
         result = prime * result + ((this.ultimaVezVisto == null) ? 0 : this.ultimaVezVisto.hashCode());
         result = prime * result + ((this.creadoEn == null) ? 0 : this.creadoEn.hashCode());
         result = prime * result + ((this.actualizadoEn == null) ? 0 : this.actualizadoEn.hashCode());
@@ -538,6 +567,7 @@ public class AudatexOportunidadesSync implements Serializable {
         sb.append(", ").append(fechaCotizacion);
         sb.append(", ").append(pendientes);
         sb.append(", ").append(estado);
+        sb.append(", ").append(estadoInteraccion);
         sb.append(", ").append(ultimaVezVisto);
         sb.append(", ").append(creadoEn);
         sb.append(", ").append(actualizadoEn);
