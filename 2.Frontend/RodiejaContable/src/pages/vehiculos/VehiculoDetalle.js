@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Typography, Tabs, Tag, Spin, message, Row, Col, Divider } from 'antd';
+import { Card, Button, Typography, Tabs, Tag, Spin, message, Row, Col, Divider, Modal } from 'antd';
 import { 
   ArrowLeftOutlined, 
   EditOutlined, 
@@ -9,7 +9,8 @@ import {
   FileTextOutlined,
   MoneyCollectOutlined,
   ReloadOutlined,
-  HistoryOutlined
+  HistoryOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import vehiculoService from '../../api/vehiculos';
 import finanzaService from '../../api/finanzas';
@@ -240,6 +241,60 @@ const VehiculoDetalle = () => {
       console.error('Error updating vehicle status:', error);
       message.error('Error al actualizar el estado del vehículo');
     }
+  };
+
+  const handleEliminarVehiculo = () => {
+    Modal.confirm({
+      title: '¿Estás completamente seguro?',
+      icon: <DeleteOutlined style={{ color: 'red' }} />,
+      content: (
+        <div>
+          <p style={{ color: '#d9363e', fontWeight: 'bold' }}>Estás a punto de eliminar este vehículo del sistema.</p>
+          <p>Al confirmar, se desactivarán en cascada los siguientes elementos específicos:</p>
+          
+          {transacciones && transacciones.length > 0 && (
+            <div style={{ marginTop: '10px' }}>
+              <strong>Transacciones Financieras ({transacciones.length}):</strong>
+              <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #f0f0f0', padding: '5px', background: '#fafafa', borderRadius: '4px', fontSize: '12px' }}>
+                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                  {transacciones.map(t => (
+                    <li key={t.id}>{t.descripcion || 'Transacción'} - ₡{Number(t.monto).toLocaleString()}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {repuestos && repuestos.length > 0 && (
+            <div style={{ marginTop: '10px' }}>
+              <strong>Repuestos Extraídos ({repuestos.length}):</strong>
+              <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #f0f0f0', padding: '5px', background: '#fafafa', borderRadius: '4px', fontSize: '12px' }}>
+                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                  {repuestos.map(r => (
+                    <li key={r.id}>{r.parteVehiculo || r.descripcion} - ₡{Number(r.precioVenta || 0).toLocaleString()}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          <p style={{ marginTop: '15px' }}><em>Nota: Esta acción restará automáticamente todos estos montos de tus Dashboards.</em></p>
+        </div>
+      ),
+      okText: 'Sí, Eliminar todo',
+      okType: 'danger',
+      cancelText: 'Cancelar',
+      onOk: async () => {
+        try {
+          await vehiculoService.eliminarVehiculo(vehiculo.id);
+          message.success('Vehículo, transacciones y repuestos eliminados exitosamente.');
+          window.location.href = '/vehiculos';
+        } catch (error) {
+          console.error('Error al eliminar vehículo:', error);
+          message.error('Ocurrió un error al intentar eliminar el vehículo.');
+        }
+      }
+    });
   };
 
   // Load transactions for the vehicle
@@ -545,6 +600,16 @@ const VehiculoDetalle = () => {
                         Editar
                       </Button>
                     )}
+                    {user?.rol !== 'CONTADOR' && (
+                      <Button 
+                        danger 
+                        icon={<DeleteOutlined />} 
+                        style={{ marginRight: '8px', marginBottom: '8px' }}
+                        onClick={handleEliminarVehiculo}
+                      >
+                        Eliminar
+                      </Button>
+                    )}
                     {vehiculo.estado === 'REPARACION' && user?.rol !== 'CONTADOR' && (
                       <Button 
                         type="primary" 
@@ -750,6 +815,9 @@ const VehiculoDetalle = () => {
                   </div>
                 ) : repuestos && repuestos.length > 0 ? (
                   <div style={{ overflowX: 'auto' }}>
+                    <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end', backgroundColor: '#f6ffed', padding: '12px 16px', borderRadius: '4px', border: '1px solid #b7eb8f' }}>
+                      <Text strong style={{ fontSize: '16px' }}>Valor Total Potencial (Suma de Repuestos): <span style={{ color: '#52c41a', marginLeft: '8px', fontSize: '18px' }}>{formatCurrency(repuestos.reduce((sum, r) => sum + (parseFloat(r.precioVenta) || 0), 0))}</span></Text>
+                    </div>
                     <table className="ant-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr>

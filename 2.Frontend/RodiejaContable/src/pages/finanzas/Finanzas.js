@@ -299,7 +299,7 @@ const Finanzas = () => {
       width: 150,
       render: (_, record) => (
         <Space size="middle">
-          {record.estado === 'COMPLETADA' && user?.rol !== 'CONTADOR' && (
+          {record.estado === 'COMPLETADA' && user?.rol !== 'CONTADOR' && !record.descripcion?.startsWith('Compra automática') && (
             <Button 
               type="text" 
               danger
@@ -308,7 +308,7 @@ const Finanzas = () => {
               title="Reembolsar Transacción"
             />
           )}
-          {user?.rol !== 'CONTADOR' && (
+          {user?.rol !== 'CONTADOR' && !record.descripcion?.startsWith('Compra automática') && (
             <Button 
               type="text" 
               icon={<EditOutlined />} 
@@ -316,7 +316,7 @@ const Finanzas = () => {
               title="Editar"
             />
           )}
-          {user?.rol !== 'CONTADOR' && (
+          {user?.rol !== 'CONTADOR' && !record.descripcion?.startsWith('Compra automática') && (
             <Button 
               type="text" 
               danger 

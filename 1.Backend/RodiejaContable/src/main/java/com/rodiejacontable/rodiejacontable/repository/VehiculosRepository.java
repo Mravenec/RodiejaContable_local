@@ -28,6 +28,7 @@ public class VehiculosRepository {
     public List<Vehiculos> findAll() {
         return dsl.selectFrom(VEHICULOS)
                  .where(VEHICULOS.ESTADO.ne(VehiculosEstado.DESARMADO))
+                 .and(VEHICULOS.ACTIVO.eq((byte) 1).or(VEHICULOS.ACTIVO.isNull()))
                  .orderBy(VEHICULOS.FECHA_INGRESO.desc())
                  .fetchInto(Vehiculos.class);
     }
@@ -149,6 +150,35 @@ public class VehiculosRepository {
     }
     
     public boolean delete(Integer id) {
+        // 1. Soft delete de transacciones asociadas (para que no resten de totales)
+        dsl.update(com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS)
+           .set(com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ACTIVO, (byte) 0)
+           .set(com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ESTADO, com.rodiejacontable.database.jooq.enums.TransaccionesFinancierasEstado.CANCELADA)
+           .where(com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.VEHICULO_ID.eq(id))
+           .and(com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ACTIVO.eq((byte) 1))
+           .execute();
+           
+        // 1.5 Soft delete de transacciones asociadas a los repuestos extraídos del vehículo
+        dsl.update(com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS)
+           .set(com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ACTIVO, (byte) 0)
+           .set(com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ESTADO, com.rodiejacontable.database.jooq.enums.TransaccionesFinancierasEstado.CANCELADA)
+           .where(com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.REPUESTO_ID.in(
+               dsl.select(com.rodiejacontable.database.jooq.tables.InventarioRepuestos.INVENTARIO_REPUESTOS.ID)
+                  .from(com.rodiejacontable.database.jooq.tables.InventarioRepuestos.INVENTARIO_REPUESTOS)
+                  .where(com.rodiejacontable.database.jooq.tables.InventarioRepuestos.INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID.eq(id))
+           ))
+           .and(com.rodiejacontable.database.jooq.tables.TransaccionesFinancieras.TRANSACCIONES_FINANCIERAS.ACTIVO.eq((byte) 1))
+           .execute();
+           
+        // 2. Soft delete de repuestos extraídos de este vehículo
+        dsl.update(com.rodiejacontable.database.jooq.tables.InventarioRepuestos.INVENTARIO_REPUESTOS)
+           .set(com.rodiejacontable.database.jooq.tables.InventarioRepuestos.INVENTARIO_REPUESTOS.ACTIVO, (byte) 0)
+           .set(com.rodiejacontable.database.jooq.tables.InventarioRepuestos.INVENTARIO_REPUESTOS.ESTADO, com.rodiejacontable.database.jooq.enums.InventarioRepuestosEstado.AGOTADO)
+           .where(com.rodiejacontable.database.jooq.tables.InventarioRepuestos.INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID.eq(id))
+           .and(com.rodiejacontable.database.jooq.tables.InventarioRepuestos.INVENTARIO_REPUESTOS.ACTIVO.eq((byte) 1))
+           .execute();
+
+        // 3. Soft delete del vehículo mismo
         return dsl.update(VEHICULOS)
                  .set(VEHICULOS.ACTIVO, (byte) 0)
                  .where(VEHICULOS.ID.eq(id))
