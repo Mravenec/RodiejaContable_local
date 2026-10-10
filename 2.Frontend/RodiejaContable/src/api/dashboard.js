@@ -13,18 +13,22 @@ class DashboardService {
       const transaccionesResponse = await api.get('/transacciones-financieras');
       const transacciones = transaccionesResponse.data || [];
       
-      // Calcular ingresos y egresos desde transacciones reales
-      const ingresosTotales = transacciones
-        .filter(t => {
-          // Asumimos que tipoTransaccionId 1-3 son ingresos, 4-6 son egresos
-          return t.tipoTransaccionId <= 3;
-        })
+      // Filtrar transacciones inactivas o canceladas
+      const transaccionesActivas = transacciones.filter(t => {
+        const isActive = t.activo !== 0 && t.activo !== false && t.activo !== '0';
+        const isNotCancelled = t.estado !== 'CANCELADA' && t.estado !== 'CANCELADO';
+        return isActive && isNotCancelled;
+      });
+      
+      // Calcular ingresos y egresos desde transacciones reales (IDs correctos de BD)
+      const ingresosIds = [1, 2, 3, 4, 5, 17];
+      
+      const ingresosTotales = transaccionesActivas
+        .filter(t => ingresosIds.includes(t.tipoTransaccionId))
         .reduce((sum, t) => sum + (t.monto || 0), 0);
         
-      const egresosTotales = transacciones
-        .filter(t => {
-          return t.tipoTransaccionId > 3;
-        })
+      const egresosTotales = transaccionesActivas
+        .filter(t => !ingresosIds.includes(t.tipoTransaccionId))
         .reduce((sum, t) => sum + (t.monto || 0), 0);
       
       console.log('=== CÁLCULO DE INGRESOS/EGRESOS ===');

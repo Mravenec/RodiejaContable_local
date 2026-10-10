@@ -23,18 +23,21 @@ public class VistaInventarioCompletoRepository {
 
     public List<VistaInventarioCompleto> findAll() {
         return dsl.selectFrom(VISTA_INVENTARIO_COMPLETO)
+                .where(VISTA_INVENTARIO_COMPLETO.ACTIVO.eq((byte) 1))
                 .fetchInto(VistaInventarioCompleto.class);
     }
 
     public Optional<VistaInventarioCompleto> findById(Integer id) {
         return dsl.selectFrom(VISTA_INVENTARIO_COMPLETO)
                 .where(VISTA_INVENTARIO_COMPLETO.ID.eq(id))
+                .and(VISTA_INVENTARIO_COMPLETO.ACTIVO.eq((byte) 1))
                 .fetchOptionalInto(VistaInventarioCompleto.class);
     }
 
     public List<VistaInventarioCompleto> findByEstado(VistaInventarioCompletoEstado estado) {
         return dsl.selectFrom(VISTA_INVENTARIO_COMPLETO)
                 .where(VISTA_INVENTARIO_COMPLETO.ESTADO.eq(estado))
+                .and(VISTA_INVENTARIO_COMPLETO.ACTIVO.eq((byte) 1))
                 .fetchInto(VistaInventarioCompleto.class);
     }
 

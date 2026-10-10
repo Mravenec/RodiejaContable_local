@@ -482,7 +482,7 @@ const Dashboard = () => {
               <Row gutter={24} style={{ marginTop: 16 }}>
                 <Col xs={8}>
                   <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>Ingresos</div>
-                  <div style={{ fontWeight: 600, fontSize: '15px', color: '#262626' }}>{formatCurrency(estadisticasVentas.ventas_mes_actual || 0)}</div>
+                  <div style={{ fontWeight: 600, fontSize: '15px', color: '#262626' }}>{formatCurrency(estadisticasVentas.ingresos_mes_actual || 0)}</div>
                 </Col>
                 <Col xs={8}>
                   <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>Vehículos</div>
