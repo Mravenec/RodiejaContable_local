@@ -979,11 +979,18 @@ CREATE TRIGGER tr_actualizar_compra_vehiculo_update
 AFTER UPDATE ON vehiculos
 FOR EACH ROW
 BEGIN
-    -- Si cambia el monto de inversion_total, actualizamos la transacción de compra original
-    IF OLD.inversion_total != NEW.inversion_total THEN
-        UPDATE transacciones_financieras 
-        SET monto = NEW.inversion_total
-        WHERE vehiculo_id = NEW.id 
+    -- Si cambia alguno de los componentes de la inversión, recalculamos y actualizamos la transacción de compra original
+    IF OLD.precio_compra != NEW.precio_compra
+       OR OLD.costo_grua != NEW.costo_grua
+       OR OLD.comisiones != NEW.comisiones
+       OR (OLD.inversion_total != NEW.inversion_total AND NEW.inversion_total IS NOT NULL) THEN
+        -- Recalcular inversión total si no está actualizada
+        DECLARE nueva_inversion DECIMAL(15,2);
+        SET nueva_inversion = COALESCE(NEW.precio_compra, 0) + COALESCE(NEW.costo_grua, 0) + COALESCE(NEW.comisiones, 0);
+
+        UPDATE transacciones_financieras
+        SET monto = COALESCE(NEW.inversion_total, nueva_inversion)
+        WHERE vehiculo_id = NEW.id
           AND referencia = CONCAT('AUTO-COMPRA-', NEW.id);
     END IF;
 END//

@@ -197,9 +197,14 @@ public class VehiculosController {
         if (vehiculoData.containsKey("imagenUrl") && vehiculoData.get("imagenUrl") != null) {
             vehiculo.setImagenUrl(vehiculoData.get("imagenUrl").toString());
         }
-        
-        if (vehiculoData.containsKey("precioVenta") && vehiculoData.get("precioVenta") != null) {
-            vehiculo.setPrecioVenta(new BigDecimal(vehiculoData.get("precioVenta").toString()));
+
+        if (vehiculoData.containsKey("precioVenta")) {
+            Object precioVentaValue = vehiculoData.get("precioVenta");
+            if (precioVentaValue != null) {
+                vehiculo.setPrecioVenta(new BigDecimal(precioVentaValue.toString()));
+            } else {
+                vehiculo.setPrecioVenta(null); // Allow setting to null to clear the field
+            }
         }
         
         if (vehiculoData.containsKey("fechaVenta") && vehiculoData.get("fechaVenta") != null) {
@@ -267,9 +272,14 @@ public class VehiculosController {
         if (vehiculoData.containsKey("imagenUrl") && vehiculoData.get("imagenUrl") != null) {
             existente.setImagenUrl(vehiculoData.get("imagenUrl").toString());
         }
-        
-        if (vehiculoData.containsKey("precioVenta") && vehiculoData.get("precioVenta") != null) {
-            existente.setPrecioVenta(new BigDecimal(vehiculoData.get("precioVenta").toString()));
+
+        if (vehiculoData.containsKey("precioVenta")) {
+            Object precioVentaValue = vehiculoData.get("precioVenta");
+            if (precioVentaValue != null) {
+                existente.setPrecioVenta(new BigDecimal(precioVentaValue.toString()));
+            } else {
+                existente.setPrecioVenta(null); // Allow setting to null to clear the field
+            }
         }
         
         if (vehiculoData.containsKey("fechaVenta") && vehiculoData.get("fechaVenta") != null) {

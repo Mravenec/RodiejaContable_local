@@ -257,6 +257,10 @@ const normalizarEOrdenar = (
     const fechaCreacion = v.fecha_creacion ?? v.fechaCreacion;
     const fechaActualizacion = v.fecha_actualizacion ?? v.fechaActualizacion;
     const imagenUrl = v.imagen_url ?? v.imagenUrl;
+    const activo = toNum(v.activo, 0);
+
+    // Skip inactive vehicles
+    if (activo === 0) return null;
 
     return {
       id: v.id,
@@ -273,7 +277,7 @@ const normalizarEOrdenar = (
       estado: toStr(v.estado, 'SIN_ESTADO'),
       precio_venta: isNullish(precioVenta) ? null : Number(precioVenta),
       fecha_venta: isNullish(fechaVenta) ? null : fechaVenta,
-      activo: toNum(v.activo, 0),
+      activo: activo,
       notas: isNullish(v.notas) ? null : String(v.notas),
       fecha_creacion: fechaCreacion,
       fecha_actualizacion: fechaActualizacion,
@@ -346,7 +350,7 @@ const normalizarEOrdenar = (
       balance_neto: toNum(balanceNeto),
       activo: toNum(g.activo ?? fromApi?.activo, 0),
       fecha_creacion: toStr(g.fecha_creacion ?? g.fechaCreacion ?? fromApi?.fechaCreacion),
-      vehiculos: (Array.isArray(g.vehiculos) ? g.vehiculos.map(normVehiculo) : [])
+      vehiculos: (Array.isArray(g.vehiculos) ? g.vehiculos.map(normVehiculo).filter(v => v !== null) : [])
         .sort((a, b) => (a.anio ?? 0) - (b.anio ?? 0))
     };
   };
