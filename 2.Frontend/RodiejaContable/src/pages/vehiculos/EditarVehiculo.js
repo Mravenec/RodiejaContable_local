@@ -361,10 +361,10 @@ const EditarVehiculo = () => {
       const formattedValues = {
         generacionId: values.generacionId ? parseInt(values.generacionId) : null,
         anio: values.anio ? parseInt(values.anio) : null,
-        precioCompra: values.precioCompra ? parseFloat(values.precioCompra) : null,
-        costoGrua: values.costoGrua ? parseFloat(values.costoGrua) : 0,
-        comisiones: values.comisiones ? parseFloat(values.comisiones) : 0,
-        precioVenta: values.precioVenta ? parseFloat(values.precioVenta) : null,
+        precioCompra: values.precioCompra !== undefined && values.precioCompra !== null && values.precioCompra !== '' ? parseFloat(values.precioCompra) : null,
+        costoGrua: values.costoGrua !== undefined && values.costoGrua !== null && values.costoGrua !== '' ? parseFloat(values.costoGrua) : 0,
+        comisiones: values.comisiones !== undefined && values.comisiones !== null && values.comisiones !== '' ? parseFloat(values.comisiones) : 0,
+        precioVenta: values.precioVenta !== undefined && values.precioVenta !== null && values.precioVenta !== '' ? parseFloat(values.precioVenta) : null,
         imagenUrl: values.imagenUrl || imagenUrlValue || '',
         fechaIngreso: values.fechaIngreso && values.fechaIngreso.isValid() ? values.fechaIngreso.format('YYYY-MM-DD') : null,
         fechaVenta: values.fechaVenta && values.fechaVenta.isValid() ? values.fechaVenta.format('YYYY-MM-DD') : null,
@@ -533,10 +533,10 @@ const EditarVehiculo = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
             {/* Imagen */}
             <div style={{ flex: '0 0 220px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '180px' }}>
-              <ImageCarousel 
-                imageUrlString={vehiculo?.imagenUrl || vehiculo?.imagen_url || ''} 
-                alt={`${marca} ${modelo}`} 
-                width="220px" 
+              <ImageCarousel
+                imageUrlString={vehiculo?.imagenUrl || vehiculo?.imagen_url || ''}
+                alt={`${marca} ${modelo}`}
+                width="220px"
                 height="160px"
                 borderRadius="8px"
                 preview={true}
@@ -559,10 +559,16 @@ const EditarVehiculo = () => {
                   </Typography.Text>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <Typography.Text type="secondary" style={{ fontSize: '12px' }}>Precio de venta</Typography.Text>
-                  <Typography.Title level={3} style={{ margin: '2px 0', color: '#1890ff' }}>
-                    {formatCurrency(vehiculo?.precioVenta || vehiculo?.precioCompra || 0)}
-                  </Typography.Title>
+                  {(vehiculo?.precioVenta > 0 || vehiculo?.precioCompra > 0) && (
+                    <>
+                      <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                        {vehiculo?.precioVenta > 0 ? 'Precio de venta' : 'Precio de compra'}
+                      </Typography.Text>
+                      <Typography.Title level={3} style={{ margin: '2px 0', color: '#1890ff' }}>
+                        {formatCurrency(vehiculo?.precioVenta || vehiculo?.precioCompra)}
+                      </Typography.Title>
+                    </>
+                  )}
                   <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
                     Inversión: {formatCurrency(vehiculo?.inversionTotal || 0)}
                   </Typography.Text>
@@ -647,7 +653,7 @@ const EditarVehiculo = () => {
                               const serverUrl = info.file.response.url;
                               form.setFieldsValue({ imagenUrl: serverUrl });
                               setImagenUrlValue(serverUrl);
-                              setVehiculo(prev => ({...prev, imagenUrl: serverUrl}));
+                              setVehiculo(prev => ({ ...prev, imagenUrl: serverUrl }));
                             } else if (info.file.status === 'error') {
                               message.error(`${info.file.name} falló al subir.`);
                             }
@@ -655,28 +661,28 @@ const EditarVehiculo = () => {
                         >
                           <Button icon={<UploadOutlined />} style={{ width: '100%' }}>Seleccionar archivo</Button>
                         </Upload>
-                        <Button 
-                          icon={<DeleteOutlined />} 
+                        <Button
+                          icon={<DeleteOutlined />}
                           danger
                           title="Limpiar imagen"
                           onClick={() => {
                             form.setFieldsValue({ imagenUrl: '' });
                             setImagenUrlValue('');
-                            setVehiculo(prev => ({...prev, imagenUrl: ''}));
+                            setVehiculo(prev => ({ ...prev, imagenUrl: '' }));
                           }}
                           disabled={!imagenUrlValue}
                         />
                       </div>
-                      <Form.Item 
-                        name="imagenUrl" 
+                      <Form.Item
+                        name="imagenUrl"
                         style={{ marginBottom: 0 }}
                       >
-                        <Input 
-                          placeholder="https://ejemplo.com/imagen.jpg o ruta local" 
+                        <Input
+                          placeholder="https://ejemplo.com/imagen.jpg o ruta local"
                           allowClear
                           onChange={(e) => {
                             setImagenUrlValue(e.target.value);
-                            setVehiculo(prev => ({...prev, imagenUrl: e.target.value}));
+                            setVehiculo(prev => ({ ...prev, imagenUrl: e.target.value }));
                           }}
                         />
                       </Form.Item>
@@ -765,7 +771,13 @@ const EditarVehiculo = () => {
                       style={{ width: '100%' }}
                       formatter={v => `₡ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={v => v.replace(/₡\s?|(,*)/g, '')}
-                      min={0} precision={2}
+                      min={0}
+                      precision={2}
+                      onChange={(value) => {
+                        if (value === null || value === undefined || value === '') {
+                          form.setFieldValue('precioVenta', 0);
+                        }
+                      }}
                     />
                   </Form.Item>
                 </Col>
