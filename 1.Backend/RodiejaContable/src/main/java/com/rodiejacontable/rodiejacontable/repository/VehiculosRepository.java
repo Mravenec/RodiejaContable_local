@@ -230,9 +230,10 @@ public class VehiculosRepository {
                          .orderBy(GENERACIONES.ANIO_INICIO.asc())
                          .fetch()
                          .forEach(generacion -> {
-                             // Obtener vehículos para esta generación
+                             // Obtener vehículos para esta generación (solo activos)
                              List<Vehiculos> vehiculos = dsl.selectFrom(VEHICULOS)
                                                          .where(VEHICULOS.GENERACION_ID.eq(generacion.getId()))
+                                                         .and(VEHICULOS.ACTIVO.eq((byte) 1))
                                                          .orderBy(VEHICULOS.ANIO.asc())
                                                          .fetchInto(Vehiculos.class);
                                                          
