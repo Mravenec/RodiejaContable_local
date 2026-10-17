@@ -1,6 +1,8 @@
+import argparse
 import subprocess
+import sys
 
-def run_db_drop():
+def run_db_drop(auto_yes=False):
     container_name = "SistemaPrincipal"
     user = "root"
     password = "123456"
@@ -8,14 +10,15 @@ def run_db_drop():
     databases = ["sistema_vehicular"]
 
     print("=" * 60)
-    print(f"⚠️  PELIGRO: Se van a ELIMINAR {len(databases)} base(s) de datos")
-    print(f"Contenedor: {container_name}")
+    print(f"WARNING: Will DROP {len(databases)} database(s)")
+    print(f"Container: {container_name}")
     print("=" * 60)
 
-    confirm = input("¿Estás seguro de que deseas borrar TODO? (s/n): ")
-    if confirm.lower() != "s":
-        print("Operación cancelada.")
-        return
+    if not auto_yes:
+        confirm = input("Type 's' to confirm DROP: ")
+        if confirm.lower() != "s":
+            print("Cancelled.")
+            return
 
     try:
         drop_commands = " ".join([f"DROP DATABASE IF EXISTS {db};" for db in databases])
@@ -44,4 +47,7 @@ def run_db_drop():
 
 
 if __name__ == "__main__":
-    run_db_drop()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--yes", action="store_true", help="Skip interactive confirm")
+    args = parser.parse_args()
+    run_db_drop(auto_yes=args.yes)

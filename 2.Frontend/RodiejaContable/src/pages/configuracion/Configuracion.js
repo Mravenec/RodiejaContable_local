@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Tabs } from 'antd';
-import { TeamOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { TeamOutlined, SafetyCertificateOutlined, DatabaseOutlined } from '@ant-design/icons';
 import UsuariosTab from './UsuariosTab';
 import RolesPrivacidadTab from './RolesPrivacidadTab';
+import DatabaseImportExportTab from './DatabaseImportExportTab';
 import '../../styles/Settings.css';
 
 const { TabPane } = Tabs;
@@ -56,6 +57,20 @@ const Configuracion = () => {
           >
             <div className="tab-content-wrapper">
               <RolesPrivacidadTab />
+            </div>
+          </TabPane>
+
+          <TabPane
+            tab={
+              <span>
+                <DatabaseOutlined style={{ fontSize: '18px', marginRight: '8px' }} />
+                Base de datos
+              </span>
+            }
+            key="database"
+          >
+            <div className="tab-content-wrapper">
+              <DatabaseImportExportTab />
             </div>
           </TabPane>
         </Tabs>

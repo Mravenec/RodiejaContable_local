@@ -1,0 +1,28 @@
+### Login (ADMIN)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@rodieja.com",
+  "password": "Admin123!"
+}
+
+### Status scripts / files
+GET http://localhost:8080/api/database/status
+Authorization: Bearer {{token}}
+
+### Export — download portable .sql.gz (also refreshes 04_datos.sql + schema snapshot)
+GET http://localhost:8080/api/database/export
+Authorization: Bearer {{token}}
+
+### Import full dump (.sql or .sql.gz) — set file path locally
+# POST http://localhost:8080/api/database/import
+# Authorization: Bearer {{token}}
+# Content-Type: multipart/form-data; boundary=WebAppBoundary
+#
+# --WebAppBoundary
+# Content-Disposition: form-data; name="file"; filename="sistema_vehicular.sql.gz"
+# Content-Type: application/gzip
+#
+# < ./sistema_vehicular.sql.gz
+# --WebAppBoundary--
