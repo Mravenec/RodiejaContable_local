@@ -13,7 +13,8 @@
 --   02_UsersAuth.sql          — autenticación y usuarios
 --   03_AudatexEnvios.sql      — integración Audatex InPart (envíos)
 --   04_AudatexSync.sql        — sincronización oportunidades Audatex (vista materializada)
---   04_datos.sql              — mocks (vía load_mocks.py, no incluido aquí)
+--   04_datos.sql              — REAL DATA snapshot (vía load_data.py, no incluido aquí)
+--   _schema_from_live.sql     — optional live schema dump from export_db.py (not sourced)
 -- ============================================================
 
 SET FOREIGN_KEY_CHECKS = 0;

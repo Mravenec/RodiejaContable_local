@@ -1,0 +1,44 @@
+---
+description: Database Import/Export — real data in 04_datos.sql; schema in numbered DB/*.sql; UI via full stack
+alwaysApply: false
+globs:
+  - 0.BaseDeDatos/**
+  - "**/DatabaseImportExport*"
+  - "**/database.js"
+  - "**/useDatabaseImportExport.js"
+---
+
+# Database import / export (local-first)
+
+## Source of truth
+
+| Artifact | Role |
+|---|---|
+| `0.BaseDeDatos/DB/01_*.sql` … `04_AudatexSync.sql` | **Schema** (tables, views, triggers, SPs) — edit in place when structure changes |
+| `0.BaseDeDatos/DB/04_datos.sql` | **Real data** (not mocks) — refreshed by export |
+| `0.BaseDeDatos/DB/_schema_from_live.sql` | Live schema dump for diff; do not SOURCE from `00_run_all.sql` |
+| `load_data.py` | Loads `04_datos.sql` after `setup_db.py` |
+| `load_mocks.py` | Deprecated alias → `load_data.py` |
+
+## Stack (never invert)
+
+```
+export_db.py / import_db.py
+  → IDatabaseImportExportRepository → Repository
+  → IDatabaseImportExportService → Service
+  → IDatabaseImportExportController → Controller
+  → 24.database_import_export.http
+  → api/database.js → hooks/useDatabaseImportExport.js → Configuracion tab
+```
+
+## Workflow
+
+1. Prefer **Export from production** → download full `.sql` → **Import full** on local.
+2. Daily local: `pull` + Import or Export sync so `04_datos.sql` matches live.
+3. Local → production data import is rare; schema/code land via normal deploy.
+4. After structural DDL changes: update numbered schema files, then `drop` → `setup_db` → `load_data`.
+
+## Safety
+
+- Import/rebuild **DROP** the database — confirm in UI; CLI requires `--yes`.
+- Do not push feature branch until local smoke tests pass.
