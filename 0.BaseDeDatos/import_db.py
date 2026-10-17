@@ -23,6 +23,19 @@ def _base_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 
+def _mode():
+    return os.environ.get("RODIEJA_DB_MODE", "docker").strip().lower()
+
+
+def _refuse_rds_import():
+    """Never DROP/restore against RDS from the ADMIN UI."""
+    if _mode() == "direct" and os.environ.get("RODIEJA_ALLOW_RDS_IMPORT", "").strip() != "1":
+        raise RuntimeError(
+            "Import refused: RODIEJA_DB_MODE=direct (RDS/EC2). "
+            "Import would DROP the live database. Use Export only in production."
+        )
+
+
 def _drop_silent():
     cmd = (
         f'docker exec -i {CONTAINER_NAME} mariadb -u {USER} -p{PASSWORD} '
@@ -106,6 +119,8 @@ if __name__ == "__main__":
     if not args.yes:
         print("Refusing: pass --yes to confirm destructive import.")
         sys.exit(1)
+
+    _refuse_rds_import()
 
     if args.rebuild:
         rebuild_from_project_files()
