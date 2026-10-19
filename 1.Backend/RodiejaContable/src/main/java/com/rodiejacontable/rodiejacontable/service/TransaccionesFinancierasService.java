@@ -10,6 +10,7 @@ import com.rodiejacontable.rodiejacontable.repository.TiposTransaccionesReposito
 import com.rodiejacontable.rodiejacontable.repository.TransaccionesFinancierasRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 import com.rodiejacontable.database.jooq.tables.pojos.InventarioRepuestos;
 import java.math.BigDecimal;
@@ -67,6 +68,7 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public TransaccionesFinancieras create(TransaccionesFinancieras transaccion) {
         // Validar que el código de transacción sea único
         if (transaccionesRepository.existsByCodigoTransaccion(transaccion.getCodigoTransaccion())) {
@@ -133,7 +135,10 @@ public class TransaccionesFinancierasService {
                       repuestoUpdate.setCantidad(org.jooq.types.UInteger.valueOf(Math.max(0, currentStock - saved.getCantidadRepuesto().intValue())));
                       inventarioRepuestosService.actualizarRepuesto(repuesto.getId(), repuestoUpdate);
 
-                      if (repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
+                      // El trigger ya suma si es 'Venta Repuesto' o si la transacción apunta al mismo vehículo origen
+                      boolean triggerCubreIngreso = "Venta Repuesto".equals(tipoTransaccion.getNombre())
+                              || (repuesto.getVehiculoOrigenId() != null && repuesto.getVehiculoOrigenId().equals(saved.getVehiculoId()));
+                      if (!triggerCubreIngreso && repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
                           try {
                               com.rodiejacontable.database.jooq.tables.pojos.Vehiculos v = vehiculosService.findById(repuesto.getVehiculoOrigenId());
                               BigDecimal actual = v.getCostoRecuperado() != null ? v.getCostoRecuperado() : BigDecimal.ZERO;
@@ -147,7 +152,11 @@ public class TransaccionesFinancierasService {
                       repuestoUpdate.setCantidad(org.jooq.types.UInteger.valueOf(currentStock + saved.getCantidadRepuesto().intValue()));
                       inventarioRepuestosService.actualizarRepuesto(repuesto.getId(), repuestoUpdate);
                     
-                    if (repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
+                    // El trigger ya resta si la transacción apunta al mismo vehículo origen (salvo compra automática)
+                    boolean triggerCubreEgreso = repuesto.getVehiculoOrigenId() != null
+                            && repuesto.getVehiculoOrigenId().equals(saved.getVehiculoId())
+                            && (saved.getDescripcion() == null || !saved.getDescripcion().startsWith("Compra automática de vehículo"));
+                    if (!triggerCubreEgreso && repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
                         try {
                             com.rodiejacontable.database.jooq.tables.pojos.Vehiculos v = vehiculosService.findById(repuesto.getVehiculoOrigenId());
                             BigDecimal actual = v.getCostoRecuperado() != null ? v.getCostoRecuperado() : BigDecimal.ZERO;
@@ -164,6 +173,7 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public TransaccionesFinancieras update(Integer id, TransaccionesFinancieras transaccion) {
         // Verificar que la transacción exista
         TransaccionesFinancieras existingTransaccion = findById(id);
@@ -205,12 +215,27 @@ public class TransaccionesFinancierasService {
         }
         // Nota: Los campos dia, mes, anio son columnas generadas en la BD y se actualizan automáticamente
         
+        Integer vehiculoAnteriorId = existingTransaccion.getVehiculoId();
         existingTransaccion.setTipoTransaccionId(transaccion.getTipoTransaccionId());
         existingTransaccion.setEmpleadoId(transaccion.getEmpleadoId());
         existingTransaccion.setVehiculoId(transaccion.getVehiculoId());
-        existingTransaccion.setRepuestoId(transaccion.getRepuestoId());
+        // El formulario de edición no envía repuestoId: conservar el existente para no
+        // romper el costo_recuperado del vehículo origen (monto pendiente en jerarquía)
+        if (transaccion.getRepuestoId() != null) {
+            existingTransaccion.setRepuestoId(transaccion.getRepuestoId());
+        }
         existingTransaccion.setCantidadRepuesto(transaccion.getCantidadRepuesto() != null ? transaccion.getCantidadRepuesto() : existingTransaccion.getCantidadRepuesto());
-        existingTransaccion.setGeneracionId(transaccion.getGeneracionId());
+        // Generación: usar la enviada; si no viene, conservar la existente salvo que cambie el vehículo
+        if (transaccion.getGeneracionId() != null) {
+            existingTransaccion.setGeneracionId(transaccion.getGeneracionId());
+        } else if (transaccion.getVehiculoId() != null
+                && (!transaccion.getVehiculoId().equals(vehiculoAnteriorId) || existingTransaccion.getGeneracionId() == null)) {
+            try {
+                existingTransaccion.setGeneracionId(vehiculosService.findById(transaccion.getVehiculoId()).getGeneracionId());
+            } catch (Exception e) {
+                // Vehículo no encontrado: conservar la generación existente
+            }
+        }
         existingTransaccion.setMonto(transaccion.getMonto() != null ? transaccion.getMonto() : existingTransaccion.getMonto());
         existingTransaccion.setComisionEmpleado(transaccion.getComisionEmpleado());
         existingTransaccion.setDescripcion(transaccion.getDescripcion());
@@ -223,6 +248,7 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public void delete(Integer id) {
         // Verificar que la transacción exista
         findById(id);
@@ -232,6 +258,7 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public void actualizarEstado(Integer id, TransaccionesFinancierasEstado estado) {
         // Verificar que la transacción exista
         findById(id);
@@ -258,6 +285,7 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public TransaccionesFinancieras reembolsarTransaccion(Integer transaccionId) {
         TransaccionesFinancieras original = findById(transaccionId);
         

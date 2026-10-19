@@ -42,6 +42,11 @@ import ReporteVehiculos from './pages/reportes/ReporteVehiculos';
 import OportunidadesAudatex from './pages/audatex/OportunidadesAudatex';
 import JerarquiaAudatex from './pages/audatex/JerarquiaAudatex';
 import PedidosAudatex from './pages/audatex/PedidosAudatex';
+
+// Componentes de INS (LINZ)
+import InsPedidos from './pages/ins/InsPedidos';
+import InsVentasEmpleados from './pages/ins/InsVentasEmpleados';
+
 // Componentes de configuración
 import Perfil from './pages/configuracion/Perfil';
 import Configuracion from './pages/configuracion/Configuracion';
@@ -485,6 +490,28 @@ function App() {
           <PrivateRoute>
             <MainLayout>
               <PedidosAudatex />
+            </MainLayout>
+          </PrivateRoute>
+        }
+      />
+
+      {/* Rutas de INS (LINZ) */}
+      <Route
+        path="/ins/pedidos"
+        element={
+          <PrivateRoute>
+            <MainLayout>
+              <InsPedidos />
+            </MainLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/ins/ventas-empleados"
+        element={
+          <PrivateRoute>
+            <MainLayout>
+              <InsVentasEmpleados />
             </MainLayout>
           </PrivateRoute>
         }

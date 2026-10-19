@@ -292,6 +292,15 @@ const normalizarEOrdenar = (
 
     let fromApi;
 
+    // 0) por generacion_id real obtenido de los vehículos pertenecientes a la generación
+    const primerVehiculoConGen = Array.isArray(g.vehiculos)
+      ? g.vehiculos.find(v => !isNullish(v?.generacion_id ?? v?.generacionId))
+      : null;
+    const realGenId = primerVehiculoConGen?.generacion_id ?? primerVehiculoConGen?.generacionId;
+    if (!fromApi && !isNullish(realGenId)) {
+      fromApi = genIdx.byId.get(realGenId) ?? genIdx.byId.get(Number(realGenId));
+    }
+
     // 1) por (modeloId|nombre)
     if (!fromApi && !isNullish(modeloId) && nombreLower) {
       fromApi = genIdx.byModelName.get(`${modeloId}|${nombreLower}`);
@@ -455,7 +464,10 @@ const VehiculosJerarquicos = () => {
           fechaCreacion: g.fechaCreacion ?? g.fecha_creacion
         };
 
-        if (!isNullish(id)) byId.set(id, obj);
+        if (!isNullish(id)) {
+          byId.set(id, obj);
+          byId.set(Number(id), obj);
+        }
         if (!isNullish(id) && !isNullish(modeloId)) byModelId.set(`${modeloId}|${id}`, obj);
         if (!isNullish(modeloId) && nombre) byModelName.set(`${modeloId}|${nombre}`, obj);
         if (!isNullish(modeloId) && !isNullish(anioInicio) && !isNullish(anioFin)) {

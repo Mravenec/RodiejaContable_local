@@ -5,3 +5,10 @@ artifacts/
 Consulta/1.Backend/RodiejaContable/AudaPartsWebApp_Detalle.html
 1.Backend/RodiejaContable/AudaPartsWebApp_Detalle.html
 1.Backend/RodiejaContable/AudaPartsWebApp_Search.html
+
+# Python cache & temporales
+__pycache__/
+*.py[cod]
+
+# Dumps locales de base de datos
+0.BaseDeDatos/exports/

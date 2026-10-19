@@ -62,7 +62,7 @@ const Sidebar = ({ collapsed, isMobile, onClose }) => {
         hasAccess('reportes_repuestos') ? { key: '/reportes/repuestos', label: 'Repuestos' } : null
       ].filter(Boolean)
     } : null,
-    (hasAccess('audatex_oportunidades') || hasAccess('audatex_jerarquia') || hasAccess('audatex_pedidos')) ? {
+    (hasAccess('audatex_oportunidades') || hasAccess('audatex_jerarquia') || hasAccess('audatex_pedidos') || hasAccess('ins_pedidos') || hasAccess('ins_ventas_empleados')) ? {
       key: 'audatex',
       icon: <SendOutlined />,
       label: 'Cotizaciones InPart',
@@ -70,6 +70,8 @@ const Sidebar = ({ collapsed, isMobile, onClose }) => {
         hasAccess('audatex_oportunidades') ? { key: '/audatex/oportunidades', label: 'Oportunidades' } : null,
         // hasAccess('audatex_jerarquia') ? { key: '/audatex/jerarquia', label: 'Jerarquía InPart' } : null,
         hasAccess('audatex_pedidos') ? { key: '/audatex/pedidos', label: 'Pedidos' } : null,
+        hasAccess('ins_pedidos') ? { key: '/ins/pedidos', label: 'INS' } : null,
+        hasAccess('ins_ventas_empleados') ? { key: '/ins/ventas-empleados', label: 'Ventas Empleados INS' } : null,
       ].filter(Boolean)
     } : null,
     hasAccess('configuracion_ajustes') ? {

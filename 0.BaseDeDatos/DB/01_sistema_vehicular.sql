@@ -345,57 +345,117 @@ CREATE TABLE pagos_comisiones (
 -- TRIGGERS PARA AUTOMATIZACIÓN
 -- ========================================
 
--- Trigger que actualiza el campo costo_recuperado del vehículo según el tipo de transacción (suma en ingresos, resta en egresos)
+-- Trigger que actualiza el campo costo_recuperado del vehículo según el tipo de transacción (insert, update, delete)
+DROP TRIGGER IF EXISTS tr_actualizar_costo_recuperado_vehiculo;
+DROP TRIGGER IF EXISTS tr_actualizar_costo_recuperado_vehiculo_update;
+DROP TRIGGER IF EXISTS tr_actualizar_costo_recuperado_vehiculo_delete;
 
 DELIMITER //
 
 CREATE TRIGGER tr_actualizar_costo_recuperado_vehiculo
-AFTER INSERT ON transacciones_financieras   
+AFTER INSERT ON transacciones_financieras
 FOR EACH ROW
 BEGIN
-    DECLARE categoria_transaccion VARCHAR(10);
+    DECLARE v_cat VARCHAR(10);
+    DECLARE v_venta_rep_id INT;
     DECLARE v_vehiculo_id INT;
 
-    -- Verificar si hay vehículo relacionado
-    IF NEW.vehiculo_id IS NOT NULL THEN
-        SET v_vehiculo_id = NEW.vehiculo_id;
+    SELECT id INTO v_venta_rep_id FROM tipos_transacciones WHERE nombre = 'Venta Repuesto' LIMIT 1;
 
-        -- Obtener categoría del tipo de transacción (INGRESO o EGRESO)
-        SELECT categoria INTO categoria_transaccion
-        FROM tipos_transacciones
-        WHERE id = NEW.tipo_transaccion_id;
-
-        -- Ingreso: sumar al costo_recuperado
-        IF categoria_transaccion = 'INGRESO' THEN
-            UPDATE vehiculos
-            SET costo_recuperado = costo_recuperado + NEW.monto
-            WHERE id = v_vehiculo_id;
-
-        -- Egreso: restar del costo_recuperado (excepto si es compra automática del trigger de inserción de vehículo)
-        ELSEIF categoria_transaccion = 'EGRESO' THEN
-            IF NEW.descripcion NOT LIKE 'Compra automática de vehículo%' THEN
-                UPDATE vehiculos
-                SET costo_recuperado = costo_recuperado - NEW.monto
-                WHERE id = v_vehiculo_id;
-            END IF;
+    IF NEW.activo = 1 AND NEW.vehiculo_id IS NOT NULL
+       AND NOT (NEW.tipo_transaccion_id = v_venta_rep_id AND NEW.repuesto_id IS NOT NULL) THEN
+        SELECT categoria INTO v_cat FROM tipos_transacciones WHERE id = NEW.tipo_transaccion_id;
+        IF v_cat = 'INGRESO' THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado + NEW.monto WHERE id = NEW.vehiculo_id;
+        ELSEIF v_cat = 'EGRESO' AND NEW.descripcion NOT LIKE 'Compra automática de vehículo%' THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado - NEW.monto WHERE id = NEW.vehiculo_id;
         END IF;
     END IF;
 
-    -- Si es venta de repuesto, también aplica sobre el vehículo origen del repuesto
-    IF NEW.repuesto_id IS NOT NULL AND NEW.tipo_transaccion_id = (
-        SELECT id FROM tipos_transacciones WHERE nombre = 'Venta Repuesto' LIMIT 1
-    ) THEN
-        SELECT vehiculo_origen_id INTO v_vehiculo_id
-        FROM inventario_repuestos
-        WHERE id = NEW.repuesto_id;
-
+    IF NEW.activo = 1 AND NEW.repuesto_id IS NOT NULL AND NEW.tipo_transaccion_id = v_venta_rep_id THEN
+        SELECT vehiculo_origen_id INTO v_vehiculo_id FROM inventario_repuestos WHERE id = NEW.repuesto_id;
         IF v_vehiculo_id IS NOT NULL THEN
-            UPDATE vehiculos
-            SET costo_recuperado = costo_recuperado + NEW.monto
-            WHERE id = v_vehiculo_id;
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado + NEW.monto WHERE id = v_vehiculo_id;
+        END IF;
+    END IF;
+END//
+
+CREATE TRIGGER tr_actualizar_costo_recuperado_vehiculo_update
+AFTER UPDATE ON transacciones_financieras
+FOR EACH ROW
+BEGIN
+    DECLARE v_old_cat VARCHAR(10);
+    DECLARE v_new_cat VARCHAR(10);
+    DECLARE v_venta_rep_id INT;
+    DECLARE v_vehiculo_id INT;
+
+    SELECT id INTO v_venta_rep_id FROM tipos_transacciones WHERE nombre = 'Venta Repuesto' LIMIT 1;
+
+    -- Revert OLD
+    IF OLD.activo = 1 AND OLD.vehiculo_id IS NOT NULL
+       AND NOT (OLD.tipo_transaccion_id = v_venta_rep_id AND OLD.repuesto_id IS NOT NULL) THEN
+        SELECT categoria INTO v_old_cat FROM tipos_transacciones WHERE id = OLD.tipo_transaccion_id;
+        IF v_old_cat = 'INGRESO' THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado - OLD.monto WHERE id = OLD.vehiculo_id;
+        ELSEIF v_old_cat = 'EGRESO' AND OLD.descripcion NOT LIKE 'Compra automática de vehículo%' THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado + OLD.monto WHERE id = OLD.vehiculo_id;
         END IF;
     END IF;
 
+    IF OLD.activo = 1 AND OLD.repuesto_id IS NOT NULL AND OLD.tipo_transaccion_id = v_venta_rep_id THEN
+        SET v_vehiculo_id = NULL;
+        SELECT vehiculo_origen_id INTO v_vehiculo_id FROM inventario_repuestos WHERE id = OLD.repuesto_id;
+        IF v_vehiculo_id IS NOT NULL THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado - OLD.monto WHERE id = v_vehiculo_id;
+        END IF;
+    END IF;
+
+    -- Apply NEW
+    IF NEW.activo = 1 AND NEW.vehiculo_id IS NOT NULL
+       AND NOT (NEW.tipo_transaccion_id = v_venta_rep_id AND NEW.repuesto_id IS NOT NULL) THEN
+        SELECT categoria INTO v_new_cat FROM tipos_transacciones WHERE id = NEW.tipo_transaccion_id;
+        IF v_new_cat = 'INGRESO' THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado + NEW.monto WHERE id = NEW.vehiculo_id;
+        ELSEIF v_new_cat = 'EGRESO' AND NEW.descripcion NOT LIKE 'Compra automática de vehículo%' THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado - NEW.monto WHERE id = NEW.vehiculo_id;
+        END IF;
+    END IF;
+
+    IF NEW.activo = 1 AND NEW.repuesto_id IS NOT NULL AND NEW.tipo_transaccion_id = v_venta_rep_id THEN
+        SET v_vehiculo_id = NULL;
+        SELECT vehiculo_origen_id INTO v_vehiculo_id FROM inventario_repuestos WHERE id = NEW.repuesto_id;
+        IF v_vehiculo_id IS NOT NULL THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado + NEW.monto WHERE id = v_vehiculo_id;
+        END IF;
+    END IF;
+END//
+
+CREATE TRIGGER tr_actualizar_costo_recuperado_vehiculo_delete
+AFTER DELETE ON transacciones_financieras
+FOR EACH ROW
+BEGIN
+    DECLARE v_cat VARCHAR(10);
+    DECLARE v_venta_rep_id INT;
+    DECLARE v_vehiculo_id INT;
+
+    SELECT id INTO v_venta_rep_id FROM tipos_transacciones WHERE nombre = 'Venta Repuesto' LIMIT 1;
+
+    IF OLD.activo = 1 AND OLD.vehiculo_id IS NOT NULL
+       AND NOT (OLD.tipo_transaccion_id = v_venta_rep_id AND OLD.repuesto_id IS NOT NULL) THEN
+        SELECT categoria INTO v_cat FROM tipos_transacciones WHERE id = OLD.tipo_transaccion_id;
+        IF v_cat = 'INGRESO' THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado - OLD.monto WHERE id = OLD.vehiculo_id;
+        ELSEIF v_cat = 'EGRESO' AND OLD.descripcion NOT LIKE 'Compra automática de vehículo%' THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado + OLD.monto WHERE id = OLD.vehiculo_id;
+        END IF;
+    END IF;
+
+    IF OLD.activo = 1 AND OLD.repuesto_id IS NOT NULL AND OLD.tipo_transaccion_id = v_venta_rep_id THEN
+        SELECT vehiculo_origen_id INTO v_vehiculo_id FROM inventario_repuestos WHERE id = OLD.repuesto_id;
+        IF v_vehiculo_id IS NOT NULL THEN
+            UPDATE vehiculos SET costo_recuperado = costo_recuperado - OLD.monto WHERE id = v_vehiculo_id;
+        END IF;
+    END IF;
 END//
 
 DELIMITER ;

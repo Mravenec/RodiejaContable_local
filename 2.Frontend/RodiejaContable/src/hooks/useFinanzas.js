@@ -68,6 +68,9 @@ export function useUpdateTransaccion() {
         queryClient.invalidateQueries(['transaccion', variables.id]);
         queryClient.invalidateQueries('transacciones');
         queryClient.invalidateQueries('resumenFinanciero');
+        queryClient.invalidateQueries('vehiculos_vista');
+        queryClient.invalidateQueries('vehiculosActivos');
+        queryClient.invalidateQueries('generaciones');
       },
       onError: (error) => {
         message.error('Error al actualizar la transacción');
@@ -87,6 +90,9 @@ export function useDeleteTransaccion() {
         message.success('Transacción eliminada correctamente');
         queryClient.invalidateQueries('transacciones');
         queryClient.invalidateQueries('resumenFinanciero');
+        queryClient.invalidateQueries('vehiculos_vista');
+        queryClient.invalidateQueries('vehiculosActivos');
+        queryClient.invalidateQueries('generaciones');
       },
       onError: (error) => {
         message.error('Error al eliminar la transacción');
