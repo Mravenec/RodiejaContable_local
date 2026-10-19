@@ -1,32 +1,37 @@
-# 1. Borrar la base de datos completa ya que no se esta usando en produccion aun
+# 1. Borrar la base de datos (local Docker)
 python 0.BaseDeDatos/drop_db.py
+#    o sin prompt: python 0.BaseDeDatos/drop_db.py --yes
 
-# 2. Instalar esquema y cargar mocks ya que de momento no se esta usando en produccion aun
-python 0.BaseDeDatos/setup_db.py; python 0.BaseDeDatos/load_mocks.py
+# 2. Instalar esquema + cargar DATOS REALES (ya no "mocks")
+python 0.BaseDeDatos/setup_db.py
+python 0.BaseDeDatos/load_data.py
+#    alias antiguo: python 0.BaseDeDatos/load_mocks.py  → llama a load_data.py
+
+# 2b. Export / Import (CLI) — alinear con prod o refrescar archivos del repo
+python 0.BaseDeDatos/export_db.py
+#    escribe: DB/04_datos.sql + DB/_schema_from_live.sql + exports/sistema_vehicular_full_*.sql
+python 0.BaseDeDatos/import_db.py --rebuild --yes
+#    o: import_db.py --file ruta/dump.sql --full --yes
+#    o: import_db.py --file ruta/datos.sql --data --yes
 
 # 3. Backend — jOOQ se regenera en compile, luego levantar Spring Boot
 cd 1.Backend/RodiejaContable; mvn clean compile -DskipTests; mvn spring-boot:run
 
-# 4. Frontend — React con Axios (api/) y hooks (hooks/) en cada page
+# 4. Frontend — React con Axios (api/), hooks/, pages/
 cd 2.Frontend/RodiejaContable; npm start
 
-# 5. Login desarrollo (tras setup_db.py + load_mocks.py) — fuente: 0.BaseDeDatos/DB/02_UsersAuth.sql
+# 5. Login desarrollo — fuente: 0.BaseDeDatos/DB/02_UsersAuth.sql
 #    Frontend: http://localhost:3000  ·  API: http://localhost:8080
 #
 #    Rol     | Email               | Contraseña
 #    --------|---------------------|------------
 #    ADMIN   | admin@rodieja.com   | Admin123!
 #
-#    Nota: solo existe el usuario admin por defecto. Rol CONTADOR disponible al registrar usuarios.
+#    UI Import/Export: Configuración → pestaña "Base de datos"
+#    API: GET/POST /api/database/*  (ver 24.database_import_export.http)
 #
-#    Docker MariaDB (compartido con otros proyectos):
+#    Docker MariaDB (compartido):
 #      Contenedor: SistemaPrincipal  ·  Puerto: 3306  ·  root / 123456  ·  BD: sistema_vehicular
 
-# 6. Linear / multi-agente (Fase 5 Testing y orquestación)
-#    Ver AGENTS.md y _linear/README.md
-#    cd _linear
-#    node scripts/sprint-next.mjs          # issue desbloqueado antes de codear
-#    node scripts/sprint_<nombre>.mjs status
-#    node scripts/linear-update-state.mjs ROD-N --checklist-status
-#    npm install && npm run build          # primera vez MCP
-
+# 6. Linear / multi-agente (si el board tiene sprint activo)
+#    cd _linear ; npm install ; node scripts/sprint-next.mjs
