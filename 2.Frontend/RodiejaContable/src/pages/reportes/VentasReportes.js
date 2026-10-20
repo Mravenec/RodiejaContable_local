@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card,
   Row,
@@ -47,6 +47,21 @@ const { Option } = Select;
 const { Search } = Input;
 const { Content } = Layout;
 
+const MESES_NOMBRES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+const tiposProducto = [
+  { value: 'VEHICULO', label: 'Vehículo' },
+  { value: 'REPUESTO', label: 'Repuesto' },
+  { value: 'SERVICIO', label: 'Servicio' }
+];
+
+const estadosVenta = [
+  { value: 'completado', label: 'Completado', color: 'success' },
+  { value: 'pendiente', label: 'Pendiente', color: 'processing' },
+  { value: 'cancelado', label: 'Cancelado', color: 'error' },
+  { value: 'reembolsado', label: 'Reembolsado', color: 'warning' }
+];
+
 const VentasReportes = () => {
   const { user } = useAuth();
   // Estados para datos y carga
@@ -76,19 +91,7 @@ const VentasReportes = () => {
     tipoProducto: null
   });
 
-  // Tipos de productos y estados
-  const tiposProducto = [
-    { value: 'VEHICULO', label: 'Vehículo' },
-    { value: 'REPUESTO', label: 'Repuesto' },
-    { value: 'SERVICIO', label: 'Servicio' }
-  ];
 
-  const estadosVenta = [
-    { value: 'completado', label: 'Completado', color: 'success' },
-    { value: 'pendiente', label: 'Pendiente', color: 'processing' },
-    { value: 'cancelado', label: 'Cancelado', color: 'error' },
-    { value: 'reembolsado', label: 'Reembolsado', color: 'warning' }
-  ];
 
 
   // Columnas para la tabla de ventas por empleado (agrupadas)
@@ -286,6 +289,57 @@ const VentasReportes = () => {
       ...prev,
       ...values
     }));
+  };
+
+  const labelPeriodo = useMemo(() => {
+    if (filtros.mes && filtros.anio) {
+      return `${MESES_NOMBRES[filtros.mes - 1]} ${filtros.anio}`;
+    }
+    if (filtros.mes) return MESES_NOMBRES[filtros.mes - 1];
+    if (filtros.anio) return `${filtros.anio}`;
+    return null;
+  }, [filtros.mes, filtros.anio]);
+
+  const labelVendedor = useMemo(() => {
+    if (!filtros.vendedor) return null;
+    const emp = empleados.find(e => e.id === filtros.vendedor);
+    return emp ? emp.nombreCompleto : `Vendedor #${filtros.vendedor}`;
+  }, [filtros.vendedor, empleados]);
+
+  const labelEstado = useMemo(() => {
+    if (!filtros.estado || filtros.estado === 'todos') return null;
+    const est = estadosVenta.find(e => e.value === filtros.estado);
+    return est ? est.label : filtros.estado;
+  }, [filtros.estado]);
+
+  const labelTipoProducto = useMemo(() => {
+    if (!filtros.tipoProducto) return null;
+    const tp = tiposProducto.find(t => t.value === filtros.tipoProducto);
+    return tp ? tp.label : filtros.tipoProducto;
+  }, [filtros.tipoProducto]);
+
+  const cantidadFiltrosActivos = useMemo(() => {
+    let count = 0;
+    if (filtros.busqueda && filtros.busqueda.trim() !== '') count++;
+    if (filtros.mes || filtros.anio) count++;
+    if (filtros.vendedor) count++;
+    if (filtros.estado && filtros.estado !== 'todos') count++;
+    if (filtros.tipoProducto) count++;
+    return count;
+  }, [filtros]);
+
+  const tieneFiltrosActivos = cantidadFiltrosActivos > 0;
+
+  const removerFiltro = (nombre) => {
+    if (nombre === 'periodo') {
+      aplicarFiltros({ mes: null, anio: null });
+    } else if (nombre === 'busqueda') {
+      aplicarFiltros({ busqueda: '' });
+    } else if (nombre === 'estado') {
+      aplicarFiltros({ estado: 'todos' });
+    } else {
+      aplicarFiltros({ [nombre]: null });
+    }
   };
 
   // Limpiar filtros
@@ -714,16 +768,16 @@ const VentasReportes = () => {
   ];
 
   return (
-    <Content className="px-24 min-h-280">
+    <Content style={{ padding: '0 24px', minHeight: 280 }}>
       {/* Encabezado */}
-      <div className="mb-24 mt-8">
+      <div style={{ marginBottom: 24, marginTop: 8 }}>
         <Row align="middle" justify="space-between">
           <Col>
-            <Title level={3} className="m-0 text-dark">
-              <DashboardOutlined className="mr-8 text-primary" />
+            <Title level={3} style={{ margin: 0, color: '#262626' }}>
+              <DashboardOutlined style={{ marginRight: 8, color: '#1890ff' }} />
               Reportes de Ventas Empleados
             </Title>
-            <Text type="secondary" className="mt-4 d-block">
+            <Text type="secondary" style={{ marginTop: 4, display: 'block' }}>
               Análisis financiero, comisiones y trazabilidad de operaciones de ventas.
             </Text>
           </Col>
@@ -733,20 +787,102 @@ const VentasReportes = () => {
       {/* Control Panel de Filtros */}
       <Collapse
         defaultActiveKey={['1']}
-        className="mb-24 rounded-8 shadow-sm bg-white"
+        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px -2px rgba(0, 0, 0, 0.16)', background: '#fff' }}
         items={[
           {
             key: '1',
             label: (
-              <Text strong className="text-15 text-dark">
-                <FilterOutlined className="mr-8 text-primary" />
-                Parámetros de Análisis
-              </Text>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Text strong style={{ fontSize: '15px', color: '#262626' }}>
+                    <FilterOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                    Parámetros de Análisis
+                  </Text>
+                  {cantidadFiltrosActivos > 0 && (
+                    <Tag color="blue" style={{ borderRadius: '10px', margin: 0 }}>
+                      {cantidadFiltrosActivos} activo{cantidadFiltrosActivos > 1 ? 's' : ''}
+                    </Tag>
+                  )}
+                </div>
+
+                {tieneFiltrosActivos && (
+                  <div 
+                    onClick={(e) => e.stopPropagation()} 
+                    style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}
+                  >
+                    {labelPeriodo && (
+                      <Tag 
+                        color="blue" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('periodo'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Período: {labelPeriodo}
+                      </Tag>
+                    )}
+                    {filtros.busqueda && (
+                      <Tag 
+                        color="blue" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('busqueda'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Búsqueda: "{filtros.busqueda}"
+                      </Tag>
+                    )}
+                    {labelVendedor && (
+                      <Tag 
+                        color="purple" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('vendedor'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Vendedor: {labelVendedor}
+                      </Tag>
+                    )}
+                    {labelEstado && (
+                      <Tag 
+                        color={filtros.estado === 'completado' ? 'success' : filtros.estado === 'pendiente' ? 'processing' : filtros.estado === 'reembolsado' ? 'warning' : 'error'} 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('estado'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Estado: {labelEstado}
+                      </Tag>
+                    )}
+                    {labelTipoProducto && (
+                      <Tag 
+                        color="cyan" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('tipoProducto'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Tipo: {labelTipoProducto}
+                      </Tag>
+                    )}
+                    <Button 
+                      type="link" 
+                      size="small" 
+                      onClick={(e) => { e.stopPropagation(); limpiarFiltros(); }} 
+                      style={{ padding: '0 4px', fontSize: '12px', height: 'auto' }}
+                    >
+                      Limpiar todos
+                    </Button>
+                  </div>
+                )}
+              </div>
             ),
             children: (
               <Row gutter={[24, 16]} align="bottom">
                 <Col xs={24} sm={12} md={4}>
-                  <Text type="secondary" className="d-block mb-4 text-12">Búsqueda</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Búsqueda</Text>
+                    {filtros.busqueda && (
+                      <Tag color="blue" closable onClose={() => removerFiltro('busqueda')} style={{ margin: 0, fontWeight: 500 }}>
+                        "{filtros.busqueda}"
+                      </Tag>
+                    )}
+                  </div>
                   <Search
                     placeholder="Buscar..."
                     allowClear
@@ -754,14 +890,21 @@ const VentasReportes = () => {
                     onChange={(e) => aplicarFiltros({ busqueda: e.target.value })}
                     onSearch={(value) => aplicarFiltros({ busqueda: value })}
                     loading={loading.ventas}
-                    className="w-100 rounded-6"
+                    style={{ width: '100%', borderRadius: '6px' }}
                   />
                 </Col>
                 <Col xs={24} sm={12} md={4}>
-                  <Text type="secondary" className="d-block mb-4 text-12">Mes a Consultar</Text>
-                  <Space.Compact className="w-100">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Mes a Consultar</Text>
+                    {labelPeriodo && (
+                      <Tag color="blue" closable onClose={() => removerFiltro('periodo')} style={{ margin: 0, fontWeight: 500 }}>
+                        {labelPeriodo}
+                      </Tag>
+                    )}
+                  </div>
+                  <Space.Compact style={{ width: '100%' }}>
                     <Select
-                      className="w-60 rounded-l-6"
+                      style={{ width: '60%', borderRadius: '6px 0 0 6px' }}
                       placeholder="Mes"
                       value={filtros.mes}
                       onChange={(value) => aplicarFiltros({ mes: value })}
@@ -781,7 +924,7 @@ const VentasReportes = () => {
                       <Option value={12}>Dic</Option>
                     </Select>
                     <Select
-                      className="w-40 rounded-r-6"
+                      style={{ width: '40%', borderRadius: '0 6px 6px 0' }}
                       placeholder="Año"
                       value={filtros.anio}
                       onChange={(value) => aplicarFiltros({ anio: value })}
@@ -794,9 +937,16 @@ const VentasReportes = () => {
                   </Space.Compact>
                 </Col>
                 <Col xs={24} sm={12} md={4}>
-                  <Text type="secondary" className="d-block mb-4 text-12">Vendedor</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Vendedor</Text>
+                    {labelVendedor && (
+                      <Tag color="purple" closable onClose={() => removerFiltro('vendedor')} style={{ margin: 0, fontWeight: 500 }}>
+                        {labelVendedor}
+                      </Tag>
+                    )}
+                  </div>
                   <Select
-                    className="w-100"
+                    style={{ width: '100%' }}
                     placeholder="Todos"
                     value={filtros.vendedor}
                     onChange={(value) => aplicarFiltros({ vendedor: value })}
@@ -816,9 +966,21 @@ const VentasReportes = () => {
                   </Select>
                 </Col>
                 <Col xs={24} sm={12} md={4}>
-                  <Text type="secondary" className="d-block mb-4 text-12">Estado</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Estado</Text>
+                    {labelEstado && (
+                      <Tag 
+                        color={filtros.estado === 'completado' ? 'success' : filtros.estado === 'pendiente' ? 'processing' : filtros.estado === 'reembolsado' ? 'warning' : 'error'} 
+                        closable 
+                        onClose={() => removerFiltro('estado')} 
+                        style={{ margin: 0, fontWeight: 500 }}
+                      >
+                        {labelEstado}
+                      </Tag>
+                    )}
+                  </div>
                   <Select
-                    className="w-100"
+                    style={{ width: '100%' }}
                     value={filtros.estado}
                     onChange={(value) => aplicarFiltros({ estado: value })}
                     placeholder="Todos"
@@ -832,9 +994,16 @@ const VentasReportes = () => {
                   </Select>
                 </Col>
                 <Col xs={24} sm={12} md={4}>
-                  <Text type="secondary" className="d-block mb-4 text-12">Tipo Producto</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Tipo Producto</Text>
+                    {labelTipoProducto && (
+                      <Tag color="cyan" closable onClose={() => removerFiltro('tipoProducto')} style={{ margin: 0, fontWeight: 500 }}>
+                        {labelTipoProducto}
+                      </Tag>
+                    )}
+                  </div>
                   <Select
-                    className="w-100"
+                    style={{ width: '100%' }}
                     placeholder="Todos"
                     value={filtros.tipoProducto}
                     onChange={(value) => aplicarFiltros({ tipoProducto: value })}
@@ -848,7 +1017,13 @@ const VentasReportes = () => {
                   </Select>
                 </Col>
                 <Col xs={24} sm={24} md={4}>
-                  <Button block icon={<ReloadOutlined />} onClick={limpiarFiltros} disabled={loading.ventas} className="rounded-6">
+                  <Button 
+                    block 
+                    icon={<ReloadOutlined />} 
+                    onClick={limpiarFiltros} 
+                    disabled={!tieneFiltrosActivos || loading.ventas} 
+                    style={{ borderRadius: '6px' }}
+                  >
                     Reset
                   </Button>
                 </Col>
@@ -858,15 +1033,15 @@ const VentasReportes = () => {
         ]}
       />
 
-      {/* Tarjetas de Estadísticas */}
+      {/* Métricas principales */}
       <Spin spinning={loading.estadisticas}>
-        <Row gutter={[16, 16]} className="mb-24">
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-12 shadow-sm border-light">
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
-                title={<span className="text-gray text-14 font-medium">Ventas Totales</span>}
+                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Totales</span>}
                 value={totalVentasCount}
-                prefix={<ShoppingCartOutlined className="text-20" />}
+                prefix={<ShoppingCartOutlined style={{ fontSize: '20px' }} />}
                 valueStyle={{ color: '#1890ff', fontWeight: 600, fontSize: '24px' }}
                 loading={loading.estadisticas}
                 formatter={value => new Intl.NumberFormat('es-CR').format(value)}
@@ -874,12 +1049,12 @@ const VentasReportes = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-12 shadow-md border-light">
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
-                title={<span className="text-gray text-14 font-medium">Ingresos Totales</span>}
+                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
                 value={totalIngresos}
                 precision={2}
-                prefix={<ArrowUpOutlined className="text-20" />}
+                prefix={<ArrowUpOutlined style={{ fontSize: '20px' }} />}
                 valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
                 loading={loading.estadisticas}
                 formatter={value => `₡${new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`}
@@ -887,11 +1062,11 @@ const VentasReportes = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-12 shadow-md border-light">
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
-                title={<span className="text-gray text-14 font-medium">Ventas Completadas</span>}
+                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Completadas</span>}
                 value={ventasCompletadas}
-                prefix={<CheckCircleOutlined className="text-20" />}
+                prefix={<CheckCircleOutlined style={{ fontSize: '20px' }} />}
                 valueStyle={{ color: '#722ed1', fontWeight: 600, fontSize: '24px' }}
                 loading={loading.estadisticas}
                 formatter={value => new Intl.NumberFormat('es-CR').format(value)}
@@ -899,9 +1074,9 @@ const VentasReportes = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-12 shadow-md border-light">
+            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
               <Statistic
-                title={<span className="text-gray text-14 font-medium">Tasa de Conversión</span>}
+                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Tasa de Conversión</span>}
                 value={tasaConversion}
                 precision={2}
                 suffix="%"
@@ -913,6 +1088,7 @@ const VentasReportes = () => {
           </Col>
         </Row>
       </Spin>
+
       <Tabs
         defaultActiveKey="1"
         size="large"
@@ -921,21 +1097,19 @@ const VentasReportes = () => {
           {
             key: '1',
             label: (
-              <span className="text-16 font-medium">
+              <span style={{ fontSize: '16px', fontWeight: 500 }}>
                 <BarChartOutlined /> Reporte General
               </span>
             ),
             children: (
-              <div className="mt-8">
+              <div style={{ marginTop: '8px' }}>
                 {/* Sección Vista Excel de Ventas Mensuales */}
                 <Card
                   title={
-                    <div className="mb-16">
-                      <span className="font-semibold text-18">
-                        <BarChartOutlined className="mr-8" />
-                        Rendimiento del Equipo Ventas Mensuales
-                      </span>
-                    </div>
+                    <span style={{ fontWeight: 600, fontSize: '18px' }}>
+                      <BarChartOutlined style={{ marginRight: 8 }} />
+                      Vista Excel de Ventas Mensuales
+                    </span>
                   }
                   extra={
                     <Button
@@ -943,19 +1117,17 @@ const VentasReportes = () => {
                       onClick={exportarAExcelCompleto}
                       loading={exportandoExcel}
                       type="primary"
-                      size="large"
-                      style={{ minWidth: '180px', borderRadius: '6px' }}
-                      className="bg-success border-success shadow-sm"
+                      style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 2px 4px rgba(82,196,26,0.2)' }}
                     >
                       Exportar a Excel
                     </Button>
                   }
                   bordered={false}
-                  className="mb-24 rounded-8 shadow-sm border-light"
+                  style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
                   headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
                   bodyStyle={{ padding: '0' }}
                 >
-                  <div className="table-container">
+                  <div style={{ padding: '24px' }}>
                     <Table
                       columns={columnsVistaExcel}
                       dataSource={datosVistaExcel}
@@ -974,7 +1146,7 @@ const VentasReportes = () => {
                             image={Empty.PRESENTED_IMAGE_SIMPLE}
                             description={
                               <span>
-                                <InboxOutlined className="text-20 text-gray-light mr-8" />
+                                <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
                                 {!filtros.mes && !filtros.anio
                                   ? 'Selecciona un mes y año específicos en el filtro superior'
                                   : 'No hay datos para el período seleccionado'}
@@ -992,49 +1164,45 @@ const VentasReportes = () => {
                 <Card
                   title={
                     <Space>
-                      <span className="font-semibold text-18">
-                        <TeamOutlined className="mr-8" />
+                      <span style={{ fontWeight: 600, fontSize: '18px' }}>
+                        <TeamOutlined style={{ marginRight: 8 }} />
                         Ventas por Empleado
                       </span>
                       {filtros.vendedor && (
-                        <Tag color="blue" className="ml-8">
+                        <Tag color="blue" style={{ marginLeft: 8 }}>
                           Filtrado por: {empleados.find(e => e.id === filtros.vendedor)?.nombreCompleto || 'Vendedor'}
                         </Tag>
                       )}
                     </Space>
                   }
                   extra={
-                    <Space wrap>
+                    <Space>
+                      <Button
+                        type="primary"
+                        icon={<DownloadOutlined />}
+                        style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 2px 4px rgba(82,196,26,0.2)' }}
+                        onClick={exportarAExcel}
+                        loading={loading.exportar}
+                      >
+                        Exportar a Excel
+                      </Button>
                       <Button
                         icon={<ReloadOutlined />}
                         onClick={cargarDatosIniciales}
                         loading={loading.ventas}
-                        type="default"
-                        size="large"
-                        style={{ minWidth: '180px', borderRadius: '6px' }}
+                        type="text"
                       >
                         Actualizar
-                      </Button>
-                      <Button
-                        type="primary"
-                        icon={<DownloadOutlined />}
-                        className="bg-success border-success shadow-sm"
-                        onClick={exportarAExcel}
-                        loading={loading.exportar}
-                        size="large"
-                        style={{ minWidth: '180px', borderRadius: '6px' }}
-                      >
-                        Exportar a Excel
                       </Button>
                     </Space>
                   }
                   bordered={false}
-                  className="mb-24 rounded-8 shadow-sm border-light"
+                  style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
                   headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
                   bodyStyle={{ padding: '0' }}
                 >
-                  <div className="table-container">
-                    <Table scroll={{ x: 'max-content' }}
+                  <div style={{ padding: '24px' }}>
+                    <Table
                       columns={columnsVentasAgrupadas}
                       dataSource={ventasAgrupadas}
                       rowKey="empleado"
@@ -1044,6 +1212,7 @@ const VentasReportes = () => {
                         showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} registros`
                       }}
                       loading={loading.ventas}
+                      scroll={{ x: 1000 }}
                       size="middle"
                       locale={{
                         emptyText: (
@@ -1051,7 +1220,7 @@ const VentasReportes = () => {
                             image={Empty.PRESENTED_IMAGE_SIMPLE}
                             description={
                               <span>
-                                <InboxOutlined className="text-20 text-gray-light mr-8" />
+                                <InboxOutlined style={{ fontSize: 20, color: '#999', marginRight: 8 }} />
                                 No hay datos de ventas por empleado
                               </span>
                             }
@@ -1068,12 +1237,12 @@ const VentasReportes = () => {
           user?.rol !== 'CONTADOR' && {
             key: '2',
             label: (
-              <span className="text-16 font-medium">
+              <span style={{ fontSize: '16px', fontWeight: 500 }}>
                 <TeamOutlined /> Pago de Comisiones
               </span>
             ),
             children: (
-              <div className="mt-8">
+              <div style={{ marginTop: '8px' }}>
                 <ComisionesPendientes
                   mesFiltro={filtros.mes}
                   anioFiltro={filtros.anio}

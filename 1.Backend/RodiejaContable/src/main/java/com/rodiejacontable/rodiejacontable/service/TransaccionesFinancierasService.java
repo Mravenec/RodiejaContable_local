@@ -10,7 +10,6 @@ import com.rodiejacontable.rodiejacontable.repository.TiposTransaccionesReposito
 import com.rodiejacontable.rodiejacontable.repository.TransaccionesFinancierasRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 import com.rodiejacontable.database.jooq.tables.pojos.InventarioRepuestos;
 import java.math.BigDecimal;
@@ -68,7 +67,6 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
-    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public TransaccionesFinancieras create(TransaccionesFinancieras transaccion) {
         // Validar que el código de transacción sea único
         if (transaccionesRepository.existsByCodigoTransaccion(transaccion.getCodigoTransaccion())) {
@@ -135,10 +133,7 @@ public class TransaccionesFinancierasService {
                       repuestoUpdate.setCantidad(org.jooq.types.UInteger.valueOf(Math.max(0, currentStock - saved.getCantidadRepuesto().intValue())));
                       inventarioRepuestosService.actualizarRepuesto(repuesto.getId(), repuestoUpdate);
 
-                      // El trigger ya suma si es 'Venta Repuesto' o si la transacción apunta al mismo vehículo origen
-                      boolean triggerCubreIngreso = "Venta Repuesto".equals(tipoTransaccion.getNombre())
-                              || (repuesto.getVehiculoOrigenId() != null && repuesto.getVehiculoOrigenId().equals(saved.getVehiculoId()));
-                      if (!triggerCubreIngreso && repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
+                      if (repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
                           try {
                               com.rodiejacontable.database.jooq.tables.pojos.Vehiculos v = vehiculosService.findById(repuesto.getVehiculoOrigenId());
                               BigDecimal actual = v.getCostoRecuperado() != null ? v.getCostoRecuperado() : BigDecimal.ZERO;
@@ -152,11 +147,7 @@ public class TransaccionesFinancierasService {
                       repuestoUpdate.setCantidad(org.jooq.types.UInteger.valueOf(currentStock + saved.getCantidadRepuesto().intValue()));
                       inventarioRepuestosService.actualizarRepuesto(repuesto.getId(), repuestoUpdate);
                     
-                    // El trigger ya resta si la transacción apunta al mismo vehículo origen (salvo compra automática)
-                    boolean triggerCubreEgreso = repuesto.getVehiculoOrigenId() != null
-                            && repuesto.getVehiculoOrigenId().equals(saved.getVehiculoId())
-                            && (saved.getDescripcion() == null || !saved.getDescripcion().startsWith("Compra automática de vehículo"));
-                    if (!triggerCubreEgreso && repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
+                    if (repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
                         try {
                             com.rodiejacontable.database.jooq.tables.pojos.Vehiculos v = vehiculosService.findById(repuesto.getVehiculoOrigenId());
                             BigDecimal actual = v.getCostoRecuperado() != null ? v.getCostoRecuperado() : BigDecimal.ZERO;
@@ -173,7 +164,6 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
-    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public TransaccionesFinancieras update(Integer id, TransaccionesFinancieras transaccion) {
         // Verificar que la transacción exista
         TransaccionesFinancieras existingTransaccion = findById(id);
@@ -215,27 +205,12 @@ public class TransaccionesFinancierasService {
         }
         // Nota: Los campos dia, mes, anio son columnas generadas en la BD y se actualizan automáticamente
         
-        Integer vehiculoAnteriorId = existingTransaccion.getVehiculoId();
         existingTransaccion.setTipoTransaccionId(transaccion.getTipoTransaccionId());
         existingTransaccion.setEmpleadoId(transaccion.getEmpleadoId());
         existingTransaccion.setVehiculoId(transaccion.getVehiculoId());
-        // El formulario de edición no envía repuestoId: conservar el existente para no
-        // romper el costo_recuperado del vehículo origen (monto pendiente en jerarquía)
-        if (transaccion.getRepuestoId() != null) {
-            existingTransaccion.setRepuestoId(transaccion.getRepuestoId());
-        }
+        existingTransaccion.setRepuestoId(transaccion.getRepuestoId());
         existingTransaccion.setCantidadRepuesto(transaccion.getCantidadRepuesto() != null ? transaccion.getCantidadRepuesto() : existingTransaccion.getCantidadRepuesto());
-        // Generación: usar la enviada; si no viene, conservar la existente salvo que cambie el vehículo
-        if (transaccion.getGeneracionId() != null) {
-            existingTransaccion.setGeneracionId(transaccion.getGeneracionId());
-        } else if (transaccion.getVehiculoId() != null
-                && (!transaccion.getVehiculoId().equals(vehiculoAnteriorId) || existingTransaccion.getGeneracionId() == null)) {
-            try {
-                existingTransaccion.setGeneracionId(vehiculosService.findById(transaccion.getVehiculoId()).getGeneracionId());
-            } catch (Exception e) {
-                // Vehículo no encontrado: conservar la generación existente
-            }
-        }
+        existingTransaccion.setGeneracionId(transaccion.getGeneracionId());
         existingTransaccion.setMonto(transaccion.getMonto() != null ? transaccion.getMonto() : existingTransaccion.getMonto());
         existingTransaccion.setComisionEmpleado(transaccion.getComisionEmpleado());
         existingTransaccion.setDescripcion(transaccion.getDescripcion());
@@ -248,17 +223,24 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
-    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public void delete(Integer id) {
         // Verificar que la transacción exista
-        findById(id);
+        TransaccionesFinancieras t = findById(id);
+        
+        // Validar que no sea un reembolso ni haya sido reembolsada ("no se puede deshacer")
+        if ((t.getReferencia() != null && t.getReferencia().startsWith("Reembolso ")) ||
+            (t.getCodigoTransaccion() != null && t.getCodigoTransaccion().startsWith("REF-"))) {
+            throw new IllegalStateException("Un reembolso no se puede deshacer ni eliminar.");
+        }
+        if (transaccionesRepository.isTransactionRefunded(id)) {
+            throw new IllegalStateException("No se puede eliminar una transacción que ya ha sido reembolsada.");
+        }
         
         // Eliminar la transacción
         transaccionesRepository.delete(id);
     }
     
     @Transactional
-    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public void actualizarEstado(Integer id, TransaccionesFinancierasEstado estado) {
         // Verificar que la transacción exista
         findById(id);
@@ -284,8 +266,47 @@ public class TransaccionesFinancierasService {
         return getTotalMontoByTipoTransaccionAndPeriodo(tipoTransaccionId, startDate, endDate);
     }
     
+    public Map<String, Object> verificarEstadoReembolso(Integer transaccionId) {
+        Map<String, Object> result = new HashMap<>();
+        TransaccionesFinancieras t = findById(transaccionId);
+        
+        boolean esReembolso = (t.getCodigoTransaccion() != null && t.getCodigoTransaccion().startsWith("REF-")) ||
+                              (t.getReferencia() != null && t.getReferencia().startsWith("Reembolso ")) ||
+                              (t.getDescripcion() != null && t.getDescripcion().toLowerCase().startsWith("reembolso"));
+        
+        if (!esReembolso && t.getTipoTransaccionId() != null) {
+            tiposTransaccionesRepository.findById(t.getTipoTransaccionId()).ifPresent(tipo -> {
+                if (tipo.getNombre() != null && tipo.getNombre().toLowerCase().contains("reembolso")) {
+                    result.put("esReembolsoTipo", true);
+                }
+            });
+            if (Boolean.TRUE.equals(result.get("esReembolsoTipo"))) {
+                esReembolso = true;
+            }
+        }
+        
+        boolean yaReembolsada = transaccionesRepository.isTransactionRefunded(transaccionId);
+        boolean estadoCompletada = t.getEstado() == TransaccionesFinancierasEstado.COMPLETADA;
+        
+        boolean puedeReembolsar = estadoCompletada && !esReembolso && !yaReembolsada;
+        
+        String motivo = "";
+        if (!estadoCompletada) {
+            motivo = "Solo se pueden reembolsar transacciones completadas.";
+        } else if (esReembolso) {
+            motivo = "Esta transacción es un reembolso y no se puede deshacer ni reembolsar.";
+        } else if (yaReembolsada) {
+            motivo = "Esta transacción ya ha sido reembolsada y no se puede reembolsar dos veces.";
+        }
+        
+        result.put("puedeReembolsar", puedeReembolsar);
+        result.put("esReembolso", esReembolso);
+        result.put("yaReembolsada", yaReembolsada);
+        result.put("motivo", motivo);
+        return result;
+    }
+
     @Transactional
-    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public TransaccionesFinancieras reembolsarTransaccion(Integer transaccionId) {
         TransaccionesFinancieras original = findById(transaccionId);
         
@@ -293,11 +314,43 @@ public class TransaccionesFinancierasService {
             throw new IllegalArgumentException("Solo se pueden reembolsar transacciones completadas.");
         }
         
+        // 1. Validar que la transacción no sea un reembolso en sí
+        if ((original.getCodigoTransaccion() != null && original.getCodigoTransaccion().startsWith("REF-")) ||
+            (original.getReferencia() != null && original.getReferencia().startsWith("Reembolso ")) ||
+            (original.getDescripcion() != null && original.getDescripcion().toLowerCase().startsWith("reembolso"))) {
+            throw new IllegalStateException("No se puede reembolsar una transacción que ya es un reembolso.");
+        }
+
+        // 2. Validar que la transacción no haya sido ya reembolsada previamente ("no se puede reembolsar dos veces")
+        if (transaccionesRepository.isTransactionRefunded(transaccionId)) {
+            throw new IllegalStateException("Esta transacción ya fue reembolsada y no se puede reembolsar dos veces.");
+        }
+        
         TiposTransacciones tipoOriginal = tiposTransaccionesRepository.findById(original.getTipoTransaccionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tipo de transacción original no encontrado."));
+
+        if (tipoOriginal.getNombre() != null && tipoOriginal.getNombre().toLowerCase().contains("reembolso")) {
+            throw new IllegalStateException("No se puede reembolsar una transacción que ya es de tipo reembolso.");
+        }
+
+        // 3. Quitar la comisión de la transacción si tiene empleado asignado o comisión
+        if (original.getEmpleadoId() != null || (original.getComisionEmpleado() != null && original.getComisionEmpleado().compareTo(BigDecimal.ZERO) != 0)) {
+            original.setComisionEmpleado(BigDecimal.ZERO);
+            original.setFechaActualizacion(LocalDateTime.now());
+            transaccionesRepository.update(original);
+        }
+
+        // 4. Si la transacción correspondía a un vehículo, restablecer su estado a DISPONIBLE
+        if (original.getVehiculoId() != null) {
+            try {
+                vehiculosService.actualizarEstado(original.getVehiculoId(), com.rodiejacontable.database.jooq.enums.VehiculosEstado.DISPONIBLE);
+            } catch (Exception e) {
+                // Continuar si el vehículo ya no requiere actualización
+            }
+        }
         
         String nombreReembolso = "Reembolso " + tipoOriginal.getNombre();
-        // Limitar a 50 caracteres si es necesario (asumiendo que el campo nombre tiene límite)
+        // Limitar a 50 caracteres si es necesario
         if (nombreReembolso.length() > 50) {
             nombreReembolso = nombreReembolso.substring(0, 50);
         }
@@ -331,7 +384,7 @@ public class TransaccionesFinancierasService {
         reembolso.setCantidadRepuesto(original.getCantidadRepuesto());
         reembolso.setGeneracionId(original.getGeneracionId());
         reembolso.setMonto(original.getMonto());
-        reembolso.setComisionEmpleado(original.getComisionEmpleado() != null ? original.getComisionEmpleado().negate() : BigDecimal.ZERO);
+        reembolso.setComisionEmpleado(BigDecimal.ZERO); // La comisión se anula por completo
         reembolso.setDescripcion("Reembolso de: " + (original.getDescripcion() != null ? original.getDescripcion() : tipoOriginal.getNombre()));
         reembolso.setReferencia("Reembolso TR-" + original.getId());
         reembolso.setEstado(TransaccionesFinancierasEstado.COMPLETADA);

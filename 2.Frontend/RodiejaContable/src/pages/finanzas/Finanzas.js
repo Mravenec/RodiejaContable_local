@@ -15,12 +15,14 @@ import {
   message,
   Alert,
   DatePicker,
-  Collapse
+  Collapse,
+  Badge
 } from 'antd';
 import { 
   SearchOutlined, 
   FilterOutlined, 
   ReloadOutlined, 
+  EyeOutlined, 
   EditOutlined, 
   DeleteOutlined,
   PlusOutlined,
@@ -32,6 +34,7 @@ import {
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
+import finanzasService from '../../api/finanzas';
 import { useTransaccionesCompletas } from '../../hooks/useTransacciones';
 import { useAuth } from '../../context/AuthContext';
 import vehiculoService from '../../api/vehiculos';
@@ -44,6 +47,11 @@ const Finanzas = () => {
   const [filtros, setFiltros] = useState({
     tipo: null,
     estado: null,
+    periodo: null,
+    mes: null,
+    anio: null,
+    fechaInicio: null,
+    fechaFin: null,
     rangoFechas: null,
     vehiculo: '',
     busqueda: '',
@@ -58,16 +66,81 @@ const Finanzas = () => {
 
   const navigate = useNavigate();
 
+  const labelPeriodo = useMemo(() => {
+    if (filtros.periodo) {
+      const nombreMes = filtros.periodo.format('MMMM YYYY');
+      return nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+    }
+    if (filtros.mes && filtros.anio) {
+      const date = moment([filtros.anio, filtros.mes - 1, 1]);
+      const nombreMes = date.format('MMMM YYYY');
+      return nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+    }
+    return null;
+  }, [filtros.periodo, filtros.mes, filtros.anio]);
+
+  const cantidadFiltrosActivos = useMemo(() => {
+    let count = 0;
+    if (filtros.busqueda && filtros.busqueda.trim() !== '') count++;
+    if (filtros.tipo) count++;
+    if (filtros.periodo || (filtros.mes && filtros.anio)) count++;
+    if (filtros.vehiculo && filtros.vehiculo.trim() !== '') count++;
+    if (filtros.estado) count++;
+    if (filtros.categoria && filtros.categoria.trim() !== '') count++;
+    return count;
+  }, [filtros]);
+
+  const tieneFiltrosActivos = cantidadFiltrosActivos > 0;
+
+  const removerFiltro = (nombre) => {
+    if (nombre === 'periodo') {
+      setFiltros(prev => ({
+        ...prev,
+        periodo: null,
+        mes: null,
+        anio: null,
+        fechaInicio: null,
+        fechaFin: null,
+        rangoFechas: null
+      }));
+    } else if (nombre === 'busqueda' || nombre === 'vehiculo') {
+      setFiltros(prev => ({ ...prev, [nombre]: '' }));
+    } else {
+      setFiltros(prev => ({ ...prev, [nombre]: null }));
+    }
+  };
+
   const queryParams = useMemo(() => {
     const params = {};
-    if (filtros.rangoFechas && filtros.rangoFechas.length === 2) {
+    if (filtros.mes && filtros.anio) {
+      params.mes = filtros.mes;
+      params.anio = filtros.anio;
+      params.fechaInicio = filtros.fechaInicio;
+      params.fechaFin = filtros.fechaFin;
+    } else if (filtros.rangoFechas && filtros.rangoFechas.length === 2) {
       params.fechaInicio = filtros.rangoFechas[0].format('YYYY-MM-DD');
       params.fechaFin = filtros.rangoFechas[1].format('YYYY-MM-DD');
     }
     return params;
-  }, [filtros.rangoFechas]);
+  }, [filtros.mes, filtros.anio, filtros.fechaInicio, filtros.fechaFin, filtros.rangoFechas]);
 
   const { data: queryData, isLoading: isLoadingTransacciones, error: queryError, refetch: refetchTransacciones } = useTransaccionesCompletas(queryParams);
+
+  const idsReembolsados = useMemo(() => {
+    const ids = new Set();
+    const data = queryData || [];
+    if (Array.isArray(data)) {
+      data.forEach(t => {
+        if (t?.referencia && typeof t.referencia === 'string') {
+          const match = t.referencia.match(/Reembolso TR-(\d+)/i);
+          if (match) {
+            ids.add(Number(match[1]));
+          }
+        }
+      });
+    }
+    return ids;
+  }, [queryData]);
 
   const transacciones = useMemo(() => {
     let data = queryData || [];
@@ -87,6 +160,13 @@ const Finanzas = () => {
       
       const monto = parseFloat(transaccion?.monto) || 0;
       
+      const ref = (transaccion?.referencia || '').toLowerCase();
+      const cod = (transaccion?.codigoTransaccion || '').toUpperCase();
+      const tipoOrig = (transaccion?.tipoTransaccion || '').toLowerCase();
+      const desc = (transaccion?.descripcion || '').toLowerCase();
+      const esReembolso = ref.startsWith('reembolso') || cod.startsWith('REF-') || tipoOrig.includes('reembolso') || desc.startsWith('reembolso');
+      const yaReembolsada = idsReembolsados.has(Number(transaccion?.id));
+      
       return {
         ...transaccion,
         key: transaccion?.codigoTransaccion || transaccion?.id?.toString() || Math.random().toString(),
@@ -96,7 +176,9 @@ const Finanzas = () => {
         tipoTransaccionOriginal: transaccion.tipoTransaccion,
         monto: Math.abs(monto),
         esIngreso,
-        fechaFormateada
+        fechaFormateada,
+        esReembolso,
+        yaReembolsada
       };
     }) : [];
 
@@ -126,7 +208,7 @@ const Finanzas = () => {
     }
 
     return transaccionesMapeadas;
-  }, [queryData, filtros]);
+  }, [queryData, filtros, idsReembolsados]);
 
   const estadisticas = useMemo(() => {
     const ingresos = transacciones
@@ -273,17 +355,25 @@ const Finanzas = () => {
       title: 'Estado',
       dataIndex: 'estado',
       key: 'estado',
-      width: 120,
-      render: (estado) => {
+      width: 130,
+      render: (estado, record) => {
         let color = 'default';
         if (estado === 'PAGADO' || estado === 'COMPLETADA') color = 'green';
         else if (estado === 'PENDIENTE') color = 'orange';
         else if (estado === 'ANULADO' || estado === 'CANCELADA') color = 'red';
         
         return (
-          <Tag color={color} key={estado}>
-            {estado}
-          </Tag>
+          <Space direction="vertical" size={2}>
+            <Tag color={color} key={estado}>
+              {estado}
+            </Tag>
+            {record.yaReembolsada && (
+              <Tag color="magenta">REEMBOLSADA</Tag>
+            )}
+            {record.esReembolso && (
+              <Tag color="purple">REEMBOLSO</Tag>
+            )}
+          </Space>
         );
       },
       filters: [
@@ -297,36 +387,47 @@ const Finanzas = () => {
       title: 'Acciones',
       key: 'acciones',
       width: 150,
-      render: (_, record) => (
-        <Space size="middle">
-          {record.estado === 'COMPLETADA' && user?.rol !== 'CONTADOR' && (
+      render: (_, record) => {
+        const puedeReembolsar = record.estado === 'COMPLETADA' && !record.esReembolso && !record.yaReembolsada && user?.rol !== 'CONTADOR';
+        const puedeModificar = !record.esReembolso && !record.yaReembolsada && user?.rol !== 'CONTADOR';
+
+        return (
+          <Space size="middle">
+            {puedeReembolsar && (
+              <Button 
+                type="text" 
+                danger
+                icon={<UndoOutlined />} 
+                onClick={() => confirmarReembolso(record)}
+                title="Reembolsar Transacción"
+              />
+            )}
             <Button 
               type="text" 
-              danger
-              icon={<UndoOutlined />} 
-              onClick={(e) => { e.stopPropagation(); confirmarReembolso(record); }}
-              title="Reembolsar Transacción"
+              icon={<EyeOutlined />} 
+              onClick={() => verDetalle(record)}
+              title="Ver detalles"
             />
-          )}
-          {user?.rol !== 'CONTADOR' && (
-            <Button 
-              type="text" 
-              icon={<EditOutlined />} 
-              onClick={(e) => { e.stopPropagation(); editarTransaccion(record); }}
-              title="Editar"
-            />
-          )}
-          {user?.rol !== 'CONTADOR' && (
-            <Button 
-              type="text" 
-              danger 
-              icon={<DeleteOutlined />} 
-              onClick={(e) => { e.stopPropagation(); confirmarEliminar(record); }}
-              title="Eliminar"
-            />
-          )}
-        </Space>
-      ),
+            {puedeModificar && (
+              <Button 
+                type="text" 
+                icon={<EditOutlined />} 
+                onClick={() => editarTransaccion(record)}
+                title="Editar"
+              />
+            )}
+            {puedeModificar && (
+              <Button 
+                type="text" 
+                danger 
+                icon={<DeleteOutlined />} 
+                onClick={() => confirmarEliminar(record)}
+                title="Eliminar"
+              />
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -398,6 +499,11 @@ const Finanzas = () => {
   };
 
   const confirmarEliminar = (transaccion) => {
+    if (transaccion.esReembolso || transaccion.yaReembolsada) {
+      message.warning('No se puede eliminar una transacción que ya fue reembolsada o que es un reembolso.');
+      return;
+    }
+
     Modal.confirm({
       title: '¿Está seguro de eliminar esta transacción?',
       content: `La transacción #${transaccion.codigoTransaccion} será eliminada permanentemente.`,
@@ -409,12 +515,20 @@ const Finanzas = () => {
   };
 
   const confirmarReembolso = (transaccion) => {
+    if (transaccion.esReembolso || transaccion.yaReembolsada) {
+      message.warning('Esta transacción ya fue reembolsada o es un reembolso y no se puede reembolsar dos veces.');
+      return;
+    }
+
     Modal.confirm({
       title: 'Confirmar Reembolso',
       content: (
         <div>
           <p>¿Está seguro que desea reembolsar la transacción <strong>#{transaccion.codigoTransaccion}</strong>?</p>
           <p>Esta acción generará una transacción de balance (Ingreso/Egreso) por <strong>₡{transaccion.monto?.toLocaleString('es-CR')}</strong>.</p>
+          <p style={{ color: '#d46b08', fontWeight: 500, marginTop: 8 }}>
+            Nota: Al procesar el reembolso, la comisión del empleado asignado será retirada a ₡0.00 y esta acción no se puede deshacer.
+          </p>
         </div>
       ),
       okText: 'Sí, Reembolsar',
@@ -426,7 +540,7 @@ const Finanzas = () => {
 
   const procesarReembolso = async (transaccion) => {
     try {
-      await transaccionesCompletasService.reembolsarTransaccion(transaccion.id);
+      await finanzasService.reembolsarTransaccion(transaccion.id);
       
       // Si la transacción está relacionada a un vehículo y es un reembolso (posible cancelación de venta),
       // volvemos a poner el vehículo como DISPONIBLE.
@@ -439,7 +553,7 @@ const Finanzas = () => {
         }
       }
 
-      message.success('Reembolso procesado exitosamente');
+      message.success('Reembolso procesado exitosamente. La comisión fue removida.');
       refetchTransacciones(); // Recargar la lista
     } catch (error) {
       console.error('Error al procesar el reembolso:', error);
@@ -470,6 +584,11 @@ const Finanzas = () => {
     const filtrosIniciales = {
       tipo: null,
       estado: null,
+      periodo: null,
+      mes: null,
+      anio: null,
+      fechaInicio: null,
+      fechaFin: null,
       rangoFechas: null,
       vehiculo: '',
       busqueda: '',
@@ -501,6 +620,12 @@ const Finanzas = () => {
             size="large"
           >
             {filtrosVisibles ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+            {cantidadFiltrosActivos > 0 && (
+              <Badge 
+                count={cantidadFiltrosActivos} 
+                style={{ marginLeft: 8, backgroundColor: '#1890ff' }} 
+              />
+            )}
           </Button>
           {user?.rol !== 'CONTADOR' && (
             <Button 
@@ -508,7 +633,7 @@ const Finanzas = () => {
               icon={<PlusOutlined />} 
               onClick={handleNuevaTransaccion}
               size="large"
-              style={{ minWidth: '180px', borderRadius: '6px' }}
+              style={{ borderRadius: '6px' }}
             >
               Nueva Transacción
             </Button>
@@ -569,7 +694,16 @@ const Finanzas = () => {
       {/* Filtros */}
       {filtrosVisibles && (
         <Card 
-          title={<span style={{ fontWeight: 600, fontSize: '16px' }}>Filtros de Búsqueda</span>} 
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontWeight: 600, fontSize: '16px' }}>Filtros de Búsqueda</span>
+              {cantidadFiltrosActivos > 0 && (
+                <Tag color="blue" style={{ borderRadius: '10px', margin: 0 }}>
+                  {cantidadFiltrosActivos} activo{cantidadFiltrosActivos > 1 ? 's' : ''}
+                </Tag>
+              )}
+            </div>
+          } 
           style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
           bordered={false}
           headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '56px' }}
@@ -577,7 +711,7 @@ const Finanzas = () => {
             <Button 
               type="link" 
               onClick={limpiarFiltros}
-              disabled={!Object.values(filtros).some(val => val !== null && val !== '' && !(Array.isArray(val) && val.length === 0))}
+              disabled={!tieneFiltrosActivos}
             >
               Limpiar Filtros
             </Button>
@@ -585,7 +719,19 @@ const Finanzas = () => {
         >
           <Row gutter={16}>
             <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
-              <div style={{ marginBottom: 8 }}><strong>Buscar</strong></div>
+              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong>Buscar</strong>
+                {filtros.busqueda && (
+                  <Tag 
+                    color="blue" 
+                    closable 
+                    onClose={() => removerFiltro('busqueda')}
+                    style={{ margin: 0, fontWeight: 500 }}
+                  >
+                    "{filtros.busqueda}"
+                  </Tag>
+                )}
+              </div>
               <Input.Search
                 placeholder="Buscar descripción o ref..."
                 allowClear
@@ -596,7 +742,19 @@ const Finanzas = () => {
               />
             </Col>
             <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
-              <div style={{ marginBottom: 8 }}><strong>Tipo de Transacción</strong></div>
+              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong>Tipo de Transacción</strong>
+                {filtros.tipo && (
+                  <Tag 
+                    color={filtros.tipo === 'INGRESO' ? 'green' : 'red'} 
+                    closable 
+                    onClose={() => removerFiltro('tipo')}
+                    style={{ margin: 0, fontWeight: 500 }}
+                  >
+                    {filtros.tipo}
+                  </Tag>
+                )}
+              </div>
               <Select
                 style={{ width: '100%' }}
                 placeholder="Seleccionar tipo"
@@ -613,19 +771,63 @@ const Finanzas = () => {
               </Select>
             </Col>
             <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
-              <div style={{ marginBottom: 8 }}><strong>Fechas</strong></div>
-              <DatePicker.RangePicker
+              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong>Mes y Año</strong>
+                {labelPeriodo && (
+                  <Tag 
+                    color="blue" 
+                    closable 
+                    onClose={() => removerFiltro('periodo')}
+                    style={{ margin: 0, fontWeight: 500 }}
+                  >
+                    {labelPeriodo}
+                  </Tag>
+                )}
+              </div>
+              <DatePicker
+                picker="month"
                 style={{ width: '100%' }}
-                value={filtros.rangoFechas}
-                onChange={(dates) => {
-                  const newFiltros = { ...filtros, rangoFechas: dates };
-                  setFiltros(newFiltros);
-                  handleFiltrar(newFiltros);
+                placeholder="Seleccionar Mes y Año"
+                format="MMMM YYYY"
+                allowClear
+                value={filtros.periodo}
+                onChange={(date) => {
+                  if (date) {
+                    const mes = date.month() + 1;
+                    const anio = date.year();
+                    const fechaInicio = date.clone().startOf('month').format('YYYY-MM-DD');
+                    const fechaFin = date.clone().endOf('month').format('YYYY-MM-DD');
+                    const newFiltros = {
+                      ...filtros,
+                      periodo: date,
+                      mes,
+                      anio,
+                      fechaInicio,
+                      fechaFin,
+                      rangoFechas: [date.clone().startOf('month'), date.clone().endOf('month')]
+                    };
+                    setFiltros(newFiltros);
+                    handleFiltrar(newFiltros);
+                  } else {
+                    removerFiltro('periodo');
+                  }
                 }}
               />
             </Col>
             <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
-              <div style={{ marginBottom: 8 }}><strong>Vehículo</strong></div>
+              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong>Vehículo</strong>
+                {filtros.vehiculo && (
+                  <Tag 
+                    color="purple" 
+                    closable 
+                    onClose={() => removerFiltro('vehiculo')}
+                    style={{ margin: 0, fontWeight: 500 }}
+                  >
+                    {filtros.vehiculo}
+                  </Tag>
+                )}
+              </div>
               <Input
                 placeholder="Código o Placa"
                 allowClear
@@ -643,7 +845,19 @@ const Finanzas = () => {
             <Collapse.Panel header="Filtros avanzados" key="1">
               <Row gutter={16}>
                 <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
-                  <div style={{ marginBottom: 8 }}><strong>Estado</strong></div>
+                  <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong>Estado</strong>
+                    {filtros.estado && (
+                      <Tag 
+                        color={filtros.estado === 'PAGADO' ? 'success' : filtros.estado === 'PENDIENTE' ? 'warning' : 'default'} 
+                        closable 
+                        onClose={() => removerFiltro('estado')}
+                        style={{ margin: 0, fontWeight: 500 }}
+                      >
+                        {filtros.estado}
+                      </Tag>
+                    )}
+                  </div>
                   <Select
                     style={{ width: '100%' }}
                     placeholder="Seleccionar estado"
@@ -661,7 +875,19 @@ const Finanzas = () => {
                   </Select>
                 </Col>
                 <Col xs={24} md={12} lg={6} style={{ marginBottom: 16 }}>
-                  <div style={{ marginBottom: 8 }}><strong>Categoría</strong></div>
+                  <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong>Categoría</strong>
+                    {filtros.categoria && (
+                      <Tag 
+                        color="cyan" 
+                        closable 
+                        onClose={() => removerFiltro('categoria')}
+                        style={{ margin: 0, fontWeight: 500 }}
+                      >
+                        {filtros.categoria}
+                      </Tag>
+                    )}
+                  </div>
                   <Input
                     placeholder="Ej. Mantenimiento"
                     allowClear
@@ -682,8 +908,81 @@ const Finanzas = () => {
       {/* Tabla de transacciones */}
       <Card
         title={
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 600, fontSize: '16px' }}>Historial de Transacciones</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <Space size="small" align="center" wrap>
+              <span style={{ fontWeight: 600, fontSize: '16px', marginRight: 4 }}>Historial de Transacciones</span>
+              {tieneFiltrosActivos ? (
+                <>
+                  {labelPeriodo && (
+                    <Tag 
+                      color="blue" 
+                      closable 
+                      onClose={() => removerFiltro('periodo')}
+                      style={{ fontSize: '13px', padding: '3px 10px', borderRadius: '12px', fontWeight: 500 }}
+                    >
+                      Período: {labelPeriodo}
+                    </Tag>
+                  )}
+                  {filtros.tipo && (
+                    <Tag 
+                      color={filtros.tipo === 'INGRESO' ? 'green' : 'red'} 
+                      closable 
+                      onClose={() => removerFiltro('tipo')}
+                      style={{ fontSize: '13px', padding: '3px 10px', borderRadius: '12px', fontWeight: 500 }}
+                    >
+                      Tipo: {filtros.tipo}
+                    </Tag>
+                  )}
+                  {filtros.busqueda && (
+                    <Tag 
+                      color="blue" 
+                      closable 
+                      onClose={() => removerFiltro('busqueda')}
+                      style={{ fontSize: '13px', padding: '3px 10px', borderRadius: '12px', fontWeight: 500 }}
+                    >
+                      Búsqueda: "{filtros.busqueda}"
+                    </Tag>
+                  )}
+                  {filtros.vehiculo && (
+                    <Tag 
+                      color="purple" 
+                      closable 
+                      onClose={() => removerFiltro('vehiculo')}
+                      style={{ fontSize: '13px', padding: '3px 10px', borderRadius: '12px', fontWeight: 500 }}
+                    >
+                      Vehículo: {filtros.vehiculo}
+                    </Tag>
+                  )}
+                  {filtros.estado && (
+                    <Tag 
+                      color={filtros.estado === 'PAGADO' ? 'success' : filtros.estado === 'PENDIENTE' ? 'warning' : 'default'} 
+                      closable 
+                      onClose={() => removerFiltro('estado')}
+                      style={{ fontSize: '13px', padding: '3px 10px', borderRadius: '12px', fontWeight: 500 }}
+                    >
+                      Estado: {filtros.estado}
+                    </Tag>
+                  )}
+                  {filtros.categoria && (
+                    <Tag 
+                      color="cyan" 
+                      closable 
+                      onClose={() => removerFiltro('categoria')}
+                      style={{ fontSize: '13px', padding: '3px 10px', borderRadius: '12px', fontWeight: 500 }}
+                    >
+                      Categoría: {filtros.categoria}
+                    </Tag>
+                  )}
+                </>
+              ) : (
+                <Tag 
+                  color="default" 
+                  style={{ fontSize: '13px', padding: '3px 12px', borderRadius: '12px', fontWeight: 500 }}
+                >
+                  Todos los registros
+                </Tag>
+              )}
+            </Space>
             <Button 
               icon={<ReloadOutlined />} 
               onClick={() => refetchTransacciones()}
@@ -705,13 +1004,8 @@ const Finanzas = () => {
           </div>
         )}
         
-        <div className="table-container">
-          <Table 
-            scroll={{ x: 'max-content' }}
-            onRow={(record) => ({
-              onClick: () => verDetalle(record),
-              style: { cursor: 'pointer' }
-            })}
+        <div style={{ padding: '24px' }}>
+          <Table
             columns={columns}
             dataSource={transacciones}
             rowKey="codigoTransaccion"
@@ -724,6 +1018,7 @@ const Finanzas = () => {
               showQuickJumper: true,
             }}
             onChange={handleTableChange}
+            scroll={{ x: 'max-content' }}
           />
         </div>
       </Card>

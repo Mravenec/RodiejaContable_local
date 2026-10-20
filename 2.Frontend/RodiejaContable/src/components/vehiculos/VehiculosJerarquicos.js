@@ -15,7 +15,8 @@ import {
   message,
   Input,
   Tabs,
-  Image
+  Image,
+  Statistic
 } from 'antd';
 import {
   CarOutlined,
@@ -26,7 +27,8 @@ import {
   InfoCircleOutlined,
   SearchOutlined,
   ToolOutlined,
-  DollarOutlined
+  DollarOutlined,
+  ArrowUpOutlined
 } from '@ant-design/icons';
 
 import vehiculoService from '../../api/vehiculos';
@@ -225,10 +227,12 @@ const toDateStr = (v) => {
   return dt ? dt.toLocaleDateString() : '-';
 };
 
-/* ========== Normalización: soporta snake_case y camelCase ========== */
+/* ========== Normalización: soporta snake_case y camelCase con consolidación financiera ========== */
 /**
  * @param {any} data respuesta del servicio de vehículos agrupados (marcas->modelos->generaciones->vehículos)
- * @param {Object} genIdx índices de /generaciones: { byId, byModelId, byModelName, byModelYears, byNameUnique, byYearsUnique }
+ * @param {Object} genIdx índices de /generaciones
+ * @param {Object} repuestosPorVehiculo Mapa de repuestos indexados por vehiculoId
+ * @param {Object} transaccionesPorVehiculo Mapa de transacciones indexadas por vehiculoId
  */
 const normalizarEOrdenar = (
   data,
@@ -239,49 +243,77 @@ const normalizarEOrdenar = (
     byModelYears: new Map(),
     byNameUnique: new Map(),
     byYearsUnique: new Map()
-  }
+  },
+  repuestosPorVehiculo = {},
+  transaccionesPorVehiculo = {}
 ) => {
   const marcas = Array.isArray(data?.marcas) ? data.marcas : (Array.isArray(data) ? data : []);
 
-  const normVehiculo = (v) => {
+  const normVehiculo = (v, g) => {
+    const id = v.id;
     const codigo = v.codigo_vehiculo ?? v.codigoVehiculo;
-    const generacionId = v.generacion_id ?? v.generacionId;
-    const precioCompra = v.precio_compra ?? v.precioCompra;
-    const costoGrua = v.costo_grua ?? v.costoGrua;
-    const inversionTotal = v.inversion_total ?? v.inversionTotal;
-    const costoRecuperado = v.costo_recuperado ?? v.costoRecuperado;
-    const costoPendiente = v.costo_pendiente ?? v.costoPendiente;
-    const fechaIngreso = v.fecha_ingreso ?? v.fechaIngreso;
-    const precioVenta = v.precio_venta ?? v.precioVenta;
-    const fechaVenta = v.fecha_venta ?? v.fechaVenta;
-    const fechaCreacion = v.fecha_creacion ?? v.fechaCreacion;
-    const fechaActualizacion = v.fecha_actualizacion ?? v.fechaActualizacion;
-    const imagenUrl = v.imagen_url ?? v.imagenUrl;
+    const generacionId = v.generacion_id ?? v.generacionId ?? g?.id;
+    const precioCompra = toNum(v.precio_compra ?? v.precioCompra, 0);
+    const costoGrua = toNum(v.costo_grua ?? v.costoGrua, 0);
+    const comisiones = toNum(v.comisiones, 0);
+
+    // Inversión base del vehículo
+    const inversionTotal = toNum(v.inversion_total ?? v.inversionTotal, (precioCompra + costoGrua + comisiones));
+
+    // Repuestos y transacciones vinculados
+    const repuestosVehiculo = repuestosPorVehiculo[id] || [];
+    const transaccionesVehiculo = transaccionesPorVehiculo[id] || [];
+
+    // Calcular ingresos reales a partir de transacciones vinculadas (venta del vehículo o sus repuestos)
+    let totalIngresosTransacciones = 0;
+    transaccionesVehiculo.forEach(t => {
+      const monto = Math.abs(toNum(t.monto, 0));
+      const cat = (t.tipo_transaccion?.categoria || t.categoria || '').toUpperCase();
+      const tipoNom = (t.tipo_transaccion?.nombre || t.tipo_transaccion || '').toUpperCase();
+      const esIngreso = cat === 'INGRESO' || tipoNom.includes('VENTA');
+      if (esIngreso) {
+        totalIngresosTransacciones += monto;
+      }
+    });
+
+    let costoRecuperado = toNum(v.costo_recuperado ?? v.costoRecuperado, 0);
+    if (totalIngresosTransacciones > 0) {
+      costoRecuperado = Math.max(costoRecuperado, totalIngresosTransacciones);
+    }
+    const precioVenta = isNullish(v.precio_venta ?? v.precioVenta) ? null : Number(v.precio_venta ?? v.precioVenta);
+    if (toStr(v.estado).toUpperCase() === 'VENDIDO' && precioVenta && precioVenta > 0) {
+      costoRecuperado = Math.max(costoRecuperado, precioVenta);
+    }
+
+    const costoPendiente = inversionTotal - costoRecuperado;
+    const balanceNeto = costoRecuperado - inversionTotal;
 
     return {
       id: v.id,
       codigo_vehiculo: toStr(codigo, 'Sin código'),
       generacion_id: generacionId,
       anio: toNum(v.anio),
-      precio_compra: toNum(precioCompra),
-      costo_grua: toNum(costoGrua),
-      comisiones: toNum(v.comisiones),
-      inversion_total: toNum(inversionTotal),
-      costo_recuperado: toNum(costoRecuperado),
-      costo_pendiente: toNum(costoPendiente),
-      fecha_ingreso: fechaIngreso,
+      precio_compra: precioCompra,
+      costo_grua: costoGrua,
+      comisiones: comisiones,
+      inversion_total: inversionTotal,
+      costo_recuperado: costoRecuperado,
+      costo_pendiente: costoPendiente,
+      balance_neto: balanceNeto,
+      fecha_ingreso: v.fecha_ingreso ?? v.fechaIngreso,
       estado: toStr(v.estado, 'SIN_ESTADO'),
-      precio_venta: isNullish(precioVenta) ? null : Number(precioVenta),
-      fecha_venta: isNullish(fechaVenta) ? null : fechaVenta,
+      precio_venta: precioVenta,
+      fecha_venta: isNullish(v.fecha_venta ?? v.fechaVenta) ? null : (v.fecha_venta ?? v.fechaVenta),
       activo: toNum(v.activo, 0),
       notas: isNullish(v.notas) ? null : String(v.notas),
-      fecha_creacion: fechaCreacion,
-      fecha_actualizacion: fechaActualizacion,
-      imagen_url: imagenUrl
+      fecha_creacion: v.fecha_creacion ?? v.fechaCreacion,
+      fecha_actualizacion: v.fecha_actualizacion ?? v.fechaActualizacion,
+      imagen_url: v.imagen_url ?? v.imagenUrl,
+      repuestos: repuestosVehiculo,
+      transacciones: transaccionesVehiculo
     };
   };
 
-  // ✅ CORREGIDO y endurecido: preferir match por nombre/años; el id es último y verificado
   const normGeneracion = (g, parentModeloId) => {
     const idGen = g.id ?? g.generacion_id;
     const modeloId = g.modelo_id ?? g.modeloId ?? parentModeloId;
@@ -311,19 +343,19 @@ const normalizarEOrdenar = (
       fromApi = genIdx.byModelYears.get(`${modeloId}|${aI}|${aF}`);
     }
 
-    // 3) por nombre único global (solo si es único)
+    // 3) por nombre único global
     if (!fromApi && nombreLower) {
       const unique = genIdx.byNameUnique.get(nombreLower);
       if (unique) fromApi = unique;
     }
 
-    // 4) por años únicos globales (solo si son únicos)
+    // 4) por años únicos globales
     if (!fromApi && !isNullish(aI) && !isNullish(aF)) {
       const uniqueYears = genIdx.byYearsUnique.get(`${aI}|${aF}`);
       if (uniqueYears) fromApi = uniqueYears;
     }
 
-    // 5) por id (solo si nombre coincide o explícitamente el modelo coincide y NO hay nombre)
+    // 5) por id
     if (!fromApi && !isNullish(idGen)) {
       const cand = genIdx.byId.get(idGen);
       const nombreCoincide = cand && nombreLower && (cand.nombre ?? '').toLowerCase() === nombreLower;
@@ -333,14 +365,25 @@ const normalizarEOrdenar = (
       }
     }
 
-    // Valores finales priorizando fromApi (pero sin pisar con nulls)
     const anioInicio = !isNullish(fromApi?.anioInicio) ? fromApi.anioInicio : aI;
     const anioFin = !isNullish(fromApi?.anioFin) ? fromApi.anioFin : aF;
 
-    const totalInversion = !isNullish(fromApi?.totalInversion) ? fromApi.totalInversion : (g.total_inversion ?? g.totalInversion);
-    const totalIngresos = !isNullish(fromApi?.totalIngresos) ? fromApi.totalIngresos : (g.total_ingresos ?? g.totalIngresos);
-    const totalEgresos = !isNullish(fromApi?.totalEgresos) ? fromApi.totalEgresos : (g.total_egresos ?? g.totalEgresos);
-    const balanceNeto = !isNullish(fromApi?.balanceNeto) ? fromApi.balanceNeto : (g.balance_neto ?? g.balanceNeto);
+    const vehiculosNorm = (Array.isArray(g.vehiculos) ? g.vehiculos.map(v => normVehiculo(v, g)) : [])
+      .sort((a, b) => (a.anio ?? 0) - (b.anio ?? 0));
+
+    const tieneVehiculos = vehiculosNorm.length > 0;
+
+    // Totales calculados dinámicamente de sus vehículos
+    const calcInversion = vehiculosNorm.reduce((sum, v) => sum + (v.inversion_total || 0), 0);
+    const calcIngresos = vehiculosNorm.reduce((sum, v) => sum + (v.costo_recuperado || 0), 0);
+    const calcEgresos = vehiculosNorm.reduce((sum, v) => sum + (v.inversion_total || 0), 0);
+    const calcBalance = calcIngresos - calcInversion;
+    const calcRepuestos = vehiculosNorm.reduce((sum, v) => sum + (v.repuestos?.length || 0), 0);
+
+    const totalInversion = tieneVehiculos ? calcInversion : toNum(fromApi?.totalInversion ?? g.total_inversion ?? g.totalInversion);
+    const totalIngresos = tieneVehiculos ? calcIngresos : toNum(fromApi?.totalIngresos ?? g.total_ingresos ?? g.totalIngresos);
+    const totalEgresos = tieneVehiculos ? calcEgresos : toNum(fromApi?.totalEgresos ?? g.total_egresos ?? g.totalEgresos);
+    const balanceNeto = tieneVehiculos ? calcBalance : toNum(fromApi?.balanceNeto ?? g.balance_neto ?? g.balanceNeto);
 
     return {
       id: isNullish(idGen) ? fromApi?.id : idGen,
@@ -349,46 +392,145 @@ const normalizarEOrdenar = (
       descripcion: toStr(g.descripcion ?? fromApi?.descripcion, ''),
       anio_inicio: isNullish(anioInicio) ? undefined : Number(anioInicio),
       anio_fin: isNullish(anioFin) ? null : Number(anioFin),
-      total_inversion: toNum(totalInversion),
-      total_ingresos: toNum(totalIngresos),
-      total_egresos: toNum(totalEgresos),
-      balance_neto: toNum(balanceNeto),
+      total_inversion: totalInversion,
+      total_ingresos: totalIngresos,
+      total_egresos: totalEgresos,
+      balance_neto: balanceNeto,
+      total_repuestos: calcRepuestos,
       activo: toNum(g.activo ?? fromApi?.activo, 0),
       fecha_creacion: toStr(g.fecha_creacion ?? g.fechaCreacion ?? fromApi?.fechaCreacion),
-      vehiculos: (Array.isArray(g.vehiculos) ? g.vehiculos.map(normVehiculo) : [])
-        .sort((a, b) => (a.anio ?? 0) - (b.anio ?? 0))
+      vehiculos: vehiculosNorm
     };
   };
 
-  const normModelo = (mo) => ({
-    id: mo.id,
-    marca_id: mo.marca_id,
-    nombre: toStr(mo.nombre, 'Sin modelo'),
-    activo: toNum(mo.activo, 0),
-    fecha_creacion: toStr(mo.fecha_creacion ?? mo.fechaCreacion),
-    generaciones: (Array.isArray(mo.generaciones) ? mo.generaciones.map((g) => normGeneracion(g, mo.id)) : [])
-      .sort((a, b) => (a.anio_inicio ?? 0) - (b.anio_inicio ?? 0))
-  });
+  const normModelo = (mo) => {
+    const generacionesNorm = (Array.isArray(mo.generaciones) ? mo.generaciones.map((g) => normGeneracion(g, mo.id)) : [])
+      .sort((a, b) => (a.anio_inicio ?? 0) - (b.anio_inicio ?? 0));
+
+    const totalVehiculos = generacionesNorm.reduce((sum, g) => sum + (g.vehiculos?.length || 0), 0);
+    const totalRepuestos = generacionesNorm.reduce((sum, g) => sum + (g.total_repuestos || 0), 0);
+    const totalInversion = generacionesNorm.reduce((sum, g) => sum + (g.total_inversion || 0), 0);
+    const totalIngresos = generacionesNorm.reduce((sum, g) => sum + (g.total_ingresos || 0), 0);
+    const totalEgresos = generacionesNorm.reduce((sum, g) => sum + (g.total_egresos || 0), 0);
+    const balanceNeto = generacionesNorm.reduce((sum, g) => sum + (g.balance_neto || 0), 0);
+
+    return {
+      id: mo.id,
+      marca_id: mo.marca_id,
+      nombre: toStr(mo.nombre, 'Sin modelo'),
+      activo: toNum(mo.activo, 0),
+      fecha_creacion: toStr(mo.fecha_creacion ?? mo.fechaCreacion),
+      total_vehiculos: totalVehiculos,
+      total_repuestos: totalRepuestos,
+      total_inversion: totalInversion,
+      total_ingresos: totalIngresos,
+      total_egresos: totalEgresos,
+      balance_neto: balanceNeto,
+      generaciones: generacionesNorm
+    };
+  };
 
   return marcas
-    .map((m) => ({
-      id: m.id,
-      nombre: toStr(m.nombre, 'Sin marca'),
-      activo: toNum(m.activo, 0),
-      fecha_creacion: toStr(m.fecha_creacion ?? m.fechaCreacion),
-      modelos: (Array.isArray(m.modelos) ? m.modelos.map(normModelo) : [])
-        .sort((a, b) => a.nombre.localeCompare(b.nombre))
-    }))
+    .map((m) => {
+      const modelosNorm = (Array.isArray(m.modelos) ? m.modelos.map(normModelo) : [])
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+      const totalVehiculos = modelosNorm.reduce((sum, mo) => sum + (mo.total_vehiculos || 0), 0);
+      const totalRepuestos = modelosNorm.reduce((sum, mo) => sum + (mo.total_repuestos || 0), 0);
+      const totalInversion = modelosNorm.reduce((sum, mo) => sum + (mo.total_inversion || 0), 0);
+      const totalIngresos = modelosNorm.reduce((sum, mo) => sum + (mo.total_ingresos || 0), 0);
+      const totalEgresos = modelosNorm.reduce((sum, mo) => sum + (mo.total_egresos || 0), 0);
+      const balanceNeto = modelosNorm.reduce((sum, mo) => sum + (mo.balance_neto || 0), 0);
+
+      return {
+        id: m.id,
+        nombre: toStr(m.nombre, 'Sin marca'),
+        activo: toNum(m.activo, 0),
+        fecha_creacion: toStr(m.fecha_creacion ?? m.fechaCreacion),
+        total_vehiculos: totalVehiculos,
+        total_repuestos: totalRepuestos,
+        total_inversion: totalInversion,
+        total_ingresos: totalIngresos,
+        total_egresos: totalEgresos,
+        balance_neto: balanceNeto,
+        modelos: modelosNorm
+      };
+    })
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
+};
+
+/* ========================= Helper Dashboard Jerárquico ========================= */
+const calcularDashboard = (marcasList) => {
+  let totalVehiculos = 0;
+  let vehiculosDisponibles = 0;
+  let vehiculosVendidos = 0;
+  let vehiculosReparacion = 0;
+  let totalRepuestos = 0;
+  let repuestosDisponibles = 0;
+  let repuestosVendidos = 0;
+  let totalInversion = 0;
+  let totalRecuperado = 0;
+
+  (marcasList || []).forEach(marca => {
+    (marca.modelos || []).forEach(modelo => {
+      (modelo.generaciones || []).forEach(generacion => {
+        (generacion.vehiculos || []).forEach(vehiculo => {
+          totalVehiculos += 1;
+          const est = toStr(vehiculo.estado).toUpperCase();
+          if (est === 'DISPONIBLE') vehiculosDisponibles += 1;
+          else if (est === 'VENDIDO') vehiculosVendidos += 1;
+          else if (est === 'REPARACION') vehiculosReparacion += 1;
+
+          totalInversion += (vehiculo.inversion_total || 0);
+          totalRecuperado += (vehiculo.costo_recuperado || 0);
+
+          (vehiculo.repuestos || []).forEach(r => {
+            totalRepuestos += 1;
+            const rEst = toStr(r.estado).toUpperCase();
+            if (rEst === 'STOCK' || rEst === 'DISPONIBLE') repuestosDisponibles += 1;
+            else if (rEst === 'VENDIDO') repuestosVendidos += 1;
+          });
+        });
+      });
+    });
+  });
+
+  const balanceNeto = totalRecuperado - totalInversion;
+  const porcentaje = totalInversion > 0 ? (totalRecuperado / totalInversion) * 100 : 0;
+
+  return {
+    totalVehiculos,
+    vehiculosDisponibles,
+    vehiculosVendidos,
+    vehiculosReparacion,
+    totalRepuestos,
+    repuestosDisponibles,
+    repuestosVendidos,
+    totalInversion,
+    totalRecuperado,
+    balanceNeto,
+    porcentajeRecuperado: porcentaje
+  };
 };
 
 /* ========================= Componente ========================= */
 const VehiculosJerarquicos = () => {
   const [loading, setLoading] = useState(true);
-  const [loadingTipos, setLoadingTipos] = useState(true);
-  const [tiposTransaccionesCargados, setTiposTransaccionesCargados] = useState(false);
   const [marcas, setMarcas] = useState([]);
   const [filteredMarcas, setFilteredMarcas] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalVehiculos: 0,
+    vehiculosDisponibles: 0,
+    vehiculosVendidos: 0,
+    vehiculosReparacion: 0,
+    totalRepuestos: 0,
+    repuestosDisponibles: 0,
+    repuestosVendidos: 0,
+    totalInversion: 0,
+    totalRecuperado: 0,
+    balanceNeto: 0,
+    porcentajeRecuperado: 0
+  });
   const [expandedKeys, setExpandedKeys] = useState({});
   const [transacciones, setTransacciones] = useState({});
   const [repuestos, setRepuestos] = useState({});
@@ -420,27 +562,77 @@ const VehiculosJerarquicos = () => {
     try {
       setLoading(true);
 
-      // ✅ Traemos ambas fuentes en paralelo:
-      // - Vehículos agrupados (estructura jerárquica)
-      // - Generaciones (totales ya calculados por BD)
-      const [vehResp, genResp] = await Promise.all([
+      // Traer todas las fuentes en paralelo para consolidar la jerarquía:
+      // 1. Vehículos agrupados por jerarquía
+      // 2. Generaciones
+      // 3. Repuestos de inventario
+      // 4. Transacciones financieras
+      // 5. Catálogo de tipos de transacción
+      const [vehResp, genResp, repuestosData, transaccionesData, tiposData] = await Promise.all([
         vehiculoService.getVehiculosAgrupados(),
-        generacionesAPI.getAll().catch(() => null)
+        generacionesAPI.getAll().catch(() => null),
+        inventarioService.getRepuestos().catch(() => []),
+        finanzaService.getTransacciones().catch(() => []),
+        getTiposTransacciones().catch(() => [])
       ]);
 
       if (!vehResp) throw new Error('Respuesta vacía del servidor');
 
-      // Soportar axios (data) o respuesta directa
       const vehData = vehResp?.data ?? vehResp;
       const gensList = genResp ? (genResp.data ?? genResp) : [];
 
-      // 🔑 Índices robustos para resolver correctamente cada generación
-      const byId = new Map();           // id global del endpoint /generaciones
-      const byModelId = new Map();      // `${modeloId}|${id}` para ids locales vs globales
-      const byModelName = new Map();    // `${modeloId}|${nombreLower}`
-      const byModelYears = new Map();   // `${modeloId}|${anioInicio}|${anioFin}`
-      const nameBuckets = new Map();    // nombreLower -> [objs]
-      const yearsBuckets = new Map();   // `${anioInicio}|${anioFin}` -> [objs]
+      // Mapear tipos de transacción para lookup O(1)
+      const tiposMap = (Array.isArray(tiposData) ? tiposData : []).reduce((acc, tipo) => {
+        acc[tipo.id] = tipo;
+        return acc;
+      }, {});
+
+      // Indexar repuestos por vehiculoOrigenId
+      const repuestosPorVehiculoMap = {};
+      const repuestoVehiculoMap = {};
+      (Array.isArray(repuestosData) ? repuestosData : []).forEach(r => {
+        const vId = r.vehiculoOrigenId ? parseInt(r.vehiculoOrigenId, 10) : null;
+        if (vId) {
+          if (!repuestosPorVehiculoMap[vId]) repuestosPorVehiculoMap[vId] = [];
+          repuestosPorVehiculoMap[vId].push(r);
+        }
+        if (r.id && vId) {
+          repuestoVehiculoMap[r.id] = vId;
+        }
+      });
+
+      // Indexar transacciones por vehiculoId (directas o derivadas de sus repuestos)
+      const transaccionesPorVehiculoMap = {};
+      (Array.isArray(transaccionesData) ? transaccionesData : []).forEach(t => {
+        const vId = t.vehiculoId != null
+          ? parseInt(t.vehiculoId, 10)
+          : (t.repuestoId ? repuestoVehiculoMap[t.repuestoId] : null);
+
+        if (vId) {
+          if (!transaccionesPorVehiculoMap[vId]) transaccionesPorVehiculoMap[vId] = [];
+          const tipo = tiposMap[t.tipoTransaccionId] || {
+            nombre: t.tipo_transaccion || 'Tipo desconocido',
+            categoria: (t.categoria || (t.monto > 0 ? 'INGRESO' : 'EGRESO')).toUpperCase()
+          };
+          transaccionesPorVehiculoMap[vId].push({
+            ...t,
+            tipo_transaccion: tipo,
+            fecha: toDate(t.fecha || t.fecha_transaccion)
+          });
+        }
+      });
+
+      // Precargar mapas en el estado para que expandir un vehículo sea instantáneo
+      setRepuestos(repuestosPorVehiculoMap);
+      setTransacciones(transaccionesPorVehiculoMap);
+
+      // Índices robustos para resolver correctamente cada generación
+      const byId = new Map();
+      const byModelId = new Map();
+      const byModelName = new Map();
+      const byModelYears = new Map();
+      const nameBuckets = new Map();
+      const yearsBuckets = new Map();
 
       gensList.forEach((g) => {
         const id = g.id;
@@ -474,7 +666,6 @@ const VehiculosJerarquicos = () => {
           byModelYears.set(`${modeloId}|${anioInicio}|${anioFin}`, obj);
         }
 
-        // buckets para match "único" global
         if (nombre) {
           const arr = nameBuckets.get(nombre) ?? [];
           arr.push(obj);
@@ -488,7 +679,6 @@ const VehiculosJerarquicos = () => {
         }
       });
 
-      // Indices de acceso directo cuando el bucket es único
       const byNameUnique = new Map();
       nameBuckets.forEach((arr, key) => {
         if (arr.length === 1) byNameUnique.set(key, arr[0]);
@@ -498,23 +688,30 @@ const VehiculosJerarquicos = () => {
         if (arr.length === 1) byYearsUnique.set(key, arr[0]);
       });
 
-      // ✅ Normalizamos e INYECTAMOS los totales por generación con los nuevos índices
-      const datos = normalizarEOrdenar(vehData, {
-        byId,
-        byModelId,
-        byModelName,
-        byModelYears,
-        byNameUnique,
-        byYearsUnique
-      });
+      // Normalizar estructura jerárquica con cálculos dinámicos de abajo hacia arriba
+      const datos = normalizarEOrdenar(
+        vehData,
+        {
+          byId,
+          byModelId,
+          byModelName,
+          byModelYears,
+          byNameUnique,
+          byYearsUnique
+        },
+        repuestosPorVehiculoMap,
+        transaccionesPorVehiculoMap
+      );
 
       if (!datos.length) {
         message.info('No se encontraron vehículos para mostrar');
       }
       setMarcas(datos);
-      setFilteredMarcas(datos); // Initialize filtered list with all brands
-      console.log('Data loaded successfully:', datos);
-      console.log('Sample marca structure:', datos[0]);
+      setFilteredMarcas(datos);
+
+      // Calcular métricas consolidadas para el Dashboard
+      const stats = calcularDashboard(datos);
+      setDashboardStats(stats);
     } catch (error) {
       console.error('Error al cargar los vehículos/generaciones:', error);
       message.error(`Error al cargar los datos: ${error.message || 'Error desconocido'}`);
@@ -663,47 +860,6 @@ const VehiculosJerarquicos = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array since this should only run once on mount
 
-  // Cargar tipos de transacciones al montar el componente
-  useEffect(() => {
-    const cargarTiposTransacciones = async () => {
-      try {
-        setLoadingTipos(true);
-        const tipos = await getTiposTransacciones();
-
-        // Actualizar los mapeos de tipos de transacción
-        const nuevoCategoriaPorTipoId = {};
-
-        tipos.forEach(tipo => {
-          if (tipo.activo) {
-            nuevoCategoriaPorTipoId[tipo.id] = tipo.categoria;
-          }
-        });
-
-        categoriaPorTipoId = nuevoCategoriaPorTipoId;
-        setTiposTransaccionesCargados(true);
-
-      } catch (error) {
-        console.error('Error al cargar tipos de transacciones:', error);
-        message.error('Error al cargar los tipos de transacciones');
-
-        // En caso de error, marcar como cargado para evitar bloqueo infinito
-        setTiposTransaccionesCargados(true);
-      } finally {
-        setLoadingTipos(false);
-      }
-    };
-
-    if (!tiposTransaccionesCargados) {
-      cargarTiposTransacciones();
-    }
-  }, [tiposTransaccionesCargados]);
-
-  // Cargar vehículos después de que los tipos de transacciones estén listos
-  useEffect(() => {
-    if (tiposTransaccionesCargados) {
-      cargarDatos(); // ✅ recarga para asegurar fusión completa
-    }
-  }, [tiposTransaccionesCargados, cargarDatos]);
 
   // Función personalizada para manejar la expansión y carga de transacciones (CORREGIDA)
   const handleExpand = useCallback(async (vehiculoId, expanded) => {
@@ -1366,22 +1522,43 @@ const VehiculosJerarquicos = () => {
           onClick={() => toggleModel(marca.id, modelo.id)}
           style={{
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '8px',
             padding: '12px 16px',
-            background: '#f0f0f0',
-            borderRadius: 4,
+            background: '#f4f6f8',
+            borderRadius: 6,
             cursor: 'pointer',
-            marginBottom: 8
+            marginBottom: 8,
+            borderLeft: '4px solid #1890ff',
+            transition: 'all 0.2s'
           }}
         >
-          <div style={{ flex: 1 }}>
-            <Text strong>{modelo.nombre || 'Sin modelo'}</Text>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <Text strong style={{ fontSize: '1.05em' }}>{modelo.nombre || 'Sin modelo'}</Text>
+            <Tag color="blue">{modelo.total_vehiculos || 0} veh.</Tag>
+            {(modelo.total_repuestos || 0) > 0 && <Tag color="cyan">{modelo.total_repuestos} rep.</Tag>}
           </div>
-          <div>
-            <Text type="secondary">
-              {modelo.generaciones?.length || 0} generación{modelo.generaciones?.length !== 1 ? 'es' : ''}
-            </Text>
-            {isExpanded ? <UpOutlined style={{ marginLeft: 8 }} /> : <DownOutlined style={{ marginLeft: 8 }} />}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '0.85em', textAlign: 'right' }}>
+              <span style={{ color: '#8c8c8c', marginRight: 4 }}>Inversión:</span>
+              <strong>{formatMonto(modelo.total_inversion || 0)}</strong>
+            </div>
+            <div style={{ fontSize: '0.85em', textAlign: 'right' }}>
+              <span style={{ color: '#8c8c8c', marginRight: 4 }}>Recuperado:</span>
+              <strong style={{ color: '#52c41a' }}>{formatMonto(modelo.total_ingresos || 0)}</strong>
+            </div>
+            <div style={{ fontSize: '0.85em', textAlign: 'right' }}>
+              <span style={{ color: '#8c8c8c', marginRight: 4 }}>Neto:</span>
+              <strong style={{ color: (modelo.balance_neto || 0) >= 0 ? '#52c41a' : '#ff4d4f' }}>
+                {(modelo.balance_neto || 0) >= 0 ? '+' : ''}{formatMonto(modelo.balance_neto || 0)}
+              </strong>
+            </div>
+            <div style={{ marginLeft: 8 }}>
+              {isExpanded ? <UpOutlined /> : <DownOutlined />}
+            </div>
           </div>
         </div>
 
@@ -1396,14 +1573,12 @@ const VehiculosJerarquicos = () => {
     );
   };
 
-  if (loading || loadingTipos || !tiposTransaccionesCargados) {
+  if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '300px', padding: '40px 20px', textAlign: 'center' }}>
         <Spin size="large" />
         <div style={{ marginTop: '16px', fontSize: '16px', color: '#666' }}>
-          {loading ? 'Cargando vehículos...' :
-            loadingTipos ? 'Cargando tipos de transacciones...' :
-              'Inicializando...'}
+          Cargando vehículos y sincronizando jerarquía financiera...
         </div>
       </div>
     );
@@ -1411,27 +1586,97 @@ const VehiculosJerarquicos = () => {
 
   return (
     <div className="vehiculos-jerarquicos">
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: 24 }}>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ margin: 0 }}>Vehículos</h1>
-            <Text type="secondary">Vista jerárquica de vehículos agrupados por marca, modelo y generación</Text>
+            <Text type="secondary">Vista jerárquica de vehículos, repuestos y balance financiero consolidado</Text>
           </div>
-          <div style={{ display: 'flex', gap: 8, flex: '1 1 auto', justifyContent: 'flex-end', width: '100%' }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             <Input.Search
               placeholder="Buscar por marca, modelo, generación o código..."
               allowClear
               enterButton={<SearchOutlined />}
               onSearch={handleSearch}
-              style={{ width: '100%', maxWidth: '350px' }}
+              style={{ width: 320 }}
               onChange={(e) => handleSearch(e.target.value)}
               value={searchQuery}
             />
           </div>
         </div>
-
-
       </div>
+
+      {/* Top Dashboard Jerárquico de Flota y Repuestos */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} bodyStyle={{ padding: '20px 24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '13px', fontWeight: 500 }}>Inversión en Vehículos</span>}
+              value={dashboardStats.totalInversion}
+              formatter={val => formatMonto(val)}
+              prefix={<CarOutlined style={{ color: '#1890ff', marginRight: 8 }} />}
+              valueStyle={{ fontWeight: 700, fontSize: '22px', color: '#1890ff' }}
+            />
+            <div style={{ marginTop: 8, fontSize: '12px', color: '#8c8c8c' }}>
+              Costo total de adquisición y alistado
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} bodyStyle={{ padding: '20px 24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '13px', fontWeight: 500 }}>Monto Recuperado (Ingresos)</span>}
+              value={dashboardStats.totalRecuperado}
+              formatter={val => formatMonto(val)}
+              prefix={<ArrowUpOutlined style={{ color: '#52c41a', marginRight: 8 }} />}
+              valueStyle={{ fontWeight: 700, fontSize: '22px', color: '#52c41a' }}
+            />
+            <div style={{ marginTop: 8, fontSize: '12px', color: '#52c41a', fontWeight: 500 }}>
+              {dashboardStats.porcentajeRecuperado.toFixed(1)}% de la inversión recuperada
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} bodyStyle={{ padding: '20px 24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0' }}>
+            <Statistic
+              title={<span style={{ color: '#8c8c8c', fontSize: '13px', fontWeight: 500 }}>Balance Neto Flota</span>}
+              value={dashboardStats.balanceNeto}
+              formatter={val => `${val >= 0 ? '+' : ''}${formatMonto(val)}`}
+              valueStyle={{
+                fontWeight: 700,
+                fontSize: '22px',
+                color: dashboardStats.balanceNeto >= 0 ? '#52c41a' : '#ff4d4f'
+              }}
+            />
+            <div style={{ marginTop: 8, fontSize: '12px', color: dashboardStats.balanceNeto >= 0 ? '#52c41a' : '#ff4d4f' }}>
+              {dashboardStats.balanceNeto >= 0 ? 'Ganancia neta consolidada' : 'Monto pendiente por amortizar'}
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} bodyStyle={{ padding: '20px 24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <span style={{ color: '#8c8c8c', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: 4 }}>Flota y Repuestos</span>
+                <span style={{ fontSize: '22px', fontWeight: 700, color: '#722ed1' }}>
+                  {dashboardStats.totalVehiculos} <span style={{ fontSize: '14px', fontWeight: 400, color: '#8c8c8c' }}>vehículos</span>
+                </span>
+              </div>
+              <Tag color="purple" style={{ margin: 0, padding: '4px 8px', borderRadius: 6 }}>
+                <ToolOutlined style={{ marginRight: 4 }} />{dashboardStats.totalRepuestos} repuestos
+              </Tag>
+            </div>
+            <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <Tag color="success">{dashboardStats.vehiculosDisponibles} disp.</Tag>
+              <Tag color="blue">{dashboardStats.vehiculosVendidos} vend.</Tag>
+              {dashboardStats.vehiculosReparacion > 0 && <Tag color="warning">{dashboardStats.vehiculosReparacion} rep.</Tag>}
+            </div>
+          </Card>
+        </Col>
+      </Row>
 
       {filteredMarcas.length > 0 ? (
         <Collapse
@@ -1445,12 +1690,28 @@ const VehiculosJerarquicos = () => {
             <Panel
               key={`marca-${marca.id}`}
               header={
-                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <Text strong>{marca.nombre || 'Sin marca'}</Text>
-                  <div>
-                    <Text type="secondary" style={{ marginRight: 24 }}>
-                      {marca.modelos?.length || 0} modelo{marca.modelos?.length !== 1 ? 's' : ''}
-                    </Text>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <Text strong style={{ fontSize: '15px' }}>{marca.nombre || 'Sin marca'}</Text>
+                    <Tag color="purple">{marca.modelos?.length || 0} modelos</Tag>
+                    <Tag color="blue">{marca.total_vehiculos || 0} vehículos</Tag>
+                    {(marca.total_repuestos || 0) > 0 && <Tag color="cyan">{marca.total_repuestos} repuestos</Tag>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginRight: 16 }}>
+                    <div style={{ fontSize: '0.85em' }}>
+                      <span style={{ color: '#8c8c8c', marginRight: 4 }}>Inversión:</span>
+                      <strong>{formatMonto(marca.total_inversion || 0)}</strong>
+                    </div>
+                    <div style={{ fontSize: '0.85em' }}>
+                      <span style={{ color: '#8c8c8c', marginRight: 4 }}>Recuperado:</span>
+                      <strong style={{ color: '#52c41a' }}>{formatMonto(marca.total_ingresos || 0)}</strong>
+                    </div>
+                    <div style={{ fontSize: '0.85em' }}>
+                      <span style={{ color: '#8c8c8c', marginRight: 4 }}>Balance:</span>
+                      <strong style={{ color: (marca.balance_neto || 0) >= 0 ? '#52c41a' : '#ff4d4f' }}>
+                        {(marca.balance_neto || 0) >= 0 ? '+' : ''}{formatMonto(marca.balance_neto || 0)}
+                      </strong>
+                    </div>
                   </div>
                 </div>
               }

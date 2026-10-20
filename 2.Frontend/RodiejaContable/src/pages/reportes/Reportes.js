@@ -16,6 +16,7 @@ import {
   Button,
   DatePicker,
   Input,
+  Space,
   message
 } from 'antd';
 import {
@@ -157,31 +158,44 @@ const Reportes = () => {
         if (Array.isArray(transaccionesAll)) {
           transaccionesAll.forEach(t => {
             const monto = parseFloat(t.monto || 0);
-            const comision = parseFloat(t.comisionEmpleado || 0);
-            const categoria = (t.categoria || t.tipoTransaccion || '').toUpperCase();
+            const comision = parseFloat(t.comisionEmpleado || t.comision_empleado || 0);
+            const tipo = (t.tipoTransaccion || t.tipo_transaccion || '').toUpperCase();
+            const categoria = (t.categoria || '').toUpperCase();
 
-            if (t.codigoVehiculo) {
-              if (categoria === 'INGRESO' || categoria === 'VENTA') vehVentas += monto;
-              else if (categoria === 'EGRESO' || categoria === 'COMPRA' || categoria === 'REPARACION') vehCostos += monto;
-              vehComisiones += comision;
-            } else if (t.codigoRepuesto) {
-              if (categoria === 'INGRESO' || categoria === 'VENTA') repVentas += monto;
-              else if (categoria === 'EGRESO' || categoria === 'COMPRA' || categoria === 'REPARACION') repCostos += monto;
+            // Clasificación lógica precisa:
+            // Si el tipo de transacción indica repuesto o tiene código de repuesto
+            const esRepuesto = tipo.includes('REPUESTO') || tipo.includes('MAYOREO') || Boolean(t.codigoRepuesto && !tipo.includes('VEH'));
+            // Si el tipo indica vehículo o grúa/reparación o tiene código de vehículo sin ser repuesto
+            const esVehiculo = tipo.includes('VEH') || tipo.includes('GRÚA') || tipo.includes('GRUA') || tipo.includes('REPARAC') || Boolean(t.codigoVehiculo && !esRepuesto);
+
+            if (esRepuesto) {
+              if (categoria === 'INGRESO' || tipo.includes('VENTA')) {
+                repVentas += monto;
+              } else if (categoria === 'EGRESO' || tipo.includes('COMPRA') || tipo.includes('GASTO')) {
+                repCostos += monto;
+              }
               repComisiones += comision;
+            } else if (esVehiculo) {
+              if (categoria === 'INGRESO' || tipo.includes('VENTA')) {
+                vehVentas += monto;
+              } else if (categoria === 'EGRESO' || tipo.includes('COMPRA') || tipo.includes('REPARAC') || tipo.includes('GRUA') || tipo.includes('REEMBOLSO')) {
+                vehCostos += monto;
+              }
+              vehComisiones += comision;
             }
           });
         }
 
         setResumenVehiculos({
           ventas: vehVentas,
-          inversion: vehCostos,
-          ganancia: vehVentas - vehCostos - vehComisiones
+          inversion: vehCostos + vehComisiones,
+          ganancia: vehVentas - (vehCostos + vehComisiones)
         });
 
         setResumenRepuestos({
           ventas: repVentas,
-          costos: repCostos,
-          ganancia: repVentas - repCostos - repComisiones
+          costos: repCostos + repComisiones,
+          ganancia: repVentas - (repCostos + repComisiones)
         });
       } catch (error) {
         console.error('Error al calcular flujo financiero:', error);
@@ -293,82 +307,99 @@ const Reportes = () => {
   };
 
   return (
-    <div className="table-container">
-      <div className="d-flex mb-24" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <Title level={2} className="m-0 text-24">Reportes Generales</Title>
+    <div style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <Title level={2} style={{ margin: 0, fontSize: '24px' }}>Reportes Generales</Title>
 
         {/* ROD-17: Botón de exportar oportunidades Audatex */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end', width: '100%' }}>
+        <Space wrap align="center">
+          {fechaRange && fechaRange[0] && fechaRange[1] && (
+            <Tag 
+              color="blue" 
+              closable 
+              onClose={() => setFechaRange([null, null])} 
+              style={{ borderRadius: '12px', padding: '2px 10px', fontWeight: 500 }}
+            >
+              Rango: {fechaRange[0].format('DD/MM/YYYY')} - {fechaRange[1].format('DD/MM/YYYY')}
+            </Tag>
+          )}
           <DatePicker.RangePicker
             value={fechaRange}
             onChange={setFechaRange}
             format="YYYY-MM-DD"
             placeholder={['Desde', 'Hasta']}
-            size="large"
-            style={{ flex: '1 1 auto', minWidth: '220px', maxWidth: '350px' }}
+            style={{ marginRight: 8 }}
           />
+          {marcaFiltro && (
+            <Tag 
+              color="purple" 
+              closable 
+              onClose={() => setMarcaFiltro('')} 
+              style={{ borderRadius: '12px', padding: '2px 10px', fontWeight: 500 }}
+            >
+              Marca: {marcaFiltro}
+            </Tag>
+          )}
           <Input
             placeholder="Filtrar por marca/modelo"
             value={marcaFiltro}
             onChange={(e) => setMarcaFiltro(e.target.value)}
-            size="large"
-            style={{ flex: '1 1 auto', minWidth: '180px', maxWidth: '300px' }}
+            style={{ width: 200, marginRight: 8 }}
+            allowClear
           />
           <Button
             type="primary"
             icon={<FileExcelOutlined />}
             onClick={handleExportarAudatex}
             loading={loading.exportarAudatex}
-            size="large"
-            style={{ minWidth: '180px', maxWidth: '200px', borderRadius: '6px' }}
           >
-            Audatex
+            Exportar Oportunidades InPart
           </Button>
-        </div>
+        </Space>
       </div>
 
       {/* Métricas principales */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-8 shadow-sm border-light" loading={loading.general}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
             <Statistic
-              title={<span className="text-gray text-14 font-medium">Ventas Totales</span>}
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Totales</span>}
               value={metricas.totalVentas}
-              prefix={<ShoppingCartOutlined className="text-20" />}
+              prefix={<ShoppingCartOutlined style={{ fontSize: '20px' }} />}
               suffix="unidades"
               valueStyle={{ color: '#1890ff', fontWeight: 600, fontSize: '24px' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-8 shadow-sm border-light" loading={loading.general}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
             <Statistic
-              title={<span className="text-gray text-14 font-medium">Ingresos Totales</span>}
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
               value={metricas.totalIngresos}
               precision={2}
-              prefix={<DollarOutlined className="text-20" />}
+              prefix={<DollarOutlined style={{ fontSize: '20px' }} />}
               valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
               formatter={value => formatCurrency(value)}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-8 shadow-sm border-light" loading={loading.general}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
             <Statistic
-              title={<span className="text-gray text-14 font-medium">Vehículos en Stock</span>}
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Vehículos en Stock</span>}
               value={metricas.vehiculosStock}
-              prefix={<CarOutlined className="text-20" />}
+              prefix={<CarOutlined style={{ fontSize: '20px' }} />}
               valueStyle={{ color: '#722ed1', fontWeight: 600, fontSize: '24px' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} className="rounded-8 shadow-sm border-light" loading={loading.general}>
+          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
             <Statistic
-              title={<span className="text-gray text-14 font-medium">Tasa de Conversión</span>}
+              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Tasa de Conversión</span>}
               value={metricas.tasaConversion}
               suffix="%"
-              prefix={<TrophyOutlined className="text-20" />}
+              prefix={<TrophyOutlined style={{ fontSize: '20px' }} />}
               valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: '24px' }}
             />
           </Card>
@@ -380,18 +411,18 @@ const Reportes = () => {
         <Col xs={24}>
           <Card
             title={
-              <span className="font-semibold text-18">
-                <CalendarOutlined className="mr-8" />
+              <span style={{ fontWeight: 600, fontSize: '18px' }}>
+                <CalendarOutlined style={{ marginRight: 8 }} />
                 Ingresos Mensuales
               </span>
             }
             bordered={false}
-            className="mb-24 rounded-8 shadow-sm border-light"
+            style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}
             headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
             bodyStyle={{ padding: '0' }}
           >
-            <div className="table-container">
-              <Table scroll={{ x: 'max-content' }}
+            <div style={{ padding: '24px' }}>
+              <Table
                 dataSource={ventasMensuales}
                 loading={loading.general}
                 columns={[
@@ -428,9 +459,9 @@ const Reportes = () => {
 
         {/* Sección de Resúmenes */}
         <Col xs={24}>
-          <div className="d-flex align-center mb-16 mt-8">
-            <BarChartOutlined className="text-20 mr-8 text-primary" />
-            <Title level={4} className="m-0">Flujo Financiero</Title>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', marginTop: '8px' }}>
+            <BarChartOutlined style={{ fontSize: '20px', marginRight: '8px', color: '#1890ff' }} />
+            <Title level={4} style={{ margin: 0 }}>Flujo Financiero</Title>
           </div>
         </Col>
 
@@ -454,7 +485,7 @@ const Reportes = () => {
             </div>
 
             {/* Detalles numéricos */}
-            <div className="table-container">
+            <div style={{ padding: '24px' }}>
               <Row gutter={[16, 16]}>
                 <Col span={12}>
                   <Statistic
@@ -501,7 +532,7 @@ const Reportes = () => {
             </div>
 
             {/* Detalles numéricos */}
-            <div className="table-container">
+            <div style={{ padding: '24px' }}>
               <Row gutter={[16, 16]}>
                 <Col span={12}>
                   <Statistic
@@ -548,7 +579,7 @@ const Reportes = () => {
             </div>
 
             {/* Detalles numéricos */}
-            <div className="table-container">
+            <div style={{ padding: '24px' }}>
               <Row gutter={[16, 16]}>
                 <Col span={12}>
                   <Statistic
@@ -586,8 +617,8 @@ const Reportes = () => {
             headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
             bodyStyle={{ padding: '0' }}
           >
-            <div className="table-container">
-              <Table scroll={{ x: 'max-content' }}
+            <div style={{ padding: '24px' }}>
+              <Table
                 dataSource={topEmpleados}
                 loading={loading.general}
                 columns={[
@@ -632,8 +663,8 @@ const Reportes = () => {
             headStyle={{ borderBottom: '1px solid #f0f0f0', padding: '0 24px', minHeight: '64px' }}
             bodyStyle={{ padding: '0' }}
           >
-            <div className="table-container">
-              <Table scroll={{ x: 'max-content' }}
+            <div style={{ padding: '24px' }}>
+              <Table
                 dataSource={comisiones}
                 loading={loading.general}
                 columns={[

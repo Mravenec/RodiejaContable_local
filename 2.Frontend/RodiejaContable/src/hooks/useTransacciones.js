@@ -6,6 +6,9 @@ export function useTransaccionesCompletas(params = {}) {
   return useQuery(
     ['transacciones', params],
     async () => {
+      if (params.mes && params.anio) {
+        return transaccionesCompletasService.getTransaccionesPorPeriodo(params.mes, params.anio, params);
+      }
       if (params.fechaInicio && params.fechaFin) {
         return transaccionesCompletasService.getTransaccionesPorRangoFechas(params.fechaInicio, params.fechaFin);
       }

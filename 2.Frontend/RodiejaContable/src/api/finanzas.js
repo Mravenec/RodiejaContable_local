@@ -10,10 +10,37 @@ const sortTransaccionesDesc = (transacciones) => {
 };
 
 export const finanzasService = {
-  // Get all financial transactions with optional filters
+  // Get all financial transactions with optional filters (including mes and anio)
   getTransacciones: async (filters = {}) => {
     try {
-      const response = await api.get('transacciones-financieras', { params: filters });
+      const params = { ...filters };
+      if (params.mes && params.anio) {
+        return await finanzasService.getTransaccionesPorPeriodo(params.mes, params.anio, params);
+      }
+      if (params.fechaInicio && params.fechaFin) {
+        return await finanzasService.getTransaccionesByDateRange(params.fechaInicio, params.fechaFin, params);
+      }
+      const response = await api.get('transacciones-financieras', { params });
+      return sortTransaccionesDesc(response.data);
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get transactions filtered by month and year (calculates date range for backend endpoint)
+  getTransaccionesPorPeriodo: async (mes, anio, params = {}) => {
+    try {
+      const m = parseInt(mes, 10);
+      const a = parseInt(anio, 10);
+      const mesStr = String(m).padStart(2, '0');
+      const ultimoDia = new Date(a, m, 0).getDate();
+      const fechaInicio = `${a}-${mesStr}-01`;
+      const fechaFin = `${a}-${mesStr}-${String(ultimoDia).padStart(2, '0')}`;
+
+      // El endpoint en el backend para filtrar transacciones por fecha es /rango-fechas
+      const response = await api.get('transacciones-financieras/rango-fechas', {
+        params: { fechaInicio, fechaFin, ...params }
+      });
       return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;
@@ -118,6 +145,26 @@ export const finanzasService = {
   facturarPedidoAudatex: async (pedidoId) => {
     try {
       const response = await api.post('audatex/pedidos/facturar', { pedidoId });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Reembolsar una transacción
+  reembolsarTransaccion: async (id) => {
+    try {
+      const response = await api.post(`transacciones-financieras/reembolso/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Consultar el estado de reembolso de una transacción
+  verificarEstadoReembolso: async (id) => {
+    try {
+      const response = await api.get(`transacciones-financieras/${id}/estado-reembolso`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card, Row, Col, Table, Typography, Button, Space,
   Select, message, Statistic, Tabs, Tag,
@@ -23,6 +23,22 @@ import * as XLSX from 'xlsx';
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { Content } = Layout;
+
+const MESES_NOMBRES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+const parseFecha = (fecha) => {
+  if (!fecha) return null;
+  if (Array.isArray(fecha)) {
+    return new Date(fecha[0], fecha[1] - 1, fecha[2]);
+  }
+  if (typeof fecha === 'string') {
+    const parts = fecha.split('T')[0].split('-');
+    if (parts.length === 3) {
+      return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
+  }
+  return new Date(fecha);
+};
 
 const ReporteRepuestos = () => {
   const navigate = useNavigate();
@@ -78,10 +94,16 @@ const ReporteRepuestos = () => {
       setLoadingMovimientos(true);
       const params = {};
 
-      if (filtros.mes && filtros.anio) {
-        const fechaBase = moment().year(filtros.anio).month(filtros.mes - 1);
-        params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
-        params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
+      if (filtros.mes || filtros.anio) {
+        const targetAnio = filtros.anio || moment().year();
+        if (filtros.mes) {
+          const fechaBase = moment([targetAnio, filtros.mes - 1, 1]);
+          params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+          params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
+        } else {
+          params.fechaInicio = `${targetAnio}-01-01`;
+          params.fechaFin = `${targetAnio}-12-31`;
+        }
       }
 
       // Fetch all transacciones, all repuestos, and all dismantled vehicles concurrently
@@ -112,18 +134,10 @@ const ReporteRepuestos = () => {
         };
       });
 
-      // Extract valid repuesto IDs and Codes from the inventory view
-      const repuestosIdsValid = new Set(repuestosRes.map(r => r.id));
-      const repuestosCodigosValid = new Set(repuestosRes.map(r => r.codigo).filter(Boolean));
-
-      // Extract valid dismantled vehicles IDs and Codes
-      const desarmadosIds = new Set((desarmadosRes || []).map(v => v.id));
-      const desarmadosCodigos = new Set((desarmadosRes || []).map(v => v.codigoVehiculo).filter(Boolean));
-
       const repuestosMap = new Map();
       const vehiculoOrigenMap = new Map();
       repuestosRes.forEach(r => {
-        const nombreRepuesto = r.descripcion || r.parteVehiculo || r.codigo;
+        const nombreRepuesto = r.descripcion || r.parteVehiculo || r.codigoRepuesto || r.codigo;
         const info = {
           nombre: nombreRepuesto,
           parteVehiculo: r.parteVehiculo,
@@ -133,9 +147,10 @@ const ReporteRepuestos = () => {
         const vehRef = r.vehiculoOrigenId || r.vehiculoId || r.codigoVehiculo;
         const vehRefStr = vehRef ? vehRef.toString() : null;
 
-        if (r.codigo) {
-          repuestosMap.set(r.codigo, info);
-          if (vehRefStr) vehiculoOrigenMap.set(r.codigo, vehRefStr);
+        const codRepuesto = r.codigoRepuesto || r.codigo;
+        if (codRepuesto) {
+          repuestosMap.set(codRepuesto, info);
+          if (vehRefStr) vehiculoOrigenMap.set(codRepuesto, vehRefStr);
         }
         if (r.id) {
           repuestosMap.set(r.id.toString(), info);
@@ -154,48 +169,48 @@ const ReporteRepuestos = () => {
         if (v.id) vehiculosMap.set(v.id.toString(), nombreVehiculo);
       });
 
-      // FILTRO AMPLIO: Repuestos y Carros Desarmados
+      // FILTRO: Repuestos y Carros Desarmados
       const movimientosRepuestos = transaccionesRes.filter(t => {
-        // 1. Transaction explicitly tied to a valid repuesto
-        const matchesRepuestoId = t.repuestoId != null && repuestosIdsValid.has(t.repuestoId);
-        const matchesRepuestoCodigo = t.codigoRepuesto != null && repuestosCodigosValid.has(t.codigoRepuesto);
-        const matchesRepuesto = matchesRepuestoId || matchesRepuestoCodigo;
+        // 1. Filtro por Fecha (Mes y/o Año)
+        if (filtros.mes || filtros.anio) {
+          const fObj = parseFecha(t.fecha);
+          if (fObj && !isNaN(fObj.getTime())) {
+            if (filtros.mes && (fObj.getMonth() + 1) !== filtros.mes) {
+              return false;
+            }
+            if (filtros.anio && fObj.getFullYear() !== filtros.anio) {
+              return false;
+            }
+          }
+        }
 
-        // 2. Transaction tied to a dismantled vehicle
-        const matchesDesarmadoId = t.vehiculoId != null && desarmadosIds.has(t.vehiculoId);
-        const matchesDesarmadoCodigo = t.codigoVehiculo != null && desarmadosCodigos.has(t.codigoVehiculo);
-        const matchesDesarmado = matchesDesarmadoId || matchesDesarmadoCodigo;
+        // 2. Si no se filtra por un vehículo desarmado específico, incluir estrictamente movimientos de repuestos (no Compra Vehículo)
+        if (!filtros.vehiculoDesarmadoId) {
+          const tipoLower = (t.tipoTransaccion || t.tipo_transaccion || '').toLowerCase();
+          const esRepuesto = tipoLower.includes('repuesto') || tipoLower.includes('mayoreo') || Boolean((t.codigoRepuesto || t.repuestoId) && !tipoLower.includes('veh'));
+          if (!esRepuesto) {
+            return false;
+          }
+        }
 
-        // 3. Check by transaction type keyword
-        const tipoLower = (t.tipoTransaccion || t.categoria || '').toLowerCase();
-        const esTipoRepuesto = tipoLower.includes('repuesto') || tipoLower.includes('mayoreo') || tipoLower.includes('desarme');
-
-        // Return true if any of these conditions are met, or if it generally has a repuesto code
-        let matchesAny = false;
-        if (matchesRepuesto || matchesDesarmado || esTipoRepuesto) matchesAny = true;
-        else if (t.codigoRepuesto != null || t.repuestoId != null) matchesAny = true; // Fallback
-
-        if (!matchesAny) return false;
-
-        // Filtro por Vehículo Desarmado (Igual que VehiculosJerarquicos.js)
+        // 3. Filtro por Vehículo Desarmado específico (Igual que VehiculosJerarquicos.js)
         if (filtros.vehiculoDesarmadoId) {
           const targetVehiculoId = parseInt(filtros.vehiculoDesarmadoId, 10);
 
-          // 1. Obtener todos los repuestos (físicos) de este vehículo
+          // Obtener todos los repuestos (físicos) de este vehículo
           const repuestosAsociados = repuestosRes.filter(r =>
             (r.vehiculoOrigenId && parseInt(r.vehiculoOrigenId, 10) === targetVehiculoId) ||
             (r.vehiculoId && parseInt(r.vehiculoId, 10) === targetVehiculoId)
           );
 
           const repuestosAsociadosIds = new Set(repuestosAsociados.map(r => parseInt(r.id, 10)));
-          const repuestosAsociadosCodigos = new Set(repuestosAsociados.map(r => r.codigo).filter(Boolean));
+          const repuestosAsociadosCodigos = new Set(repuestosAsociados.map(r => r.codigoRepuesto || r.codigo).filter(Boolean));
 
-          // 2. Comprobar si la transacción pertenece directamente al vehículo
+          // Comprobar si la transacción pertenece directamente al vehículo o a sus repuestos
           const matchesVehicleId = t.vehiculoId != null && parseInt(t.vehiculoId, 10) === targetVehiculoId;
           const matchesVehicleCode = vehiculoIdToCodigoMap.get(targetVehiculoId.toString()) && t.codigoVehiculo === vehiculoIdToCodigoMap.get(targetVehiculoId.toString());
           const matchesVehicle = matchesVehicleId || matchesVehicleCode;
 
-          // 3. Comprobar si la transacción pertenece a alguno de los repuestos del vehículo
           const matchesRepuestoId = t.repuestoId != null && repuestosAsociadosIds.has(parseInt(t.repuestoId, 10));
           const matchesRepuestoCode = t.codigoRepuesto != null && repuestosAsociadosCodigos.has(t.codigoRepuesto);
           const matchesRepuesto = matchesRepuestoId || matchesRepuestoCode;
@@ -205,7 +220,7 @@ const ReporteRepuestos = () => {
           }
         }
 
-        // Filtro por Tipo de Parte
+        // 4. Filtro por Tipo de Parte
         if (filtros.parteVehiculo) {
           let repuestoInfo = null;
           if (t.codigoRepuesto) repuestoInfo = repuestosMap.get(t.codigoRepuesto);
@@ -216,7 +231,7 @@ const ReporteRepuestos = () => {
           }
         }
 
-        // Filtro por Estado de Repuesto
+        // 5. Filtro por Estado de Repuesto
         if (filtros.estadoRepuesto) {
           let repuestoInfo = null;
           if (t.codigoRepuesto) repuestoInfo = repuestosMap.get(t.codigoRepuesto);
@@ -227,7 +242,7 @@ const ReporteRepuestos = () => {
           }
         }
 
-        // Aplicar filtro de búsqueda si existe
+        // 6. Aplicar filtro de búsqueda si existe
         if (filtros.busqueda && filtros.busqueda.trim() !== '') {
           const query = filtros.busqueda.toLowerCase();
           const desc = (t.descripcion || '').toLowerCase();
@@ -271,9 +286,9 @@ const ReporteRepuestos = () => {
       });
 
       const ordenados = movimientosRepuestos.sort((a, b) => {
-        const fechaA = new Date(Array.isArray(a.fecha) ? `${a.fecha[0]}-${String(a.fecha[1]).padStart(2, '0')}-${String(a.fecha[2]).padStart(2, '0')}` : a.fecha);
-        const fechaB = new Date(Array.isArray(b.fecha) ? `${b.fecha[0]}-${String(b.fecha[1]).padStart(2, '0')}-${String(b.fecha[2]).padStart(2, '0')}` : b.fecha);
-        return fechaB - fechaA;
+        const fechaA = parseFecha(a.fecha);
+        const fechaB = parseFecha(b.fecha);
+        return (fechaB?.getTime() || 0) - (fechaA?.getTime() || 0);
       });
 
       setMovimientos(ordenados);
@@ -292,12 +307,7 @@ const ReporteRepuestos = () => {
         const estaPagada = t.comisionPagada === true || t.comisionPagada === 1 || t.comisionPagada === '1';
         const comision = estaPagada ? parseFloat(t.comisionEmpleado || 0) : 0;
 
-        let fechaObj = null;
-        if (Array.isArray(t.fecha)) {
-          fechaObj = new Date(t.fecha[0], t.fecha[1] - 1, t.fecha[2]);
-        } else if (t.fecha) {
-          fechaObj = new Date(t.fecha);
-        }
+        const fechaObj = parseFecha(t.fecha);
 
         let monthKey = 'Desconocido';
         let nombreMes = 'Desconocido';
@@ -344,7 +354,6 @@ const ReporteRepuestos = () => {
         return a.monthIndex - b.monthIndex;
       });
 
-
       setData(processedData);
       setTotales({
         ingresos: tIngresos,
@@ -371,6 +380,50 @@ const ReporteRepuestos = () => {
 
   const aplicarFiltros = (valores) => {
     setFiltros(prev => ({ ...prev, ...valores }));
+  };
+
+  const labelPeriodo = useMemo(() => {
+    if (filtros.mes && filtros.anio) {
+      return `${MESES_NOMBRES[filtros.mes - 1]} ${filtros.anio}`;
+    }
+    if (filtros.mes) return MESES_NOMBRES[filtros.mes - 1];
+    if (filtros.anio) return `${filtros.anio}`;
+    return null;
+  }, [filtros.mes, filtros.anio]);
+
+  const labelVehiculoDesarmado = useMemo(() => {
+    if (!filtros.vehiculoDesarmadoId) return null;
+    const v = vehiculosDesarmados.find(item => item.id === filtros.vehiculoDesarmadoId);
+    if (!v) return `Vehículo #${filtros.vehiculoDesarmadoId}`;
+    return `${v.codigoVehiculo || ''} ${v.marca || ''} ${v.modelo || ''}`.trim();
+  }, [filtros.vehiculoDesarmadoId, vehiculosDesarmados]);
+
+  const labelParteVehiculo = useMemo(() => {
+    if (!filtros.parteVehiculo) return null;
+    const parte = partesVehiculo.find(p => p.id === filtros.parteVehiculo);
+    return parte ? parte.nombre : `Parte #${filtros.parteVehiculo}`;
+  }, [filtros.parteVehiculo, partesVehiculo]);
+
+  const cantidadFiltrosActivos = useMemo(() => {
+    let count = 0;
+    if (filtros.busqueda && filtros.busqueda.trim() !== '') count++;
+    if (filtros.mes || filtros.anio) count++;
+    if (filtros.vehiculoDesarmadoId) count++;
+    if (filtros.parteVehiculo) count++;
+    if (filtros.estadoRepuesto) count++;
+    return count;
+  }, [filtros]);
+
+  const tieneFiltrosActivos = cantidadFiltrosActivos > 0;
+
+  const removerFiltro = (nombre) => {
+    if (nombre === 'periodo') {
+      aplicarFiltros({ mes: null, anio: null });
+    } else if (nombre === 'busqueda') {
+      aplicarFiltros({ busqueda: '' });
+    } else {
+      aplicarFiltros({ [nombre]: null });
+    }
   };
 
   const limpiarFiltros = () => {
@@ -681,38 +734,135 @@ const ReporteRepuestos = () => {
       {/* Control Panel de Filtros */}
       <Collapse
         defaultActiveKey={['1']}
-        className="mb-24 rounded-8 shadow-sm bg-white"
+        style={{ marginBottom: 24, borderRadius: '8px', boxShadow: '0 1px 2px -2px rgba(0, 0, 0, 0.16)', background: '#fff' }}
         items={[
           {
             key: '1',
             label: (
-              <Text strong className="text-15 text-dark">
-                <FilterOutlined className="mr-8 text-primary" />
-                Parámetros de Análisis
-              </Text>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Text strong style={{ fontSize: '15px', color: '#262626' }}>
+                    <FilterOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                    Parámetros de Análisis
+                  </Text>
+                  {cantidadFiltrosActivos > 0 && (
+                    <Tag color="blue" style={{ borderRadius: '10px', margin: 0 }}>
+                      {cantidadFiltrosActivos} activo{cantidadFiltrosActivos > 1 ? 's' : ''}
+                    </Tag>
+                  )}
+                </div>
+
+                {tieneFiltrosActivos && (
+                  <div 
+                    onClick={(e) => e.stopPropagation()} 
+                    style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}
+                  >
+                    {labelPeriodo && (
+                      <Tag 
+                        color="blue" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('periodo'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Período: {labelPeriodo}
+                      </Tag>
+                    )}
+                    {filtros.busqueda && (
+                      <Tag 
+                        color="blue" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('busqueda'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Búsqueda: "{filtros.busqueda}"
+                      </Tag>
+                    )}
+                    {labelVehiculoDesarmado && (
+                      <Tag 
+                        color="purple" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('vehiculoDesarmadoId'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Desarmado: {labelVehiculoDesarmado}
+                      </Tag>
+                    )}
+                    {labelParteVehiculo && (
+                      <Tag 
+                        color="cyan" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('parteVehiculo'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Parte: {labelParteVehiculo}
+                      </Tag>
+                    )}
+                    {filtros.estadoRepuesto && (
+                      <Tag 
+                        color={filtros.estadoRepuesto === 'STOCK' ? 'success' : filtros.estadoRepuesto === 'VENDIDO' ? 'blue' : 'warning'} 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('estadoRepuesto'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Estado: {filtros.estadoRepuesto}
+                      </Tag>
+                    )}
+                    <Button 
+                      type="link" 
+                      size="small" 
+                      onClick={(e) => { e.stopPropagation(); limpiarFiltros(); }} 
+                      style={{ padding: '0 4px', fontSize: '12px', height: 'auto' }}
+                    >
+                      Limpiar todos
+                    </Button>
+                  </div>
+                )}
+              </div>
             ),
             children: (
               <Row gutter={[24, 16]} align="bottom">
                 <Col xs={24} sm={12} md={5}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Búsqueda</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Búsqueda</Text>
+                    {filtros.busqueda && (
+                      <Tag color="blue" closable onClose={() => removerFiltro('busqueda')} style={{ margin: 0, fontWeight: 500 }}>
+                        "{filtros.busqueda}"
+                      </Tag>
+                    )}
+                  </div>
                   <Input.Search
                     placeholder="Buscar..."
                     allowClear
+                    value={filtros.busqueda}
                     onSearch={(val) => aplicarFiltros({ busqueda: val })}
                     onChange={(e) => {
                       if (!e.target.value) aplicarFiltros({ busqueda: '' });
+                      else aplicarFiltros({ busqueda: e.target.value });
                     }}
                     style={{ width: '100%', borderRadius: '6px' }}
                   />
                 </Col>
                 <Col xs={24} sm={12} md={5}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Mes a Consultar</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Mes a Consultar</Text>
+                    {labelPeriodo && (
+                      <Tag color="blue" closable onClose={() => removerFiltro('periodo')} style={{ margin: 0, fontWeight: 500 }}>
+                        {labelPeriodo}
+                      </Tag>
+                    )}
+                  </div>
                   <Space.Compact style={{ width: '100%' }}>
                     <Select
                       style={{ width: '60%', borderRadius: '6px 0 0 6px' }}
                       placeholder="Mes"
                       value={filtros.mes}
-                      onChange={(value) => aplicarFiltros({ mes: value })}
+                      onChange={(value) => {
+                        if (value && !filtros.anio) {
+                          aplicarFiltros({ mes: value, anio: moment().year() });
+                        } else {
+                          aplicarFiltros({ mes: value });
+                        }
+                      }}
                       allowClear
                     >
                       <Option value={1}>Ene</Option>
@@ -743,7 +893,14 @@ const ReporteRepuestos = () => {
                   </Space.Compact>
                 </Col>
                 <Col xs={24} sm={12} md={5}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Vehículo Desarmado</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Vehículo Desarmado</Text>
+                    {labelVehiculoDesarmado && (
+                      <Tag color="purple" closable onClose={() => removerFiltro('vehiculoDesarmadoId')} style={{ margin: 0, fontWeight: 500 }}>
+                        {labelVehiculoDesarmado}
+                      </Tag>
+                    )}
+                  </div>
                   <Select
                     allowClear
                     showSearch
@@ -759,7 +916,14 @@ const ReporteRepuestos = () => {
                   </Select>
                 </Col>
                 <Col xs={24} sm={12} md={4}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Tipo de Parte</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Tipo de Parte</Text>
+                    {labelParteVehiculo && (
+                      <Tag color="cyan" closable onClose={() => removerFiltro('parteVehiculo')} style={{ margin: 0, fontWeight: 500 }}>
+                        {labelParteVehiculo}
+                      </Tag>
+                    )}
+                  </div>
                   <Select
                     allowClear
                     showSearch
@@ -777,7 +941,19 @@ const ReporteRepuestos = () => {
                   </Select>
                 </Col>
                 <Col xs={24} sm={12} md={5}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Estado</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Estado</Text>
+                    {filtros.estadoRepuesto && (
+                      <Tag 
+                        color={filtros.estadoRepuesto === 'STOCK' ? 'success' : filtros.estadoRepuesto === 'VENDIDO' ? 'blue' : 'warning'} 
+                        closable 
+                        onClose={() => removerFiltro('estadoRepuesto')} 
+                        style={{ margin: 0, fontWeight: 500 }}
+                      >
+                        {filtros.estadoRepuesto}
+                      </Tag>
+                    )}
+                  </div>
                   <Select
                     allowClear
                     placeholder="Todos"
@@ -793,9 +969,13 @@ const ReporteRepuestos = () => {
                   </Select>
                 </Col>
                 <Col xs={24} sm={24} md={3}>
-                  <Button block icon={<ReloadOutlined />} onClick={() => {
-                    limpiarFiltros();
-                  }} style={{ borderRadius: '6px' }}>
+                  <Button 
+                    block 
+                    icon={<ReloadOutlined />} 
+                    onClick={limpiarFiltros} 
+                    disabled={!tieneFiltrosActivos}
+                    style={{ borderRadius: '6px' }}
+                  >
                     Reset
                   </Button>
                 </Col>
@@ -857,6 +1037,8 @@ const ReporteRepuestos = () => {
         </Col>
       </Row>
 
+
+
       {/* Navegación por Pestañas */}
       <Tabs
         defaultActiveKey="1"
@@ -878,7 +1060,7 @@ const ReporteRepuestos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Desglose de Periodos</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table scroll={{ x: 'max-content' }}
+                  <Table
                     columns={columnasReporte}
                     dataSource={data}
                     rowKey="periodo"
@@ -926,7 +1108,7 @@ const ReporteRepuestos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Vehículos Autorizados para Extracción de Partes</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table scroll={{ x: 'max-content' }}
+                  <Table
                     columns={columnasVehiculos}
                     dataSource={vehiculosDesarmados}
                     rowKey="id"
@@ -953,7 +1135,7 @@ const ReporteRepuestos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Trazabilidad Operativa (Compras, Ventas y Devoluciones)</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table scroll={{ x: 'max-content' }}
+                  <Table
                     columns={columnasMovimientos}
                     dataSource={movimientos}
                     rowKey="id"
