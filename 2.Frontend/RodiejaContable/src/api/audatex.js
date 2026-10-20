@@ -17,6 +17,26 @@ export const audatexAPI = {
     return axios.get('/audatex/pedidos');
   },
 
+  // Obtener la lista de pedidos INS (excluye cancelados)
+  obtenerPedidosIns: () => {
+    return axios.get('/audatex/pedidos');
+  },
+
+  // Facturar pedido Audatex
+  facturarPedido: (pedidoId, data = {}) => {
+    return axios.post('/audatex/pedidos/facturar', { pedidoId, ...data });
+  },
+
+  // Asignar empleado y comisión a un pedido (sin cambiar el estado del pedido)
+  asignarEmpleado: (pedidoId, data = {}) => {
+    return axios.post('/audatex/pedidos/asignar-empleado', { pedidoId, ...data });
+  },
+
+  // Procesar y facturar pedido INS con empleado asignado
+  procesarPedidoIns: (id, data) => {
+    return axios.post(`/audatex/pedidos/${id}/procesar-ins`, data);
+  },
+
   // Disparar sincronización incremental de 30 días en background
   syncIncremental: () => {
     return axios.post('/audatex/oportunidades/sync/incremental', null, { timeout: 15000 });

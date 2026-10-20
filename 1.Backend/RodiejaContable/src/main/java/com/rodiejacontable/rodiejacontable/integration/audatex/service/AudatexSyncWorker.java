@@ -20,8 +20,8 @@ public class AudatexSyncWorker {
         this.audatexService = audatexService;
     }
 
-    // Hot Zone: Últimos 3 días, cada 30 minutos
-    @Scheduled(fixedDelayString = "1800000")
+    // Hot Zone: Últimos 3 días, cada 10 minutos
+    @Scheduled(fixedDelayString = "600000")
     public void syncHotZone() {
         log.info("[AudatexSyncWorker] Sincronizando Hot Zone (últimos 3 días)...");
         LocalDate today = LocalDate.now();

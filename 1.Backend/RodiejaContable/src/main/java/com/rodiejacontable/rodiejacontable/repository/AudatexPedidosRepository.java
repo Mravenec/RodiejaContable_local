@@ -4,9 +4,11 @@ import com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado;
 import com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidos;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.rodiejacontable.database.jooq.Tables.AUDATEX_PEDIDOS;
@@ -16,6 +18,29 @@ public class AudatexPedidosRepository {
 
     @Autowired
     private DSLContext dsl;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    public List<Map<String, Object>> findAllWithEmpleado() {
+        String sql = "SELECT ap.*, e.nombre AS empleado_nombre " +
+                     "FROM audatex_pedidos ap " +
+                     "LEFT JOIN empleados e ON ap.empleado_id = e.id " +
+                     "ORDER BY ap.fecha_creacion DESC";
+        return jdbcTemplate.queryForList(sql);
+    }
+
+    public void updateEstadoYEmpleado(Integer id, AudatexPedidosEstado estado, Integer empleadoId, Integer porcentajeComision) {
+        int pct = porcentajeComision != null ? porcentajeComision : 3;
+        String sql = "UPDATE audatex_pedidos SET estado = ?, empleado_id = ?, porcentaje_comision = ?, comision_calculada = (total_pedido * ? / 100) WHERE id = ?";
+        jdbcTemplate.update(sql, estado != null ? estado.getLiteral() : "Entregado", empleadoId, pct, pct, id);
+    }
+
+    public void asignarEmpleado(Integer id, Integer empleadoId, Integer porcentajeComision) {
+        int pct = porcentajeComision != null ? porcentajeComision : 3;
+        String sql = "UPDATE audatex_pedidos SET empleado_id = ?, porcentaje_comision = ?, comision_calculada = (total_pedido * ? / 100) WHERE id = ?";
+        jdbcTemplate.update(sql, empleadoId, pct, pct, id);
+    }
 
     public Optional<AudatexPedidos> findById(Integer id) {
         return dsl.selectFrom(AUDATEX_PEDIDOS)

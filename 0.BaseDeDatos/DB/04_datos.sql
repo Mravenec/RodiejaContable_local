@@ -6518,10 +6518,10 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-17 21:42:28
+-- Dump completed on 2026-10-20 18:41:20
 -- ============================================================
 -- 04_datos.sql — REAL DATA snapshot (not mocks)
--- Generated: 2026-10-17T15:42:27
+-- Generated: 2026-10-20T12:41:20
 -- Loaded by: load_data.py (after setup_db.py)
 -- ============================================================
 SET FOREIGN_KEY_CHECKS = 0;

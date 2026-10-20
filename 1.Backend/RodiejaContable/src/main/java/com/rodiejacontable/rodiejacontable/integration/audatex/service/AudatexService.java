@@ -491,25 +491,32 @@ public class AudatexService {
     }
 
     public List<Map<String, Object>> obtenerPedidosConItems() {
-        List<AudatexPedidos> pedidos = audatexPedidosRepository.findAll();
+        List<Map<String, Object>> rows = audatexPedidosRepository.findAllWithEmpleado();
         List<Map<String, Object>> resultado = new java.util.ArrayList<>();
         
-        for (AudatexPedidos pedido : pedidos) {
+        for (Map<String, Object> row : rows) {
             Map<String, Object> map = new HashMap<>();
-            map.put("id", pedido.getId());
-            map.put("numeroPedido", pedido.getNumeroPedido());
-            map.put("cotizacionId", pedido.getCotizacionId());
-            map.put("siniestro", pedido.getSiniestro());
-            map.put("aseguradora", pedido.getAseguradora());
-            map.put("vehiculo", pedido.getVehiculo());
-            map.put("totalPedido", pedido.getTotalPedido());
-            map.put("estado", pedido.getEstado() != null ? pedido.getEstado().getLiteral() : "");
-            map.put("notas", pedido.getNotas());
-            map.put("fechaCreacion", pedido.getFechaCreacion());
+            Integer pedidoId = ((Number) row.get("id")).intValue();
+            map.put("id", pedidoId);
+            map.put("numeroPedido", row.get("numero_pedido"));
+            map.put("cotizacionId", row.get("cotizacion_id"));
+            map.put("siniestro", row.get("siniestro"));
+            map.put("aseguradora", row.get("aseguradora"));
+            map.put("vehiculo", row.get("vehiculo"));
+            map.put("totalPedido", row.get("total_pedido"));
+            map.put("estado", row.get("estado") != null ? row.get("estado").toString() : "");
+            map.put("notas", row.get("notas"));
+            map.put("fechaCreacion", row.get("fecha_creacion"));
+            map.put("empleadoId", row.get("empleado_id"));
+            map.put("empleadoNombre", row.get("empleado_nombre"));
+            map.put("porcentajeComision", row.get("porcentaje_comision"));
+            map.put("comisionCalculada", row.get("comision_calculada"));
+            map.put("transaccionId", row.get("transaccion_id"));
             
-            if (pedido.getDetalleJson() != null) {
+            Object detalleJsonObj = row.get("detalle_json");
+            if (detalleJsonObj != null) {
                 try {
-                    Map<String, Object> jsonMap = objectMapper.readValue(pedido.getDetalleJson(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                    Map<String, Object> jsonMap = objectMapper.readValue(detalleJsonObj.toString(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
                     if (jsonMap.containsKey("fecha")) {
                         map.put("fecha", jsonMap.get("fecha"));
                     }
@@ -523,11 +530,11 @@ public class AudatexService {
                         map.put("datosCotizacion", jsonMap.get("datosCotizacion"));
                     }
                 } catch (Exception e) {
-                    log.warn("Error parseando detalleJson del pedido {}: {}", pedido.getId(), e.getMessage());
+                    log.warn("Error parseando detalleJson del pedido {}: {}", pedidoId, e.getMessage());
                 }
             }
             
-            List<AudatexPedidoItems> items = audatexPedidoItemsRepository.findByPedidoId(pedido.getId());
+            List<AudatexPedidoItems> items = audatexPedidoItemsRepository.findByPedidoId(pedidoId);
             map.put("items", items);
             
             resultado.add(map);
@@ -536,9 +543,18 @@ public class AudatexService {
     }
 
     public AudatexPedidos facturarPedido(Integer pedidoId) throws IOException {
-        log.info("[AudatexService] Facturando (Entregado) pedido {}", pedidoId);
-        audatexPedidosRepository.updateEstado(pedidoId, AudatexPedidosEstado.Entregado);
+        return facturarPedido(pedidoId, null, null);
+    }
+
+    public AudatexPedidos facturarPedido(Integer pedidoId, Integer empleadoId, Integer porcentajeComision) throws IOException {
+        log.info("[AudatexService] Facturando (Entregado) pedido {}, empleado {}, comision {}%", pedidoId, empleadoId, porcentajeComision);
+        audatexPedidosRepository.updateEstadoYEmpleado(pedidoId, AudatexPedidosEstado.Entregado, empleadoId, porcentajeComision);
         return audatexPedidosRepository.findById(pedidoId).orElse(null);
+    }
+
+    public void asignarEmpleado(Integer pedidoId, Integer empleadoId, Integer porcentajeComision) {
+        log.info("[AudatexService] Asignando empleado {} al pedido {} con comision {}% sin cambiar estado", empleadoId, pedidoId, porcentajeComision);
+        audatexPedidosRepository.asignarEmpleado(pedidoId, empleadoId, porcentajeComision);
     }
 
     private boolean coincideVehiculo(Map<String, Object> o, String marca, String modelo, Integer anio) {

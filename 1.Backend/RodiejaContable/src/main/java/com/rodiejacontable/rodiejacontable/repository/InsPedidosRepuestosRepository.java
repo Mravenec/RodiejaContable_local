@@ -148,23 +148,24 @@ public class InsPedidosRepuestosRepository {
         String sql = "SELECT " +
                      "e.id AS empleado_id, " +
                      "e.nombre AS empleado, " +
-                     "COUNT(ipr.id) AS total_pedidos, " +
-                     "SUM(ipr.precio_venta - ipr.precio_compra) AS total_utilidad, " +
-                     "SUM(CASE " +
-                     "    WHEN TIME(ipr.hora_solicitud) BETWEEN '07:30:00' AND '17:00:00' " +
-                     "    THEN (ipr.precio_venta - ipr.precio_compra) * 0.03 " +
-                     "    ELSE (ipr.precio_venta - ipr.precio_compra) * 0.05 " +
-                     "END) AS total_comision, " +
-                     "GROUP_CONCAT(ipr.numero_pedido ORDER BY ipr.fecha_creacion SEPARATOR ', ') AS pedidos " +
-                     "FROM ins_pedidos_repuestos ipr " +
-                     "JOIN empleados e ON ipr.empleado_id = e.id " +
-                     "WHERE ipr.estado = 'ENTREGADO' ";
+                     "COUNT(ap.id) AS total_pedidos, " +
+                     "COALESCE(SUM(ap.total_pedido), 0) AS total_utilidad, " +
+                     "COALESCE(SUM(CASE " +
+                     "    WHEN ap.comision_calculada IS NOT NULL THEN ap.comision_calculada " +
+                     "    WHEN ap.porcentaje_comision IS NOT NULL THEN (ap.total_pedido * ap.porcentaje_comision / 100.0) " +
+                     "    WHEN TIME(ap.fecha_creacion) BETWEEN '08:00:00' AND '17:00:00' THEN (ap.total_pedido * 0.03) " +
+                     "    ELSE (ap.total_pedido * 0.05) " +
+                     "END), 0) AS total_comision, " +
+                     "GROUP_CONCAT(COALESCE(ap.numero_pedido, ap.id) ORDER BY ap.fecha_creacion SEPARATOR ', ') AS pedidos " +
+                     "FROM audatex_pedidos ap " +
+                     "JOIN empleados e ON ap.empleado_id = e.id " +
+                     "WHERE (ap.estado IS NULL OR ap.estado != 'Cancelado') ";
 
         if (anio != null) {
-            sql += "AND YEAR(ipr.fecha_entrega) = ? ";
+            sql += "AND YEAR(ap.fecha_creacion) = ? ";
         }
         if (mes != null) {
-            sql += "AND MONTH(ipr.fecha_entrega) = ? ";
+            sql += "AND MONTH(ap.fecha_creacion) = ? ";
         }
 
         sql += "GROUP BY e.id, e.nombre " +
