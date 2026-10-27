@@ -463,6 +463,20 @@ public class AudatexService {
         pedido.setNotas((String) payload.get("notas"));
 
         AudatexPedidos guardado = audatexPedidosRepository.save(pedido);
+
+        // Asignar empleado y comisiones via JDBC sin alterar estado del pedido
+        Object empIdObj = payload.get("usuarioId") != null ? payload.get("usuarioId") : payload.get("empleadoId");
+        if (empIdObj != null && guardado != null && guardado.getId() != null) {
+            try {
+                Integer empId = ((Number) empIdObj).intValue();
+                Integer pct = payload.get("porcentajeComision") != null
+                        ? ((Number) payload.get("porcentajeComision")).intValue()
+                        : 3;
+                audatexPedidosRepository.asignarEmpleado(guardado.getId(), empId, pct);
+            } catch (Exception ex) {
+                log.warn("[AudatexService] No se pudo asignar empleado/usuario al pedido {}: {}", guardado.getId(), ex.getMessage());
+            }
+        }
         
         if (payload.containsKey("items")) {
             List<Map<String, Object>> itemsMap = (List<Map<String, Object>>) payload.get("items");
@@ -507,8 +521,12 @@ public class AudatexService {
             map.put("estado", row.get("estado") != null ? row.get("estado").toString() : "");
             map.put("notas", row.get("notas"));
             map.put("fechaCreacion", row.get("fecha_creacion"));
-            map.put("empleadoId", row.get("empleado_id"));
-            map.put("empleadoNombre", row.get("empleado_nombre"));
+            Object uid = row.get("user_id") != null ? row.get("user_id") : row.get("empleado_id");
+            map.put("userId", uid);
+            map.put("usuarioId", uid);
+            map.put("empleadoId", uid);
+            map.put("usuarioNombre", row.get("usuario_nombre") != null ? row.get("usuario_nombre") : row.get("empleado_nombre"));
+            map.put("empleadoNombre", row.get("empleado_nombre") != null ? row.get("empleado_nombre") : row.get("usuario_nombre"));
             map.put("porcentajeComision", row.get("porcentaje_comision"));
             map.put("comisionCalculada", row.get("comision_calculada"));
             map.put("transaccionId", row.get("transaccion_id"));
@@ -913,6 +931,20 @@ public class AudatexService {
                                 }
                                 audatexPedidoItemsRepository.saveAll(itemsToSave);
                                 pedido.put("items", itemsToSave);
+
+                                // Si el portal no traía total_pedido (venía en 0.0), calcular la suma de los ítems
+                                BigDecimal sumItems = BigDecimal.ZERO;
+                                for (com.rodiejacontable.database.jooq.tables.pojos.AudatexPedidoItems it : itemsToSave) {
+                                    if (it.getPrecioOfrecido() != null) {
+                                        BigDecimal cant = it.getCantidad() != null ? new BigDecimal(it.getCantidad()) : BigDecimal.ONE;
+                                        sumItems = sumItems.add(it.getPrecioOfrecido().multiply(cant));
+                                    }
+                                }
+                                if (sumItems.compareTo(BigDecimal.ZERO) > 0 && (existing.getTotalPedido() == null || existing.getTotalPedido().compareTo(BigDecimal.ZERO) == 0)) {
+                                    existing.setTotalPedido(sumItems);
+                                    pedido.put("totalPedido", sumItems);
+                                }
+
                                 if (datosCotizacion != null && !datosCotizacion.isEmpty()) {
                                     pedido.put("datosCotizacion", datosCotizacion);
                                 }
@@ -933,6 +965,144 @@ public class AudatexService {
             });
         } catch (java.io.IOException e) {
             log.error("[AudatexService] Fallo conectando a Audatex en sync incremental: {}", e.getMessage());
+        }
+    }
+
+    public int asignarUsuarioAOportunidad(String wan, String cotizacionId, Integer userId) {
+        log.info("[AudatexService] Asignando usuario {} a oportunidad wan={} cotizacionId={}", userId, wan, cotizacionId);
+        return audatexOportunidadesSyncRepository.asignarUsuario(wan, cotizacionId, userId);
+    }
+
+    public void syncOportunidadesAsignadasSinPedido() {
+        log.info("[AudatexService] Ejecutando sincronización de oportunidades asignadas sin pedido (cada 5 min)...");
+        List<Map<String, Object>> opsAsignadas = audatexOportunidadesSyncRepository.findOportunidadesAsignadasSinPedido();
+        if (opsAsignadas == null || opsAsignadas.isEmpty()) {
+            log.debug("[AudatexService] No hay oportunidades activas con usuario asignado pendientes de pedido.");
+            return;
+        }
+
+        log.info("[AudatexService] Procesando {} oportunidades asignadas pendientes de pedido...", opsAsignadas.size());
+
+        for (Map<String, Object> op : opsAsignadas) {
+            String wan = texto(op, "wan");
+            if (wan == null || wan.isEmpty()) continue;
+
+            String cotizacionId = texto(op, "cotizacion_id");
+            Integer userId = op.get("user_id") != null ? ((Number) op.get("user_id")).intValue() : null;
+
+            try {
+                // 1. Verificar si en el portal de Audatex ya se convirtió en pedido
+                Map<String, Object> detallePedido = client.buscarDetallePedido(wan);
+                @SuppressWarnings("unchecked")
+                List<Map<String, String>> repuestosPedido = detallePedido != null && detallePedido.get("repuestos") instanceof List
+                        ? (List<Map<String, String>>) detallePedido.get("repuestos")
+                        : java.util.Collections.emptyList();
+
+                if (!repuestosPedido.isEmpty()) {
+                    log.info("[AudatexService] ¡Oportunidad WAN {} confirmada como PEDIDO en portal con {} ítems! Asignando a usuario {}", wan, repuestosPedido.size(), userId);
+                    
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> datosCot = detallePedido.get("datosCotizacion") instanceof Map 
+                            ? (Map<String, String>) detallePedido.get("datosCotizacion") : java.util.Collections.emptyMap();
+                    
+                    BigDecimal totalPedido = BigDecimal.ZERO;
+                    for (Map<String, String> rItem : repuestosPedido) {
+                        try {
+                            String precioStr = rItem.get("Precio");
+                            if (precioStr != null) {
+                                String clean = precioStr.replaceAll("[^0-9.,]", "").replace(",", ".");
+                                totalPedido = totalPedido.add(new BigDecimal(clean));
+                            }
+                        } catch (Exception ignored) {}
+                    }
+
+                    AudatexPedidos existing = audatexPedidosRepository.buscarPorWan(wan);
+                    if (existing == null) {
+                        AudatexPedidos nuevo = new AudatexPedidos();
+                        nuevo.setWan(wan);
+                        nuevo.setCotizacionId(cotizacionId != null ? cotizacionId : "COT-" + wan);
+                        nuevo.setSiniestro(texto(op, "siniestro"));
+                        nuevo.setAseguradora(texto(op, "aseguradora"));
+                        nuevo.setVehiculo(datosCot.getOrDefault("Marca", texto(op, "armadora")) + " " + datosCot.getOrDefault("Modelo", texto(op, "modelo")));
+                        nuevo.setTotalPedido(totalPedido);
+                        nuevo.setEstado(AudatexPedidosEstado.Aguardando_Confirmación);
+                        nuevo.setUltimaVezVisto(java.time.LocalDateTime.now());
+                        nuevo.setDetalleJson(objectMapper.writeValueAsString(detallePedido));
+                        existing = audatexPedidosRepository.insertarSync(nuevo, userId);
+                    } else {
+                        if (userId != null) {
+                            audatexPedidosRepository.asignarEmpleado(existing.getId(), userId, null);
+                        }
+                    }
+
+                    // Guardar ítems del pedido
+                    if (existing != null && existing.getId() != null) {
+                        audatexPedidoItemsRepository.deleteByPedidoId(existing.getId());
+                        List<AudatexPedidoItems> items = new ArrayList<>();
+                        for (Map<String, String> rItem : repuestosPedido) {
+                            AudatexPedidoItems it = new AudatexPedidoItems();
+                            it.setPedidoId(existing.getId());
+                            it.setRepuestoId(0);
+                            it.setDescripcion(rItem.get("Descripción"));
+                            it.setTipoPieza(rItem.get("No. Parte"));
+                            try {
+                                String p = rItem.get("Precio");
+                                if (p != null) {
+                                    it.setPrecioOfrecido(new BigDecimal(p.replaceAll("[^0-9.,]", "").replace(",", ".")));
+                                } else {
+                                    it.setPrecioOfrecido(BigDecimal.ZERO);
+                                }
+                            } catch (Exception e) {
+                                it.setPrecioOfrecido(BigDecimal.ZERO);
+                            }
+                            items.add(it);
+                        }
+                        audatexPedidoItemsRepository.saveAll(items);
+                    }
+                    continue;
+                }
+
+                // 2. Si todavía no es pedido, refrescar los datos de la cotización y hacer upsert
+                Map<String, Object> detallesCot = client.obtenerDetallesDeCotizacion(wan);
+                String modelo = null;
+                String anio = null;
+                String repuestosJson = null;
+                Integer pendientes = op.get("pendientes") != null ? ((Number) op.get("pendientes")).intValue() : 0;
+
+                if (detallesCot != null) {
+                    if (detallesCot.get("datosCotizacion") instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> dt = (Map<String, String>) detallesCot.get("datosCotizacion");
+                        if (dt.containsKey("Modelo")) modelo = dt.get("Modelo");
+                        if (dt.containsKey("Año Modelo")) anio = dt.get("Año Modelo");
+                    }
+                    repuestosJson = objectMapper.writeValueAsString(detallesCot);
+                }
+
+                audatexOportunidadesSyncRepository.upsertOportunidad(
+                    wan,
+                    texto(op, "armadora"),
+                    texto(op, "aseguradora"),
+                    cotizacionId,
+                    texto(op, "taller"),
+                    texto(op, "poliza"),
+                    texto(op, "siniestro"),
+                    texto(op, "matricula"),
+                    modelo,
+                    anio,
+                    texto(op, "fecha_cotizacion"),
+                    pendientes,
+                    repuestosJson
+                );
+                // Asegurar que user_id se mantenga
+                if (userId != null) {
+                    audatexOportunidadesSyncRepository.asignarUsuario(wan, cotizacionId, userId);
+                }
+                log.info("[AudatexService] Oportunidad asignada WAN {} refrescada y confirmada.", wan);
+
+            } catch (Exception e) {
+                log.warn("[AudatexService] Error en sync de oportunidad asignada WAN {}: {}", wan, e.getMessage());
+            }
         }
     }
 
@@ -1129,10 +1299,13 @@ public class AudatexService {
         for (Map<String, Object> r : records) {
             String fechaCot = r.get("fecha_cotizacion") != null ? r.get("fecha_cotizacion").toString() : null;
             java.time.LocalDate fecha = parsePortalDate(fechaCot);
-            if (desdeDate != null && (fecha == null || fecha.isBefore(desdeDate)))
-                continue;
-            if (hastaDate != null && (fecha == null || fecha.isAfter(hastaDate)))
-                continue;
+            boolean tienePedido = r.get("pedido_id") != null || r.get("numero_pedido") != null;
+            if (!tienePedido) {
+                if (desdeDate != null && (fecha == null || fecha.isBefore(desdeDate)))
+                    continue;
+                if (hastaDate != null && (fecha == null || fecha.isAfter(hastaDate)))
+                    continue;
+            }
 
             Map<String, Object> m = mapDbRowToOportunidad(r);
             mapped.add(m);
@@ -1159,6 +1332,21 @@ public class AudatexService {
         m.put("estado", r.get("estado") != null ? r.get("estado").toString() : null);
         m.put("estado_interaccion", r.get("estado_interaccion") != null ? r.get("estado_interaccion").toString() : null);
         m.put("ultima_vez_visto", r.get("ultima_vez_visto"));
+        m.put("pedidoId", r.get("pedido_id"));
+        m.put("numeroPedido", r.get("numero_pedido"));
+        m.put("pedidoEstado", r.get("pedido_estado"));
+        m.put("totalPedido", r.get("total_pedido"));
+        m.put("total_pedido", r.get("total_pedido"));
+        m.put("porcentajeComision", r.get("porcentaje_comision"));
+        m.put("porcentaje_comision", r.get("porcentaje_comision"));
+        m.put("comisionCalculada", r.get("comision_calculada"));
+        m.put("comision_calculada", r.get("comision_calculada"));
+        Object opUid = r.get("user_id") != null ? r.get("user_id") : r.get("empleado_id");
+        m.put("userId", opUid);
+        m.put("usuarioId", opUid);
+        m.put("empleadoId", opUid);
+        m.put("usuarioNombre", r.get("usuario_nombre") != null ? r.get("usuario_nombre") : r.get("empleado_nombre"));
+        m.put("empleadoNombre", r.get("empleado_nombre") != null ? r.get("empleado_nombre") : r.get("usuario_nombre"));
 
         Object json = r.get("detalle_json");
         if (json != null) {

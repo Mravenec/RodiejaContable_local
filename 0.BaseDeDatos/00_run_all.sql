@@ -60,7 +60,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- ─────────────────────────────────────────────────────────────────
 -- VERIFICACIÓN FINAL
--- ─────────────────────────────────────────────────────────────────
+-- ──────────────────────────────────────────────────────────────s───
 SELECT
     SCHEMA_NAME AS base_de_datos,
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = SCHEMA_NAME) AS tablas

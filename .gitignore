@@ -12,3 +12,5 @@ __pycache__/
 
 # Dumps locales de base de datos
 0.BaseDeDatos/exports/
+0.BaseDeDatos/DB/_schema_from_live.sql
+_schema_from_live.sql

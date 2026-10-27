@@ -56,10 +56,9 @@ const tiposProducto = [
 ];
 
 const estadosVenta = [
-  { value: 'completado', label: 'Completado', color: 'success' },
-  { value: 'pendiente', label: 'Pendiente', color: 'processing' },
-  { value: 'cancelado', label: 'Cancelado', color: 'error' },
-  { value: 'reembolsado', label: 'Reembolsado', color: 'warning' }
+  { value: 'COMPLETADA', label: 'Completada', color: 'success' },
+  { value: 'PENDIENTE', label: 'Pendiente', color: 'processing' },
+  { value: 'CANCELADA', label: 'Cancelada', color: 'error' }
 ];
 
 const VentasReportes = () => {
@@ -159,6 +158,14 @@ const VentasReportes = () => {
         const fechaBase = moment().year(filtros.anio).month(filtros.mes - 1);
         params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
         params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
+      } else if (filtros.anio) {
+        const fechaBase = moment().year(filtros.anio);
+        params.fechaInicio = fechaBase.clone().startOf('year').format('YYYY-MM-DD');
+        params.fechaFin = fechaBase.clone().endOf('year').format('YYYY-MM-DD');
+      } else if (filtros.mes) {
+        const fechaBase = moment().month(filtros.mes - 1);
+        params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+        params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
       }
 
       // Agregar parámetro de búsqueda si existe
@@ -194,23 +201,49 @@ const VentasReportes = () => {
       // Filtrar para mostrar SOLO transacciones que tienen un empleado asociado
       datosTransacciones = datosTransacciones.filter(t => t.empleado && t.empleado.trim() !== '');
 
-      // Filtrar localmente por vendedor/empleado y búsqueda (si la API no soporta texto libre en /buscar)
+      // Filtrar localmente por vendedor/empleado
       if (params.vendedorId) {
         const empleadoSeleccionado = empleados.find(e => e.id === params.vendedorId);
         if (empleadoSeleccionado) {
-          datosTransacciones = datosTransacciones.filter(t => t.empleado === empleadoSeleccionado.nombreCompleto);
+          const empNom = (empleadoSeleccionado.nombres || empleadoSeleccionado.nombre || empleadoSeleccionado.nombreCompleto || '').toLowerCase().trim();
+          datosTransacciones = datosTransacciones.filter(t => {
+            const tEmp = (t.empleado || '').toLowerCase().trim();
+            return tEmp.includes(empNom) || empNom.includes(tEmp);
+          });
         }
       }
 
+      // Filtrar por término de búsqueda
       if (params.busqueda) {
         const lowerSearch = params.busqueda.toLowerCase();
         datosTransacciones = datosTransacciones.filter(t =>
           (t.codigoTransaccion && t.codigoTransaccion.toLowerCase().includes(lowerSearch)) ||
           (t.empleado && t.empleado.toLowerCase().includes(lowerSearch)) ||
-          (t.cliente && t.cliente.toLowerCase().includes(lowerSearch)) ||
+          (t.descripcion && t.descripcion.toLowerCase().includes(lowerSearch)) ||
+          (t.referencia && t.referencia.toLowerCase().includes(lowerSearch)) ||
+          (t.tipoTransaccion && t.tipoTransaccion.toLowerCase().includes(lowerSearch)) ||
+          (t.marca && t.marca.toLowerCase().includes(lowerSearch)) ||
+          (t.modelo && t.modelo.toLowerCase().includes(lowerSearch)) ||
           (t.codigoVehiculo && t.codigoVehiculo.toLowerCase().includes(lowerSearch)) ||
           (t.codigoRepuesto && t.codigoRepuesto.toLowerCase().includes(lowerSearch))
         );
+      }
+
+      // Filtrar por tipo de producto
+      if (params.tipoProducto) {
+        const tipoP = params.tipoProducto.toUpperCase();
+        datosTransacciones = datosTransacciones.filter(t => {
+          if (tipoP === 'VEHICULO') {
+            return Boolean(t.codigoVehiculo) || (t.tipoTransaccion && t.tipoTransaccion.toUpperCase().includes('VEHICULO'));
+          }
+          if (tipoP === 'REPUESTO') {
+            return Boolean(t.codigoRepuesto) || (t.tipoTransaccion && t.tipoTransaccion.toUpperCase().includes('REPUESTO'));
+          }
+          if (tipoP === 'SERVICIO') {
+            return t.tipoTransaccion && t.tipoTransaccion.toUpperCase().includes('SERVICIO');
+          }
+          return true;
+        });
       }
 
       setVentas(datosTransacciones);
@@ -222,8 +255,7 @@ const VentasReportes = () => {
     } finally {
       setLoading(prev => ({ ...prev, ventas: false }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtros]);
+  }, [filtros, empleados]);
 
   // Función para cargar estadísticas
   const cargarEstadisticas = useCallback(async () => {
@@ -490,10 +522,16 @@ const VentasReportes = () => {
   // };
 
 
-  // Obtener métricas de las estadísticas
-  const totalVentasCount = estadisticas?.totalVentasCount || estadisticas?.totalTransacciones || 0;
-  const totalIngresos = estadisticas?.totalVentas || 0;
-  const ventasCompletadas = estadisticas?.totalVentasCount || estadisticas?.totalTransacciones || 0;
+  // Obtener métricas de las estadísticas (dinámicas si hay filtros activos)
+  const totalVentasCount = tieneFiltrosActivos
+    ? ventas.length
+    : (estadisticas?.totalVentasCount || estadisticas?.totalTransacciones || ventas.length);
+  const totalIngresos = tieneFiltrosActivos
+    ? ventas.reduce((sum, v) => sum + (v.monto || 0), 0)
+    : (estadisticas?.totalVentas || ventas.reduce((sum, v) => sum + (v.monto || 0), 0));
+  const ventasCompletadas = tieneFiltrosActivos
+    ? ventas.filter(v => (v.estado || '').toUpperCase() === 'COMPLETADA').length
+    : (estadisticas?.totalVentasCount || estadisticas?.totalTransacciones || ventas.length);
   const tasaConversion = estadisticas?.tasaConversion || 0;
 
   // Hooks para vista Excel
@@ -508,9 +546,48 @@ const VentasReportes = () => {
   const { isLoading: exportandoExcel } = useGenerarReporteVentasExcel();
 
   const datosVistaExcel = React.useMemo(() => {
-    const data = vistaExcelEspecifico || vistaExcelActual || [];
-    return data.filter(item => item.nombreDel && item.nombreDel.trim() !== '');
-  }, [vistaExcelEspecifico, vistaExcelActual]);
+    let data = vistaExcelEspecifico || vistaExcelActual || [];
+    data = data.filter(item => (item.nombreDel && item.nombreDel.trim() !== '') || (item.vendedor && item.vendedor.trim() !== ''));
+
+    // Filtro por búsqueda
+    if (filtros.busqueda && filtros.busqueda.trim()) {
+      const q = filtros.busqueda.toLowerCase().trim();
+      data = data.filter(item =>
+        (item.nombreDel && item.nombreDel.toLowerCase().includes(q)) ||
+        (item.vendedor && item.vendedor.toLowerCase().includes(q)) ||
+        (item.descripcionLinea && item.descripcionLinea.toLowerCase().includes(q)) ||
+        (item.formaDePago && item.formaDePago.toLowerCase().includes(q)) ||
+        (item.nfactura && item.nfactura.toLowerCase().includes(q)) ||
+        (item.nombreMes && item.nombreMes.toLowerCase().includes(q))
+      );
+    }
+
+    // Filtro por vendedor
+    if (filtros.vendedor) {
+      const empSel = empleados.find(e => e.id === filtros.vendedor);
+      if (empSel) {
+        const empNom = (empSel.nombres || empSel.nombre || empSel.nombreCompleto || '').toLowerCase().trim();
+        data = data.filter(item => {
+          const vName = (item.nombreDel || item.vendedor || '').toLowerCase().trim();
+          return vName.includes(empNom) || empNom.includes(vName);
+        });
+      }
+    }
+
+    // Filtro por tipo de producto
+    if (filtros.tipoProducto) {
+      const tp = filtros.tipoProducto.toUpperCase();
+      data = data.filter(item => {
+        const desc = (item.descripcionLinea || '').toUpperCase();
+        if (tp === 'VEHICULO') return desc.includes('VEHICULO') || desc.includes('AUTO') || desc.includes('CARRO');
+        if (tp === 'REPUESTO') return desc.includes('REPUESTO') || desc.includes('PIEZA');
+        if (tp === 'SERVICIO') return desc.includes('SERVICIO') || desc.includes('TALLER') || desc.includes('MANO DE OBRA');
+        return true;
+      });
+    }
+
+    return data;
+  }, [vistaExcelEspecifico, vistaExcelActual, filtros.busqueda, filtros.vendedor, filtros.tipoProducto, empleados]);
 
   // Función para exportar a Excel con múltiples hojas
   const exportarAExcelCompleto = () => {
@@ -842,7 +919,7 @@ const VentasReportes = () => {
                     )}
                     {labelEstado && (
                       <Tag 
-                        color={filtros.estado === 'completado' ? 'success' : filtros.estado === 'pendiente' ? 'processing' : filtros.estado === 'reembolsado' ? 'warning' : 'error'} 
+                        color={filtros.estado === 'COMPLETADA' ? 'success' : filtros.estado === 'PENDIENTE' ? 'processing' : 'error'} 
                         closable 
                         onClose={(e) => { e.stopPropagation(); removerFiltro('estado'); }} 
                         style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
@@ -970,7 +1047,7 @@ const VentasReportes = () => {
                     <Text type="secondary" style={{ fontSize: '12px' }}>Estado</Text>
                     {labelEstado && (
                       <Tag 
-                        color={filtros.estado === 'completado' ? 'success' : filtros.estado === 'pendiente' ? 'processing' : filtros.estado === 'reembolsado' ? 'warning' : 'error'} 
+                        color={filtros.estado === 'COMPLETADA' ? 'success' : filtros.estado === 'PENDIENTE' ? 'processing' : 'error'} 
                         closable 
                         onClose={() => removerFiltro('estado')} 
                         style={{ margin: 0, fontWeight: 500 }}

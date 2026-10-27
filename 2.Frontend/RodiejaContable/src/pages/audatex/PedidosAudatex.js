@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, Table, Typography, Tag, Button, message, Space, Input, DatePicker, Row, Col, Select, Tabs, Descriptions } from 'antd';
-import { ReloadOutlined, SyncOutlined, LoadingOutlined, SearchOutlined, DownloadOutlined, FilterOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
+import { Card, Table, Typography, Tag, Button, message, Space, Input, DatePicker, Row, Col, Select, Tabs, Descriptions, Modal, Divider } from 'antd';
+import {
+  ReloadOutlined, SyncOutlined, LoadingOutlined, SearchOutlined, DownloadOutlined,
+  FilterOutlined, UpOutlined, DownOutlined, FileTextOutlined, UserOutlined
+} from '@ant-design/icons';
 import { audatexAPI } from '../../api/audatex';
 import { useGeo } from '../../hooks/useGeo';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
-import { API_BASE_URL } from '../../api/config';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -97,7 +99,15 @@ const PedidosAudatex = () => {
 
   const [filtros, setFiltros] = useState({ ...defaultFiltros });
   const [appliedFiltros, setAppliedFiltros] = useState({ ...defaultFiltros });
-  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [mostrarFiltros, setMostrarFiltros] = useState(true);
+
+  const [selectedPedido, setSelectedPedido] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleAbrirDetalle = (record) => {
+    setSelectedPedido(record);
+    setModalVisible(true);
+  };
 
   const { provincias, cantones, loadingProvincias, loadingCantones, fetchProvincias, fetchCantones } = useGeo();
 
@@ -201,7 +211,7 @@ const PedidosAudatex = () => {
 
     if (triggerSync) {
       try {
-        await fetch(`${API_BASE_URL}/api/audatex/pedidos/sync/incremental`, {
+        await fetch('http://localhost:8080/api/audatex/pedidos/sync/incremental', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -213,7 +223,7 @@ const PedidosAudatex = () => {
 
     setStreaming(false);
 
-    const url = `${API_BASE_URL}/api/audatex/pedidos/sync/stream`;
+    const url = `http://localhost:8080/api/audatex/pedidos/sync/stream`;
 
     (async () => {
       try {
@@ -529,37 +539,38 @@ const PedidosAudatex = () => {
     { title: 'Cantón', key: 'canton', render: (_, record) => getCantonSeguro(record) },
     { title: 'Total (₡)', dataIndex: 'totalPedido', key: 'totalPedido', render: (val) => val ? `₡${new Intl.NumberFormat('es-CR').format(val)}` : '-', align: 'right' },
     { title: 'Estado', dataIndex: 'estado', key: 'estado', render: getStatusTag },
+    { title: 'Empleado', key: 'empleado', render: (_, record) => record.empleadoNombre ? <Tag color="blue">{record.empleadoNombre}</Tag> : <Typography.Text type="secondary">-</Typography.Text> },
     { title: 'Fecha', dataIndex: 'fecha', key: 'fecha', render: (val, record) => val || (record.fechaCreacion ? dayjs(record.fechaCreacion).format('DD/MM/YYYY HH:mm') : '-') }
   ];
 
 
 
   return (
-    <div className="table-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-        <Space wrap>
+    <div style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <Space>
           <Title level={3} style={{ margin: 0 }}>Pedidos Audatex InPart</Title>
           {syncing && <Tag icon={<SyncOutlined spin />} color="processing">Sincronizando...</Tag>}
           {streaming && <Tag icon={<LoadingOutlined spin />} color="orange">Streaming...</Tag>}
           <Text type="secondary">{pedidosFiltrados.length} pedidos</Text>
         </Space>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
+        <Space>
           {streaming && (
             <Button danger onClick={handleDetener} icon={<LoadingOutlined spin />}>
               Detener
             </Button>
           )}
-          <Button type="default" icon={<ReloadOutlined />} onClick={() => cargarPedidosStream({ triggerSync: true })} disabled={streaming && pedidos.length === 0} size="large" style={{ minWidth: '180px', color: '#1890ff', borderColor: '#1890ff', borderRadius: '6px' }}>
+          <Button type="default" icon={<ReloadOutlined />} onClick={() => cargarPedidosStream({ triggerSync: true })} disabled={streaming && pedidos.length === 0} style={{ color: '#1890ff', borderColor: '#1890ff' }}>
             Refrescar
           </Button>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} size="large" style={{ minWidth: '180px', background: '#52c41a', borderColor: '#52c41a', borderRadius: '6px' }}>
+          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} style={{ background: '#52c41a', borderColor: '#52c41a' }}>
             Exportar Excel
           </Button>
-        </div>
+        </Space>
       </div>
 
       <Card bordered={false} style={{ marginBottom: '24px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', background: '#ffffff' }} bodyStyle={{ padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: mostrarFiltros ? '20px' : '0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mostrarFiltros ? '20px' : '0' }}>
           <Title level={5} style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setMostrarFiltros(!mostrarFiltros)}>
             <FilterOutlined style={{ marginRight: '8px', color: '#3b82f6' }} />
             Filtros de Búsqueda
@@ -638,13 +649,36 @@ const PedidosAudatex = () => {
         )}
       </Card>
 
-      <Card bodyStyle={{ padding: 0 }}>
-        <Table scroll={{ x: 'max-content' }}
+      <Card
+        bordered={false}
+        style={{
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+          background: '#ffffff'
+        }}
+        bodyStyle={{ padding: '20px' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <Space size={8} wrap>
+            <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Leyenda de Estados:</Text>
+            <Tag color="success" style={{ fontWeight: 600 }}>● Con Pedido Confirmado</Tag>
+            <Tag color="processing" style={{ fontWeight: 600 }}>● En Procesamiento</Tag>
+          </Space>
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            Total mostrados: <strong>{pedidosFiltrados.length}</strong>
+          </Text>
+        </div>
+        <Table
           columns={columns}
           dataSource={pedidosFiltrados}
           rowKey={(r) => r._key ?? r.id ?? r.wan ?? r.cotizacionId}
           loading={loading}
-          pagination={{ pageSize: 15 }}
+          pagination={{ pageSize: 15, showTotal: (total) => `Total: ${total} pedidos` }}
+          scroll={{ x: 'max-content' }}
+          onRow={(record) => ({
+            onClick: () => handleAbrirDetalle(record),
+            style: { cursor: 'pointer' }
+          })}
           expandable={{
             rowExpandable: (record) => {
               return Array.isArray(record.items) && record.items.length > 0;
@@ -762,6 +796,179 @@ const PedidosAudatex = () => {
           }}
         />
       </Card>
+
+      {/* Modal / Dialog de Detalle de Pedido (Estilo Armonizado con Oportunidades Audatex) */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <FileTextOutlined style={{ color: '#2563eb', fontSize: 20 }} />
+            <span>Detalle del Pedido #{selectedPedido?.numeroPedido || selectedPedido?.cotizacionId}</span>
+            <Tag color="green">{selectedPedido?.estado || 'Confirmado'}</Tag>
+          </div>
+        }
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        width={780}
+        footer={[
+          <Button key="cerrar" onClick={() => setModalVisible(false)}>
+            Cerrar
+          </Button>
+        ]}
+      >
+        {selectedPedido && (
+          <div>
+            {/* Resumen del Siniestro y Vehículo (mismo estilo limpio que en Oportunidades) */}
+            <div style={{ background: '#f8fafc', padding: 16, borderRadius: 8, marginBottom: 16, border: '1px solid #e2e8f0' }}>
+              <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }}>
+                <Descriptions.Item label="Vehículo">
+                  <Text strong>{getMarcaSegura(selectedPedido)} {getModeloSeguro(selectedPedido)} ({getAnioSeguro(selectedPedido)})</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Placa / Matrícula">
+                  <Tag color="blue">{selectedPedido.matricula || getDetalleJson(selectedPedido)?.['Placa'] || '-'}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="No. Pedido">
+                  <Text strong>#{selectedPedido.numeroPedido || '-'}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Cotización ID">
+                  <Text strong>#{selectedPedido.cotizacionId || '-'}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Aseguradora">
+                  <Tag color="cyan">{selectedPedido.aseguradora || getDetalleJson(selectedPedido)?.['Aseguradora'] || 'INS'}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="No. Siniestro">
+                  {selectedPedido.siniestro || getDetalleJson(selectedPedido)?.['Siniestro'] || '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label="Taller">
+                  {selectedPedido.taller || getDetalleJson(selectedPedido)?.['Taller'] || '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label="Fecha">
+                  {selectedPedido.fecha || (selectedPedido.fechaCreacion ? dayjs(selectedPedido.fechaCreacion).format('DD/MM/YYYY HH:mm') : '-')}
+                </Descriptions.Item>
+              </Descriptions>
+            </div>
+
+            {/* Bloque Financiero: Monto Total Cargado y Comisión */}
+            {(() => {
+              const items = Array.isArray(selectedPedido.items) ? selectedPedido.items : [];
+              const totalCalculado = (() => {
+                const direct = Number(selectedPedido.totalPedido || selectedPedido.total_pedido || 0);
+                if (direct > 0) return direct;
+                if (items.length > 0) {
+                  const sum = items.reduce((acc, it) => {
+                    const p = it.precioOfrecido || it.precio || it.Precio || 0;
+                    const num = typeof p === 'string' ? Number(p.replace(/[^0-9.-]+/g, '')) : Number(p);
+                    const cant = Number(it.cantidad || 1);
+                    return acc + (isNaN(num) ? 0 : num * (isNaN(cant) ? 1 : cant));
+                  }, 0);
+                  if (sum > 0) return sum;
+                }
+                return 0;
+              })();
+
+              const pctComision = Number(selectedPedido.porcentajeComision || selectedPedido.porcentaje_comision || 3);
+              const comisionFinal = Number(selectedPedido.comisionCalculada || selectedPedido.comision_calculada || Math.round((totalCalculado * pctComision) / 100));
+
+              return (
+                <div style={{ background: '#f0fdf4', padding: 14, borderRadius: 8, marginBottom: 16, border: '1px solid #86efac' }}>
+                  <Row gutter={16} align="middle">
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Pedido Confirmado</Text>
+                      <Text strong style={{ color: '#166534', fontSize: 15 }}>
+                        📦 #{selectedPedido.numeroPedido || selectedPedido.id || selectedPedido.cotizacionId}
+                      </Text>
+                      <div style={{ marginTop: 4 }}>
+                        <Tag color="green" style={{ fontWeight: 500 }}>
+                          {selectedPedido.estado || 'Confirmado'}
+                        </Tag>
+                      </div>
+                    </Col>
+                    <Col xs={12} sm={8} style={{ textAlign: 'right' }}>
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Monto Total Cargado</Text>
+                      <Text strong style={{ color: '#15803d', fontSize: 18 }}>
+                        ₡{new Intl.NumberFormat('es-CR').format(totalCalculado)}
+                      </Text>
+                    </Col>
+                    <Col xs={12} sm={8} style={{ textAlign: 'right' }}>
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                        Comisión ({pctComision}%)
+                      </Text>
+                      <Text strong style={{ color: '#b45309', fontSize: 18 }}>
+                        ₡{new Intl.NumberFormat('es-CR').format(comisionFinal)}
+                      </Text>
+                    </Col>
+                  </Row>
+                </div>
+              );
+            })()}
+
+            {/* Repuestos Solicitados */}
+            <Divider orientation="left" style={{ margin: '14px 0', fontSize: 13, color: '#475569' }}>
+              Repuestos Solicitados ({selectedPedido.items?.length || 0})
+            </Divider>
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={Array.isArray(selectedPedido.items) ? selectedPedido.items : []}
+              rowKey={(item, idx) => item.id || idx}
+              columns={[
+                {
+                  title: '#',
+                  key: 'idx',
+                  width: 50,
+                  render: (_, __, index) => index + 1
+                },
+                {
+                  title: 'Descripción',
+                  key: 'descripcion',
+                  render: (_, r) => <strong>{r.descripcion || r['Descripcion Pieza'] || r['Grupo Pieza'] || 'Pieza'}</strong>
+                },
+                {
+                  title: 'Part Number',
+                  key: 'partNumber',
+                  render: (_, r) => <Text code>{r.partNumber || r.numeroParte || r['PartNumber'] || '-'}</Text>
+                },
+                {
+                  title: 'Tipo Pieza / Estado',
+                  key: 'tipoPieza',
+                  align: 'center',
+                  render: (_, r) => <Tag>{r.tipoPieza || r.estado || r.Estado || 'Original'}</Tag>
+                },
+                {
+                  title: 'Cantidad',
+                  key: 'cantidad',
+                  align: 'center',
+                  width: 65,
+                  render: (_, r) => r.cantidad || 1
+                },
+                {
+                  title: 'Precio Ofrecido',
+                  key: 'precio',
+                  align: 'right',
+                  width: 140,
+                  render: (_, r) => {
+                    const p = r.precioOfrecido || r.precio || r.Precio || r['Precio Ofrecido'];
+                    const val = typeof p === 'string' ? Number(p.replace(/[^0-9.-]+/g, '')) : Number(p);
+                    return val ? <Text strong style={{ color: '#15803d' }}>₡{new Intl.NumberFormat('es-CR').format(val)}</Text> : '-';
+                  }
+                }
+              ]}
+              locale={{ emptyText: 'No hay repuestos desglosados en este pedido' }}
+              style={{ marginBottom: 16 }}
+            />
+
+            {/* Empleado Asignado */}
+            {selectedPedido.empleadoNombre && (
+              <div style={{ background: '#eff6ff', padding: 16, borderRadius: 8, border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <UserOutlined style={{ color: '#2563eb', fontSize: 16 }} />
+                  <Text strong style={{ color: '#1e40af' }}>Empleado Asignado:</Text>
+                  <Tag color="blue">{selectedPedido.empleadoNombre}</Tag>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

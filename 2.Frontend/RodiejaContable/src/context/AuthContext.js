@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import authService from '../api/auth';
 import rolesService from '../api/roles';
+import usersService from '../api/users';
 
 // Crear el contexto
 export const AuthContext = createContext(null);
@@ -47,6 +48,22 @@ export const AuthProvider = ({ children }) => {
 
       // Si hay usuario, actualizar el estado
       if (storedUser) {
+        // Asegurar que storedUser tenga id numérico
+        if (!storedUser.id && !storedUser.userId && storedUser.email) {
+          try {
+            const usersRes = await usersService.getUsers();
+            const allUsers = usersRes.data || usersRes || [];
+            const found = allUsers.find(u => u.email?.toLowerCase() === storedUser.email?.toLowerCase());
+            if (found && found.id) {
+              storedUser.id = found.id;
+              storedUser.userId = found.id;
+              localStorage.setItem('user', JSON.stringify(storedUser));
+            }
+          } catch (e) {
+            console.warn('No se pudo autocompletar user.id desde usersService:', e);
+          }
+        }
+
         setUser(storedUser);
         if (storedUser.rolId) {
           await fetchPermissions(storedUser.rolId);
@@ -92,7 +109,10 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.login(userData);
 
       // authService.login ya guarda el token y el usuario en localStorage
+      const userIdVal = response.id || response.userId || null;
       const loggedUser = {
+        id: userIdVal,
+        userId: userIdVal,
         email: response.email,
         rol: response.rol,
         nombre: response.nombre,

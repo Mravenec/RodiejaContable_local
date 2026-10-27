@@ -40,7 +40,6 @@ import ReporteVehiculos from './pages/reportes/ReporteVehiculos';
 
 // Componentes de Audatex
 import OportunidadesAudatex from './pages/audatex/OportunidadesAudatex';
-import JerarquiaAudatex from './pages/audatex/JerarquiaAudatex';
 import PedidosAudatex from './pages/audatex/PedidosAudatex';
 
 // Componentes de INS (LINZ)
@@ -476,13 +475,7 @@ function App() {
       />
       <Route
         path="/audatex/jerarquia"
-        element={
-          <PrivateRoute>
-            <MainLayout>
-              <JerarquiaAudatex />
-            </MainLayout>
-          </PrivateRoute>
-        }
+        element={<Navigate to="/audatex/oportunidades" replace />}
       />
       <Route
         path="/audatex/pedidos"

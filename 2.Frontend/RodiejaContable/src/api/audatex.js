@@ -27,7 +27,17 @@ export const audatexAPI = {
     return axios.post('/audatex/pedidos/facturar', { pedidoId, ...data });
   },
 
-  // Asignar empleado y comisión a un pedido (sin cambiar el estado del pedido)
+  // Asignar usuario y comisión a un pedido (sin cambiar el estado del pedido)
+  asignarUsuario: (pedidoId, data = {}) => {
+    return axios.post('/audatex/pedidos/asignar-empleado', { pedidoId, ...data });
+  },
+
+  // Asignar usuario a una oportunidad (persiste en audatex_oportunidades_sync para el worker de 5 min)
+  asignarUsuarioAOportunidad: (data = {}) => {
+    return axios.post('/audatex/oportunidades/asignar-usuario', data);
+  },
+
+  // Asignar empleado y comisión a un pedido (legacy fallback)
   asignarEmpleado: (pedidoId, data = {}) => {
     return axios.post('/audatex/pedidos/asignar-empleado', { pedidoId, ...data });
   },

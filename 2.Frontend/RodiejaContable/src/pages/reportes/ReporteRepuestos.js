@@ -9,7 +9,8 @@ import {
   CarOutlined, UnorderedListOutlined,
   CalendarOutlined, DashboardOutlined, ToolOutlined,
   FilterOutlined, FileExcelOutlined,
-  ArrowUpOutlined, ArrowDownOutlined
+  ArrowUpOutlined, ArrowDownOutlined,
+  ShopOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
@@ -51,6 +52,7 @@ const ReporteRepuestos = () => {
     vehiculoDesarmadoId: null,
     parteVehiculo: null,
     estadoRepuesto: null,
+    tipoMovimiento: null,
     busqueda: ''
   });
 
@@ -169,7 +171,7 @@ const ReporteRepuestos = () => {
         if (v.id) vehiculosMap.set(v.id.toString(), nombreVehiculo);
       });
 
-      // FILTRO: Repuestos y Carros Desarmados
+      // FILTRO: Repuestos, Carros Desarmados y Gastos Operativos (Mantenimiento Local, Servicios Públicos, Salarios)
       const movimientosRepuestos = transaccionesRes.filter(t => {
         // 1. Filtro por Fecha (Mes y/o Año)
         if (filtros.mes || filtros.anio) {
@@ -184,11 +186,17 @@ const ReporteRepuestos = () => {
           }
         }
 
-        // 2. Si no se filtra por un vehículo desarmado específico, incluir estrictamente movimientos de repuestos (no Compra Vehículo)
+        const tipoLower = (t.tipoTransaccion || t.tipo_transaccion || '').toLowerCase();
+        const esMantenimiento = tipoLower.includes('mantenimiento');
+        const esServiciosPublicos = tipoLower.includes('servicios públicos') || tipoLower.includes('servicios publicos') || (tipoLower.includes('servicio') && tipoLower.includes('public'));
+        const esSalario = tipoLower.includes('salario');
+        const esGastoOperativo = esMantenimiento || esServiciosPublicos || esSalario;
+
+        const esRepuesto = tipoLower.includes('repuesto') || tipoLower.includes('mayoreo') || Boolean((t.codigoRepuesto || t.repuestoId) && !tipoLower.includes('veh'));
+
+        // 2. Si no se filtra por un vehículo desarmado específico, incluir movimientos de repuestos y gastos operativos (Mantenimiento Local, Servicios Públicos, Salarios)
         if (!filtros.vehiculoDesarmadoId) {
-          const tipoLower = (t.tipoTransaccion || t.tipo_transaccion || '').toLowerCase();
-          const esRepuesto = tipoLower.includes('repuesto') || tipoLower.includes('mayoreo') || Boolean((t.codigoRepuesto || t.repuestoId) && !tipoLower.includes('veh'));
-          if (!esRepuesto) {
+          if (!esRepuesto && !esGastoOperativo) {
             return false;
           }
         }
@@ -222,6 +230,7 @@ const ReporteRepuestos = () => {
 
         // 4. Filtro por Tipo de Parte
         if (filtros.parteVehiculo) {
+          if (esGastoOperativo) return false;
           let repuestoInfo = null;
           if (t.codigoRepuesto) repuestoInfo = repuestosMap.get(t.codigoRepuesto);
           else if (t.repuestoId) repuestoInfo = repuestosMap.get(t.repuestoId.toString());
@@ -233,6 +242,7 @@ const ReporteRepuestos = () => {
 
         // 5. Filtro por Estado de Repuesto
         if (filtros.estadoRepuesto) {
+          if (esGastoOperativo) return false;
           let repuestoInfo = null;
           if (t.codigoRepuesto) repuestoInfo = repuestosMap.get(t.codigoRepuesto);
           else if (t.repuestoId) repuestoInfo = repuestosMap.get(t.repuestoId.toString());
@@ -242,15 +252,25 @@ const ReporteRepuestos = () => {
           }
         }
 
-        // 6. Aplicar filtro de búsqueda si existe
+        // 6. Filtro por Concepto / Tipo de Movimiento
+        if (filtros.tipoMovimiento) {
+          if (filtros.tipoMovimiento === 'REPUESTOS' && !esRepuesto) return false;
+          if (filtros.tipoMovimiento === 'OPERATIVOS' && !esGastoOperativo) return false;
+          if (filtros.tipoMovimiento === 'MANTENIMIENTO' && !esMantenimiento) return false;
+          if (filtros.tipoMovimiento === 'SERVICIOS_PUBLICOS' && !esServiciosPublicos) return false;
+          if (filtros.tipoMovimiento === 'SALARIOS' && !esSalario) return false;
+        }
+
+        // 7. Aplicar filtro de búsqueda si existe
         if (filtros.busqueda && filtros.busqueda.trim() !== '') {
           const query = filtros.busqueda.toLowerCase();
           const desc = (t.descripcion || '').toLowerCase();
           const ref = (t.referencia || '').toLowerCase();
           const codR = (t.codigoRepuesto || '').toLowerCase();
           const codV = (t.codigoVehiculo || '').toLowerCase();
+          const tipo = (t.tipoTransaccion || t.tipo_transaccion || '').toLowerCase();
 
-          if (!desc.includes(query) && !ref.includes(query) && !codR.includes(query) && !codV.includes(query)) {
+          if (!desc.includes(query) && !ref.includes(query) && !codR.includes(query) && !codV.includes(query) && !tipo.includes(query)) {
             return false;
           }
         }
@@ -258,6 +278,11 @@ const ReporteRepuestos = () => {
         return true;
       }).map(t => {
         const infoOrigen = [];
+        const tipoLower = (t.tipoTransaccion || t.tipo_transaccion || '').toLowerCase();
+        const esMantenimiento = tipoLower.includes('mantenimiento');
+        const esServiciosPublicos = tipoLower.includes('servicios públicos') || tipoLower.includes('servicios publicos') || (tipoLower.includes('servicio') && tipoLower.includes('public'));
+        const esSalario = tipoLower.includes('salario');
+        const esGastoOperativo = esMantenimiento || esServiciosPublicos || esSalario;
 
         // Extraer nombre de Repuesto
         if (t.codigoRepuesto && repuestosMap.has(t.codigoRepuesto)) {
@@ -277,10 +302,16 @@ const ReporteRepuestos = () => {
           infoOrigen.push(`Vehículo: ${t.codigoVehiculo}`);
         } else if (t.marca && t.modelo) {
           infoOrigen.push(`Vehículo: ${t.marca} ${t.modelo} ${t.generacion || ''}`.trim());
+        } else if (esGastoOperativo) {
+          infoOrigen.push(`Gasto: Gasto Operativo`);
         }
 
         return {
           ...t,
+          esGastoOperativo,
+          esMantenimiento,
+          esServiciosPublicos,
+          esSalario,
           _infoOrigen: infoOrigen.length > 0 ? infoOrigen.join(' | ') : null
         };
       });
@@ -404,10 +435,22 @@ const ReporteRepuestos = () => {
     return parte ? parte.nombre : `Parte #${filtros.parteVehiculo}`;
   }, [filtros.parteVehiculo, partesVehiculo]);
 
+  const labelTipoMovimiento = useMemo(() => {
+    switch (filtros.tipoMovimiento) {
+      case 'REPUESTOS': return 'Solo Repuestos';
+      case 'OPERATIVOS': return 'Gastos Operativos';
+      case 'MANTENIMIENTO': return 'Mantenimiento Local';
+      case 'SERVICIOS_PUBLICOS': return 'Servicios Públicos';
+      case 'SALARIOS': return 'Salarios';
+      default: return null;
+    }
+  }, [filtros.tipoMovimiento]);
+
   const cantidadFiltrosActivos = useMemo(() => {
     let count = 0;
     if (filtros.busqueda && filtros.busqueda.trim() !== '') count++;
     if (filtros.mes || filtros.anio) count++;
+    if (filtros.tipoMovimiento) count++;
     if (filtros.vehiculoDesarmadoId) count++;
     if (filtros.parteVehiculo) count++;
     if (filtros.estadoRepuesto) count++;
@@ -433,6 +476,7 @@ const ReporteRepuestos = () => {
       vehiculoDesarmadoId: null,
       parteVehiculo: null,
       estadoRepuesto: null,
+      tipoMovimiento: null,
       busqueda: ''
     });
   };
@@ -635,15 +679,19 @@ const ReporteRepuestos = () => {
       width: '15%',
       render: (_, record) => {
         const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO';
+        let tagColor = isIngreso ? 'success' : 'error';
+        if (record.esGastoOperativo) {
+          tagColor = 'warning';
+        }
         return (
-          <Tag color={isIngreso ? 'success' : 'error'} style={{ borderRadius: '4px', padding: '0 8px' }}>
+          <Tag color={tagColor} style={{ borderRadius: '4px', padding: '0 8px' }}>
             {record.tipoTransaccion || record.categoria || 'DESCONOCIDO'}
           </Tag>
         );
       }
     },
     {
-      title: 'Detalle de la Pieza / Activo',
+      title: 'Detalle de la Pieza / Concepto',
       key: 'repuesto',
       width: '35%',
       render: (_, record) => {
@@ -652,6 +700,8 @@ const ReporteRepuestos = () => {
           title = record.codigoRepuesto || `Repuesto ID: ${record.repuestoId}`;
         } else if (record.codigoVehiculo || record.vehiculoId != null) {
           title = `Vehículo ${record.codigoVehiculo || 'ID: ' + record.vehiculoId}`;
+        } else if (record.esGastoOperativo) {
+          title = record.tipoTransaccion || 'Gasto Operativo';
         } else {
           title = record.referencia ? `Ref: ${record.referencia}` : `Transacción: ${record.tipoTransaccion || record.categoria || 'General'}`;
         }
@@ -659,6 +709,11 @@ const ReporteRepuestos = () => {
         return (
           <div style={{ padding: '4px 0' }}>
             <Text strong style={{ color: '#1f1f1f' }}>{title}</Text>
+            {record.referencia && record.esGastoOperativo && (
+              <span style={{ fontSize: '12px', color: '#8c8c8c', marginLeft: 8 }}>
+                Ref: {record.referencia}
+              </span>
+            )}
             <div style={{ fontSize: '13px', color: '#595959', marginTop: '2px', lineHeight: '1.4' }}>
               {record.descripcion}
             </div>
@@ -674,18 +729,25 @@ const ReporteRepuestos = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {record._infoOrigen.split(' | ').map((info, i) => {
             const isVehiculo = info.startsWith('Vehículo:');
-            const text = info.replace('Vehículo: ', '').replace('Pieza: ', '');
+            const isGasto = info.startsWith('Gasto:');
+            const text = info.replace('Vehículo: ', '').replace('Pieza: ', '').replace('Gasto: ', '');
             return (
               <Tooltip title={info} key={i}>
                 <div style={{ fontSize: '12px', lineHeight: '1.3', color: '#595959', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {isVehiculo ? <CarOutlined style={{ marginRight: 4, color: '#8c8c8c' }} /> : <ToolOutlined style={{ marginRight: 4, color: '#8c8c8c' }} />}
+                  {isVehiculo ? (
+                    <CarOutlined style={{ marginRight: 4, color: '#8c8c8c' }} />
+                  ) : isGasto ? (
+                    <ShopOutlined style={{ marginRight: 4, color: '#fa8c16' }} />
+                  ) : (
+                    <ToolOutlined style={{ marginRight: 4, color: '#8c8c8c' }} />
+                  )}
                   {text}
                 </div>
               </Tooltip>
             );
           })}
         </div>
-      ) : <Text type="secondary" style={{ fontSize: '12px' }}>Múltiple / Ninguno</Text>
+      ) : <Text type="secondary" style={{ fontSize: '12px' }}>General / Sin Vehículo</Text>
     },
     {
       title: 'Impacto Financiero',
@@ -713,10 +775,10 @@ const ReporteRepuestos = () => {
           <Col>
             <Title level={3} style={{ margin: 0, color: '#262626' }}>
               <DashboardOutlined style={{ marginRight: 8, color: '#1890ff' }} />
-              Reporte de Repuestos
+              Reporte de Repuestos y Operaciones
             </Title>
             <Text type="secondary" style={{ marginTop: 4, display: 'block' }}>
-              Análisis financiero, desarmes disponibles y trazabilidad de piezas.
+              Análisis financiero consolidado: repuestos, vehículos desarmados y gastos operativos (Mantenimiento, Servicios y Salarios).
             </Text>
           </Col>
           <Col>
@@ -777,6 +839,16 @@ const ReporteRepuestos = () => {
                         Búsqueda: "{filtros.busqueda}"
                       </Tag>
                     )}
+                    {labelTipoMovimiento && (
+                      <Tag 
+                        color="orange" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('tipoMovimiento'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Concepto: {labelTipoMovimiento}
+                      </Tag>
+                    )}
                     {labelVehiculoDesarmado && (
                       <Tag 
                         color="purple" 
@@ -821,7 +893,7 @@ const ReporteRepuestos = () => {
             ),
             children: (
               <Row gutter={[24, 16]} align="bottom">
-                <Col xs={24} sm={12} md={5}>
+                <Col xs={24} sm={12} md={4}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <Text type="secondary" style={{ fontSize: '12px' }}>Búsqueda</Text>
                     {filtros.busqueda && (
@@ -842,7 +914,7 @@ const ReporteRepuestos = () => {
                     style={{ width: '100%', borderRadius: '6px' }}
                   />
                 </Col>
-                <Col xs={24} sm={12} md={5}>
+                <Col xs={24} sm={12} md={4}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <Text type="secondary" style={{ fontSize: '12px' }}>Mes a Consultar</Text>
                     {labelPeriodo && (
@@ -892,7 +964,30 @@ const ReporteRepuestos = () => {
                     </Select>
                   </Space.Compact>
                 </Col>
-                <Col xs={24} sm={12} md={5}>
+                <Col xs={24} sm={12} md={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Concepto</Text>
+                    {labelTipoMovimiento && (
+                      <Tag color="orange" closable onClose={() => removerFiltro('tipoMovimiento')} style={{ margin: 0, fontWeight: 500 }}>
+                        {labelTipoMovimiento}
+                      </Tag>
+                    )}
+                  </div>
+                  <Select
+                    allowClear
+                    placeholder="Todos los conceptos"
+                    style={{ width: '100%' }}
+                    value={filtros.tipoMovimiento}
+                    onChange={(val) => aplicarFiltros({ tipoMovimiento: val })}
+                  >
+                    <Option value="REPUESTOS">Solo Repuestos</Option>
+                    <Option value="OPERATIVOS">Gastos Operativos (Todos)</Option>
+                    <Option value="MANTENIMIENTO">Mantenimiento Local</Option>
+                    <Option value="SERVICIOS_PUBLICOS">Servicios Públicos</Option>
+                    <Option value="SALARIOS">Salarios</Option>
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12} md={4}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <Text type="secondary" style={{ fontSize: '12px' }}>Vehículo Desarmado</Text>
                     {labelVehiculoDesarmado && (
@@ -915,7 +1010,7 @@ const ReporteRepuestos = () => {
                     ))}
                   </Select>
                 </Col>
-                <Col xs={24} sm={12} md={4}>
+                <Col xs={24} sm={12} md={3}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <Text type="secondary" style={{ fontSize: '12px' }}>Tipo de Parte</Text>
                     {labelParteVehiculo && (
@@ -940,7 +1035,7 @@ const ReporteRepuestos = () => {
                     ))}
                   </Select>
                 </Col>
-                <Col xs={24} sm={12} md={5}>
+                <Col xs={24} sm={12} md={3}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <Text type="secondary" style={{ fontSize: '12px' }}>Estado</Text>
                     {filtros.estadoRepuesto && (
@@ -968,7 +1063,7 @@ const ReporteRepuestos = () => {
                     <Option value="USADO_INTERNO">Usado Interno</Option>
                   </Select>
                 </Col>
-                <Col xs={24} sm={24} md={3}>
+                <Col xs={24} sm={24} md={2}>
                   <Button 
                     block 
                     icon={<ReloadOutlined />} 
@@ -1132,7 +1227,7 @@ const ReporteRepuestos = () => {
               <div style={{ marginTop: '8px' }}>
                 <Card
                   bordered={false}
-                  title={<span style={{ fontWeight: 600, color: '#262626' }}>Trazabilidad Operativa (Compras, Ventas y Devoluciones)</span>}
+                  title={<span style={{ fontWeight: 600, color: '#262626' }}>Trazabilidad Operativa (Repuestos, Compras, Salarios, Servicios y Mantenimiento)</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
                   <Table
@@ -1142,7 +1237,7 @@ const ReporteRepuestos = () => {
                     loading={loadingMovimientos}
                     pagination={{ defaultPageSize: 10, showSizeChanger: true }}
                     size="middle"
-                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No existen transacciones de repuestos en el rango seleccionado" /> }}
+                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No existen transacciones en el rango seleccionado" /> }}
                   />
                 </Card>
               </div>

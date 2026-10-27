@@ -281,9 +281,10 @@ public class AudatexController {
     public ResponseEntity<?> facturarPedido(@RequestBody Map<String, Object> payload) {
         try {
             Integer pedidoId = payload.get("pedidoId") != null ? ((Number) payload.get("pedidoId")).intValue() : null;
-            Integer empleadoId = payload.get("empleadoId") != null ? ((Number) payload.get("empleadoId")).intValue() : null;
+            Object idVal = payload.get("usuarioId") != null ? payload.get("usuarioId") : payload.get("empleadoId");
+            Integer empleadoId = idVal != null ? ((Number) idVal).intValue() : null;
             Integer porcentajeComision = payload.get("porcentajeComision") != null ? ((Number) payload.get("porcentajeComision")).intValue() : null;
-            log.info("[Audatex] POST /pedidos/facturar - pedidoId {}, empleadoId {}, porcentajeComision {}", pedidoId, empleadoId, porcentajeComision);
+            log.info("[Audatex] POST /pedidos/facturar - pedidoId {}, usuario/empleadoId {}, porcentajeComision {}", pedidoId, empleadoId, porcentajeComision);
             AudatexPedidos facturado = audatexService.facturarPedido(pedidoId, empleadoId, porcentajeComision);
             return ResponseEntity.ok(Map.of(
                     "mensaje", "Pedido facturado exitosamente",
@@ -300,13 +301,15 @@ public class AudatexController {
     public ResponseEntity<?> asignarEmpleado(@RequestBody Map<String, Object> payload) {
         try {
             Integer pedidoId = payload.get("pedidoId") != null ? ((Number) payload.get("pedidoId")).intValue() : null;
-            Integer empleadoId = payload.get("empleadoId") != null ? ((Number) payload.get("empleadoId")).intValue() : null;
+            Object idVal = payload.get("usuarioId") != null ? payload.get("usuarioId") : payload.get("empleadoId");
+            Integer empleadoId = idVal != null ? ((Number) idVal).intValue() : null;
             Integer porcentajeComision = payload.get("porcentajeComision") != null ? ((Number) payload.get("porcentajeComision")).intValue() : null;
-            log.info("[Audatex] POST /pedidos/asignar-empleado - pedidoId {}, empleadoId {}, porcentajeComision {}", pedidoId, empleadoId, porcentajeComision);
+            log.info("[Audatex] POST /pedidos/asignar-empleado - pedidoId {}, usuario/empleadoId {}, porcentajeComision {}", pedidoId, empleadoId, porcentajeComision);
             audatexService.asignarEmpleado(pedidoId, empleadoId, porcentajeComision);
             return ResponseEntity.ok(Map.of(
-                    "mensaje", "Empleado asignado exitosamente (estado del pedido conservado)",
+                    "mensaje", "Usuario asignado exitosamente (estado del pedido conservado)",
                     "pedidoId", pedidoId,
+                    "usuarioId", empleadoId != null ? empleadoId : 0,
                     "empleadoId", empleadoId != null ? empleadoId : 0
             ));
         } catch (Exception e) {

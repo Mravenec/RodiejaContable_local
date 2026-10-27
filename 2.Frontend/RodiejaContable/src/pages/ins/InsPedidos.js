@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card, Table, Typography, Tag, Button, message, Space, Input, DatePicker,
-  TimePicker, Row, Col, Select, Modal, Descriptions, Divider
+  TimePicker, Row, Col, Select, Modal, Descriptions, Divider, Alert
 } from 'antd';
 import {
   ReloadOutlined, SearchOutlined, DownloadOutlined, FilterOutlined,
-  CheckCircleOutlined, ClockCircleOutlined, UserOutlined, FileTextOutlined
+  CheckCircleOutlined, ClockCircleOutlined, UserOutlined, FileTextOutlined,
+  UpOutlined, DownOutlined
 } from '@ant-design/icons';
 import { audatexAPI } from '../../api/audatex';
-import { useEmpleados } from '../../hooks/useEmpleados';
+import { useAuth } from '../../context/AuthContext';
+import usersService from '../../api/users';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
 
@@ -76,7 +78,8 @@ const defaultFiltros = {
   hasta: dayjs().add(1, 'day'),
   horaInicio: dayjs('08:00', 'HH:mm'),
   horaFin: dayjs('17:00', 'HH:mm'),
-  estadoFacturacion: 'todos' // 'todos', 'facturados', 'pendientes'
+  estadoFacturacion: 'todos', // 'todos', 'facturados', 'pendientes'
+  usuarioId: 'todos'
 };
 
 const InsPedidos = () => {
@@ -86,17 +89,44 @@ const InsPedidos = () => {
 
   const [filtros, setFiltros] = useState({ ...defaultFiltros });
   const [appliedFiltros, setAppliedFiltros] = useState({ ...defaultFiltros });
+  const [mostrarFiltros, setMostrarFiltros] = useState(true);
 
-  // Empleados disponibles
-  const { data: empleadosData = [] } = useEmpleados();
-  const empleadosActivos = useMemo(() => {
-    return (empleadosData || []).filter(e => e.activo !== false && e.activo !== 0);
-  }, [empleadosData]);
+  const handleLimpiar = () => {
+    setFiltros({ ...defaultFiltros });
+    setAppliedFiltros({ ...defaultFiltros });
+  };
+
+  const handleFiltrar = () => {
+    setAppliedFiltros({ ...filtros });
+  };
+
+  const { user } = useAuth();
+  const esAdmin = (user?.rol || '').toUpperCase() === 'ADMIN';
+  const currentUserId = user?.id || user?.userId || null;
+  const currentUserName = user?.nombre || user?.email || 'Mi Usuario';
+
+  const [usuariosData, setUsuariosData] = useState([]);
+  const usuariosActivos = useMemo(() => {
+    return (usuariosData || []).filter(u => u.activo !== false);
+  }, [usuariosData]);
+
+  const cargarUsuarios = useCallback(async () => {
+    try {
+      const res = await usersService.getUsers();
+      setUsuariosData(res.data || res || []);
+    } catch (e) {
+      console.warn('Error cargando usuarios en PedidosIns:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarUsuarios();
+  }, [cargarUsuarios]);
 
   // Modal de Detalle y Asignación
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [empleadoSeleccionadoId, setEmpleadoSeleccionadoId] = useState(null);
+  const [usuarioSeleccionadoId, setUsuarioSeleccionadoId] = useState(null);
   const [porcentajeManual, setPorcentajeManual] = useState(null);
 
   // Cargar pedidos desde audatex_pedidos (mismo origen que PedidosAudatex.js)
@@ -122,8 +152,11 @@ const InsPedidos = () => {
           if (local) {
             return {
               ...p,
-              empleadoId: p.empleadoId || local.empleadoId,
-              empleadoNombre: p.empleadoNombre || local.empleadoNombre,
+              userId: p.userId || p.usuarioId || local.usuarioId || local.empleadoId,
+              usuarioId: p.usuarioId || p.userId || local.usuarioId || local.empleadoId,
+              usuarioNombre: p.usuarioNombre || p.empleadoNombre || local.usuarioNombre || local.empleadoNombre,
+              empleadoId: p.empleadoId || local.empleadoId || local.usuarioId,
+              empleadoNombre: p.empleadoNombre || local.empleadoNombre || local.usuarioNombre,
               porcentajeComision: p.porcentajeComision || local.porcentajeComision,
               // Mantener intacto el estado original que viene del mapeo de pedidos / Audatex
               estado: p.estado
@@ -181,7 +214,7 @@ const InsPedidos = () => {
   };
 
   // Evaluar si la hora del pedido está dentro del rango horario regular
-  const evaluarHorarioComision = (record, horaInicio, horaFin) => {
+  const evaluarHorarioComision = useCallback((record, horaInicio, horaFin) => {
     if (record.porcentajeComision) {
       const esDentro = record.porcentajeComision === 3;
       return {
@@ -207,7 +240,7 @@ const InsPedidos = () => {
       esDentro,
       etiqueta: esDentro ? '3% (Dentro de horario)' : '5% (Fuera de horario)'
     };
-  };
+  }, []);
 
   // Filtrado de pedidos
   const pedidosFiltrados = useMemo(() => {
@@ -226,13 +259,23 @@ const InsPedidos = () => {
       if (estadoFact === 'facturados' && !estaFacturado) return false;
       if (estadoFact === 'pendientes' && estaFacturado) return false;
 
+      // Filtro de usuario responsable
+      if (appliedFiltros.usuarioId && appliedFiltros.usuarioId !== 'todos') {
+        const asigId = p.usuarioId || p.userId || p.empleadoId;
+        if (appliedFiltros.usuarioId === 'sin_asignar') {
+          if (asigId) return false;
+        } else {
+          if (Number(asigId) !== Number(appliedFiltros.usuarioId)) return false;
+        }
+      }
+
       // Búsqueda libre
       if (q) {
         const numPed = normalizeString(p.numeroPedido);
         const cotId = normalizeString(p.cotizacionId);
         const sin = normalizeString(p.siniestro);
         const veh = normalizeString(getMarcaSegura(p) + ' ' + getModeloSeguro(p));
-        const emp = normalizeString(p.empleadoNombre);
+        const emp = normalizeString(p.usuarioNombre || p.empleadoNombre);
         const match = numPed.includes(q) || cotId.includes(q) || sin.includes(q) || veh.includes(q) || emp.includes(q);
         if (!match) return false;
       }
@@ -254,35 +297,80 @@ const InsPedidos = () => {
     });
   }, [pedidos, appliedFiltros]);
 
+  // Indicadores KPI consolidados (estilo Oportunidades)
+  const stats = useMemo(() => {
+    const list = Array.isArray(pedidosFiltrados) ? pedidosFiltrados : [];
+    let montoTotal = 0;
+    let totalComision = 0;
+    let asignadosAMi = 0;
+
+    list.forEach((p) => {
+      const evalCom = evaluarHorarioComision(p, appliedFiltros.horaInicio, appliedFiltros.horaFin);
+      const items = Array.isArray(p.items) ? p.items : [];
+      const total = Number(p.totalPedido) || (items.length > 0 ? items.reduce((acc, it) => acc + (Number(it.precioOfrecido || 0) * Number(it.cantidad || 1)), 0) : 0);
+      const pct = p.porcentajeComision || evalCom.porcentaje;
+      const com = p.comisionCalculada != null ? Number(p.comisionCalculada) : (total * pct) / 100;
+      montoTotal += total;
+      totalComision += com;
+
+      const asigId = p.usuarioId || p.userId || p.empleadoId;
+      if (currentUserId && Number(asigId) === Number(currentUserId)) {
+        asignadosAMi++;
+      }
+    });
+
+    return {
+      total: list.length,
+      montoTotal,
+      totalComision,
+      asignadosAMi
+    };
+  }, [pedidosFiltrados, appliedFiltros.horaInicio, appliedFiltros.horaFin, currentUserId, evaluarHorarioComision]);
+
   // Abrir modal de detalle al hacer clic en la fila
   const handleAbrirDetalle = (record) => {
     setSelectedPedido(record);
     const evalHorario = evaluarHorarioComision(record, appliedFiltros.horaInicio, appliedFiltros.horaFin);
-    setEmpleadoSeleccionadoId(record.empleadoId || null);
+    const asigId = record.usuarioId || record.userId || record.empleadoId || null;
+    if (esAdmin) {
+      setUsuarioSeleccionadoId(asigId ? Number(asigId) : null);
+    } else {
+      setUsuarioSeleccionadoId(asigId ? Number(asigId) : (currentUserId ? Number(currentUserId) : null));
+    }
     setPorcentajeManual(record.porcentajeComision || evalHorario.porcentaje);
     setModalVisible(true);
   };
 
-  // Confirmar facturación y asignar empleado
+  // Confirmar facturación y asignar usuario
   const handleConfirmarFacturacion = async () => {
     if (!selectedPedido) return;
-    if (!empleadoSeleccionadoId) {
-      message.warning('Por favor selecciona el empleado responsable del pedido');
+    const idToAssign = esAdmin ? usuarioSeleccionadoId : (usuarioSeleccionadoId || currentUserId);
+    if (!idToAssign) {
+      message.warning('Por favor selecciona el usuario responsable del pedido');
+      return;
+    }
+
+    const actualAsigId = selectedPedido.usuarioId || selectedPedido.userId || selectedPedido.empleadoId;
+    if (!esAdmin && actualAsigId && Number(actualAsigId) !== Number(currentUserId)) {
+      message.error('No tienes permisos para reasignar un pedido de otro usuario');
       return;
     }
 
     try {
       setProcesando(true);
-      const emp = empleadosActivos.find(e => e.id === empleadoSeleccionadoId);
-      const empNombre = emp ? (emp.nombres || emp.nombre) : 'Empleado';
+      const uFound = usuariosActivos.find(u => Number(u.id) === Number(idToAssign));
+      const uNombre = uFound ? (uFound.nombre || uFound.email) : (Number(idToAssign) === Number(currentUserId) ? currentUserName : `Usuario #${idToAssign}`);
       const pct = porcentajeManual || 3;
 
       // 1. Guardar en localStorage para persistencia instantánea y permanente en el cliente
       try {
         const stored = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
         stored[selectedPedido.id] = {
-          empleadoId: empleadoSeleccionadoId,
-          empleadoNombre: empNombre,
+          usuarioId: idToAssign,
+          userId: idToAssign,
+          usuarioNombre: uNombre,
+          empleadoId: idToAssign,
+          empleadoNombre: uNombre,
           porcentajeComision: pct
         };
         localStorage.setItem('pedidos_ins_asignaciones', JSON.stringify(stored));
@@ -290,11 +378,20 @@ const InsPedidos = () => {
         console.warn('Error guardando en localStorage:', e);
       }
 
-      // 2. Enviar al backend asignación de empleado y comisión (sin cambiar estado del pedido)
+      // 2. Enviar al backend asignación de usuario y comisión (sin cambiar estado del pedido)
       try {
-        if (audatexAPI.asignarEmpleado) {
+        if (audatexAPI.asignarUsuario) {
+          await audatexAPI.asignarUsuario(selectedPedido.id, {
+            usuarioId: idToAssign,
+            userId: idToAssign,
+            empleadoId: idToAssign,
+            porcentajeComision: pct
+          });
+        } else if (audatexAPI.asignarEmpleado) {
           await audatexAPI.asignarEmpleado(selectedPedido.id, {
-            empleadoId: empleadoSeleccionadoId,
+            usuarioId: idToAssign,
+            userId: idToAssign,
+            empleadoId: idToAssign,
             porcentajeComision: pct
           });
         }
@@ -303,16 +400,19 @@ const InsPedidos = () => {
       }
 
       // 3. Actualizar memoria inmediata conservando el estado del pedido intacto
-      selectedPedido.empleadoId = empleadoSeleccionadoId;
-      selectedPedido.empleadoNombre = empNombre;
+      selectedPedido.usuarioId = idToAssign;
+      selectedPedido.userId = idToAssign;
+      selectedPedido.usuarioNombre = uNombre;
+      selectedPedido.empleadoId = idToAssign;
+      selectedPedido.empleadoNombre = uNombre;
       selectedPedido.porcentajeComision = pct;
 
-      message.success(`¡Empleado ${empNombre} asignado al pedido #${selectedPedido.numeroPedido || selectedPedido.id} exitosamente!`);
+      message.success(`¡Usuario ${uNombre} asignado al pedido #${selectedPedido.numeroPedido || selectedPedido.id} exitosamente!`);
       setModalVisible(false);
       await cargarPedidos();
     } catch (err) {
-      console.error('Error al asignar empleado al pedido:', err);
-      message.error(err.response?.data?.error || 'Error al procesar la asignación del empleado');
+      console.error('Error al asignar usuario al pedido:', err);
+      message.error(err.response?.data?.error || 'Error al procesar la asignación del usuario');
     } finally {
       setProcesando(false);
     }
@@ -347,7 +447,8 @@ const InsPedidos = () => {
         'Comisión (%)': `${evalCom.porcentaje}%`,
         'Monto Comisión (₡)': comision,
         'Horario Comisión': evalCom.esDentro ? 'Dentro de horario' : 'Fuera de horario',
-        'Empleado': p.empleadoNombre || 'Sin asignar',
+        'Empleado': p.usuarioNombre || p.empleadoNombre || 'Sin asignar',
+        'Usuario Responsable': p.usuarioNombre || p.empleadoNombre || 'Sin asignar',
         'Estado': p.estado || '-'
       };
     });
@@ -437,17 +538,20 @@ const InsPedidos = () => {
       }
     },
     {
-      title: 'Empleado Asignado',
-      key: 'empleado',
+      title: 'Usuario Responsable',
+      key: 'usuario',
       render: (_, record) => {
-        if (record.empleadoNombre) {
+        const uNombre = record.usuarioNombre || record.empleadoNombre;
+        const uId = record.usuarioId || record.empleadoId;
+        const esMio = currentUserId && Number(uId) === Number(currentUserId);
+        if (uNombre) {
           return (
-            <Tag color="blue" icon={<UserOutlined />} style={{ fontWeight: 600, padding: '4px 8px' }}>
-              {record.empleadoNombre}
+            <Tag color={esMio ? 'blue' : 'geekblue'} icon={<UserOutlined />} style={{ fontWeight: 600, padding: '4px 8px' }}>
+              {uNombre} {esMio ? ' (Tú)' : ''}
             </Tag>
           );
         }
-        return <Tag color="default">Sin asignar</Tag>;
+        return <Tag color="default" style={{ fontStyle: 'italic' }}>Sin asignar</Tag>;
       }
     },
     {
@@ -473,20 +577,32 @@ const InsPedidos = () => {
       title: 'Acción',
       key: 'acciones',
       align: 'center',
-      render: (_, record) => (
-        <Button
-          type="primary"
-          ghost
-          size="middle"
-          icon={<UserOutlined />}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleAbrirDetalle(record);
-          }}
-        >
-          {record.empleadoNombre ? 'Reasignar' : 'Asignar Empleado'}
-        </Button>
-      )
+      render: (_, record) => {
+        const uId = record.usuarioId || record.empleadoId;
+        const esMio = currentUserId && Number(uId) === Number(currentUserId);
+
+        let btnText = 'Asignar';
+        if (uId) {
+          btnText = esAdmin ? 'Reasignar' : (esMio ? 'Gestionar' : 'Ver Detalle');
+        } else {
+          btnText = esAdmin ? 'Asignar' : 'Autoasignarme';
+        }
+
+        return (
+          <Button
+            type="primary"
+            ghost
+            size="middle"
+            icon={<UserOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAbrirDetalle(record);
+            }}
+          >
+            {btnText}
+          </Button>
+        );
+      }
     }
   ];
 
@@ -494,101 +610,164 @@ const InsPedidos = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      {/* Encabezado */}
+      {/* Encabezado Principal */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
+        <Space>
           <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
             Pedidos INS
           </Title>
-          <Text type="secondary" style={{ fontSize: 13 }}>
-            Visor operativo de pedidos activos Audatex/INS (excluye cancelados) con liquidación de comisiones (3% horario regular / 5% fuera de horario) y asignación de empleado.
-          </Text>
-        </div>
+          <Tag color="blue" style={{ fontWeight: 600 }}>Audatex / InPart</Tag>
+          <Text type="secondary">{pedidosFiltrados.length} pedidos</Text>
+        </Space>
         <Space>
-          <Button icon={<ReloadOutlined />} onClick={cargarPedidos} loading={loading}>
+          <Button
+            type="default"
+            icon={<ReloadOutlined />}
+            onClick={cargarPedidos}
+            loading={loading}
+            style={{ color: '#1890ff', borderColor: '#1890ff', borderRadius: '8px' }}
+          >
             Refrescar
           </Button>
-          <Button icon={<DownloadOutlined />} onClick={handleExportarExcel} style={{ background: '#10b981', color: '#fff', borderColor: '#10b981' }}>
+          <Button
+            type="primary"
+            icon={<DownloadOutlined />}
+            onClick={handleExportarExcel}
+            style={{ background: '#52c41a', borderColor: '#52c41a', borderRadius: '8px' }}
+          >
             Exportar Excel
           </Button>
         </Space>
       </div>
 
-      {/* Barra de Filtros */}
+      {/* Indicadores KPI (solo Total Activos y Asignados a mí) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ background: '#f6ffed', border: '1px solid #b7eb8f', padding: '16px', borderRadius: '8px' }}>
+          <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, letterSpacing: '0.05em' }}>TOTAL ACTIVOS</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#52c41a' }}>{stats.total}</div>
+        </div>
+        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '16px', borderRadius: '8px' }}>
+          <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, letterSpacing: '0.05em' }}>ASIGNADOS A MÍ</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#2563eb' }}>{stats.asignadosAMi}</div>
+        </div>
+      </div>
+
+      {/* Barra de Filtros de Búsqueda */}
       <Card
         bordered={false}
-        style={{ marginBottom: 20, borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
-        bodyStyle={{ padding: 18 }}
+        style={{
+          marginBottom: '24px',
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+          background: '#ffffff'
+        }}
+        bodyStyle={{ padding: '24px' }}
       >
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} md={6}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Búsqueda Rápida</div>
-            <Input
-              placeholder="Pedido, cotización, vehículo, empleado..."
-              prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
-              value={filtros.busqueda}
-              onChange={(e) => setFiltros({ ...filtros, busqueda: e.target.value })}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} md={7}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Rango de Fechas (Pedido)</div>
-            <RangePicker
-              value={[filtros.desde, filtros.hasta]}
-              onChange={(dates) => setFiltros({ ...filtros, desde: dates ? dates[0] : null, hasta: dates ? dates[1] : null })}
-              format="YYYY-MM-DD"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={24} md={5}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>
-              Rango Horario Regular (3%)
-            </div>
-            <TimePicker.RangePicker
-              value={[filtros.horaInicio, filtros.horaFin]}
-              onChange={(times) => setFiltros({ ...filtros, horaInicio: times ? times[0] : null, horaFin: times ? times[1] : null })}
-              format="HH:mm"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={24} md={4}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Estado Contable</div>
-            <Select
-              value={filtros.estadoFacturacion}
-              onChange={(val) => setFiltros({ ...filtros, estadoFacturacion: val })}
-              style={{ width: '100%' }}
-              options={[
-                { value: 'todos', label: 'Todos los activos' },
-                { value: 'pendientes', label: 'Pendientes' },
-                { value: 'facturados', label: 'Entregados / Facturados' }
-              ]}
-            />
-          </Col>
-          <Col xs={24} md={2} style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <Button
-              type="primary"
-              icon={<FilterOutlined />}
-              onClick={() => setAppliedFiltros({ ...filtros })}
-              style={{ width: '100%', background: '#2563eb' }}
-            >
-              Filtrar
-            </Button>
-          </Col>
-        </Row>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mostrarFiltros ? '20px' : '0' }}>
+          <Title level={5} style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setMostrarFiltros(!mostrarFiltros)}>
+            <FilterOutlined style={{ marginRight: '8px', color: '#3b82f6' }} />
+            Filtros de Búsqueda
+            {mostrarFiltros ? <UpOutlined style={{ marginLeft: '8px', fontSize: '12px', color: '#94a3b8' }} /> : <DownOutlined style={{ marginLeft: '8px', fontSize: '12px', color: '#94a3b8' }} />}
+          </Title>
+          <Space>
+            <Button onClick={handleLimpiar} style={{ borderRadius: '8px' }}>Limpiar</Button>
+            <Button type="primary" icon={<SearchOutlined />} onClick={handleFiltrar} style={{ borderRadius: '8px', background: '#3b82f6' }}>Filtrar</Button>
+          </Space>
+        </div>
+
+        {mostrarFiltros && (
+          <Row gutter={[16, 20]}>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Búsqueda General</div>
+              <Input
+                placeholder="Pedido, cotización, vehículo, usuario..."
+                prefix={<SearchOutlined style={{ color: '#cbd5e1' }} />}
+                value={filtros.busqueda}
+                onChange={(e) => setFiltros({ ...filtros, busqueda: e.target.value })}
+                style={{ width: '100%', borderRadius: '8px' }}
+                allowClear
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Rango de Fechas (Pedido)</div>
+              <RangePicker
+                value={[filtros.desde, filtros.hasta]}
+                onChange={(dates) => setFiltros({ ...filtros, desde: dates ? dates[0] : null, hasta: dates ? dates[1] : null })}
+                format="YYYY-MM-DD"
+                placeholder={['Desde', 'Hasta']}
+                style={{ width: '100%', borderRadius: '8px' }}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Horario Regular (3%)</div>
+              <TimePicker.RangePicker
+                value={[filtros.horaInicio, filtros.horaFin]}
+                onChange={(times) => setFiltros({ ...filtros, horaInicio: times ? times[0] : null, horaFin: times ? times[1] : null })}
+                format="HH:mm"
+                style={{ width: '100%', borderRadius: '8px' }}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Estado Facturación</div>
+              <Select
+                value={filtros.estadoFacturacion}
+                onChange={(val) => setFiltros({ ...filtros, estadoFacturacion: val })}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'todos', label: 'Todos los activos' },
+                  { value: 'pendientes', label: 'Pendientes' },
+                  { value: 'facturados', label: 'Entregados / Facturados' }
+                ]}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Usuario Responsable</div>
+              <Select
+                value={filtros.usuarioId}
+                onChange={(val) => setFiltros({ ...filtros, usuarioId: val })}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="children"
+              >
+                <Option value="todos">Todos los usuarios</Option>
+                <Option value="sin_asignar">Sin asignar</Option>
+                {usuariosActivos.map((u) => (
+                  <Option key={u.id} value={u.id}>
+                    {u.nombre || u.email} {u.id === currentUserId ? '(Tú)' : ''}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
+        )}
       </Card>
 
       {/* Tabla Principal */}
       <Card
         bordered={false}
-        style={{ borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
-        bodyStyle={{ padding: 0 }}
+        style={{
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+          background: '#ffffff'
+        }}
+        bodyStyle={{ padding: '20px' }}
       >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <Space size={8} wrap>
+            <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Leyenda de Comisiones:</Text>
+            <Tag color="success" style={{ fontWeight: 600 }}>● 3% Horario Regular (08:00 - 17:00)</Tag>
+            <Tag color="warning" style={{ fontWeight: 600 }}>● 5% Fuera de Horario</Tag>
+          </Space>
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            Total mostrados: <strong>{pedidosFiltrados.length}</strong>
+          </Text>
+        </div>
         <Table
           columns={columns}
           dataSource={dataSourceSafe}
           rowKey={(r) => r.id || r.numeroPedido || r.cotizacionId || Math.random()}
           loading={loading}
-          pagination={{ pageSize: 12, showTotal: (total) => `${total} pedidos activos` }}
+          pagination={{ pageSize: 12, showTotal: (total) => `Total: ${total} pedidos activos` }}
           scroll={{ x: 'max-content' }}
           onRow={(record) => ({
             onClick: () => handleAbrirDetalle(record),
@@ -597,18 +776,18 @@ const InsPedidos = () => {
         />
       </Card>
 
-      {/* Modal / Dialog de Detalle y Asignación de Empleado */}
+      {/* Modal / Dialog de Detalle y Asignación de Pedido (Estilo Oportunidades Audatex) */}
       <Modal
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <FileTextOutlined style={{ color: '#2563eb', fontSize: 20 }} />
             <span>Detalle del Pedido #{selectedPedido?.numeroPedido || selectedPedido?.cotizacionId}</span>
             {(() => {
-              const est = selectedPedido?.estado || 'Pendiente';
+              const est = selectedPedido?.estado || 'Confirmado';
               const estLower = est.toLowerCase();
               const color = estLower === 'entregado' ? 'success' :
                             estLower.includes('procesamiento') ? 'blue' :
-                            estLower.includes('aguardando') ? 'gold' : 'orange';
+                            estLower.includes('aguardando') ? 'gold' : 'green';
               return <Tag color={color}>{est}</Tag>;
             })()}
           </div>
@@ -616,141 +795,257 @@ const InsPedidos = () => {
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         width={780}
-        footer={[
-          <Button key="cerrar" onClick={() => setModalVisible(false)}>
-            Cerrar
-          </Button>,
-          <Button
-            key="asignar"
-            type="primary"
-            icon={<CheckCircleOutlined />}
-            loading={procesando}
-            onClick={handleConfirmarFacturacion}
-            style={{ background: '#2563eb', borderColor: '#2563eb' }}
-          >
-            Guardar Asignación de Empleado
-          </Button>
-        ]}
+        footer={(() => {
+          const assignedId = selectedPedido?.usuarioId || selectedPedido?.empleadoId;
+          const esAsignadoAOtro = Boolean(assignedId && currentUserId && Number(assignedId) !== Number(currentUserId));
+
+          if (!esAdmin && esAsignadoAOtro) {
+            return (
+              <Button onClick={() => setModalVisible(false)}>
+                Cerrar
+              </Button>
+            );
+          }
+
+          let btnLabel = 'Confirmar Asignación';
+          if (!assignedId) {
+            btnLabel = esAdmin ? 'Asignar Usuario' : 'Confirmar Autoasignación';
+          } else {
+            btnLabel = esAdmin ? 'Guardar Cambios' : 'Actualizar Mi Gestión';
+          }
+
+          return (
+            <Space>
+              <Button onClick={() => setModalVisible(false)}>Cerrar</Button>
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                loading={procesando}
+                onClick={handleConfirmarFacturacion}
+                style={{ background: '#2563eb', borderColor: '#2563eb' }}
+              >
+                {btnLabel}
+              </Button>
+            </Space>
+          );
+        })()}
       >
         {selectedPedido && (
           <div>
-            {/* Resumen del Vehículo y Siniestro */}
-            <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }}>
-              <Descriptions.Item label="Vehículo">
-                <strong>{getMarcaSegura(selectedPedido)} {getModeloSeguro(selectedPedido)} ({getAnioSeguro(selectedPedido)})</strong>
-              </Descriptions.Item>
-              <Descriptions.Item label="Placa">
-                <Tag color="blue">{getPlacaSegura(selectedPedido)}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="No. Pedido">
-                <strong>{selectedPedido.numeroPedido || '-'}</strong>
-              </Descriptions.Item>
-              <Descriptions.Item label="Cotización ID">
-                {selectedPedido.cotizacionId || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="No. Siniestro">
-                {selectedPedido.siniestro || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Fecha y Hora">
-                {parsearFechaHora(selectedPedido).fechaTexto} {parsearFechaHora(selectedPedido).horaTexto}
-              </Descriptions.Item>
-            </Descriptions>
+            {/* Resumen del Siniestro y Vehículo (mismo estilo limpio que en Oportunidades) */}
+            <div style={{ background: '#f8fafc', padding: 16, borderRadius: 8, marginBottom: 16, border: '1px solid #e2e8f0' }}>
+              <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }}>
+                <Descriptions.Item label="Vehículo">
+                  <Text strong>{getMarcaSegura(selectedPedido)} {getModeloSeguro(selectedPedido)} ({getAnioSeguro(selectedPedido)})</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Placa / Matrícula">
+                  <Tag color="blue">{getPlacaSegura(selectedPedido)}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="No. Pedido">
+                  <Text strong>#{selectedPedido.numeroPedido || selectedPedido.id || '-'}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Cotización ID">
+                  <Text strong>#{selectedPedido.cotizacionId || '-'}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Aseguradora">
+                  <Tag color="cyan">{selectedPedido.aseguradora || 'INS'}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="No. Siniestro">
+                  {selectedPedido.siniestro || '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label="Taller">
+                  {selectedPedido.taller || '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label="Fecha y Hora">
+                  {parsearFechaHora(selectedPedido).fechaTexto} {parsearFechaHora(selectedPedido).horaTexto}
+                </Descriptions.Item>
+              </Descriptions>
+            </div>
 
-            {/* Repuestos del Pedido */}
-            <Divider orientation="left" style={{ margin: '16px 0 10px', fontSize: 13 }}>
-              Repuestos Solicitados
-            </Divider>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginBottom: 12 }}>
-              <thead>
-                <tr style={{ background: '#f1f5f9', color: '#475569', textAlign: 'left' }}>
-                  <th style={{ padding: '6px 8px' }}>Descripción</th>
-                  <th style={{ padding: '6px 8px' }}>Tipo Pieza</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'center' }}>Cantidad</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>Precio Ofrecido</th>
-                </tr>
-              </thead>
-              <tbody>
-                {!selectedPedido.items || selectedPedido.items.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} style={{ padding: 12, textAlign: 'center', color: '#94a3b8' }}>
-                      Información de piezas consolidada en el total del pedido
-                    </td>
-                  </tr>
-                ) : (
-                  selectedPedido.items.map((it, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #f8fafc' }}>
-                      <td style={{ padding: '6px 8px' }}>{it.descripcion || '-'}</td>
-                      <td style={{ padding: '6px 8px' }}>{it.tipoPieza || 'Original'}</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'center' }}>{it.cantidad || 1}</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 500 }}>
-                        {formatColones(it.precioOfrecido)}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            {/* Cuadro de Liquidación de Comisión */}
-            <Divider orientation="left" style={{ margin: '16px 0 10px', fontSize: 13 }}>
-              Liquidación y Regla de Comisión
-            </Divider>
+            {/* Bloque Financiero: Monto Total Cargado y Comisión */}
             {(() => {
               const evalCom = evaluarHorarioComision(selectedPedido, appliedFiltros.horaInicio, appliedFiltros.horaFin);
-              const total = Number(selectedPedido.totalPedido) || 0;
-              const pct = porcentajeManual || evalCom.porcentaje;
-              const comisionFinal = (total * pct) / 100;
+              const items = Array.isArray(selectedPedido.items) ? selectedPedido.items : [];
+              const totalCalculado = (() => {
+                const direct = Number(selectedPedido.totalPedido || selectedPedido.total_pedido || 0);
+                if (direct > 0) return direct;
+                if (items.length > 0) {
+                  const sum = items.reduce((acc, it) => {
+                    const p = it.precioOfrecido || it.precio || it.Precio || 0;
+                    const num = typeof p === 'string' ? Number(p.replace(/[^0-9.-]+/g, '')) : Number(p);
+                    const cant = Number(it.cantidad || 1);
+                    return acc + (isNaN(num) ? 0 : num * (isNaN(cant) ? 1 : cant));
+                  }, 0);
+                  if (sum > 0) return sum;
+                }
+                return 0;
+              })();
+
+              const pctComision = porcentajeManual || Number(selectedPedido.porcentajeComision || selectedPedido.porcentaje_comision || evalCom.porcentaje);
+              const comisionFinal = Number(selectedPedido.comisionCalculada || selectedPedido.comision_calculada || Math.round((totalCalculado * pctComision) / 100));
 
               return (
-                <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 16 }}>
-                  <Row gutter={[16, 8]} align="middle">
-                    <Col xs={24} sm={12}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>Evaluación por Horario:</Text>
+                <div style={{ background: '#f0fdf4', padding: 14, borderRadius: 8, marginBottom: 16, border: '1px solid #86efac' }}>
+                  <Row gutter={16} align="middle">
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Pedido Confirmado</Text>
+                      <Text strong style={{ color: '#166534', fontSize: 15 }}>
+                        📦 #{selectedPedido.numeroPedido || selectedPedido.id || selectedPedido.cotizacionId}
+                      </Text>
                       <div style={{ marginTop: 4 }}>
+                        <Tag color="green" style={{ fontWeight: 500 }}>
+                          {selectedPedido.estado || 'Confirmado'}
+                        </Tag>
+                      </div>
+                      <div style={{ marginTop: 6 }}>
                         {evalCom.esDentro ? (
-                          <Tag color="success" style={{ fontSize: 13, padding: '4px 8px' }}>
-                            ● Hora {parsearFechaHora(selectedPedido).horaTexto}: Dentro de horario regular (3%)
+                          <Tag color="success" style={{ fontSize: 11, fontWeight: 500 }}>
+                            ● Hora {parsearFechaHora(selectedPedido).horaTexto}: 3% (Horario regular)
                           </Tag>
                         ) : (
-                          <Tag color="warning" style={{ fontSize: 13, padding: '4px 8px' }}>
-                            ● Hora {parsearFechaHora(selectedPedido).horaTexto}: Fuera de horario regular (5%)
+                          <Tag color="warning" style={{ fontSize: 11, fontWeight: 500 }}>
+                            ● Hora {parsearFechaHora(selectedPedido).horaTexto}: 5% (Fuera de horario)
                           </Tag>
                         )}
                       </div>
                     </Col>
-                    <Col xs={24} sm={12} style={{ textAlign: 'right' }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>Comisión Estimada:</Text>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: '#16a34a' }}>
-                        {formatColones(comisionFinal)} ({pct}%)
-                      </div>
+                    <Col xs={12} sm={8} style={{ textAlign: 'right' }}>
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Monto Total Cargado</Text>
+                      <Text strong style={{ color: '#15803d', fontSize: 18 }}>
+                        ₡{new Intl.NumberFormat('es-CR').format(totalCalculado)}
+                      </Text>
+                    </Col>
+                    <Col xs={12} sm={8} style={{ textAlign: 'right' }}>
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                        Comisión ({pctComision}%)
+                      </Text>
+                      <Text strong style={{ color: '#b45309', fontSize: 18 }}>
+                        ₡{new Intl.NumberFormat('es-CR').format(comisionFinal)}
+                      </Text>
                     </Col>
                   </Row>
                 </div>
               );
             })()}
 
-            {/* Selección del Empleado Responsable */}
-            <div style={{ background: '#eff6ff', padding: 16, borderRadius: 8, border: '1px solid #bfdbfe' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <UserOutlined style={{ color: '#2563eb', fontSize: 16 }} />
-                <Text strong style={{ color: '#1e40af' }}>Empleado Responsable del Pedido:</Text>
-              </div>
-              <Select
-                placeholder="Seleccione el empleado que gestionó este pedido..."
-                value={empleadoSeleccionadoId}
-                onChange={(val) => setEmpleadoSeleccionadoId(val)}
-                style={{ width: '100%' }}
-                size="large"
-                showSearch
-                optionFilterProp="children"
-              >
-                {empleadosActivos.map((emp) => (
-                  <Option key={emp.id} value={emp.id}>
-                    {emp.nombres || emp.nombre} {emp.apellidos || ''} {emp.puesto ? `(${emp.puesto})` : ''}
-                  </Option>
-                ))}
-              </Select>
-            </div>
+            {/* Repuestos Solicitados */}
+            <Divider orientation="left" style={{ margin: '14px 0', fontSize: 13, color: '#475569' }}>
+              Repuestos Solicitados ({selectedPedido.items?.length || 0})
+            </Divider>
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={Array.isArray(selectedPedido.items) ? selectedPedido.items : []}
+              rowKey={(item, idx) => item.id || idx}
+              columns={[
+                {
+                  title: '#',
+                  key: 'idx',
+                  width: 50,
+                  render: (_, __, index) => index + 1
+                },
+                {
+                  title: 'Descripción',
+                  key: 'descripcion',
+                  render: (_, r) => <strong>{r.descripcion || r['Descripcion Pieza'] || r['Grupo Pieza'] || 'Pieza'}</strong>
+                },
+                {
+                  title: 'Part Number',
+                  key: 'partNumber',
+                  render: (_, r) => <Text code>{r.partNumber || r.numeroParte || r['PartNumber'] || '-'}</Text>
+                },
+                {
+                  title: 'Tipo Pieza / Estado',
+                  key: 'tipoPieza',
+                  align: 'center',
+                  render: (_, r) => <Tag>{r.tipoPieza || r.estado || r.Estado || 'Original'}</Tag>
+                },
+                {
+                  title: 'Cantidad',
+                  key: 'cantidad',
+                  align: 'center',
+                  width: 65,
+                  render: (_, r) => r.cantidad || 1
+                },
+                {
+                  title: 'Precio Ofrecido',
+                  key: 'precio',
+                  align: 'right',
+                  width: 140,
+                  render: (_, r) => {
+                    const p = r.precioOfrecido || r.precio || r.Precio || r['Precio Ofrecido'];
+                    const val = typeof p === 'string' ? Number(p.replace(/[^0-9.-]+/g, '')) : Number(p);
+                    return val ? <Text strong style={{ color: '#15803d' }}>₡{new Intl.NumberFormat('es-CR').format(val)}</Text> : '-';
+                  }
+                }
+              ]}
+              locale={{ emptyText: 'No hay repuestos desglosados en este pedido' }}
+              style={{ marginBottom: 16 }}
+            />
+
+            {/* Selección / Autoasignación del Usuario Responsable */}
+            {(() => {
+              const assignedId = selectedPedido?.usuarioId || selectedPedido?.empleadoId;
+              const assignedName = selectedPedido?.usuarioNombre || selectedPedido?.empleadoNombre;
+              const esAsignadoAOtro = Boolean(assignedId && currentUserId && Number(assignedId) !== Number(currentUserId));
+
+              return (
+                <div style={{ background: '#eff6ff', padding: 16, borderRadius: 8, border: '1px solid #bfdbfe' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <UserOutlined style={{ color: '#2563eb', fontSize: 16 }} />
+                      <Text strong style={{ color: '#1e40af' }}>
+                        {esAdmin ? 'Usuario Responsable (Gestión Admin):' : 'Usuario Responsable:'}
+                      </Text>
+                    </div>
+                    {!esAdmin && (
+                      <Tag color="cyan">Rol: {user?.rol || 'Colaborador'}</Tag>
+                    )}
+                  </div>
+
+                  {esAdmin ? (
+                    <Select
+                      placeholder="Seleccione el usuario que gestionó este pedido..."
+                      value={usuarioSeleccionadoId}
+                      onChange={(val) => setUsuarioSeleccionadoId(val)}
+                      style={{ width: '100%' }}
+                      size="large"
+                      showSearch
+                      optionFilterProp="children"
+                    >
+                      {usuariosActivos.map((u) => (
+                        <Option key={u.id} value={u.id}>
+                          {u.nombre || u.email} {u.rol ? `(${u.rol})` : ''} {u.id === currentUserId ? '— (Tú)' : ''}
+                        </Option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <div>
+                      {esAsignadoAOtro ? (
+                        <Alert
+                          type="warning"
+                          showIcon
+                          message={`Asignado actualmente a: ${assignedName || `Usuario #${assignedId}`}`}
+                          description="Este pedido ya está asignado a otro usuario. Solo un Administrador puede transferirlo."
+                        />
+                      ) : (
+                        <div style={{ padding: '10px 14px', background: '#fff', borderRadius: 6, border: '1px solid #93c5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div>
+                            <Text strong style={{ color: '#1e3a8a', fontSize: 15 }}>
+                              👤 {currentUserName}
+                            </Text>
+                            <div style={{ color: '#64748b', fontSize: 12 }}>
+                              {assignedId ? 'Ya asignado a tu cuenta' : 'Se autoasignará a tu usuario al confirmar'}
+                            </div>
+                          </div>
+                          <Tag color="blue">Autoasignación</Tag>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
       </Modal>

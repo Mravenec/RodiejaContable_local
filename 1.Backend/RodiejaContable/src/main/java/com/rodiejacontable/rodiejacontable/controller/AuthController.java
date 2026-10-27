@@ -49,13 +49,14 @@ public class AuthController {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            var userRecord = dsl.select(ROLES.NOMBRE, PERSONAL_DATA.FULL_NAME, USERS.ROL_ID)
+            var userRecord = dsl.select(USERS.ID, ROLES.NOMBRE, PERSONAL_DATA.FULL_NAME, USERS.ROL_ID)
                     .from(USERS)
                     .join(ROLES).on(USERS.ROL_ID.eq(ROLES.ID))
                     .leftJoin(PERSONAL_DATA).on(USERS.ID.eq(PERSONAL_DATA.USER_ID))
                     .where(USERS.EMAIL.eq(email))
                     .fetchOne();
 
+            Integer userId = userRecord != null ? userRecord.get(USERS.ID) : null;
             String role = userRecord != null ? userRecord.get(ROLES.NOMBRE) : "UNKNOWN";
             Integer rolId = userRecord != null ? userRecord.get(USERS.ROL_ID) : null;
             String nombre = userRecord != null && userRecord.get(PERSONAL_DATA.FULL_NAME) != null
@@ -66,6 +67,8 @@ public class AuthController {
 
             return ResponseEntity.ok(Map.of(
                     "token", jwt,
+                    "id", userId != null ? userId : 0,
+                    "userId", userId != null ? userId : 0,
                     "email", email,
                     "rol", role,
                     "nombre", nombre,
