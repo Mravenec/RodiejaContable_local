@@ -318,14 +318,6 @@ const normalizarEOrdenar = (
       transacciones: transaccionesVehiculo
     };
   };
-      notas: isNullish(v.notas) ? null : String(v.notas),
-      fecha_creacion: v.fecha_creacion ?? v.fechaCreacion,
-      fecha_actualizacion: v.fecha_actualizacion ?? v.fechaActualizacion,
-      imagen_url: v.imagen_url ?? v.imagenUrl,
-      repuestos: repuestosVehiculo,
-      transacciones: transaccionesVehiculo
-    };
-  };
 
   const normGeneracion = (g, parentModeloId) => {
     const idGen = g.id ?? g.generacion_id;
