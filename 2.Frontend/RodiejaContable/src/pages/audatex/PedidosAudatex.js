@@ -5,6 +5,7 @@ import {
   FilterOutlined, UpOutlined, DownOutlined, FileTextOutlined, UserOutlined
 } from '@ant-design/icons';
 import { audatexAPI } from '../../api/audatex';
+import { API_BASE_URL } from '../../api/config';
 import { useGeo } from '../../hooks/useGeo';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
@@ -211,7 +212,7 @@ const PedidosAudatex = () => {
 
     if (triggerSync) {
       try {
-        await fetch('http://localhost:8080/api/audatex/pedidos/sync/incremental', {
+        await fetch(`${API_BASE_URL}/api/audatex/pedidos/sync/incremental`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -223,7 +224,7 @@ const PedidosAudatex = () => {
 
     setStreaming(false);
 
-    const url = `http://localhost:8080/api/audatex/pedidos/sync/stream`;
+    const url = `${API_BASE_URL}/api/audatex/pedidos/sync/stream`;
 
     (async () => {
       try {
