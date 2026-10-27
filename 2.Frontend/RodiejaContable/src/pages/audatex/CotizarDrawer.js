@@ -1,12 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Drawer, Table, Button, Select, InputNumber, message, Space, Typography, Tag, Switch, Card, Row, Col, Tooltip } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Drawer, Table, Button, Select, InputNumber, message, Space, Typography, Tag, Switch, Card, Row, Col, Divider, Tooltip } from 'antd';
 import { CarOutlined, SendOutlined, StopOutlined, CheckOutlined, TagOutlined, DollarOutlined, ToolOutlined, CalendarOutlined } from '@ant-design/icons';
 import { audatexService } from '../../api';
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 const { Option } = Select;
 
 const TIPOS_PIEZA = ['Original', 'Genérica', 'Usada'];
+const RAZONES_NO_COTIZAR = [
+  'Sin existencias',
+  'No trabajamos la marca',
+  'Pieza descontinuada',
+  'No se vende por separado',
+  'Otro'
+];
 
 const normalizeString = (str) => {
   if (!str) return '';
@@ -18,19 +25,14 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
   const [submitting, setSubmitting] = useState(false);
 
   const mRepuesto = normalizeString(filtroRepuesto);
-  const repuestosFiltrados = useMemo(
-    () => (oportunidad?.repuestos || [])
-      .map((r, idx) => ({ ...r, originalIdx: idx }))
-      .filter(r => {
-        if (!mRepuesto) return true;
-        return normalizeString(r['Grupo Pieza']).includes(mRepuesto) ||
-               normalizeString(r['PartNumber']).includes(mRepuesto) ||
-               normalizeString(r['Part Serial Number']).includes(mRepuesto) ||
-               normalizeString(r['Descripcion Pieza']).includes(mRepuesto) ||
-               normalizeString(r.descripcion).includes(mRepuesto);
-      }),
-    [oportunidad, mRepuesto]
-  );
+  const repuestosFiltrados = (oportunidad?.repuestos || []).map((r, idx) => ({ ...r, originalIdx: idx })).filter(r => {
+    if (!mRepuesto) return true;
+    return normalizeString(r['Grupo Pieza']).includes(mRepuesto) || 
+           normalizeString(r['PartNumber']).includes(mRepuesto) || 
+           normalizeString(r['Part Serial Number']).includes(mRepuesto) || 
+           normalizeString(r['Descripcion Pieza']).includes(mRepuesto) ||
+           normalizeString(r.descripcion).includes(mRepuesto);
+  });
 
   useEffect(() => {
     if (visible && oportunidad) {
@@ -46,7 +48,7 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
       });
       setFormData(initialData);
     }
-  }, [visible, oportunidad, repuestosFiltrados]);
+  }, [visible, oportunidad]);
 
   const updateRow = (idx, field, value) => {
     setFormData(prev => {
@@ -150,10 +152,34 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
         totalPedido: totalPrecio,
         estado: 'Aguardando Confirmación',
         notas: 'Cotizado desde Drawer multi-pieza',
-        items: envios
+        items: envios,
+        empleadoId: oportunidad.empleadoId || null,
+        porcentajeComision: oportunidad.porcentajeComision || 3
       };
       
-      await audatexService.enviarCotizacion(payload);
+      const resp = await audatexService.enviarCotizacion(payload);
+
+      // Sincronizar en localStorage para visibilidad inmediata en Ventas INS y Pedidos INS
+      if (oportunidad.empleadoId) {
+        try {
+          const stored = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
+          if (resp?.pedido?.id) {
+            stored[resp.pedido.id] = {
+              empleadoId: oportunidad.empleadoId,
+              empleadoNombre: oportunidad.empleadoNombre,
+              porcentajeComision: oportunidad.porcentajeComision || 3
+            };
+          }
+          stored[oportunidad.cotizacionId] = {
+            empleadoId: oportunidad.empleadoId,
+            empleadoNombre: oportunidad.empleadoNombre,
+            porcentajeComision: oportunidad.porcentajeComision || 3
+          };
+          localStorage.setItem('pedidos_ins_asignaciones', JSON.stringify(stored));
+        } catch (e) {
+          console.warn('Error guardando asignación de pedido:', e);
+        }
+      }
 
       message.success('Pedido creado exitosamente para Audatex InPart');
       onClose();
@@ -350,14 +376,25 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
             </Space>
           </Col>
           <Col>
-            <Tag color="geekblue" style={{ padding: '4px 12px', fontSize: 14, borderRadius: 16 }}>
-              {repuestosFiltrados.length} piezas en esta vista
-            </Tag>
+            <Space size={8}>
+              {oportunidad?.empleadoNombre ? (
+                <Tag color="purple" style={{ padding: '4px 12px', fontSize: 13, borderRadius: 16 }}>
+                  Responsable: <strong>{oportunidad.empleadoNombre}</strong>
+                </Tag>
+              ) : (
+                <Tag color="default" style={{ padding: '4px 12px', fontSize: 13, borderRadius: 16 }}>
+                  Sin responsable asignado
+                </Tag>
+              )}
+              <Tag color="geekblue" style={{ padding: '4px 12px', fontSize: 14, borderRadius: 16 }}>
+                {repuestosFiltrados.length} piezas en esta vista
+              </Tag>
+            </Space>
           </Col>
         </Row>
       </Card>
 
-      <Table scroll={{ x: 'max-content' }}
+      <Table
         dataSource={repuestosFiltrados}
         columns={columns}
         rowKey={(record) => record.originalIdx}

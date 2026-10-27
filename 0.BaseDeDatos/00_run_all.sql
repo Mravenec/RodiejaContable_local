@@ -11,8 +11,10 @@
 -- Scripts numerados en DB/:
 --   01_sistema_vehicular.sql  — esquema principal (tablas, vistas, triggers, SPs)
 --   02_UsersAuth.sql          — autenticación y usuarios
---   03_AudatexEnvios.sql      — integración Audatex InPart (envíos)
+--   03_AudatexPedidos.sql     — integración Audatex InPart (envíos)
 --   04_AudatexSync.sql        — sincronización oportunidades Audatex (vista materializada)
+--   05_INS_Pedidos.sql        — integración INS (LINZ) - pedidos y comisiones
+--   06_INS_Permisos.sql       — permisos para módulo INS
 --   04_datos.sql              — REAL DATA snapshot (vía load_data.py, no incluido aquí)
 --   _schema_from_live.sql     — optional live schema dump from export_db.py (not sourced)
 -- ============================================================
@@ -42,11 +44,23 @@ SOURCE DB/03_AudatexPedidos.sql;
 -- ─────────────────────────────────────────────────────────────────
 SOURCE DB/04_AudatexSync.sql;
 
+-- ─────────────────────────────────────────────────────────────────
+-- PASO 5: Integración INS (LINZ) — Pedidos y Comisiones
+--         Depende de: empleados (01)
+-- ─────────────────────────────────────────────────────────────────
+SOURCE DB/05_INS_Pedidos.sql;
+
+-- ─────────────────────────────────────────────────────────────────
+-- PASO 6: Permisos módulo INS
+--         Depende de: modulos, submodulos, rol_permisos (02)
+-- ─────────────────────────────────────────────────────────────────
+SOURCE DB/06_INS_Permisos.sql;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ─────────────────────────────────────────────────────────────────
 -- VERIFICACIÓN FINAL
--- ─────────────────────────────────────────────────────────────────
+-- ──────────────────────────────────────────────────────────────s───
 SELECT
     SCHEMA_NAME AS base_de_datos,
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = SCHEMA_NAME) AS tablas

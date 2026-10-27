@@ -97,6 +97,21 @@ public class TransaccionesFinancierasRepository {
                  .fetchOne(0, Integer.class);
         return count != null ? count : 0;
     }
+
+    public boolean existsRefundByReferencia(String referencia) {
+        if (referencia == null || referencia.trim().isEmpty()) return false;
+        Integer count = dsl.selectCount()
+                 .from(TRANSACCIONES_FINANCIERAS)
+                 .where(TRANSACCIONES_FINANCIERAS.REFERENCIA.eq(referencia))
+                 .and(TRANSACCIONES_FINANCIERAS.ACTIVO.eq((byte) 1))
+                 .fetchOne(0, Integer.class);
+        return count != null && count > 0;
+    }
+
+    public boolean isTransactionRefunded(Integer transaccionId) {
+        if (transaccionId == null) return false;
+        return existsRefundByReferencia("Reembolso TR-" + transaccionId);
+    }
     
     public BigDecimal getTotalMontoByTipoTransaccionAndPeriodo(Integer tipoTransaccionId, LocalDate fechaInicio, LocalDate fechaFin) {
         return dsl.select(DSL.sum(TRANSACCIONES_FINANCIERAS.MONTO))

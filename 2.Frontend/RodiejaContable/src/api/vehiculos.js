@@ -137,10 +137,12 @@ class VehiculoService {
           
           // Recorrer cada generación del modelo
           for (const [nombreGeneracion, vehiculos] of Object.entries(generaciones)) {
-            // Extraer años de la generación (ej: "gen10 (2016-2021)")
-            const anioMatch = nombreGeneracion.match(/\((\d{4})-(\d{4})\)/);
-            const anioInicio = anioMatch ? parseInt(anioMatch[1]) : null;
-            const anioFin = anioMatch ? parseInt(anioMatch[2]) : null;
+            // Extraer años de la generación (ej: "gen10 (2016-2021)" o "gen10 (2018-Actual)")
+            const anioMatch = nombreGeneracion.match(/\((\d{4})\s*-\s*(\d{4}|Actual)?\)/i);
+            const anioInicio = anioMatch ? parseInt(anioMatch[1], 10) : null;
+            const anioFin = anioMatch && anioMatch[2] && anioMatch[2].toLowerCase() !== 'actual'
+              ? parseInt(anioMatch[2], 10)
+              : null;
             
             // Crear objeto de generación
             generacionesArray.push({

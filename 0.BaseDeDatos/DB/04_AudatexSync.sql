@@ -2,6 +2,8 @@
 -- 04_AudatexSync.sql — Vista Materializada para Sincronización
 -- ============================================================
 
+USE sistema_vehicular;
+
 CREATE TABLE IF NOT EXISTS audatex_oportunidades_sync (
     wan VARCHAR(255) PRIMARY KEY,
     aseguradora VARCHAR(255),
@@ -23,11 +25,14 @@ CREATE TABLE IF NOT EXISTS audatex_oportunidades_sync (
     actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     detalle_json JSON,
+    user_id INT DEFAULT NULL,
     
     INDEX idx_estado (estado),
     INDEX idx_armadora (armadora),
-    INDEX idx_ultima_vez_visto (ultima_vez_visto)
-);
+    INDEX idx_ultima_vez_visto (ultima_vez_visto),
+    INDEX idx_oportunidades_user_id (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
 -- TRIGGERS DE SINCRONIZACION DE ESTADOS

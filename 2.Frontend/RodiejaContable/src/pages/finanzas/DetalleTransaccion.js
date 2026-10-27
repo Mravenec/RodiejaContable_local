@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, Typography, Descriptions, Button, Spin, message, Tag, Modal } from 'antd';
+import { Card, Typography, Descriptions, Button, Spin, message, Tag, Modal, Alert } from 'antd';
 import { ArrowLeftOutlined, CarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import finanzaService from '../../api/finanzas';
 import { getTiposTransacciones } from '../../api/transacciones';
-import transaccionesCompletasService from '../../api/transaccionesCompletas';
 
 const { Title } = Typography;
 
@@ -13,6 +12,7 @@ const DetalleTransaccion = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [transaccion, setTransaccion] = useState(null);
+  const [estadoReembolso, setEstadoReembolso] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isReembolsoModalVisible, setIsReembolsoModalVisible] = useState(false);
@@ -29,6 +29,14 @@ const DetalleTransaccion = () => {
           getTiposTransacciones()
         ]);
         
+        let infoReembolso = null;
+        try {
+          infoReembolso = await finanzaService.verificarEstadoReembolso(id);
+        } catch (e) {
+          console.warn('No se pudo consultar estado de reembolso:', e);
+        }
+        setEstadoReembolso(infoReembolso);
+
         // Enriquecer con tipo de transacción
         const enrichedTransaccion = {
           ...transaccionData,
@@ -56,13 +64,12 @@ const DetalleTransaccion = () => {
   const handleReembolso = async () => {
     try {
       setIsReembolsando(true);
-      await transaccionesCompletasService.reembolsarTransaccion(id);
-      
+      await finanzaService.reembolsarTransaccion(id);
 
-      message.success('Reembolso procesado exitosamente');
+      message.success('Reembolso procesado exitosamente. Se ha retirado la comisión del empleado.');
       setIsReembolsoModalVisible(false);
       
-      // Regresar a la lista y refrescar (o simplemente refrescar el detalle)
+      // Regresar a la lista de finanzas
       navigate('/finanzas');
     } catch (err) {
       console.error(err);
@@ -141,11 +148,20 @@ const DetalleTransaccion = () => {
     }
   };
 
-  const isIngresoCompletado = 
+  const esReembolso = 
+    Boolean(estadoReembolso?.esReembolso) ||
+    Boolean(transaccion?.referencia?.toLowerCase().startsWith('reembolso')) ||
+    Boolean(transaccion?.codigoTransaccion?.toUpperCase().startsWith('REF-')) ||
+    Boolean(transaccion?.tipo_transaccion?.nombre?.toLowerCase().includes('reembolso')) ||
+    Boolean(transaccion?.descripcion?.toLowerCase().startsWith('reembolso'));
+
+  const yaReembolsada = Boolean(estadoReembolso?.yaReembolsada);
+
+  const puedeReembolsar = 
     transaccion?.estado === 'COMPLETADA' && 
-    (transaccion?.tipo_transaccion?.categoria === 'INGRESO' || 
-     transaccion?.tipo === 'INGRESO' || 
-     transaccion?.categoria === 'INGRESO');
+    !esReembolso && 
+    !yaReembolsada &&
+    (estadoReembolso ? estadoReembolso.puedeReembolsar : true);
 
   return (
     <div>
@@ -160,8 +176,28 @@ const DetalleTransaccion = () => {
         </Button>
         <Title level={2} style={{ margin: 0 }}>Detalle de la Transacción</Title>
       </div>
+
+      {yaReembolsada && (
+        <Alert 
+          type="warning" 
+          showIcon 
+          message="Transacción Reembolsada" 
+          description="Esta transacción ya fue reembolsada y no puede modificarse ni reembolsarse dos veces. La comisión del empleado asignado ha sido retirada." 
+          style={{ marginBottom: 16 }} 
+        />
+      )}
       
-      {isIngresoCompletado && (
+      {esReembolso && (
+        <Alert 
+          type="info" 
+          showIcon 
+          message="Transacción de Reembolso" 
+          description="Esta transacción corresponde a un reembolso. No se puede deshacer ni reembolsar nuevamente." 
+          style={{ marginBottom: 16 }} 
+        />
+      )}
+      
+      {puedeReembolsar && (
         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
           <Button 
             type="primary" 
@@ -242,8 +278,11 @@ const DetalleTransaccion = () => {
         okButtonProps={{ danger: true, loading: isReembolsando }}
       >
         <p>
-          Al confirmar este reembolso, se generará una transacción de egreso para revertir este ingreso.
-          Si es un repuesto, volverá a estado <strong>STOCK</strong> en el inventario.
+          Al confirmar este reembolso, se generará una transacción inversa para revertir este movimiento.
+          Si es un repuesto, volverá a estado <strong>STOCK</strong> en el inventario. Si es un vehículo, volverá a estar <strong>DISPONIBLE</strong>.
+        </p>
+        <p style={{ color: '#d46b08', fontWeight: 500 }}>
+          Importante: Si la transacción tenía un empleado asignado con comisión, dicha comisión será retirada a ₡0.00 y esta acción no se puede deshacer.
         </p>
         <p>¿Deseas proceder?</p>
       </Modal>

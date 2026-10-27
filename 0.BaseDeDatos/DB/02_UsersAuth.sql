@@ -20,7 +20,6 @@ CREATE TABLE roles (
 -- Insertar roles iniciales según solicitud del usuario
 INSERT INTO roles (nombre) VALUES ('ADMIN');
 INSERT INTO roles (nombre) VALUES ('CONTADOR');
-INSERT INTO roles (nombre) VALUES ('COLABORADOR');
 
 -- 2. Crear tabla de Usuarios (independiente de empleados)
 CREATE TABLE users (
@@ -134,19 +133,6 @@ VALUES (
 -- Actualizar el nombre del contador por defecto
 UPDATE personal_data SET full_name = 'Contador' WHERE user_id = (SELECT id FROM users WHERE email = 'contador@rodieja.com');
 
--- 4.5 Insertar un usuario colaborador por defecto
--- La contraseña es 'Colaborador123!' encriptada con BCrypt (Costo 10)
-INSERT INTO users (email, password_hash, rol_id, is_active) 
-VALUES (
-    'colaborador@rodieja.com', 
-    '$2a$10$Mhs/gXgxWKAZrKTS4iXuEuhfmFbcbi/0FJWzm5O3P8B3Ff5/9muW2', -- Usaremos el mismo hash del contador por practicidad
-    (SELECT id FROM roles WHERE nombre = 'COLABORADOR'),
-    TRUE
-);
-
--- Actualizar el nombre del colaborador por defecto
-UPDATE personal_data SET full_name = 'Colaborador' WHERE user_id = (SELECT id FROM users WHERE email = 'colaborador@rodieja.com');
-
 -- 5. Módulos y Submódulos
 CREATE TABLE modulos (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -210,8 +196,10 @@ INSERT INTO submodulos (modulo_id, nombre, clave) VALUES
 -- Audatex
 INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 
 ((SELECT id FROM modulos WHERE clave = 'audatex'), 'Oportunidades', 'audatex_oportunidades'),
--- ((SELECT id FROM modulos WHERE clave = 'audatex'), 'Jerarquía InPart', 'audatex_jerarquia'),
-((SELECT id FROM modulos WHERE clave = 'audatex'), 'Pedidos', 'audatex_pedidos');
+((SELECT id FROM modulos WHERE clave = 'audatex'), 'Jerarquía InPart', 'audatex_jerarquia'),
+((SELECT id FROM modulos WHERE clave = 'audatex'), 'Pedidos', 'audatex_pedidos'),
+((SELECT id FROM modulos WHERE clave = 'audatex'), 'INS (Pedidos)', 'ins_pedidos'),
+((SELECT id FROM modulos WHERE clave = 'audatex'), 'Ventas Empleados INS', 'ins_ventas_empleados');
 -- Configuracion
 INSERT INTO submodulos (modulo_id, nombre, clave) VALUES 
 ((SELECT id FROM modulos WHERE clave = 'configuracion'), 'Ajustes de Privacidad', 'configuracion_ajustes');
@@ -228,11 +216,4 @@ INSERT INTO rol_permisos (rol_id, submodulo_id, can_view, can_create, can_edit, 
 SELECT r.id, s.id, TRUE, FALSE, FALSE, FALSE 
 FROM roles r CROSS JOIN submodulos s
 WHERE r.nombre = 'CONTADOR' 
-  AND s.clave IN ('inicio_dashboard', 'vehiculos_lista', 'inventario_lista', 'finanzas_lista', 'reportes_general');
-
--- Colaborador tiene solo vista de algunos (similar a contador)
-INSERT INTO rol_permisos (rol_id, submodulo_id, can_view, can_create, can_edit, can_delete)
-SELECT r.id, s.id, TRUE, FALSE, FALSE, FALSE 
-FROM roles r CROSS JOIN submodulos s
-WHERE r.nombre = 'COLABORADOR' 
   AND s.clave IN ('inicio_dashboard', 'vehiculos_lista', 'inventario_lista', 'finanzas_lista', 'reportes_general');

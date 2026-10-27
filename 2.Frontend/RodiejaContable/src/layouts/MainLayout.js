@@ -104,9 +104,6 @@ const MainLayout = () => {
             <Menu.Item key="audatex-oportunidades">
               <Link to="/audatex/oportunidades">Oportunidades Globales</Link>
             </Menu.Item>
-            {/* <Menu.Item key="audatex-jerarquia">
-              <Link to="/audatex/jerarquia">Jerarquía InPart</Link>
-            </Menu.Item> */}
           </Menu.SubMenu>
 
           <Menu.Item key="reportes" icon={<BarChartOutlined />}>
@@ -142,7 +139,9 @@ const MainLayout = () => {
           </div>
         </Header>
 
-        <Content className="main-layout-content" style={{
+        <Content style={{
+          margin: '24px 16px',
+          padding: '24px 24px 24px',
           minHeight: 'calc(100vh - 112px)',
           background: '#fff',
           borderRadius: '8px',

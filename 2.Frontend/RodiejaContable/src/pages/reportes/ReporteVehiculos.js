@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card, Row, Col, Table, Typography, Button, Space,
   Select, message, Statistic, Tabs, Tag,
@@ -21,6 +21,22 @@ import * as XLSX from 'xlsx';
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { Content } = Layout;
+
+const MESES_NOMBRES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+const parseFecha = (fecha) => {
+  if (!fecha) return null;
+  if (Array.isArray(fecha)) {
+    return new Date(fecha[0], fecha[1] - 1, fecha[2]);
+  }
+  if (typeof fecha === 'string') {
+    const parts = fecha.split('T')[0].split('-');
+    if (parts.length === 3) {
+      return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
+  }
+  return new Date(fecha);
+};
 
 const ReporteVehiculos = () => {
   const navigate = useNavigate();
@@ -60,10 +76,16 @@ const ReporteVehiculos = () => {
       setLoadingVehiculos(true);
 
       const params = {};
-      if (filtros.mes && filtros.anio) {
-        const fechaBase = moment().year(filtros.anio).month(filtros.mes - 1);
-        params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
-        params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
+      if (filtros.mes || filtros.anio) {
+        const targetAnio = filtros.anio || moment().year();
+        if (filtros.mes) {
+          const fechaBase = moment([targetAnio, filtros.mes - 1, 1]);
+          params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+          params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
+        } else {
+          params.fechaInicio = `${targetAnio}-01-01`;
+          params.fechaFin = `${targetAnio}-12-31`;
+        }
       }
 
       // Fetch all vehicles and transactions concurrently
@@ -112,6 +134,19 @@ const ReporteVehiculos = () => {
 
       // 2. Filtrar transacciones para quedarse SOLO con el historial de estos vehículos
       const movimientosVehiculos = (transaccionesResVista || []).filter(t => {
+        // Filtro por Fecha (Mes y/o Año)
+        if (filtros.mes || filtros.anio) {
+          const fObj = parseFecha(t.fecha);
+          if (fObj && !isNaN(fObj.getTime())) {
+            if (filtros.mes && (fObj.getMonth() + 1) !== filtros.mes) {
+              return false;
+            }
+            if (filtros.anio && fObj.getFullYear() !== filtros.anio) {
+              return false;
+            }
+          }
+        }
+
         // Verificar si la transacción pertenece a uno de los vehículos permitidos
         const matchesVehiculoId = t.vehiculoId != null && vehiculosIdsValid.has(parseInt(t.vehiculoId, 10));
         const matchesVehiculoCodigo = t.codigoVehiculo != null && vehiculosCodigosValid.has(t.codigoVehiculo);
@@ -159,9 +194,9 @@ const ReporteVehiculos = () => {
       });
 
       const ordenados = movimientosVehiculos.sort((a, b) => {
-        const fechaA = new Date(Array.isArray(a.fecha) ? `${a.fecha[0]}-${String(a.fecha[1]).padStart(2, '0')}-${String(a.fecha[2]).padStart(2, '0')}` : a.fecha);
-        const fechaB = new Date(Array.isArray(b.fecha) ? `${b.fecha[0]}-${String(b.fecha[1]).padStart(2, '0')}-${String(b.fecha[2]).padStart(2, '0')}` : b.fecha);
-        return fechaB - fechaA;
+        const fechaA = parseFecha(a.fecha);
+        const fechaB = parseFecha(b.fecha);
+        return (fechaB?.getTime() || 0) - (fechaA?.getTime() || 0);
       });
 
       setMovimientos(ordenados);
@@ -180,12 +215,7 @@ const ReporteVehiculos = () => {
         const estaPagada = t.comisionPagada === true || t.comisionPagada === 1 || t.comisionPagada === '1';
         const comision = estaPagada ? parseFloat(t.comisionEmpleado || 0) : 0;
 
-        let fechaObj = null;
-        if (Array.isArray(t.fecha)) {
-          fechaObj = new Date(t.fecha[0], t.fecha[1] - 1, t.fecha[2]);
-        } else if (t.fecha) {
-          fechaObj = new Date(t.fecha);
-        }
+        const fechaObj = parseFecha(t.fecha);
 
         let monthKey = 'Desconocido';
         let nombreMes = 'Desconocido';
@@ -257,6 +287,43 @@ const ReporteVehiculos = () => {
 
   const aplicarFiltros = (valores) => {
     setFiltros(prev => ({ ...prev, ...valores }));
+  };
+
+  const labelPeriodo = useMemo(() => {
+    if (filtros.mes && filtros.anio) {
+      return `${MESES_NOMBRES[filtros.mes - 1]} ${filtros.anio}`;
+    }
+    if (filtros.mes) return MESES_NOMBRES[filtros.mes - 1];
+    if (filtros.anio) return `${filtros.anio}`;
+    return null;
+  }, [filtros.mes, filtros.anio]);
+
+  const labelVehiculo = useMemo(() => {
+    if (!filtros.vehiculoId) return null;
+    const v = vehiculosListado.find(item => item.id === filtros.vehiculoId);
+    if (!v) return `Vehículo #${filtros.vehiculoId}`;
+    return `${v.codigoVehiculo || ''} ${v.marca || ''} ${v.modelo || ''}`.trim();
+  }, [filtros.vehiculoId, vehiculosListado]);
+
+  const cantidadFiltrosActivos = useMemo(() => {
+    let count = 0;
+    if (filtros.busqueda && filtros.busqueda.trim() !== '') count++;
+    if (filtros.mes || filtros.anio) count++;
+    if (filtros.vehiculoId) count++;
+    if (filtros.estadoVehiculo) count++;
+    return count;
+  }, [filtros]);
+
+  const tieneFiltrosActivos = cantidadFiltrosActivos > 0;
+
+  const removerFiltro = (nombre) => {
+    if (nombre === 'periodo') {
+      aplicarFiltros({ mes: null, anio: null });
+    } else if (nombre === 'busqueda') {
+      aplicarFiltros({ busqueda: '' });
+    } else {
+      aplicarFiltros({ [nombre]: null });
+    }
   };
 
   const limpiarFiltros = () => {
@@ -558,33 +625,120 @@ const ReporteVehiculos = () => {
           {
             key: '1',
             label: (
-              <Text strong style={{ fontSize: '15px', color: '#262626' }}>
-                <FilterOutlined style={{ marginRight: 8, color: '#1890ff' }} />
-                Parámetros de Análisis
-              </Text>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Text strong style={{ fontSize: '15px', color: '#262626' }}>
+                    <FilterOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                    Parámetros de Análisis
+                  </Text>
+                  {cantidadFiltrosActivos > 0 && (
+                    <Tag color="blue" style={{ borderRadius: '10px', margin: 0 }}>
+                      {cantidadFiltrosActivos} activo{cantidadFiltrosActivos > 1 ? 's' : ''}
+                    </Tag>
+                  )}
+                </div>
+
+                {tieneFiltrosActivos && (
+                  <div 
+                    onClick={(e) => e.stopPropagation()} 
+                    style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}
+                  >
+                    {labelPeriodo && (
+                      <Tag 
+                        color="blue" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('periodo'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Período: {labelPeriodo}
+                      </Tag>
+                    )}
+                    {filtros.busqueda && (
+                      <Tag 
+                        color="blue" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('busqueda'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Búsqueda: "{filtros.busqueda}"
+                      </Tag>
+                    )}
+                    {labelVehiculo && (
+                      <Tag 
+                        color="purple" 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('vehiculoId'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Vehículo: {labelVehiculo}
+                      </Tag>
+                    )}
+                    {filtros.estadoVehiculo && (
+                      <Tag 
+                        color={filtros.estadoVehiculo === 'DISPONIBLE' ? 'success' : filtros.estadoVehiculo === 'REPARACION' ? 'warning' : 'blue'} 
+                        closable 
+                        onClose={(e) => { e.stopPropagation(); removerFiltro('estadoVehiculo'); }} 
+                        style={{ borderRadius: '12px', padding: '1px 8px', fontWeight: 500, margin: 0 }}
+                      >
+                        Estado: {filtros.estadoVehiculo}
+                      </Tag>
+                    )}
+                    <Button 
+                      type="link" 
+                      size="small" 
+                      onClick={(e) => { e.stopPropagation(); limpiarFiltros(); }} 
+                      style={{ padding: '0 4px', fontSize: '12px', height: 'auto' }}
+                    >
+                      Limpiar todos
+                    </Button>
+                  </div>
+                )}
+              </div>
             ),
             children: (
               <Row gutter={[24, 16]} align="bottom">
                 <Col xs={24} sm={12} md={5}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Búsqueda</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Búsqueda</Text>
+                    {filtros.busqueda && (
+                      <Tag color="blue" closable onClose={() => removerFiltro('busqueda')} style={{ margin: 0, fontWeight: 500 }}>
+                        "{filtros.busqueda}"
+                      </Tag>
+                    )}
+                  </div>
                   <Input.Search
                     placeholder="Buscar..."
                     allowClear
+                    value={filtros.busqueda}
                     onSearch={(val) => aplicarFiltros({ busqueda: val })}
                     onChange={(e) => {
                       if (!e.target.value) aplicarFiltros({ busqueda: '' });
+                      else aplicarFiltros({ busqueda: e.target.value });
                     }}
                     style={{ width: '100%', borderRadius: '6px' }}
                   />
                 </Col>
                 <Col xs={24} sm={12} md={5}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Mes a Consultar</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Mes a Consultar</Text>
+                    {labelPeriodo && (
+                      <Tag color="blue" closable onClose={() => removerFiltro('periodo')} style={{ margin: 0, fontWeight: 500 }}>
+                        {labelPeriodo}
+                      </Tag>
+                    )}
+                  </div>
                   <Space.Compact style={{ width: '100%' }}>
                     <Select
                       style={{ width: '60%', borderRadius: '6px 0 0 6px' }}
                       placeholder="Mes"
                       value={filtros.mes}
-                      onChange={(value) => aplicarFiltros({ mes: value })}
+                      onChange={(value) => {
+                        if (value && !filtros.anio) {
+                          aplicarFiltros({ mes: value, anio: moment().year() });
+                        } else {
+                          aplicarFiltros({ mes: value });
+                        }
+                      }}
                       allowClear
                     >
                       <Option value={1}>Ene</Option>
@@ -615,7 +769,14 @@ const ReporteVehiculos = () => {
                   </Space.Compact>
                 </Col>
                 <Col xs={24} sm={12} md={5}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Vehículo</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Vehículo</Text>
+                    {labelVehiculo && (
+                      <Tag color="purple" closable onClose={() => removerFiltro('vehiculoId')} style={{ margin: 0, fontWeight: 500 }}>
+                        {labelVehiculo}
+                      </Tag>
+                    )}
+                  </div>
                   <Select
                     allowClear
                     showSearch
@@ -652,7 +813,19 @@ const ReporteVehiculos = () => {
                   </Select>
                 </Col>
                 <Col xs={24} sm={12} md={5}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: '12px' }}>Estado</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Estado</Text>
+                    {filtros.estadoVehiculo && (
+                      <Tag 
+                        color={filtros.estadoVehiculo === 'DISPONIBLE' ? 'success' : filtros.estadoVehiculo === 'REPARACION' ? 'warning' : 'blue'} 
+                        closable 
+                        onClose={() => removerFiltro('estadoVehiculo')} 
+                        style={{ margin: 0, fontWeight: 500 }}
+                      >
+                        {filtros.estadoVehiculo}
+                      </Tag>
+                    )}
+                  </div>
                   <Select
                     allowClear
                     placeholder="Todos"
@@ -666,7 +839,13 @@ const ReporteVehiculos = () => {
                   </Select>
                 </Col>
                 <Col xs={24} sm={24} md={4}>
-                  <Button block icon={<ReloadOutlined />} onClick={limpiarFiltros} style={{ borderRadius: '6px' }}>
+                  <Button 
+                    block 
+                    icon={<ReloadOutlined />} 
+                    onClick={limpiarFiltros} 
+                    disabled={!tieneFiltrosActivos}
+                    style={{ borderRadius: '6px' }}
+                  >
                     Reset
                   </Button>
                 </Col>
@@ -728,6 +907,8 @@ const ReporteVehiculos = () => {
         </Col>
       </Row>
 
+
+
       {/* Navegación por Pestañas */}
       <Tabs
         defaultActiveKey="1"
@@ -748,7 +929,7 @@ const ReporteVehiculos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Desglose de Periodos</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table scroll={{ x: 'max-content' }}
+                  <Table
                     columns={columnasReporte}
                     dataSource={data}
                     rowKey="periodo"
@@ -796,7 +977,7 @@ const ReporteVehiculos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Listado de Vehículos (Excepto Desarmados)</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table scroll={{ x: 'max-content' }}
+                  <Table
                     columns={columnasVehiculos}
                     dataSource={vehiculosFiltrados}
                     rowKey="id"
@@ -823,7 +1004,7 @@ const ReporteVehiculos = () => {
                   title={<span style={{ fontWeight: 600, color: '#262626' }}>Trazabilidad Operativa (Compras, Reparaciones, Ventas)</span>}
                   style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  <Table scroll={{ x: 'max-content' }}
+                  <Table
                     columns={columnasMovimientos}
                     dataSource={movimientos}
                     rowKey="id"

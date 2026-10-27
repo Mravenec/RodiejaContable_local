@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Card, Table, Button, DatePicker, Input, Space, Typography,
   message, Tag, Alert,
-  Tabs, Descriptions, Row, Col, Select
+  Tabs, Descriptions, Row, Col, Select, Modal, Divider
 } from 'antd';
 import {
   SearchOutlined,
@@ -11,17 +11,36 @@ import {
   FilterOutlined,
   LoadingOutlined,
   UpOutlined,
-  DownOutlined
+  DownOutlined,
+  UserOutlined,
+  CheckCircleOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
 import { useGeo } from '../../hooks/useGeo';
-import CotizarDrawer from './CotizarDrawer';
-import { API_BASE_URL } from '../../api/config';
+import { useAuth } from '../../context/AuthContext';
+import usersService from '../../api/users';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
+
+const getDetalleJson = (row) => {
+  if (row?._parsedDetalle) return row._parsedDetalle;
+  let datos = {};
+  try {
+    if (row?.detalleJson) {
+      datos = typeof row.detalleJson === 'string' ? JSON.parse(row.detalleJson) : row.detalleJson;
+    } else if (row?.detalle_json) {
+      datos = typeof row.detalle_json === 'string' ? JSON.parse(row.detalle_json) : row.detalle_json;
+    } else if (row?.datosCotizacion) {
+      datos = typeof row.datosCotizacion === 'string' ? JSON.parse(row.datosCotizacion) : row.datosCotizacion;
+    }
+  } catch (e) {}
+  if (row) row._parsedDetalle = datos || {};
+  return datos || {};
+};
 
 const getSafeString = (val) => (val && val !== 'null' && val !== '-' ? val.trim() : '');
 
@@ -90,6 +109,40 @@ const parseFechaCotizacion = (dateStr) => {
   return d.isValid() ? d.isValid() ? d.valueOf() : 0 : 0;
 };
 
+const parsearFechaHora = (record) => {
+  const rawFecha = record?.fechaCotizacion || record?.fecha || '';
+  let parsedDayjs = null;
+
+  if (rawFecha && rawFecha.includes('/')) {
+    const parts = rawFecha.split(/[\s/:]+/);
+    if (parts.length >= 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      let year = parseInt(parts[2], 10);
+      if (year < 100) year += 2000;
+      const hour = parts[3] ? parseInt(parts[3], 10) : 0;
+      const min = parts[4] ? parseInt(parts[4], 10) : 0;
+      parsedDayjs = dayjs(new Date(year, month, day, hour, min));
+    }
+  } else if (rawFecha) {
+    parsedDayjs = dayjs(rawFecha);
+  } else if (record?.creado_en || record?.fechaCreacion) {
+    parsedDayjs = dayjs(record.creado_en || record.fechaCreacion);
+  }
+
+  const isValid = parsedDayjs && parsedDayjs.isValid();
+  const horaTexto = isValid ? parsedDayjs.format('HH:mm') : (record?.hora || '--:--');
+  const fechaTexto = isValid ? parsedDayjs.format('DD/MM/YYYY') : (rawFecha || '-');
+
+  return {
+    dayjsObj: isValid ? parsedDayjs : null,
+    fechaTexto,
+    horaTexto,
+    horaNum: isValid ? parsedDayjs.hour() : -1,
+    minutoNum: isValid ? parsedDayjs.minute() : 0
+  };
+};
+
 const normalizeString = (str) => (str || '').toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 const HighlightText = ({ text, highlight }) => {
@@ -119,6 +172,9 @@ const HighlightText = ({ text, highlight }) => {
 };
 
 const defaultFiltros = {
+  cotizacionId: '',
+  numeroPedido: '',
+  filtroEstado: 'todos',
   marca: '',
   modelo: '',
   anio: '',
@@ -129,6 +185,7 @@ const defaultFiltros = {
   desde: dayjs().subtract(30, 'day'),
   hasta: dayjs(), //today
   minPendientes: 1,
+  empleado: null,
 };
 
 /** Misma oportunidad por wan o cotizacionId (dedup merge). */
@@ -156,14 +213,209 @@ const OportunidadesAudatex = () => {
   const [streaming, setStreaming] = useState(false);
   const [filtros, setFiltros] = useState({ ...defaultFiltros });
   const [appliedFiltros, setAppliedFiltros] = useState({ ...defaultFiltros });
-  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [mostrarFiltros, setMostrarFiltros] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const [oportunidadSeleccionada, setOportunidadSeleccionada] = useState(null);
+
+  // Modal de Detalle y Asignación de Oportunidades (Estilo Pedidos INS sin montos)
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedOportunidad, setSelectedOportunidad] = useState(null);
+  const [usuarioSeleccionadoId, setUsuarioSeleccionadoId] = useState(null);
+  const [procesando, setProcesando] = useState(false);
 
   const { provincias, cantones, loadingProvincias, loadingCantones, fetchProvincias, fetchCantones } = useGeo();
+  const { user } = useAuth();
+  const esAdmin = (user?.rol || '').toUpperCase() === 'ADMIN';
+  const currentUserId = user?.id || user?.userId || null;
+  const currentUserName = user?.nombre || user?.email || 'Mi Usuario';
+
+  const [usuariosData, setUsuariosData] = useState([]);
+  const usuariosActivos = useMemo(() => {
+    return (usuariosData || []).filter((u) => u.activo !== false);
+  }, [usuariosData]);
+
+  const cargarUsuarios = useCallback(async () => {
+    try {
+      const res = await usersService.getUsers();
+      setUsuariosData(res.data || res || []);
+    } catch (e) {
+      console.warn('Error cargando usuarios en OportunidadesAudatex:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarUsuarios();
+  }, [cargarUsuarios]);
+
+  const [asignacionesOportunidades, setAsignacionesOportunidades] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('oportunidades_ins_asignaciones') || '{}');
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const handleMarcarRevisada = useCallback(async (recordOrWan) => {
+    const wan = typeof recordOrWan === 'string' ? recordOrWan : recordOrWan?.wan;
+    const cotId = typeof recordOrWan === 'object' ? recordOrWan?.cotizacionId : null;
+    const key = typeof recordOrWan === 'object' ? recordOrWan?._key : null;
+    if (!wan && !cotId && !key) return;
+
+    try {
+      if (wan) {
+        await audatexService.marcarRevisada(wan);
+      }
+      setOportunidades((prev) =>
+        prev.map((o) =>
+          (wan && o.wan === wan) ||
+          (cotId && o.cotizacionId === cotId) ||
+          (key && o._key === key)
+            ? { ...o, estado_interaccion: 'REVISADA' }
+            : o
+        )
+      );
+    } catch (err) {
+      console.warn('Error al marcar revisada:', err);
+    }
+  }, []);
+
+  const getRowClassName = useCallback((record) => {
+    // Si ya se abrió / revisó, se muestra como revisada (gris) sin importar si tenía pedido o no
+    if (record.estado_interaccion === 'REVISADA') return 'row-revisada';
+
+    // Si ya cotizó (tiene número de pedido) y aún no ha sido revisada, es de color verde
+    if (record.numeroPedido || record.pedidoId) return 'row-cotizada';
+
+    const createdAt = record.creado_en || record.fechaCotizacion;
+    if (createdAt) {
+      let opDate = null;
+      if (typeof createdAt === 'string' && createdAt.includes('/')) {
+        opDate = parseFechaCotizacion(createdAt);
+      } else {
+        opDate = dayjs(createdAt).valueOf();
+      }
+      if (opDate) {
+        const diffMins = (Date.now() - opDate) / (1000 * 60);
+        if (diffMins > 30) return 'row-pendiente';
+      }
+    }
+    return '';
+  }, []);
+
+  const handleAbrirDetalle = useCallback((record) => {
+    if (record.estado_interaccion !== 'REVISADA') {
+      handleMarcarRevisada(record);
+    }
+
+    setSelectedOportunidad(record);
+    const key = record.cotizacionId || record.wan || record._key;
+    const asignacion = asignacionesOportunidades[key];
+
+    const asigId = asignacion?.usuarioId || asignacion?.userId || asignacion?.empleadoId || record.usuarioId || record.userId || record.empleadoId || null;
+
+    if (esAdmin) {
+      setUsuarioSeleccionadoId(asigId ? Number(asigId) : null);
+    } else {
+      // Si no es admin, si ya tiene asignado a alguien se mantiene; si está libre, se preselecciona su propio usuario
+      setUsuarioSeleccionadoId(asigId ? Number(asigId) : (currentUserId ? Number(currentUserId) : null));
+    }
+
+    setModalVisible(true);
+  }, [asignacionesOportunidades, handleMarcarRevisada, esAdmin, currentUserId]);
+
+  const handleGuardarAsignacion = useCallback(async () => {
+    if (!selectedOportunidad) return;
+
+    // Determinar el ID del usuario a asignar
+    const idToAssign = esAdmin ? usuarioSeleccionadoId : (usuarioSeleccionadoId || currentUserId);
+    if (!idToAssign) {
+      message.warning('Por favor selecciona el usuario responsable de la oportunidad');
+      return;
+    }
+
+    // Si NO es admin y la oportunidad ya estaba asignada a otro usuario, denegar
+    const key = selectedOportunidad.cotizacionId || selectedOportunidad.wan || selectedOportunidad._key;
+    const asignacionActual = asignacionesOportunidades[key];
+    const actualAsigId = asignacionActual?.usuarioId || asignacionActual?.userId || asignacionActual?.empleadoId || selectedOportunidad.usuarioId || selectedOportunidad.userId || selectedOportunidad.empleadoId;
+    if (!esAdmin && actualAsigId && Number(actualAsigId) !== Number(currentUserId)) {
+      message.error('No tienes permisos para modificar una oportunidad asignada a otro usuario');
+      return;
+    }
+
+    try {
+      setProcesando(true);
+      const uFound = usuariosActivos.find((u) => Number(u.id) === Number(idToAssign));
+      const uNombre = uFound
+        ? (uFound.nombre || uFound.email)
+        : (Number(idToAssign) === Number(currentUserId) ? currentUserName : `Usuario #${idToAssign}`);
+
+      // 1. Persistir asignación en backend para audatex_oportunidades_sync (alimenta el worker de 5 min) y pedidos
+      try {
+        if (audatexService.asignarUsuarioAOportunidad) {
+          await audatexService.asignarUsuarioAOportunidad({
+            wan: selectedOportunidad.wan,
+            cotizacionId: selectedOportunidad.cotizacionId,
+            usuarioId: idToAssign,
+            userId: idToAssign,
+            pedidoId: selectedOportunidad.pedidoId || null
+          });
+        } else if (selectedOportunidad.pedidoId) {
+          const fnAsignar = audatexService.asignarUsuario || audatexService.asignarEmpleado;
+          if (fnAsignar) {
+            await fnAsignar(selectedOportunidad.pedidoId, {
+              usuarioId: idToAssign,
+              userId: idToAssign
+            });
+          }
+        }
+      } catch (errApi) {
+        console.warn('Backend sincronizar usuario error:', errApi);
+      }
+
+      // 2. Persistir en localStorage tanto para pedidos como para oportunidades
+      try {
+        const storedOps = JSON.parse(localStorage.getItem('oportunidades_ins_asignaciones') || '{}');
+        storedOps[key] = {
+          usuarioId: idToAssign,
+          userId: idToAssign,
+          empleadoId: idToAssign,
+          usuarioNombre: uNombre,
+          empleadoNombre: uNombre,
+          cotizacionId: selectedOportunidad.cotizacionId,
+          wan: selectedOportunidad.wan,
+          vehiculo: `${getMarcaSegura(selectedOportunidad)} ${getModeloSeguro(selectedOportunidad)} ${getAnioSeguro(selectedOportunidad)}`.trim(),
+          taller: selectedOportunidad.taller || '',
+          aseguradora: selectedOportunidad.aseguradora || 'INS',
+          pendientes: selectedOportunidad.pendientes || 0,
+          fechaCotizacion: selectedOportunidad.fechaCotizacion || '',
+          totalPedido: Number(selectedOportunidad.totalPedido || selectedOportunidad.total_pedido || 0),
+          comisionCalculada: Number(selectedOportunidad.comisionCalculada || selectedOportunidad.comision_calculada || 0),
+          porcentajeComision: Number(selectedOportunidad.porcentajeComision || 3),
+          asignadoEn: new Date().toISOString()
+        };
+        localStorage.setItem('oportunidades_ins_asignaciones', JSON.stringify(storedOps));
+        setAsignacionesOportunidades(storedOps);
+      } catch (e) {
+        console.warn('Error guardando en localStorage:', e);
+      }
+
+      // Actualizar objeto en memoria
+      selectedOportunidad.usuarioId = idToAssign;
+      selectedOportunidad.userId = idToAssign;
+      selectedOportunidad.empleadoId = idToAssign;
+      selectedOportunidad.usuarioNombre = uNombre;
+      selectedOportunidad.empleadoNombre = uNombre;
+
+      message.success(`¡Usuario ${uNombre} asignado a la oportunidad #${selectedOportunidad.cotizacionId || key} exitosamente!`);
+      setModalVisible(false);
+    } catch (err) {
+      console.error('Error al guardar asignación:', err);
+      message.error('Error al procesar la asignación');
+    } finally {
+      setProcesando(false);
+    }
+  }, [selectedOportunidad, usuarioSeleccionadoId, currentUserId, currentUserName, esAdmin, usuariosActivos, asignacionesOportunidades]);
 
   useEffect(() => {
     fetchProvincias();
@@ -206,7 +458,7 @@ const OportunidadesAudatex = () => {
       finalizarStreamSiColaVacia();
       return;
     }
-    if (item.cerrada && item.estado_interaccion !== 'COTIZACION_ENVIADA') {
+    if (item.cerrada) {
       setOportunidades((prev) => prev.filter((o) => !sameOportunidad(o, item)));
     } else {
       setOportunidades((prev) => {
@@ -266,7 +518,7 @@ const OportunidadesAudatex = () => {
 
     // 1. Carga instantánea desde BD (sin setOportunidades([]))
     try {
-      const getResponse = await fetch(`${API_BASE_URL}/api/audatex/oportunidades/sync?${params.toString()}`, {
+      const getResponse = await fetch(`http://localhost:8080/api/audatex/oportunidades/sync?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (getResponse.ok) {
@@ -290,7 +542,7 @@ const OportunidadesAudatex = () => {
     setStreaming(false);
 
     // 3. SSE para deltas (UPSERT / CERRADA) — en background, no bloquea la UI
-    const url = `${API_BASE_URL}/api/audatex/oportunidades/sync/stream`;
+    const url = `http://localhost:8080/api/audatex/oportunidades/sync/stream`;
 
     (async () => {
       try {
@@ -610,40 +862,47 @@ const OportunidadesAudatex = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleMarcarRevisada = async (wan, e) => {
-    e.stopPropagation();
-    try {
-      await audatexService.marcarRevisada(wan);
-      message.success('Oportunidad marcada como revisada');
-      setOportunidades(prev => prev.map(o => o.wan === wan ? { ...o, estado_interaccion: 'REVISADA' } : o));
-    } catch (err) {
-      console.error('Error al marcar revisada:', err);
-      message.error('Error al marcar como revisada');
-    }
-  };
-
-  const getRowClassName = (record) => {
-    if (record.estado_interaccion === 'COTIZACION_ENVIADA') return 'row-enviada';
-    if (record.estado_interaccion === 'REVISADA') return 'row-revisada';
-    
-    const createdAt = record.creado_en || record.fechaCotizacion;
-    if (createdAt) {
-      let opDate = null;
-      if (typeof createdAt === 'string' && createdAt.includes('/')) {
-        opDate = parseFechaCotizacion(createdAt);
-      } else {
-        opDate = dayjs(createdAt).valueOf();
-      }
-      const diffMins = (Date.now() - opDate) / (1000 * 60);
-      if (diffMins > 30) return 'row-pendiente';
-    }
-    return 'row-nueva';
-  };
-
   // ── Columnas ──────────────────────────────────────────────────────────────
   const columns = [
-    { title: 'Cotización ID', dataIndex: 'cotizacionId', key: 'cotizacionId' },
+    {
+      title: 'Cotización ID',
+      dataIndex: 'cotizacionId',
+      key: 'cotizacionId',
+      render: (text, record) => {
+        const esCerrada = (record.estado || '').toUpperCase() === 'CERRADA';
+        return (
+          <Space size={6}>
+            <HighlightText text={text ? String(text) : '-'} highlight={appliedFiltros.cotizacionId} />
+            {esCerrada && <Tag color="magenta" style={{ fontSize: 10, padding: '0 4px' }}>Cerrada</Tag>}
+          </Space>
+        );
+      }
+    },
+    {
+      title: 'Nº Pedido',
+      key: 'numeroPedido',
+      align: 'center',
+      render: (_, record) => {
+        const num = record.numeroPedido || record.pedidoId;
+        if (num) {
+          const est = (record.pedidoEstado || '').toLowerCase();
+          const color = est === 'entregado' ? 'green' : est.includes('aguardando') ? 'gold' : 'blue';
+          return (
+            <Space direction="vertical" size={0}>
+              <Tag color={color} style={{ fontWeight: 600 }}>
+                #{num}
+              </Tag>
+              {record.pedidoEstado && (
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  {record.pedidoEstado}
+                </Text>
+              )}
+            </Space>
+          );
+        }
+        return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>;
+      }
+    },
     {
       title: 'Marca', key: 'marca',
       sorter: (a, b) => {
@@ -698,20 +957,101 @@ const OportunidadesAudatex = () => {
       render: (v) => (
         <Tag color={v > 0 ? 'orange' : 'green'} style={{ fontWeight: 'bold' }}>{v}</Tag>
       ),
+    },
+    {
+      title: 'Usuario Responsable',
+      key: 'usuario',
+      render: (_, record) => {
+        const key = record.cotizacionId || record.wan || record._key;
+        const asignado = asignacionesOportunidades[key];
+        const uNombre = asignado?.usuarioNombre || asignado?.empleadoNombre || record.usuarioNombre || record.empleadoNombre;
+        const uId = asignado?.usuarioId || asignado?.empleadoId || record.usuarioId || record.empleadoId;
+        const esMio = currentUserId && Number(uId) === Number(currentUserId);
+
+        if (uNombre) {
+          return (
+            <Tag color={esMio ? 'blue' : 'geekblue'} icon={<UserOutlined />} style={{ fontWeight: 600, padding: '4px 8px' }}>
+              {uNombre} {esMio ? ' (Tú)' : ''}
+            </Tag>
+          );
+        }
+        return <Tag color="default" style={{ fontStyle: 'italic' }}>Sin asignar</Tag>;
+      }
+    },
+    {
+      title: 'Acción',
+      key: 'acciones',
+      align: 'center',
+      render: (_, record) => {
+        const key = record.cotizacionId || record.wan || record._key;
+        const asignado = asignacionesOportunidades[key];
+        const esEntregado = asignado?.estado === 'Entregado';
+        const assignedId = asignado?.usuarioId || asignado?.empleadoId || record.usuarioId || record.empleadoId;
+        const esMio = currentUserId && Number(assignedId) === Number(currentUserId);
+
+        let btnText = 'Asignar';
+        if (esEntregado) {
+          btnText = 'Entregado';
+        } else if (assignedId) {
+          btnText = (esAdmin || esMio) ? 'Gestionar' : 'Ver Detalle';
+        } else {
+          btnText = esAdmin ? 'Asignar' : 'Autoasignarme';
+        }
+
+        return (
+          <Button
+            type="primary"
+            ghost={!esEntregado}
+            size="middle"
+            icon={esEntregado ? <CheckCircleOutlined /> : <UserOutlined />}
+            style={
+              esEntregado
+                ? { background: '#16a34a', borderColor: '#16a34a', color: '#fff', fontWeight: 600 }
+                : { borderRadius: '6px' }
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAbrirDetalle(record);
+            }}
+          >
+            {btnText}
+          </Button>
+        );
+      }
     }
   ];
 
   // ── Filtro Local (Frontend) ────────────────────────────────────────────────
   const oportunidadesFiltradas = React.useMemo(() => {
     return oportunidades.filter(op => {
+      const mCotizacionId = normalizeString(appliedFiltros.cotizacionId);
+      const mNumeroPedido = normalizeString(appliedFiltros.numeroPedido);
       const mMarca = normalizeString(appliedFiltros.marca);
       const mModelo = normalizeString(appliedFiltros.modelo);
       const mAnio = normalizeString(appliedFiltros.anio);
       const mRepuesto = normalizeString(appliedFiltros.repuesto);
 
+      const vCotizacionId = normalizeString(
+        op.cotizacionId || op.wan || op.datosCotizacion?.['Número Cotización'] || op.datosCotizacion?.['Numero Cotizacion'] || ''
+      );
+      const vNumeroPedido = normalizeString(op.numeroPedido || op.pedidoId || '');
       const vMarca = normalizeString(getMarcaSegura(op));
       const vModelo = normalizeString(getModeloSeguro(op));
       const vAnio = normalizeString(getAnioSeguro(op));
+
+      const matchCotizacionId = !mCotizacionId || vCotizacionId.includes(mCotizacionId);
+      const matchNumeroPedido = !mNumeroPedido || vNumeroPedido.includes(mNumeroPedido);
+
+      let matchEstado = true;
+      const esCerrada = (op.estado || '').toUpperCase() === 'CERRADA';
+      const tienePedido = Boolean(op.numeroPedido || op.pedidoId);
+
+      if (appliedFiltros.filtroEstado === 'solo_activas') {
+        const buscaDirecto = Boolean(mCotizacionId || mNumeroPedido);
+        matchEstado = buscaDirecto || !esCerrada;
+      } else if (appliedFiltros.filtroEstado === 'cerradas_con_pedido') {
+        matchEstado = esCerrada || tienePedido;
+      }
 
       const matchMarca = !mMarca || vMarca.includes(mMarca);
       const matchModelo = !mModelo || vModelo.includes(mModelo);
@@ -730,7 +1070,7 @@ const OportunidadesAudatex = () => {
       const matchProvincia = !mProvincia || vProvincia.includes(mProvincia);
       const matchCanton = !mCanton || vCanton.includes(mCanton);
 
-      const matchMinPendientes = appliedFiltros.minPendientes === null || appliedFiltros.minPendientes === undefined || (op.pendientes || 0) >= appliedFiltros.minPendientes;
+      const matchMinPendientes = appliedFiltros.minPendientes === null || appliedFiltros.minPendientes === undefined || tienePedido || (op.pendientes || 0) >= appliedFiltros.minPendientes;
 
       let matchDesde = true;
       let matchHasta = true;
@@ -750,7 +1090,7 @@ const OportunidadesAudatex = () => {
         }
       }
 
-      if (opDate && opDate.isValid()) {
+      if (opDate && opDate.isValid() && !tienePedido) {
         if (appliedFiltros.desde) {
           matchDesde = opDate.isSame(appliedFiltros.desde, 'day') || opDate.isAfter(appliedFiltros.desde, 'day');
         }
@@ -759,9 +1099,17 @@ const OportunidadesAudatex = () => {
         }
       }
 
-      return matchMarca && matchModelo && matchAnio && matchRepuesto && matchProvincia && matchCanton && matchMinPendientes && matchDesde && matchHasta;
+      let matchEmpleado = true;
+      if (appliedFiltros.empleado) {
+        const key = op.cotizacionId || op.wan || op._key;
+        const asig = asignacionesOportunidades[key];
+        const assignedId = asig?.usuarioId || asig?.empleadoId || op.usuarioId || op.empleadoId;
+        matchEmpleado = assignedId && Number(assignedId) === Number(appliedFiltros.empleado);
+      }
+
+      return matchCotizacionId && matchNumeroPedido && matchEstado && matchMarca && matchModelo && matchAnio && matchRepuesto && matchProvincia && matchCanton && matchMinPendientes && matchDesde && matchHasta && matchEmpleado;
     }).sort((a, b) => parseFechaCotizacion(b.fechaCotizacion) - parseFechaCotizacion(a.fechaCotizacion));
-  }, [oportunidades, appliedFiltros.marca, appliedFiltros.modelo, appliedFiltros.anio, appliedFiltros.repuesto, appliedFiltros.provincia, appliedFiltros.canton, appliedFiltros.minPendientes, appliedFiltros.desde, appliedFiltros.hasta, provincias, cantones]);
+  }, [oportunidades, appliedFiltros.cotizacionId, appliedFiltros.numeroPedido, appliedFiltros.filtroEstado, appliedFiltros.marca, appliedFiltros.modelo, appliedFiltros.anio, appliedFiltros.repuesto, appliedFiltros.provincia, appliedFiltros.canton, appliedFiltros.minPendientes, appliedFiltros.desde, appliedFiltros.hasta, appliedFiltros.empleado, asignacionesOportunidades, provincias, cantones]);
 
   const thStyle = {
     padding: '8px 12px', textAlign: 'left', fontWeight: 600,
@@ -782,7 +1130,7 @@ const OportunidadesAudatex = () => {
   }, [oportunidadesFiltradas]);
 
   return (
-    <div className="table-container">
+    <div style={{ padding: '24px' }}>
 
       {/* Encabezado */}
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
@@ -790,19 +1138,19 @@ const OportunidadesAudatex = () => {
           <Title level={3} style={{ margin: 0, fontWeight: 700 }}>🛒 Cotizaciones InPart · Vista Global</Title>
           <div style={{ color: '#8c8c8c', fontSize: '14px', marginTop: '4px' }}>Todas las oportunidades abiertas en Audatex que matchean con tu inventario</div>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
+        <Space>
           {streaming && (
             <Button danger onClick={handleDetener} icon={<LoadingOutlined spin />}>
               Detener
             </Button>
           )}
-          <Button type="default" icon={<ReloadOutlined />} onClick={handleSincronizar} disabled={streaming && oportunidades.length === 0} size="large" style={{ minWidth: '180px', color: '#1890ff', borderColor: '#1890ff', borderRadius: '6px' }}>
+          <Button type="default" icon={<ReloadOutlined />} onClick={handleSincronizar} disabled={streaming && oportunidades.length === 0} style={{ color: '#1890ff', borderColor: '#1890ff' }}>
             Refrescar
           </Button>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} size="large" style={{ minWidth: '180px', background: '#52c41a', borderColor: '#52c41a', borderRadius: '6px' }}>
+          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportar} style={{ background: '#52c41a', borderColor: '#52c41a' }}>
             Exportar Excel del rango
           </Button>
-        </div>
+        </Space>
       </div>
 
       {/* Stats Cards */}
@@ -853,7 +1201,7 @@ const OportunidadesAudatex = () => {
         }}
         bodyStyle={{ padding: '24px' }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: mostrarFiltros ? '20px' : '0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mostrarFiltros ? '20px' : '0' }}>
           <Title level={5} style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setMostrarFiltros(!mostrarFiltros)}>
             <FilterOutlined style={{ marginRight: '8px', color: '#3b82f6' }} />
             Filtros de Búsqueda
@@ -871,7 +1219,42 @@ const OportunidadesAudatex = () => {
 
         {mostrarFiltros && (
           <Row gutter={[16, 20]}>
-            <Col xs={24} sm={12} md={8} lg={6}>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Cotización ID</div>
+              <Input
+                placeholder="Ej: 19841"
+                value={filtros.cotizacionId}
+                onChange={(e) => setFiltros({ ...filtros, cotizacionId: e.target.value })}
+                style={{ width: '100%', borderRadius: '8px' }}
+                prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
+                allowClear
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Nº Pedido</div>
+              <Input
+                placeholder="Ej: 19439"
+                value={filtros.numeroPedido}
+                onChange={(e) => setFiltros({ ...filtros, numeroPedido: e.target.value })}
+                style={{ width: '100%', borderRadius: '8px' }}
+                prefix={<FilterOutlined style={{ color: '#cbd5e1' }} />}
+                allowClear
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Estado / Pedido</div>
+              <Select
+                value={filtros.filtroEstado}
+                onChange={(val) => setFiltros({ ...filtros, filtroEstado: val })}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'solo_activas', label: 'Solo Activas' },
+                  { value: 'todos', label: 'Todas' },
+                  { value: 'cerradas_con_pedido', label: 'Cerradas con Pedido' }
+                ]}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={4}>
               <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Marca</div>
               <Input
                 placeholder="Ej: Toyota"
@@ -882,7 +1265,7 @@ const OportunidadesAudatex = () => {
                 allowClear
               />
             </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
+            <Col xs={24} sm={12} md={8} lg={4}>
               <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Modelo</div>
               <Input
                 placeholder="Ej: Yaris"
@@ -893,7 +1276,7 @@ const OportunidadesAudatex = () => {
                 allowClear
               />
             </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
+            <Col xs={24} sm={12} md={8} lg={4}>
               <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Año</div>
               <Input
                 placeholder="Ej: 2020"
@@ -904,7 +1287,8 @@ const OportunidadesAudatex = () => {
                 allowClear
               />
             </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
+
+            <Col xs={24} sm={12} md={8} lg={5}>
               <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Repuesto</div>
               <Input
                 placeholder="Ej: Bumper"
@@ -915,8 +1299,7 @@ const OportunidadesAudatex = () => {
                 allowClear
               />
             </Col>
-
-            <Col xs={24} sm={12} md={8} lg={6}>
+            <Col xs={24} sm={12} md={8} lg={3}>
               <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Provincia</div>
               <Select
                 placeholder="Seleccione"
@@ -928,7 +1311,7 @@ const OportunidadesAudatex = () => {
                 options={provincias.map(p => ({ value: p.id, label: p.nombre }))}
               />
             </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
+            <Col xs={24} sm={12} md={8} lg={3}>
               <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Cantón</div>
               <Select
                 placeholder="Seleccione"
@@ -941,8 +1324,7 @@ const OportunidadesAudatex = () => {
                 options={cantones.map(c => ({ value: c.id, label: c.nombre }))}
               />
             </Col>
-
-            <Col xs={24} sm={12} md={8} lg={8}>
+            <Col xs={24} sm={12} md={8} lg={6}>
               <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Rango de Fechas</div>
               <RangePicker
                 value={[filtros.desde, filtros.hasta]}
@@ -954,7 +1336,7 @@ const OportunidadesAudatex = () => {
                 style={{ width: '100%', borderRadius: '8px' }}
               />
             </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
+            <Col xs={24} sm={12} md={8} lg={3}>
               <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Min. Pendientes</div>
               <Input
                 type="number"
@@ -967,6 +1349,20 @@ const OportunidadesAudatex = () => {
                 allowClear
               />
             </Col>
+            <Col xs={24} sm={12} md={8} lg={3}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 500 }}>Responsable</div>
+              <Select
+                placeholder="Todos"
+                allowClear
+                value={filtros.empleado}
+                onChange={(val) => setFiltros({ ...filtros, empleado: val })}
+                style={{ width: '100%' }}
+                options={usuariosActivos.map((u) => ({
+                  value: u.id,
+                  label: `${u.nombre || u.email}${u.id === currentUserId ? ' (Tú)' : ''}`
+                }))}
+              />
+            </Col>
           </Row>
         )}
       </Card>
@@ -974,13 +1370,22 @@ const OportunidadesAudatex = () => {
       {/* Tabla progresiva — Ant Design maneja la paginación internamente */}
       <Card>
         <style>{`
-          .row-enviada { background-color: #f6ffed !important; border-left: 4px solid #52c41a; }
-          .row-pendiente, .row-nueva { background-color: #fff9e6 !important; border-left: 4px solid #ffd666; }
-          .row-revisada { opacity: 0.65; background-color: #fafafa !important; border-left: 4px solid #d9d9d9; }
-          .row-revisada:hover { opacity: 1; }
+          .row-cotizada { background-color: #f0fdf4 !important; border-left: 5px solid #16a34a !important; }
+          .row-cotizada td { background-color: #f0fdf4 !important; }
+          .row-pendiente { background-color: #fffbe6 !important; border-left: 5px solid #faad14 !important; }
+          .row-revisada { opacity: 0.75; background-color: #fafafa !important; border-left: 5px solid #d9d9d9 !important; }
+          .row-cotizada:hover, .row-pendiente:hover, .row-revisada:hover { filter: brightness(0.97); }
         `}</style>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <Space size={8} wrap>
+            <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Leyenda de Estados:</Text>
+            <Tag color="success" style={{ fontWeight: 600 }}>● Cotizada / Con Pedido (Verde)</Tag>
+            <Tag color="warning" style={{ fontWeight: 600 }}>● Pendiente (&gt; 30 min, Amarillo)</Tag>
+            <Tag color="default" style={{ fontWeight: 600 }}>● Revisada (Gris)</Tag>
+          </Space>
+        </div>
         <div ref={tableRef}>
-          <Table scroll={{ x: 'max-content' }}
+          <Table
             columns={columns}
             dataSource={oportunidadesFiltradas}
             rowClassName={getRowClassName}
@@ -992,7 +1397,7 @@ const OportunidadesAudatex = () => {
               onExpandedRowsChange: setExpandedRowKeys,
               onExpand: (expanded, record) => {
                 if (expanded && record.estado_interaccion !== 'REVISADA') {
-                  handleMarcarRevisada(record.wan, { stopPropagation: () => {} });
+                  handleMarcarRevisada(record);
                 }
               },
               rowExpandable: (record) => Array.isArray(record.repuestos) && record.repuestos.length > 0,
@@ -1117,19 +1522,282 @@ const OportunidadesAudatex = () => {
                 tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               },
             }}
+            scroll={{ x: 1200 }}
+            onRow={(record) => ({
+              onClick: () => handleAbrirDetalle(record),
+              style: { cursor: 'pointer' }
+            })}
           />
         </div>
       </Card>
 
-      <CotizarDrawer
-        visible={drawerVisible}
-        onClose={() => {
-          setDrawerVisible(false);
-          setOportunidadSeleccionada(null);
-        }}
-        oportunidad={oportunidadSeleccionada}
-        filtroRepuesto={appliedFiltros.repuesto}
-      />
+      {/* Modal / Dialog de Detalle y Asignación de Oportunidad (Igual que en Pedidos sin montos) */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <FileTextOutlined style={{ color: '#2563eb', fontSize: 20 }} />
+            <span>Detalle de Oportunidad #{selectedOportunidad?.cotizacionId || selectedOportunidad?.wan}</span>
+            <Tag color="blue">Oportunidad</Tag>
+          </div>
+        }
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        width={780}
+        footer={(() => {
+          const key = selectedOportunidad?.cotizacionId || selectedOportunidad?.wan || selectedOportunidad?._key;
+          const asignado = key ? asignacionesOportunidades[key] : null;
+          const assignedId = asignado?.usuarioId || asignado?.userId || asignado?.empleadoId || selectedOportunidad?.usuarioId || selectedOportunidad?.userId || selectedOportunidad?.empleadoId;
+          const esAsignadoAOtro = Boolean(assignedId && currentUserId && Number(assignedId) !== Number(currentUserId));
+
+          if (!esAdmin && esAsignadoAOtro) {
+            return (
+              <Button onClick={() => setModalVisible(false)}>
+                Cerrar
+              </Button>
+            );
+          }
+
+          let btnLabel = 'Confirmar Asignación';
+          if (!assignedId) {
+            btnLabel = esAdmin ? 'Asignar Usuario' : 'Confirmar Autoasignación';
+          } else {
+            btnLabel = esAdmin ? 'Guardar Cambios' : 'Actualizar Mi Gestión';
+          }
+
+          return (
+            <Space>
+              <Button onClick={() => setModalVisible(false)}>Cerrar</Button>
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                loading={procesando}
+                onClick={handleGuardarAsignacion}
+                style={{ background: '#2563eb' }}
+              >
+                {btnLabel}
+              </Button>
+            </Space>
+          );
+        })()}
+      >
+        {selectedOportunidad && (
+          <div>
+            {/* Resumen del Siniestro y Vehículo (mismo estilo limpio que en Pedidos) */}
+            <div style={{ background: '#f8fafc', padding: 16, borderRadius: 8, marginBottom: 16, border: '1px solid #e2e8f0' }}>
+              <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }}>
+                <Descriptions.Item label="Vehículo">
+                  <Text strong>{getMarcaSegura(selectedOportunidad)} {getModeloSeguro(selectedOportunidad)} ({getAnioSeguro(selectedOportunidad)})</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Placa / Matrícula">
+                  <Tag color="blue">{selectedOportunidad.matricula || getDetalleJson(selectedOportunidad)?.['Placa'] || '-'}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Cotización ID">
+                  <Text strong>#{selectedOportunidad.cotizacionId || '-'}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Aseguradora">
+                  <Tag color="cyan">{selectedOportunidad.aseguradora || 'INS'}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Taller">
+                  {selectedOportunidad.taller || '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label="Fecha y Hora">
+                  {parsearFechaHora(selectedOportunidad).fechaTexto} {parsearFechaHora(selectedOportunidad).horaTexto}
+                </Descriptions.Item>
+              </Descriptions>
+            </div>
+
+            {/* Si ya existe el Pedido Confirmado, mostrar bloque de Monto Cargado y Comisión */}
+            {(() => {
+              const hasPedido = Boolean(selectedOportunidad.pedidoId || selectedOportunidad.pedido_id || selectedOportunidad.numeroPedido || selectedOportunidad.numero_pedido);
+              const numPedido = selectedOportunidad.numeroPedido || selectedOportunidad.numero_pedido || selectedOportunidad.pedidoId || selectedOportunidad.pedido_id;
+              
+              const totalCalculado = (() => {
+                const direct = Number(selectedOportunidad.totalPedido || selectedOportunidad.total_pedido || 0);
+                if (direct > 0) return direct;
+                if (Array.isArray(selectedOportunidad.repuestos)) {
+                  const sum = selectedOportunidad.repuestos.reduce((acc, it) => {
+                    const p = it.precioOfrecido || it.precio || it.Precio || it['Precio Ofrecido'] || 0;
+                    const num = typeof p === 'string' ? Number(p.replace(/[^0-9.-]+/g, '')) : Number(p);
+                    const cant = Number(it.cantidad || 1);
+                    return acc + (isNaN(num) ? 0 : num * (isNaN(cant) ? 1 : cant));
+                  }, 0);
+                  if (sum > 0) return sum;
+                }
+                return 0;
+              })();
+
+              const pctComision = Number(selectedOportunidad.porcentajeComision || selectedOportunidad.porcentaje_comision || 3);
+              const comisionFinal = Number(selectedOportunidad.comisionCalculada || selectedOportunidad.comision_calculada || Math.round((totalCalculado * pctComision) / 100));
+
+              if (hasPedido) {
+                return (
+                  <div style={{ background: '#f0fdf4', padding: 14, borderRadius: 8, marginBottom: 16, border: '1px solid #86efac' }}>
+                    <Row gutter={16} align="middle">
+                      <Col xs={24} sm={8}>
+                        <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Pedido Confirmado</Text>
+                        <Text strong style={{ color: '#166534', fontSize: 15 }}>
+                          📦 #{numPedido}
+                        </Text>
+                        <div>
+                          <Tag color="green" style={{ marginTop: 4, fontWeight: 500 }}>
+                            {selectedOportunidad.pedidoEstado || selectedOportunidad.pedido_estado || selectedOportunidad.estado || 'Confirmado'}
+                          </Tag>
+                        </div>
+                      </Col>
+                      <Col xs={12} sm={8} style={{ textAlign: 'right' }}>
+                        <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Monto Total Cargado</Text>
+                        <Text strong style={{ color: '#15803d', fontSize: 18 }}>
+                          ₡{new Intl.NumberFormat('es-CR').format(totalCalculado)}
+                        </Text>
+                      </Col>
+                      <Col xs={12} sm={8} style={{ textAlign: 'right' }}>
+                        <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                          Comisión ({pctComision}%)
+                        </Text>
+                        <Text strong style={{ color: '#b45309', fontSize: 18 }}>
+                          ₡{new Intl.NumberFormat('es-CR').format(comisionFinal)}
+                        </Text>
+                      </Col>
+                    </Row>
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: 6, marginBottom: 16, border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>
+                    ℹ️ Estado: <strong>Oportunidad en Cotización</strong> (sin pedido cargado todavía)
+                  </Text>
+                  <Tag color="default">Sin montos aún</Tag>
+                </div>
+              );
+            })()}
+
+            {/* Repuestos Solicitados (tabla informativa sin montos) */}
+            <Divider orientation="left" style={{ margin: '14px 0', fontSize: 13, color: '#475569' }}>
+              Repuestos Solicitados ({selectedOportunidad.repuestos?.length || 0})
+            </Divider>
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={Array.isArray(selectedOportunidad.repuestos) ? selectedOportunidad.repuestos : []}
+              rowKey={(item, idx) => item.id || idx}
+              columns={[
+                {
+                  title: '#',
+                  key: 'idx',
+                  width: 50,
+                  render: (_, __, index) => index + 1
+                },
+                {
+                  title: 'Descripción',
+                  key: 'descripcion',
+                  render: (_, r) => <strong>{r['Descripcion Pieza'] || r['Grupo Pieza'] || r.descripcion || 'Pieza'}</strong>
+                },
+                {
+                  title: 'Part Number',
+                  key: 'partNumber',
+                  render: (_, r) => <Text code>{r['PartNumber'] || r['Part Serial Number'] || '-'}</Text>
+                },
+                {
+                  title: 'Tipo Pieza / Estado',
+                  key: 'tipoPieza',
+                  align: 'center',
+                  render: (_, r) => <Tag>{r.tipoPieza || r.Estado || r['Estado'] || 'Original'}</Tag>
+                },
+                {
+                  title: 'Cantidad',
+                  key: 'cantidad',
+                  align: 'center',
+                  width: 65,
+                  render: (_, r) => r.cantidad || 1
+                },
+                ...(Boolean(selectedOportunidad.pedidoId || selectedOportunidad.pedido_id || selectedOportunidad.numeroPedido || selectedOportunidad.numero_pedido) ? [
+                  {
+                    title: 'Precio Ofrecido',
+                    key: 'precio',
+                    align: 'right',
+                    width: 140,
+                    render: (_, r) => {
+                      const p = r.precioOfrecido || r.precio || r.Precio || r['Precio'] || r['Precio Ofrecido'];
+                      const val = typeof p === 'string' ? Number(p.replace(/[^0-9.-]+/g, '')) : Number(p);
+                      return val ? <Text strong style={{ color: '#15803d' }}>₡{new Intl.NumberFormat('es-CR').format(val)}</Text> : '-';
+                    }
+                  }
+                ] : [])
+              ]}
+              locale={{ emptyText: 'No hay repuestos desglosados en esta oportunidad' }}
+              style={{ marginBottom: 16 }}
+            />
+
+            {/* Selección / Autoasignación del Usuario Responsable (exactamente igual que en Pedidos) */}
+            {(() => {
+              const key = selectedOportunidad?.cotizacionId || selectedOportunidad?.wan || selectedOportunidad?._key;
+              const asignado = key ? asignacionesOportunidades[key] : null;
+              const assignedId = asignado?.usuarioId || asignado?.userId || asignado?.empleadoId || selectedOportunidad?.usuarioId || selectedOportunidad?.userId || selectedOportunidad?.empleadoId;
+              const assignedName = asignado?.usuarioNombre || asignado?.empleadoNombre || selectedOportunidad?.usuarioNombre || selectedOportunidad?.empleadoNombre;
+              const esAsignadoAOtro = Boolean(assignedId && currentUserId && Number(assignedId) !== Number(currentUserId));
+
+              return (
+                <div style={{ background: '#eff6ff', padding: 16, borderRadius: 8, border: '1px solid #bfdbfe' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <UserOutlined style={{ color: '#2563eb', fontSize: 16 }} />
+                      <Text strong style={{ color: '#1e40af' }}>
+                        {esAdmin ? 'Usuario Responsable (Gestión Admin):' : 'Usuario Responsable:'}
+                      </Text>
+                    </div>
+                    {!esAdmin && (
+                      <Tag color="cyan">Rol: {user?.rol || 'Colaborador'}</Tag>
+                    )}
+                  </div>
+
+                  {esAdmin ? (
+                    <Select
+                      placeholder="Seleccione el usuario que atiende esta oportunidad..."
+                      value={usuarioSeleccionadoId}
+                      onChange={(val) => setUsuarioSeleccionadoId(val)}
+                      style={{ width: '100%' }}
+                      size="large"
+                      showSearch
+                      optionFilterProp="children"
+                    >
+                      {usuariosActivos.map((u) => (
+                        <Select.Option key={u.id} value={u.id}>
+                          {u.nombre || u.email} {u.rol ? `(${u.rol})` : ''} {u.id === currentUserId ? '— (Tú)' : ''}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <div>
+                      {esAsignadoAOtro ? (
+                        <Alert
+                          type="warning"
+                          showIcon
+                          message={`Asignada actualmente a: ${assignedName || `Usuario #${assignedId}`}`}
+                          description="Esta oportunidad ya está asignada a otro usuario. Solo un Administrador puede transferirla o gestionarla."
+                        />
+                      ) : (
+                        <div style={{ padding: '10px 14px', background: '#fff', borderRadius: 6, border: '1px solid #93c5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div>
+                            <Text strong style={{ color: '#1e3a8a', fontSize: 15 }}>
+                              👤 {currentUserName}
+                            </Text>
+                            <div style={{ color: '#64748b', fontSize: 12 }}>
+                              {assignedId ? 'Ya asignada a tu cuenta' : 'Se autoasignará a tu usuario al confirmar'}
+                            </div>
+                          </div>
+                          <Tag color="blue">Autoasignación</Tag>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

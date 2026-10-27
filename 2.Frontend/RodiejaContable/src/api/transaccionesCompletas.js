@@ -10,10 +10,36 @@ const sortTransaccionesDesc = (transacciones) => {
 };
 
 export const transaccionesCompletasService = {
-  // Get all complete transactions with optional filters
+  // Get all complete transactions with optional filters (including mes and anio)
   getTransacciones: async (filters = {}) => {
     try {
-      const response = await api.get('v1/transacciones', { params: filters });
+      const params = { ...filters };
+      if (params.mes && params.anio) {
+        return await transaccionesCompletasService.getTransaccionesPorPeriodo(params.mes, params.anio, params);
+      }
+      if (params.fechaInicio && params.fechaFin) {
+        return await transaccionesCompletasService.getTransaccionesPorRangoFechas(params.fechaInicio, params.fechaFin);
+      }
+      const response = await api.get('v1/transacciones', { params });
+      return sortTransaccionesDesc(response.data);
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get complete transactions filtered by month and year
+  getTransaccionesPorPeriodo: async (mes, anio, params = {}) => {
+    try {
+      const m = parseInt(mes, 10);
+      const a = parseInt(anio, 10);
+      const mesStr = String(m).padStart(2, '0');
+      const ultimoDia = new Date(a, m, 0).getDate();
+      const fechaInicio = `${a}-${mesStr}-01`;
+      const fechaFin = `${a}-${mesStr}-${String(ultimoDia).padStart(2, '0')}`;
+
+      const response = await api.get('v1/transacciones/rango-fechas', {
+        params: { fechaInicio, fechaFin, ...params }
+      });
       return sortTransaccionesDesc(response.data);
     } catch (error) {
       throw error.response?.data || error.message;

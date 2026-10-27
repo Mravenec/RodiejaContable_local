@@ -584,7 +584,7 @@ BEGIN
 END//
 DELIMITER ;
 
--- Reversión del estado del repuesto y stock si se registra un reembolso
+-- Reversión del estado del repuesto, vehículo y stock si se registra un reembolso
 DELIMITER //
 CREATE TRIGGER tr_reembolso_repuesto
 AFTER INSERT ON transacciones_financieras
@@ -603,6 +603,97 @@ BEGIN
         SET estado = 'STOCK',
             cantidad = cantidad + COALESCE(NEW.cantidad_repuesto, 1)
         WHERE id = NEW.repuesto_id;
+    END IF;
+
+    -- Si es un reembolso y tiene vehículo asociado, revertir estado a DISPONIBLE
+    IF is_refund > 0 AND NEW.vehiculo_id IS NOT NULL THEN
+        UPDATE vehiculos
+        SET estado = 'DISPONIBLE'
+        WHERE id = NEW.vehiculo_id;
+    END IF;
+END//
+DELIMITER ;
+
+-- Validación de reembolsos: no se puede reembolsar un reembolso ni reembolsar una transacción dos veces
+DELIMITER //
+CREATE TRIGGER tr_validar_reembolso_insert
+BEFORE INSERT ON transacciones_financieras
+FOR EACH ROW
+BEGIN
+    DECLARE v_es_reembolso INT DEFAULT 0;
+    DECLARE v_conteo_previo INT DEFAULT 0;
+    DECLARE v_orig_id INT DEFAULT NULL;
+    DECLARE v_es_orig_reembolso INT DEFAULT 0;
+
+    -- Verificar si la nueva transacción es un reembolso
+    IF NEW.referencia LIKE 'Reembolso TR-%' OR NEW.codigo_transaccion LIKE 'REF-%' THEN
+        SET v_es_reembolso = 1;
+    ELSE
+        SELECT COUNT(*) INTO v_es_reembolso
+        FROM tipos_transacciones
+        WHERE id = NEW.tipo_transaccion_id AND nombre LIKE '%Reembolso%';
+    END IF;
+
+    IF v_es_reembolso > 0 THEN
+        -- No permitir reembolsar una transacción que ya es un reembolso (ej. REF-REF-...)
+        IF NEW.codigo_transaccion LIKE 'REF-REF-%' THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'No se puede reembolsar una transacción que ya es un reembolso.';
+        END IF;
+
+        IF NEW.referencia IS NOT NULL AND NEW.referencia LIKE 'Reembolso TR-%' THEN
+            -- Verificar si ya existe otro reembolso activo para esta misma transacción
+            SELECT COUNT(*) INTO v_conteo_previo
+            FROM transacciones_financieras
+            WHERE referencia = NEW.referencia AND activo = 1;
+
+            IF v_conteo_previo > 0 THEN
+                SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'Esta transacción ya ha sido reembolsada y no se puede reembolsar dos veces.';
+            END IF;
+
+            -- Extraer el ID original de 'Reembolso TR-123'
+            SET v_orig_id = CAST(SUBSTRING(NEW.referencia, 14) AS UNSIGNED);
+
+            IF v_orig_id > 0 THEN
+                SELECT COUNT(*) INTO v_es_orig_reembolso
+                FROM transacciones_financieras tf
+                JOIN tipos_transacciones tt ON tf.tipo_transaccion_id = tt.id
+                WHERE tf.id = v_orig_id
+                  AND (tf.referencia LIKE 'Reembolso %' OR tf.codigo_transaccion LIKE 'REF-%' OR tt.nombre LIKE '%Reembolso%');
+
+                IF v_es_orig_reembolso > 0 THEN
+                    SIGNAL SQLSTATE '45000'
+                    SET MESSAGE_TEXT = 'No se puede reembolsar una transacción que ya es un reembolso.';
+                END IF;
+            END IF;
+        END IF;
+    END IF;
+END//
+DELIMITER ;
+
+-- Evitar que una transacción de reembolso o reembolsada sea eliminada (no se puede deshacer)
+DELIMITER //
+CREATE TRIGGER tr_validar_reembolso_delete
+BEFORE DELETE ON transacciones_financieras
+FOR EACH ROW
+BEGIN
+    DECLARE v_reembolsos_asociados INT DEFAULT 0;
+
+    -- Si la transacción a eliminar es un reembolso
+    IF OLD.referencia LIKE 'Reembolso %' OR OLD.codigo_transaccion LIKE 'REF-%' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Un reembolso no se puede deshacer ni eliminar.';
+    END IF;
+
+    -- Si la transacción a eliminar tiene un reembolso que la referencia
+    SELECT COUNT(*) INTO v_reembolsos_asociados
+    FROM transacciones_financieras
+    WHERE referencia = CONCAT('Reembolso TR-', OLD.id) AND activo = 1;
+
+    IF v_reembolsos_asociados > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'No se puede eliminar una transacción que ya ha sido reembolsada.';
     END IF;
 END//
 DELIMITER ;
@@ -868,16 +959,11 @@ CREATE TRIGGER tr_generar_codigo_transaccion
 BEFORE INSERT ON transacciones_financieras
 FOR EACH ROW
 BEGIN
-    DECLARE max_contador INT;
-    DECLARE prefijo VARCHAR(20);
+    DECLARE contador INT;
+    SELECT COUNT(*) + 1 INTO contador FROM transacciones_financieras 
+    WHERE YEAR(fecha) = YEAR(NEW.fecha) AND MONTH(fecha) = MONTH(NEW.fecha);
     
-    SET prefijo = CONCAT('TRX-', YEAR(NEW.fecha), LPAD(MONTH(NEW.fecha), 2, '0'), '-%');
-    
-    SELECT IFNULL(MAX(CAST(RIGHT(codigo_transaccion, 4) AS UNSIGNED)), 0) INTO max_contador 
-    FROM transacciones_financieras 
-    WHERE codigo_transaccion LIKE prefijo;
-    
-    SET NEW.codigo_transaccion = CONCAT('TRX-', YEAR(NEW.fecha), LPAD(MONTH(NEW.fecha), 2, '0'), '-', LPAD(max_contador + 1, 4, '0'));
+    SET NEW.codigo_transaccion = CONCAT('TRX-', YEAR(NEW.fecha), LPAD(MONTH(NEW.fecha), 2, '0'), '-', LPAD(contador, 4, '0'));
 END//
 DELIMITER ;
 

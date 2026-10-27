@@ -129,6 +129,12 @@ public class TransaccionesFinancierasController {
         return new ResponseEntity<>(total, HttpStatus.OK);
     }
     
+    @GetMapping("/{id}/estado-reembolso")
+    public ResponseEntity<Map<String, Object>> getEstadoReembolso(@PathVariable Integer id) {
+        Map<String, Object> estado = transaccionesService.verificarEstadoReembolso(id);
+        return new ResponseEntity<>(estado, HttpStatus.OK);
+    }
+    
     @PostMapping("/reembolso/{transaccionId}")
     public ResponseEntity<TransaccionesFinancieras> reembolsarTransaccion(
             @PathVariable Integer transaccionId) {

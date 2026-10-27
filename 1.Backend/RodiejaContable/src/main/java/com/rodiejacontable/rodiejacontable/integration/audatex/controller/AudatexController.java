@@ -280,15 +280,40 @@ public class AudatexController {
     @PostMapping("/pedidos/facturar")
     public ResponseEntity<?> facturarPedido(@RequestBody Map<String, Object> payload) {
         try {
-            Integer pedidoId = (Integer) payload.get("pedidoId");
-            log.info("[Audatex] POST /pedidos/facturar - pedidoId {}", pedidoId);
-            AudatexPedidos facturado = audatexService.facturarPedido(pedidoId);
+            Integer pedidoId = payload.get("pedidoId") != null ? ((Number) payload.get("pedidoId")).intValue() : null;
+            Object idVal = payload.get("usuarioId") != null ? payload.get("usuarioId") : payload.get("empleadoId");
+            Integer empleadoId = idVal != null ? ((Number) idVal).intValue() : null;
+            Integer porcentajeComision = payload.get("porcentajeComision") != null ? ((Number) payload.get("porcentajeComision")).intValue() : null;
+            log.info("[Audatex] POST /pedidos/facturar - pedidoId {}, usuario/empleadoId {}, porcentajeComision {}", pedidoId, empleadoId, porcentajeComision);
+            AudatexPedidos facturado = audatexService.facturarPedido(pedidoId, empleadoId, porcentajeComision);
             return ResponseEntity.ok(Map.of(
                     "mensaje", "Pedido facturado exitosamente",
-                    "pedido", facturado
+                    "pedido", facturado != null ? facturado : Map.of("id", pedidoId, "estado", "Entregado")
             ));
         } catch (Exception e) {
             log.error("[Audatex] Error facturando pedido: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/pedidos/asignar-empleado")
+    public ResponseEntity<?> asignarEmpleado(@RequestBody Map<String, Object> payload) {
+        try {
+            Integer pedidoId = payload.get("pedidoId") != null ? ((Number) payload.get("pedidoId")).intValue() : null;
+            Object idVal = payload.get("usuarioId") != null ? payload.get("usuarioId") : payload.get("empleadoId");
+            Integer empleadoId = idVal != null ? ((Number) idVal).intValue() : null;
+            Integer porcentajeComision = payload.get("porcentajeComision") != null ? ((Number) payload.get("porcentajeComision")).intValue() : null;
+            log.info("[Audatex] POST /pedidos/asignar-empleado - pedidoId {}, usuario/empleadoId {}, porcentajeComision {}", pedidoId, empleadoId, porcentajeComision);
+            audatexService.asignarEmpleado(pedidoId, empleadoId, porcentajeComision);
+            return ResponseEntity.ok(Map.of(
+                    "mensaje", "Usuario asignado exitosamente (estado del pedido conservado)",
+                    "pedidoId", pedidoId,
+                    "usuarioId", empleadoId != null ? empleadoId : 0,
+                    "empleadoId", empleadoId != null ? empleadoId : 0
+            ));
+        } catch (Exception e) {
+            log.error("[Audatex] Error asignando empleado: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Error interno: " + e.getMessage()));
         }
