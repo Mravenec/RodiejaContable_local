@@ -1,36 +1,84 @@
 """Export live MariaDB -> project SQL files + gzip download artifact.
 
+Modes (env RODIEJA_DB_MODE):
+  docker (default) : docker exec SistemaPrincipal mariadb-dump  (Local)
+  direct           : mariadb-dump/mysqldump to host (EC2 -> RDS)
+
 - DB/04_datos.sql          : data-only (INSERTs) for load_data.py
-- DB/_schema_from_live.sql : schema-only snapshot (diff vs numbered schema files)
-- exports/*.sql.gz         : full dump (schema + data) for backup / import elsewhere
+- DB/_schema_from_live.sql : schema-only snapshot
+- exports/*.sql.gz         : full dump for download
 """
 import argparse
 import gzip
 import os
+import shutil
 import subprocess
 from datetime import datetime
 
 CONTAINER_NAME = "SistemaPrincipal"
-DB_NAME = "sistema_vehicular"
-USER = "root"
-PASSWORD = "123456"
+DB_NAME = os.environ.get("RODIEJA_DB_NAME", "sistema_vehicular")
+USER = os.environ.get("RODIEJA_DB_USER", "root")
+PASSWORD = os.environ.get("RODIEJA_DB_PASSWORD", "123456")
+HOST = os.environ.get("RODIEJA_DB_HOST", "")
+PORT = os.environ.get("RODIEJA_DB_PORT", "3306")
 
 
 def _base_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-def _run_dump(args_extra, dest_path):
+def _mode():
+    return os.environ.get("RODIEJA_DB_MODE", "docker").strip().lower()
+
+
+def _dump_binary():
+    for name in ("mariadb-dump", "mysqldump"):
+        path = shutil.which(name)
+        if path:
+            return path
+    raise RuntimeError(
+        "Neither mariadb-dump nor mysqldump found on PATH. "
+        "Install MariaDB client tools on EC2 (e.g. sudo dnf install -y mariadb)."
+    )
+
+
+def _dump_cmd(args_extra, database_flag=True):
+    """Build dump command for docker (local) or direct (RDS)."""
+    common = ["--single-transaction", "--routines", "--triggers"]
+    if _mode() == "direct":
+        if not HOST:
+            raise RuntimeError("RODIEJA_DB_MODE=direct requires RODIEJA_DB_HOST")
+        cmd = [
+            _dump_binary(),
+            f"-h{HOST}",
+            f"-P{PORT}",
+            f"-u{USER}",
+            f"-p{PASSWORD}",
+            *common,
+        ]
+        if database_flag:
+            cmd.extend(["--databases", DB_NAME])
+        else:
+            cmd.append(DB_NAME)
+        cmd.extend(args_extra)
+        return cmd
+
     cmd = [
         "docker", "exec", CONTAINER_NAME,
         "mariadb-dump",
         f"-u{USER}", f"-p{PASSWORD}",
-        "--single-transaction",
-        "--routines",
-        "--triggers",
-        "--databases", DB_NAME,
-        *args_extra,
+        *common,
     ]
+    if database_flag:
+        cmd.extend(["--databases", DB_NAME])
+    else:
+        cmd.append(DB_NAME)
+    cmd.extend(args_extra)
+    return cmd
+
+
+def _run_dump(args_extra, dest_path):
+    cmd = _dump_cmd(args_extra, database_flag=True)
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
     with open(dest_path, "wb") as out:
         proc = subprocess.run(cmd, stdout=out, stderr=subprocess.PIPE)
@@ -61,7 +109,7 @@ def export_all():
     schema_path = os.path.join(base, "DB", "_schema_from_live.sql")
 
     print("=" * 60)
-    print("Exporting live database -> project files")
+    print(f"Exporting live database -> project files (mode={_mode()})")
     print("=" * 60)
 
     print("1/4 Full dump (schema + data)...")
@@ -70,7 +118,6 @@ def export_all():
 
     print("2/4 Compress full dump -> .sql.gz ...")
     _gzip_file(full_sql, full_gz)
-    # Keep only the gzip as the portable artifact; remove uncompressed twin
     try:
         os.remove(full_sql)
     except OSError:
@@ -87,16 +134,36 @@ def export_all():
         "SET FOREIGN_KEY_CHECKS = 0;\n"
         f"USE `{DB_NAME}`;\n\n"
     ).encode("utf-8")
-    cmd_data = [
-        "docker", "exec", CONTAINER_NAME,
-        "mariadb-dump",
-        f"-u{USER}", f"-p{PASSWORD}",
-        "--single-transaction",
-        "--no-create-info",
-        "--complete-insert",
-        "--skip-triggers",
-        DB_NAME,
-    ]
+    cmd_data = _dump_cmd(
+        ["--no-create-info", "--complete-insert", "--skip-triggers"],
+        database_flag=False,
+    )
+    # data-only path should not pass --routines/--triggers with skip-triggers conflict:
+    # rebuild without routines/triggers for data-only
+    if _mode() == "direct":
+        cmd_data = [
+            _dump_binary(),
+            f"-h{HOST}",
+            f"-P{PORT}",
+            f"-u{USER}",
+            f"-p{PASSWORD}",
+            "--single-transaction",
+            "--no-create-info",
+            "--complete-insert",
+            "--skip-triggers",
+            DB_NAME,
+        ]
+    else:
+        cmd_data = [
+            "docker", "exec", CONTAINER_NAME,
+            "mariadb-dump",
+            f"-u{USER}", f"-p{PASSWORD}",
+            "--single-transaction",
+            "--no-create-info",
+            "--complete-insert",
+            "--skip-triggers",
+            DB_NAME,
+        ]
     with open(data_path, "wb") as out:
         out.write(header)
         proc = subprocess.run(cmd_data, stdout=out, stderr=subprocess.PIPE)
@@ -119,6 +186,6 @@ def export_all():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Export sistema_vehicular from Docker MariaDB")
+    parser = argparse.ArgumentParser(description="Export sistema_vehicular (Docker local or direct RDS)")
     parser.parse_args()
     export_all()

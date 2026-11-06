@@ -250,6 +250,11 @@ const normalizarEOrdenar = (
   const marcas = Array.isArray(data?.marcas) ? data.marcas : (Array.isArray(data) ? data : []);
 
   const normVehiculo = (v, g) => {
+    const activo = toNum(v.activo, 0);
+
+    // Skip inactive vehicles
+    if (activo === 0) return null;
+
     const id = v.id;
     const codigo = v.codigo_vehiculo ?? v.codigoVehiculo;
     const generacionId = v.generacion_id ?? v.generacionId ?? g?.id;
@@ -304,7 +309,7 @@ const normalizarEOrdenar = (
       estado: toStr(v.estado, 'SIN_ESTADO'),
       precio_venta: precioVenta,
       fecha_venta: isNullish(v.fecha_venta ?? v.fechaVenta) ? null : (v.fecha_venta ?? v.fechaVenta),
-      activo: toNum(v.activo, 0),
+      activo: activo,
       notas: isNullish(v.notas) ? null : String(v.notas),
       fecha_creacion: v.fecha_creacion ?? v.fechaCreacion,
       fecha_actualizacion: v.fecha_actualizacion ?? v.fechaActualizacion,
@@ -399,7 +404,8 @@ const normalizarEOrdenar = (
       total_repuestos: calcRepuestos,
       activo: toNum(g.activo ?? fromApi?.activo, 0),
       fecha_creacion: toStr(g.fecha_creacion ?? g.fechaCreacion ?? fromApi?.fechaCreacion),
-      vehiculos: vehiculosNorm
+      vehiculos: (Array.isArray(g.vehiculos) ? g.vehiculos.map(v => normVehiculo(v, g)).filter(v => v !== null) : [])
+        .sort((a, b) => (a.anio ?? 0) - (b.anio ?? 0))
     };
   };
 

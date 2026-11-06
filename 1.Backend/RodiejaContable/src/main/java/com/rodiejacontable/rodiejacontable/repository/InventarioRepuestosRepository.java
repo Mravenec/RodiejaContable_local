@@ -40,6 +40,9 @@ public class InventarioRepuestosRepository {
         if (repuesto.getNivel() == null) repuesto.setNivel(InventarioRepuestosNivel._0_);
         if (repuesto.getPiso() == null) repuesto.setPiso(InventarioRepuestosPiso.P1_);
         
+        // Asegurar que activo sea 1 por defecto para evitar que desaparezcan en la UI
+        if (repuesto.getActivo() == null) repuesto.setActivo((byte) 1);
+        
         // Plastica, Carton y Posicion pueden quedar como null en la DB, pero si requerimos 
         // el default de la BD que sea vacío o nulo, no hacemos nada.
         
@@ -70,18 +73,21 @@ public class InventarioRepuestosRepository {
     public Optional<InventarioRepuestos> findById(Integer id) {
         return dsl.selectFrom(INVENTARIO_REPUESTOS)
                 .where(INVENTARIO_REPUESTOS.ID.eq(id))
+                .and(INVENTARIO_REPUESTOS.ACTIVO.eq((byte) 1).or(INVENTARIO_REPUESTOS.ACTIVO.isNull()))
                 .fetchOptionalInto(InventarioRepuestos.class);
     }
 
     public List<InventarioRepuestos> findByVehiculoOrigenId(Integer vehiculoId) {
         return dsl.selectFrom(INVENTARIO_REPUESTOS)
                 .where(INVENTARIO_REPUESTOS.VEHICULO_ORIGEN_ID.eq(vehiculoId))
+                .and(INVENTARIO_REPUESTOS.ACTIVO.eq((byte) 1).or(INVENTARIO_REPUESTOS.ACTIVO.isNull()))
                 .fetchInto(InventarioRepuestos.class);
     }
 
     public List<InventarioRepuestos> findByCodigoRepuesto(String codigoRepuesto) {
         return dsl.selectFrom(INVENTARIO_REPUESTOS)
                 .where(INVENTARIO_REPUESTOS.CODIGO_REPUESTO.like("%" + codigoRepuesto + "%"))
+                .and(INVENTARIO_REPUESTOS.ACTIVO.eq((byte) 1).or(INVENTARIO_REPUESTOS.ACTIVO.isNull()))
                 .fetchInto(InventarioRepuestos.class);
     }
 

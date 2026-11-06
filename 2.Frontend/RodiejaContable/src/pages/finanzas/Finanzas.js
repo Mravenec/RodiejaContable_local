@@ -388,8 +388,9 @@ const Finanzas = () => {
       key: 'acciones',
       width: 150,
       render: (_, record) => {
-        const puedeReembolsar = record.estado === 'COMPLETADA' && !record.esReembolso && !record.yaReembolsada && user?.rol !== 'CONTADOR';
-        const puedeModificar = !record.esReembolso && !record.yaReembolsada && user?.rol !== 'CONTADOR';
+        const esCompraAutomatica = record.descripcion?.startsWith('Compra automática');
+        const puedeReembolsar = record.estado === 'COMPLETADA' && !record.esReembolso && !record.yaReembolsada && user?.rol !== 'CONTADOR' && !esCompraAutomatica;
+        const puedeModificar = !record.esReembolso && !record.yaReembolsada && user?.rol !== 'CONTADOR' && !esCompraAutomatica;
 
         return (
           <Space size="middle">
@@ -398,21 +399,21 @@ const Finanzas = () => {
                 type="text" 
                 danger
                 icon={<UndoOutlined />} 
-                onClick={() => confirmarReembolso(record)}
+                onClick={(e) => { e.stopPropagation(); confirmarReembolso(record); }}
                 title="Reembolsar Transacción"
               />
             )}
             <Button 
               type="text" 
               icon={<EyeOutlined />} 
-              onClick={() => verDetalle(record)}
+              onClick={(e) => { e.stopPropagation(); verDetalle(record); }}
               title="Ver detalles"
             />
             {puedeModificar && (
               <Button 
                 type="text" 
                 icon={<EditOutlined />} 
-                onClick={() => editarTransaccion(record)}
+                onClick={(e) => { e.stopPropagation(); editarTransaccion(record); }}
                 title="Editar"
               />
             )}
@@ -421,7 +422,7 @@ const Finanzas = () => {
                 type="text" 
                 danger 
                 icon={<DeleteOutlined />} 
-                onClick={() => confirmarEliminar(record)}
+                onClick={(e) => { e.stopPropagation(); confirmarEliminar(record); }}
                 title="Eliminar"
               />
             )}

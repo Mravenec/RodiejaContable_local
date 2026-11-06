@@ -16,26 +16,44 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Invokes Python scripts under {@code 0.BaseDeDatos} (Docker MariaDB).
+ * Invokes Python scripts under {@code 0.BaseDeDatos}.
+ * Local: Docker SistemaPrincipal. Production: direct dump to RDS via env.
  */
 @Repository
 public class DatabaseImportExportRepository implements IDatabaseImportExportRepository {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseImportExportRepository.class);
     private static final long TIMEOUT_MINUTES = 30;
+    private static final Pattern JDBC_MARIADB = Pattern.compile(
+            "jdbc:mariadb://([^:/]+)(?::(\\d+))?/([^?]+)");
 
     private final Path baseDir;
     private final String pythonCmd;
+    private final String dbMode;
+    private final String dbUser;
+    private final String dbPassword;
+    private final String jdbcUrl;
 
     public DatabaseImportExportRepository(
             @Value("${rodieja.db.base-dir:../../0.BaseDeDatos}") String baseDirProp,
-            @Value("${rodieja.db.python:python}") String pythonCmd) {
+            @Value("${rodieja.db.python:python}") String pythonCmd,
+            @Value("${rodieja.db.mode:docker}") String dbMode,
+            @Value("${spring.datasource.username:root}") String dbUser,
+            @Value("${spring.datasource.password:}") String dbPassword,
+            @Value("${spring.datasource.url:}") String jdbcUrl) {
         this.baseDir = Paths.get(baseDirProp).toAbsolutePath().normalize();
         this.pythonCmd = pythonCmd;
+        this.dbMode = dbMode == null ? "docker" : dbMode.trim().toLowerCase(Locale.ROOT);
+        this.dbUser = dbUser;
+        this.dbPassword = dbPassword;
+        this.jdbcUrl = jdbcUrl;
     }
 
     @Override
@@ -69,6 +87,11 @@ public class DatabaseImportExportRepository implements IDatabaseImportExportRepo
 
     @Override
     public void runImportFullSql(Path sqlFile) {
+        if ("direct".equals(dbMode)) {
+            throw new IllegalStateException(
+                    "Import disabled in rodieja.db.mode=direct (RDS). "
+                            + "Import would DROP the live database. Use Export only in production.");
+        }
         runPython("import_db.py", "--file", sqlFile.toAbsolutePath().toString(), "--full", "--yes");
     }
 
@@ -102,7 +125,13 @@ public class DatabaseImportExportRepository implements IDatabaseImportExportRepo
         ProcessBuilder pb = new ProcessBuilder();
         pb.directory(baseDir.toFile());
         pb.redirectErrorStream(true);
-        pb.environment().put("PYTHONIOENCODING", "utf-8");
+        Map<String, String> env = pb.environment();
+        env.put("PYTHONIOENCODING", "utf-8");
+        env.put("RODIEJA_DB_MODE", dbMode);
+        env.put("RODIEJA_DB_USER", dbUser);
+        env.put("RODIEJA_DB_PASSWORD", dbPassword == null ? "" : dbPassword);
+        applyJdbcEnv(env);
+
         java.util.List<String> cmd = new java.util.ArrayList<>();
         cmd.add(pythonCmd);
         cmd.add(scriptPath.toString());
@@ -111,7 +140,7 @@ public class DatabaseImportExportRepository implements IDatabaseImportExportRepo
         }
         pb.command(cmd);
 
-        log.info("[DB ImportExport] Running: {}", String.join(" ", cmd));
+        log.info("[DB ImportExport] Running: {} {} (mode={})", pythonCmd, script, dbMode);
         try {
             Process process = pb.start();
             StringBuilder output = new StringBuilder();
@@ -137,6 +166,23 @@ public class DatabaseImportExportRepository implements IDatabaseImportExportRepo
             throw new IllegalStateException("Interrupted while running " + script + ": " + e.getMessage(), e);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to run " + script + ": " + e.getMessage(), e);
+        }
+    }
+
+    private void applyJdbcEnv(Map<String, String> env) {
+        if (jdbcUrl == null || jdbcUrl.isBlank()) {
+            return;
+        }
+        Matcher m = JDBC_MARIADB.matcher(jdbcUrl.trim());
+        if (!m.find()) {
+            log.warn("[DB ImportExport] Could not parse JDBC URL for dump host");
+            return;
+        }
+        env.put("RODIEJA_DB_HOST", m.group(1));
+        env.put("RODIEJA_DB_PORT", m.group(2) != null ? m.group(2) : "3306");
+        String db = m.group(3);
+        if (db != null && !db.isBlank()) {
+            env.put("RODIEJA_DB_NAME", db);
         }
     }
 }

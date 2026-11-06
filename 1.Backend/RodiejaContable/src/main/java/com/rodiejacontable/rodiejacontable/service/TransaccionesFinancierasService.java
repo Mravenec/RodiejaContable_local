@@ -133,29 +133,13 @@ public class TransaccionesFinancierasService {
                       repuestoUpdate.setCantidad(org.jooq.types.UInteger.valueOf(Math.max(0, currentStock - saved.getCantidadRepuesto().intValue())));
                       inventarioRepuestosService.actualizarRepuesto(repuesto.getId(), repuestoUpdate);
 
-                      if (repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
-                          try {
-                              com.rodiejacontable.database.jooq.tables.pojos.Vehiculos v = vehiculosService.findById(repuesto.getVehiculoOrigenId());
-                              BigDecimal actual = v.getCostoRecuperado() != null ? v.getCostoRecuperado() : BigDecimal.ZERO;
-                              vehiculosService.actualizarCostoRecuperado(v.getId(), actual.add(saved.getMonto()));
-                          } catch (Exception e) {
-                              // Ignorar si el vehículo ya no existe
-                          }
-                      }
+
                   } else if (tipoTransaccion.getCategoria() == TiposTransaccionesCategoria.EGRESO) {
                       // Compra/Reembolso (Egreso de dinero), aumentamos stock
                       repuestoUpdate.setCantidad(org.jooq.types.UInteger.valueOf(currentStock + saved.getCantidadRepuesto().intValue()));
                       inventarioRepuestosService.actualizarRepuesto(repuesto.getId(), repuestoUpdate);
                     
-                    if (repuesto.getVehiculoOrigenId() != null && saved.getMonto() != null) {
-                        try {
-                            com.rodiejacontable.database.jooq.tables.pojos.Vehiculos v = vehiculosService.findById(repuesto.getVehiculoOrigenId());
-                            BigDecimal actual = v.getCostoRecuperado() != null ? v.getCostoRecuperado() : BigDecimal.ZERO;
-                            vehiculosService.actualizarCostoRecuperado(v.getId(), actual.subtract(saved.getMonto()));
-                        } catch (Exception e) {
-                            // Ignorar si el vehículo ya no existe
-                        }
-                    }
+
                 }
             }
         }
