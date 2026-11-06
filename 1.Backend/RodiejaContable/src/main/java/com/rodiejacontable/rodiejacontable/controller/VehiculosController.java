@@ -245,6 +245,13 @@ public class VehiculosController {
         }
         
         // Actualizar campos si se proporcionan en el mapa
+        if (vehiculoData.containsKey("codigoVehiculo") && vehiculoData.get("codigoVehiculo") != null) {
+            String cod = vehiculoData.get("codigoVehiculo").toString().trim();
+            if (!cod.isEmpty()) {
+                existente.setCodigoVehiculo(cod);
+            }
+        }
+        
         if (vehiculoData.containsKey("generacionId") && vehiculoData.get("generacionId") != null) {
             existente.setGeneracionId(Integer.valueOf(vehiculoData.get("generacionId").toString()));
         }

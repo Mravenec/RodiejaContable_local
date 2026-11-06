@@ -127,6 +127,7 @@ public class VehiculosRepository {
     public Vehiculos update(Vehiculos vehiculo) {
         // Actualizar todos los campos que el Service configura
         dsl.update(VEHICULOS)
+           .set(VEHICULOS.CODIGO_VEHICULO, vehiculo.getCodigoVehiculo())
            .set(VEHICULOS.GENERACION_ID, vehiculo.getGeneracionId())
            .set(VEHICULOS.ANIO, vehiculo.getAnio())
            .set(VEHICULOS.TRACCION, vehiculo.getTraccion())

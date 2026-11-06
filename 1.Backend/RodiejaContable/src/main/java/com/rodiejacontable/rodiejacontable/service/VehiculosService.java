@@ -110,6 +110,9 @@ public class VehiculosService {
         Vehiculos existingVehiculo = findById(id);
         
         // Actualizar los campos que envía el frontend
+        if (vehiculo.getCodigoVehiculo() != null && !vehiculo.getCodigoVehiculo().trim().isEmpty()) {
+            existingVehiculo.setCodigoVehiculo(vehiculo.getCodigoVehiculo().trim());
+        }
         if (vehiculo.getGeneracionId() != null) {
             existingVehiculo.setGeneracionId(vehiculo.getGeneracionId());
         }
