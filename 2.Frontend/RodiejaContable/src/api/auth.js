@@ -73,6 +73,25 @@ export const authService = {
     } catch (error) {
       throw error.response?.data || error.message;
     }
+  },
+
+  forgotPassword: async (email) => {
+    try {
+      const frontendUrl = window.location.origin;
+      const response = await api.post('/auth/forgot-password', { email, frontendUrl });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: error.message || 'Error de conexión' };
+    }
+  },
+
+  resetPassword: async (token, newPassword) => {
+    try {
+      const response = await api.post('/auth/reset-password', { token, newPassword });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: error.message || 'Error al restablecer la contraseña' };
+    }
   }
 };
 

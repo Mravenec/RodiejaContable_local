@@ -333,6 +333,71 @@ public class EmailTemplateService {
         return sb.toString();
     }
 
+    /**
+     * Construye una plantilla HTML responsiva para el restablecimiento de contraseñas.
+     */
+    public String generarHtmlPasswordReset(String nombreUsuario, String enlaceReset) {
+        String fechaEmision = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        String nombreSeguro = escapeHtml((nombreUsuario != null && !nombreUsuario.trim().isEmpty()) ? nombreUsuario : "Usuario");
+        String enlaceSeguro = escapeHtml(enlaceReset);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
+        sb.append("<meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+        sb.append("<title>Restablecimiento de Contraseña - Rodieja Contable</title>");
+        sb.append("<style>");
+        sb.append("body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333333; }");
+        sb.append(".email-container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #e8e8e8; }");
+        sb.append(".header { background: #001529; color: #ffffff; padding: 28px 24px; text-align: center; }");
+        sb.append(".header h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }");
+        sb.append(".header p { margin: 6px 0 0; font-size: 13px; color: #8c8c8c; }");
+        sb.append(".content { padding: 32px 28px; line-height: 1.6; }");
+        sb.append(".saludo { font-size: 16px; font-weight: 600; color: #262626; margin-bottom: 12px; }");
+        sb.append(".btn-container { text-align: center; margin: 30px 0; }");
+        sb.append(".btn { display: inline-block; background-color: #1890ff; color: #ffffff !important; padding: 14px 32px; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 6px; box-shadow: 0 2px 6px rgba(24,144,255,0.35); }");
+        sb.append(".alert-box { background-color: #e6f7ff; border-left: 4px solid #1890ff; padding: 14px 16px; border-radius: 4px; margin: 24px 0; font-size: 13px; color: #003a8c; line-height: 1.5; }");
+        sb.append(".url-fallback { font-size: 12px; color: #8c8c8c; margin-top: 20px; word-break: break-all; }");
+        sb.append(".url-fallback a { color: #1890ff; text-decoration: underline; }");
+        sb.append(".footer { background: #fafafa; padding: 20px 24px; text-align: center; font-size: 11px; color: #8c8c8c; border-top: 1px solid #f0f0f0; line-height: 1.5; }");
+        sb.append("@media only screen and (max-width: 600px) { body { padding: 8px; } .content { padding: 20px 16px; } .btn { width: 100%; box-sizing: border-box; text-align: center; } }");
+        sb.append("</style></head><body>");
+
+        sb.append("<div class='email-container'>");
+        sb.append("<div class='header'>");
+        sb.append("<h1>Rodieja Contable</h1>");
+        sb.append("<p>Seguridad y Control de Acceso</p>");
+        sb.append("</div>");
+
+        sb.append("<div class='content'>");
+        sb.append("<div class='saludo'>Hola, ").append(nombreSeguro).append(":</div>");
+        sb.append("<p>Hemos recibido una solicitud para restablecer la contraseña de acceso a tu cuenta en <strong>Rodieja Contable</strong>.</p>");
+        sb.append("<p>Para definir una nueva contraseña, haz clic en el siguiente botón:</p>");
+
+        sb.append("<div class='btn-container'>");
+        sb.append("<a href='").append(enlaceSeguro).append("' class='btn' target='_blank'>Restablecer mi Contraseña</a>");
+        sb.append("</div>");
+
+        sb.append("<div class='alert-box'>");
+        sb.append("⏰ <strong>Validez del enlace:</strong> Por motivos de seguridad, este enlace es de uso único y expirará en <strong>15 minutos</strong>.");
+        sb.append("</div>");
+
+        sb.append("<p style='font-size: 13px; color: #595959;'>Si tú no realizaste esta solicitud, puedes ignorar este mensaje de forma segura. Tu contraseña actual no cambiará hasta que accedas al enlace y confirmes una nueva.</p>");
+
+        sb.append("<div class='url-fallback'>");
+        sb.append("¿No puedes hacer clic en el botón? Copia y pega esta dirección en tu navegador:<br/>");
+        sb.append("<a href='").append(enlaceSeguro).append("'>").append(enlaceSeguro).append("</a>");
+        sb.append("</div>");
+
+        sb.append("</div>"); // Fin Content
+
+        sb.append("<div class='footer'>");
+        sb.append("Mensaje enviado por Rodieja Contable el ").append(fechaEmision).append(".<br/>");
+        sb.append("Este es un correo automático de seguridad, por favor no respondas a este mensaje.");
+        sb.append("</div></div></body></html>");
+
+        return sb.toString();
+    }
+
     private String escapeHtml(String text) {
         if (text == null) return "";
         return text.replace("&", "&amp;")

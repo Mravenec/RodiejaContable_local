@@ -274,6 +274,14 @@ function App() {
           </AuthRoute>
         }
       />
+      <Route
+        path="/restablecer-contrasena"
+        element={
+          <AuthRoute>
+            <ResetPassword />
+          </AuthRoute>
+        }
+      />
 
       {/* Rutas protegidas */}
       <Route

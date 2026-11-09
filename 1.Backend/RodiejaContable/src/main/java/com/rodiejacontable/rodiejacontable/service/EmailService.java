@@ -51,6 +51,13 @@ public class EmailService {
     }
 
     /**
+     * Envía un correo con contenido HTML a un único destinatario.
+     */
+    public void sendHtmlEmail(String to, String subject, String htmlContent) {
+        sendHtmlEmail(new String[]{to}, subject, htmlContent);
+    }
+
+    /**
      * Envía un correo con contenido HTML a uno o varios destinatarios.
      */
     public void sendHtmlEmail(String[] to, String subject, String htmlContent) {
