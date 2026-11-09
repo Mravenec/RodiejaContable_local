@@ -18,7 +18,7 @@ import vehiculosService from '../../api/vehiculos';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import reportesService from '../../api/reportes';
 import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReporteEmail';
-import * as XLSX from 'xlsx';
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -339,79 +339,35 @@ const ReporteVehiculos = () => {
     });
   };
 
-  const formatFechaExcel = (fecha) => {
-    if (!fecha) return '';
-    if (Array.isArray(fecha)) {
-      return `${String(fecha[2]).padStart(2, '0')}/${String(fecha[1]).padStart(2, '0')}/${fecha[0]}`;
+  const obtenerRangoFechasFiltro = () => {
+    const params = {};
+    if (filtros.mes || filtros.anio) {
+      const targetAnio = filtros.anio || moment().year();
+      if (filtros.mes) {
+        const fechaBase = moment([targetAnio, filtros.mes - 1, 1]);
+        params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+        params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
+      } else {
+        params.fechaInicio = `${targetAnio}-01-01`;
+        params.fechaFin = `${targetAnio}-12-31`;
+      }
     }
-    const m = moment(fecha);
-    return m.isValid() ? m.format('DD/MM/YYYY') : String(fecha);
+    return params;
   };
 
-  const generarExcelWorkbook = () => {
-    const wb = XLSX.utils.book_new();
-
-    // Hoja 1: Resumen Financiero Mensual
-    const exportDataResumen = data.map(item => ({
-      'Año': item.anio,
-      'Mes': item.nombreMes,
-      'Ingresos': item.totalIngresos,
-      'Inversión/Egresos': item.totalEgresos,
-      'Comisiones': item.totalComisiones,
-      'Ganancia Neta': item.balanceNeto
-    }));
-
-    exportDataResumen.push({
-      'Año': 'TOTALES',
-      'Mes': '',
-      'Ingresos': totales.ingresos,
-      'Inversión/Egresos': totales.egresos,
-      'Comisiones': totales.comisiones,
-      'Ganancia Neta': totales.balanceNeto
-    });
-
-    const wsResumen = XLSX.utils.json_to_sheet(exportDataResumen);
-    wsResumen['!cols'] = [
-      { wch: 10 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }
-    ];
-    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen Financiero');
-
-    // Hoja 2: Detalle de Movimientos y Transacciones
-    const exportDataMovimientos = (movimientos || []).map(m => {
-      const isIngreso = m.tipoTransaccion === 'INGRESO' || m.categoria === 'INGRESO' || m.categoria === 'VENTA';
-      const estaPagada = m.comisionPagada === true || m.comisionPagada === 1 || m.comisionPagada === '1';
-
-      return {
-        'Fecha': formatFechaExcel(m.fecha),
-        'Clasificación': m.tipoTransaccion || m.categoria || 'DESCONOCIDO',
-        'Referencia': m.referencia || (m.codigoTransaccion ? `TRX: ${m.codigoTransaccion}` : (m.id ? `ID: ${m.id}` : '')),
-        'Descripción': m.descripcion || '',
-        'Vehículo': m._infoOrigen ? m._infoOrigen.replace(/Vehículo: /g, '') : (m.codigoVehiculo || 'N/A'),
-        'Impacto Financiero': isIngreso ? 'Ingreso (+)' : 'Egreso (-)',
-        'Monto': parseFloat(m.monto || 0),
-        'Comisión': parseFloat(m.comisionEmpleado || 0),
-        'Comisión Pagada': estaPagada ? 'Sí' : 'No'
-      };
-    });
-
-    const wsMovimientos = XLSX.utils.json_to_sheet(exportDataMovimientos);
-    wsMovimientos['!cols'] = [
-      { wch: 12 }, { wch: 16 }, { wch: 20 }, { wch: 38 }, { wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 16 }
-    ];
-    XLSX.utils.book_append_sheet(wb, wsMovimientos, 'Detalle Movimientos');
-
-    return wb;
-  };
-
-  const exportarAExcel = () => {
-    if (data.length === 0 && (!movimientos || movimientos.length === 0)) {
-      message.warning('No hay datos para exportar');
-      return;
+  // Exportar el Reporte de Vehículos oficial generado por el Backend (con estilos y 2 hojas)
+  const exportarAExcel = async () => {
+    try {
+      message.loading({ content: 'Generando reporte oficial de vehículos...', key: 'exp-veh' });
+      const params = obtenerRangoFechasFiltro();
+      const blob = await reportesService.exportarExcelVehiculosBackend(params);
+      const nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Vehiculos', filtros.mes, filtros.anio);
+      reportesService.descargarArchivo(blob, nombreArchivo);
+      message.success({ content: 'Reporte de vehículos exportado exitosamente', key: 'exp-veh' });
+    } catch (error) {
+      console.error('Error al exportar vehículos a Excel:', error);
+      message.error({ content: 'Error al exportar el archivo Excel', key: 'exp-veh' });
     }
-
-    const wb = generarExcelWorkbook();
-    XLSX.writeFile(wb, `Reporte_Vehiculos_${moment().format('YYYY-MM-DD')}.xlsx`);
-    message.success('Reporte exportado exitosamente');
   };
 
   const handleEnviarEmail = async (opciones) => {
@@ -425,14 +381,15 @@ const ReporteVehiculos = () => {
     formData.append('balanceNeto', totales?.balanceNeto || 0);
     formData.append('cantidadVehiculos', vehiculosListado?.length || 0);
 
-    if (opciones.adjuntarExcel && (data.length > 0 || (movimientos && movimientos.length > 0))) {
-      const wb = generarExcelWorkbook();
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const excelBlob = new Blob([wbout], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-      const nombreArchivo = `Reporte_Vehiculos_${moment().format('YYYY-MM-DD')}.xlsx`;
-      formData.append('archivo', excelBlob, nombreArchivo);
+    if (opciones.adjuntarExcel) {
+      try {
+        const params = obtenerRangoFechasFiltro();
+        const excelBlob = await reportesService.exportarExcelVehiculosBackend(params);
+        const nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Vehiculos', filtros.mes, filtros.anio);
+        formData.append('archivo', excelBlob, nombreArchivo);
+      } catch (err) {
+        console.warn('No se pudo adjuntar el Excel del backend:', err);
+      }
     }
 
     await reportesService.enviarReporteVehiculosEmail(formData);
@@ -571,7 +528,7 @@ const ReporteVehiculos = () => {
       title: 'Registro',
       dataIndex: 'fecha',
       key: 'fecha',
-      width: '15%',
+      width: 130,
       render: (fecha) => {
         if (!fecha) return '-';
         let formatted = '';
@@ -581,7 +538,7 @@ const ReporteVehiculos = () => {
           formatted = moment(fecha).format('DD/MM/YYYY');
         }
         return (
-          <Space>
+          <Space style={{ whiteSpace: 'nowrap' }}>
             <CalendarOutlined style={{ color: '#bfbfbf' }} />
             <Text>{formatted}</Text>
           </Space>
@@ -591,11 +548,11 @@ const ReporteVehiculos = () => {
     {
       title: 'Clasificación',
       key: 'tipo',
-      width: '15%',
+      width: 150,
       render: (_, record) => {
         const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO' || record.categoria === 'VENTA';
         return (
-          <Tag color={isIngreso ? 'success' : 'error'} style={{ borderRadius: '4px', padding: '0 8px' }}>
+          <Tag color={isIngreso ? 'success' : 'error'} style={{ borderRadius: '4px', padding: '0 8px', whiteSpace: 'nowrap' }}>
             {record.tipoTransaccion || record.categoria || 'DESCONOCIDO'}
           </Tag>
         );
@@ -604,7 +561,7 @@ const ReporteVehiculos = () => {
     {
       title: 'Detalle de la Transacción',
       key: 'detalle',
-      width: '35%',
+      minWidth: 220,
       render: (_, record) => (
         <div style={{ padding: '4px 0' }}>
           <Text strong style={{ color: '#1f1f1f' }}>{record.referencia || `TRX: ${record.codigoTransaccion || record.id}`}</Text>
@@ -617,7 +574,7 @@ const ReporteVehiculos = () => {
     {
       title: 'Vehículo',
       key: 'vehiculoAsociado',
-      width: '20%',
+      width: 190,
       render: (_, record) => record._infoOrigen ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {record._infoOrigen.split(' | ').map((info, i) => {
@@ -625,7 +582,7 @@ const ReporteVehiculos = () => {
             const text = info.replace('Vehículo: ', '');
             return (
               <Tooltip title={info} key={i}>
-                <div style={{ fontSize: '12px', lineHeight: '1.3', color: '#595959', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '12px', lineHeight: '1.3', color: '#595959', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>
                   {isVehiculo ? <CarOutlined style={{ marginRight: 4, color: '#8c8c8c' }} /> : null}
                   {text}
                 </div>
@@ -636,16 +593,35 @@ const ReporteVehiculos = () => {
       ) : <Text type="secondary">N/A</Text>
     },
     {
-      title: 'Impacto Financiero',
-      dataIndex: 'monto',
-      key: 'monto',
+      title: 'Ingresos',
+      key: 'ingreso',
       align: 'right',
-      width: '15%',
-      render: (monto, record) => {
+      width: 150,
+      render: (_, record) => {
         const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO' || record.categoria === 'VENTA';
+        if (!isIngreso) {
+          return <Text type="secondary" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>-</Text>;
+        }
         return (
-          <Text strong style={{ fontSize: '15px', color: isIngreso ? '#52c41a' : '#f5222d' }}>
-            {isIngreso ? '+' : '-'} ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(monto || 0)}
+          <Text strong style={{ fontSize: '14px', color: '#52c41a', whiteSpace: 'nowrap' }}>
+            + ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(record.monto || 0)}
+          </Text>
+        );
+      }
+    },
+    {
+      title: 'Egresos',
+      key: 'egreso',
+      align: 'right',
+      width: 150,
+      render: (_, record) => {
+        const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO' || record.categoria === 'VENTA';
+        if (isIngreso) {
+          return <Text type="secondary" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>-</Text>;
+        }
+        return (
+          <Text strong style={{ fontSize: '14px', color: '#f5222d', whiteSpace: 'nowrap' }}>
+            - ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(record.monto || 0)}
           </Text>
         );
       }
@@ -1080,7 +1056,37 @@ const ReporteVehiculos = () => {
                     loading={loadingMovimientos}
                     pagination={{ defaultPageSize: 10, showSizeChanger: true }}
                     size="middle"
+                    scroll={{ x: 1000 }}
                     locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No existen transacciones en el rango seleccionado" /> }}
+                    summary={() => {
+                      let totalIng = 0;
+                      let totalEgr = 0;
+                      (movimientos || []).forEach(m => {
+                        const isIng = m.tipoTransaccion === 'INGRESO' || m.categoria === 'INGRESO' || m.categoria === 'VENTA';
+                        const monto = m.monto || 0;
+                        if (isIng) totalIng += monto;
+                        else totalEgr += monto;
+                      });
+                      return (
+                        <Table.Summary fixed>
+                          <Table.Summary.Row style={{ backgroundColor: '#fafafa', fontWeight: 600 }}>
+                            <Table.Summary.Cell index={0} colSpan={4}>
+                              <Text strong style={{ whiteSpace: 'nowrap' }}>TOTAL / SUMATORIA</Text>
+                            </Table.Summary.Cell>
+                            <Table.Summary.Cell index={1} align="right">
+                              <Text strong style={{ color: '#52c41a', fontSize: '14px', whiteSpace: 'nowrap' }}>
+                                + ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totalIng)}
+                              </Text>
+                            </Table.Summary.Cell>
+                            <Table.Summary.Cell index={2} align="right">
+                              <Text strong style={{ color: '#f5222d', fontSize: '14px', whiteSpace: 'nowrap' }}>
+                                - ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totalEgr)}
+                              </Text>
+                            </Table.Summary.Cell>
+                          </Table.Summary.Row>
+                        </Table.Summary>
+                      );
+                    }}
                   />
                 </Card>
               </div>

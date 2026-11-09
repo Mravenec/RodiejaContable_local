@@ -152,6 +152,60 @@ const reportesService = {
     return response.data;
   },
 
+  // Descargar Excel oficial generado por el Backend (Fuente Única de Verdad con estilos y colapsables)
+  exportarExcelVehiculosBackend: async (params = {}) => {
+    const response = await api.get('/reportes/exportar/vehiculos', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  exportarExcelRepuestosBackend: async (params = {}) => {
+    const response = await api.get('/reportes/exportar/repuestos', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  exportarExcelVentasBackend: async (params = {}) => {
+    const response = await api.get('/reportes/exportar/ventas', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  exportarExcelJerarquiaBackend: async (data = null, params = {}) => {
+    if (data && Array.isArray(data) && data.length > 0) {
+      const response = await api.post('/reportes/exportar/jerarquia', data, {
+        params,
+        responseType: 'blob'
+      });
+      return response.data;
+    }
+    const response = await api.get('/reportes/exportar/jerarquia', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  obtenerNombreArchivoConMes: (prefijo, mes, anio) => {
+    const nombreMeses = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    const fechaActual = new Date();
+    const mesIndex = (typeof mes === 'number' && mes >= 1 && mes <= 12)
+      ? mes - 1
+      : fechaActual.getMonth();
+    const anioVal = anio || fechaActual.getFullYear();
+    const nombreMes = nombreMeses[mesIndex];
+    return `${prefijo}_${nombreMes}_${anioVal}.xlsx`;
+  },
+
   descargarArchivo: (blob, filename) => {
     const url = window.URL.createObjectURL(new Blob([blob]));
     const link = document.createElement('a');

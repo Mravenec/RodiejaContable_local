@@ -43,7 +43,7 @@ import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReport
 import { formatCurrency } from '../../utils/formatters';
 import { useVistaExcelMesActual, useVistaExcelMesEspecifico, useGenerarReporteVentasExcel } from '../../hooks/useReportes';
 import { useEmpleados } from '../../hooks/useEmpleados';
-import * as XLSX from 'xlsx';
+
 import ComisionesPendientes from '../../components/finanzas/ComisionesPendientes';
 import { useAuth } from '../../context/AuthContext';
 
@@ -392,140 +392,41 @@ const VentasReportes = () => {
     });
   };
 
-  // Exportar a Excel usando los datos locales
-  const exportarAExcel = () => {
+  const obtenerRangoFechasFiltro = () => {
+    const params = {};
+    if (filtros.mes && filtros.anio) {
+      const fechaBase = moment().year(filtros.anio).month(filtros.mes - 1);
+      params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+      params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
+    } else if (filtros.anio) {
+      const fechaBase = moment().year(filtros.anio);
+      params.fechaInicio = fechaBase.clone().startOf('year').format('YYYY-MM-DD');
+      params.fechaFin = fechaBase.clone().endOf('year').format('YYYY-MM-DD');
+    } else if (filtros.mes) {
+      const fechaBase = moment().month(filtros.mes - 1);
+      params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+      params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
+    }
+    return params;
+  };
+
+  // Exportar a Excel el reporte oficial generado por el Backend (Resumen Empleados + Detalle Ventas)
+  const exportarAExcel = async () => {
     try {
       setLoading(prev => ({ ...prev, exportar: true }));
-
-      const exportData = ventasAgrupadas.map(v => ({
-        'Empleado': v.empleado,
-        'Cantidad de Ventas': v.cantidadVentas,
-        'Total Ventas': v.totalVentas,
-        'Total Comisiones': v.totalComisiones
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Ventas por Empleado");
-      XLSX.writeFile(wb, `resumen-ventas-empleados-${moment().format('YYYYMMDD')}.xlsx`);
-
-      message.success('Reporte exportado exitosamente');
+      message.loading({ content: 'Generando reporte oficial de ventas...', key: 'exp-vts' });
+      const params = obtenerRangoFechasFiltro();
+      const blob = await reportesService.exportarExcelVentasBackend(params);
+      const nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Ventas', filtros.mes, filtros.anio);
+      reportesService.descargarArchivo(blob, nombreArchivo);
+      message.success({ content: 'Reporte de ventas exportado exitosamente', key: 'exp-vts' });
     } catch (error) {
-      console.error('Error al exportar el reporte:', error);
-      message.error('Error al generar el archivo Excel');
+      console.error('Error al exportar ventas a Excel:', error);
+      message.error({ content: 'Error al exportar el archivo Excel', key: 'exp-vts' });
     } finally {
       setLoading(prev => ({ ...prev, exportar: false }));
     }
   };
-
-
-  // // Función para exportar a Excel con múltiples hojas por mes
-  // const exportarVistaExcel = async () => {
-  //   try {
-  //     setLoading(prev => ({ ...prev, exportandoExcel: true }));
-
-  //     // Obtener datos actuales
-  //     const datosActuales = vistaExcelEspecifico || vistaExcelActual || [];
-
-  //     if (!datosActuales || datosActuales.length === 0) {
-  //       message.warning('No hay datos para exportar');
-  //       return;
-  //     }
-
-  //     // Agrupar datos por mes
-  //     const datosPorMes = {};
-  //     datosActuales.forEach(item => {
-  //       const claveMes = `${item.nombreMes}_${item.anio}`;
-  //       if (!datosPorMes[claveMes]) {
-  //         datosPorMes[claveMes] = [];
-  //       }
-  //       datosPorMes[claveMes].push(item);
-  //     });
-
-  //     // Crear workbook
-  //     const wb = XLSX.utils.book_new();
-
-  //     // Procesar cada mes como una hoja diferente
-  //     Object.keys(datosPorMes).forEach(claveMes => {
-  //       const datosMes = datosPorMes[claveMes];
-
-  //       // Preparar datos para la hoja
-  //       const datosHoja = datosMes.map((item, index) => ({
-  //         '#': index + 1,
-  //         'Vendedor': item.nombreDel,
-  //         'Descripción': item.descripcionLinea,
-  //         'Factura': item.nfactura,
-  //         'Precio Unitario': item.precioUnitario,
-  //         'Comisión': item.comision,
-  //         'Forma de Pago': item.formaDePago,
-  //         'Fecha': Array.isArray(item.fecha) 
-  //           ? moment([item.fecha[0], item.fecha[1] - 1, item.fecha[2]]).format('DD/MM/YYYY')
-  //           : moment(item.fecha).format('DD/MM/YYYY'),
-  //         'Ingresos Brutos Vendedor': item.ingresosBrutoAcumuladosVendedor,
-  //         'Comisión Acumulada': item.comisionAcumuladaDelVendedor,
-  //         'Ingreso Neto Vendedor': item.ingresoNetoVendedor,
-  //         'Comisión Acumulada Equipo': item.comisionAcumuladaEquipoMes,
-  //         'Ingresos Brutos Equipo': item.ingresosBrutoAcumuladosEquipoMes,
-  //         'Ingreso Neto Rodieja': item.ingresoNetoParaRodiejaMes
-  //       }));
-
-  //       // Agregar fila de totales al final
-  //       const totales = {
-  //         '#': 'TOTAL',
-  //         'Vendedor': '',
-  //         'Descripción': '',
-  //         'Factura': '',
-  //         'Precio Unitario': datosMes.reduce((sum, item) => sum + item.precioUnitario, 0),
-  //         'Comisión': datosMes.reduce((sum, item) => sum + item.comision, 0),
-  //         'Forma de Pago': '',
-  //         'Fecha': '',
-  //         'Ingresos Brutos Vendedor': datosMes[0]?.ingresosBrutoAcumuladosVendedor || 0,
-  //         'Comisión Acumulada': datosMes[0]?.comisionAcumuladaDelVendedor || 0,
-  //         'Ingreso Neto Vendedor': datosMes[0]?.ingresoNetoVendedor || 0,
-  //         'Comisión Acumulada Equipo': datosMes[0]?.comisionAcumuladaEquipoMes || 0,
-  //         'Ingresos Brutos Equipo': datosMes[0]?.ingresosBrutoAcumuladosEquipoMes || 0,
-  //         'Ingreso Neto Rodieja': datosMes[0]?.ingresoNetoParaRodiejaMes || 0
-  //       };
-  //       datosHoja.push(totales);
-
-  //       // Crear worksheet
-  //       const ws = XLSX.utils.json_to_sheet(datosHoja);
-
-  //       // Ajustar anchos de columna
-  //       const colWidths = [
-  //         { wch: 5 },  // #
-  //         { wch: 15 }, // Vendedor
-  //         { wch: 30 }, // Descripción
-  //         { wch: 20 }, // Factura
-  //         { wch: 15 }, // Precio Unitario
-  //         { wch: 12 }, // Comisión
-  //         { wch: 15 }, // Forma de Pago
-  //         { wch: 12 }, // Fecha
-  //         { wch: 20 }, // Ingresos Brutos Vendedor
-  //         { wch: 18 }, // Comisión Acumulada
-  //         { wch: 18 }, // Ingreso Neto Vendedor
-  //         { wch: 20 }, // Comisión Acumulada Equipo
-  //         { wch: 20 }, // Ingresos Brutos Equipo
-  //         { wch: 18 }  // Ingreso Neto Rodieja
-  //       ];
-  //       ws['!cols'] = colWidths;
-
-  //       // Agregar hoja al workbook
-  //       XLSX.utils.book_append_sheet(wb, ws, claveMes.substring(0, 31)); // Limitar nombre de hoja
-  //     });
-
-  //     // Generar y descargar archivo
-  //     const nombreArchivo = `vista-excel-ventas-${moment().format('YYYYMMDD-HHmmss')}.xlsx`;
-  //     XLSX.writeFile(wb, nombreArchivo);
-
-  //     message.success('Archivo Excel exportado correctamente');
-  //   } catch (error) {
-  //     console.error('Error al exportar a Excel:', error);
-  //     message.error('Error al exportar a Excel');
-  //   } finally {
-  //     setLoading(prev => ({ ...prev, exportandoExcel: false }));
-  //   }
-  // };
 
 
   // Obtener métricas de las estadísticas (dinámicas si hay filtros activos)
@@ -595,155 +496,18 @@ const VentasReportes = () => {
     return data;
   }, [vistaExcelEspecifico, vistaExcelActual, filtros.busqueda, filtros.vendedor, filtros.tipoProducto, empleados]);
 
-  // Función para generar workbook de ventas con múltiples hojas
-  const generarWorkbookVentasCompleto = () => {
-    const datosActuales = datosVistaExcel;
-
-    if (!datosActuales || datosActuales.length === 0) {
-      return null;
-    }
-
+  // Exportar el Reporte de Ventas oficial generado por el Backend (Resumen Empleados + Detalle Ventas)
+  const exportarAExcelCompleto = async () => {
     try {
-      // Agrupar datos por mes
-      const datosPorMes = {};
-      datosActuales.forEach(item => {
-        const claveMes = `${item.nombreMes}_${item.anio}`;
-        if (!datosPorMes[claveMes]) {
-          datosPorMes[claveMes] = [];
-        }
-        datosPorMes[claveMes].push(item);
-      });
-
-      // Crear workbook
-      const wb = XLSX.utils.book_new();
-
-      // Crear hojas para cada mes
-      Object.keys(datosPorMes).forEach(claveMes => {
-        const datos = datosPorMes[claveMes];
-        const primerItem = datos[0];
-
-        // Preparar datos para la hoja
-        const datosHoja = datos.map(item => ({
-          'Fecha': Array.isArray(item.fecha) ?
-            `${item.fecha[2]}/${item.fecha[1]}/${item.fecha[0]}` :
-            moment(item.fecha).format('DD/MM/YYYY'),
-          'Vendedor': item.nombreDel || '',
-          'Descripción/Observación': item.descripcionLinea || '',
-          'Forma de Pago': item.formaDePago || '',
-          'Ingreso': item.precioUnitario || 0,
-          'Comisión Equipo': item.comision || 0
-        }));
-
-        // Agregar título y subtítulo
-        const titulo = `REPORTE DE VENTAS EMPLEADOS - ${primerItem.nombreMes} ${primerItem.anio}`;
-        const comisionFormateada = new Intl.NumberFormat('es-CR', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(primerItem.comisionAcumuladaEquipoMes || 0);
-        const ingresosFormateados = new Intl.NumberFormat('es-CR', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(primerItem.ingresosBrutoAcumuladosEquipoMes || 0);
-        const ingresoNetoFormateado = new Intl.NumberFormat('es-CR', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(primerItem.ingresoNetoParaRodiejaMes || 0);
-        const subtituloComision = `Comisión Acumulada: ₡${comisionFormateada}`;
-        const subtituloIngresosBrutos = `Ingresos Brutos: ₡${ingresosFormateados}`;
-        const subtituloIngresoNeto = `Ingreso Neto Rodieja: ₡${ingresoNetoFormateado}`;
-
-        // Crear array con títulos y datos
-        const datosConTitulo = [
-          [titulo],
-          [subtituloComision, '', '', subtituloIngresosBrutos, '', '', subtituloIngresoNeto, ''],
-          [], // Fila vacía
-          ['Fecha', 'Vendedor', 'Descripción/Observación', 'Forma de Pago', 'Ingreso', 'Comisión Equipo'],
-          ...Object.values(datosHoja).map(row => Object.values(row))
-        ];
-
-        // Recrear hoja con títulos
-        const wsConTitulo = XLSX.utils.aoa_to_sheet(datosConTitulo);
-
-        // Color para el título principal (azul oscuro)
-        wsConTitulo['A1'].s = {
-          fill: { fgColor: { rgb: "FF2E75B6" } },
-          font: { sz: 16, bold: true, color: { rgb: "FFFFFFFF" } },
-          alignment: { horizontal: "center" }
-        };
-
-        // Color para el subtítulo (verde)
-        const subtitleStyle = {
-          fill: { fgColor: { rgb: "FF70AD47" } },
-          font: { sz: 12, bold: true, color: { rgb: "FFFFFFFF" } },
-          alignment: { horizontal: "center" }
-        };
-
-        wsConTitulo['A2'].s = subtitleStyle;
-        wsConTitulo['B2'].s = subtitleStyle;
-        wsConTitulo['C2'].s = subtitleStyle;
-        wsConTitulo['D2'].s = subtitleStyle;
-        wsConTitulo['E2'].s = subtitleStyle;
-        wsConTitulo['F2'].s = subtitleStyle;
-        wsConTitulo['G2'].s = subtitleStyle;
-        wsConTitulo['H2'].s = subtitleStyle;
-
-        const headerStyle = {
-          font: { bold: true, sz: 12 },
-          fill: { fgColor: { rgb: "FFF2CC" } },
-          alignment: { horizontal: "center", vertical: "center" }
-        };
-
-        const columnHeaders = ['A4', 'B4', 'C4', 'D4', 'E4', 'F4'];
-        columnHeaders.forEach(cell => {
-          if (wsConTitulo[cell]) {
-            wsConTitulo[cell].s = headerStyle;
-          } else {
-            const col = cell.charCodeAt(0) - 65;
-            wsConTitulo[cell] = {
-              v: ['Fecha', 'Vendedor', 'Descripción/Observación', 'Forma de Pago', 'Ingreso', 'Comisión Equipo'][col],
-              s: headerStyle
-            };
-          }
-        });
-
-        const range = XLSX.utils.decode_range(wsConTitulo['!ref']);
-        for (let col = 0; col <= range.e.c; col++) {
-          const cellTitle = XLSX.utils.encode_cell({ r: 0, c: col });
-          if (col > 0) {
-            wsConTitulo[cellTitle] = { v: '', s: wsConTitulo['A1'].s };
-          }
-        }
-
-        const colWidths = [
-          { wch: 12 }, { wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
-        ];
-        wsConTitulo['!cols'] = colWidths;
-
-        XLSX.utils.book_append_sheet(wb, wsConTitulo, claveMes);
-      });
-
-      return wb;
+      message.loading({ content: 'Generando reporte oficial de ventas...', key: 'exp-vts' });
+      const params = obtenerRangoFechasFiltro();
+      const blob = await reportesService.exportarExcelVentasBackend(params);
+      const nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Ventas', filtros.mes, filtros.anio);
+      reportesService.descargarArchivo(blob, nombreArchivo);
+      message.success({ content: 'Reporte de ventas exportado exitosamente', key: 'exp-vts' });
     } catch (error) {
-      console.error('Error al generar workbook de ventas:', error);
-      return null;
-    }
-  };
-
-  // Función para exportar a Excel con múltiples hojas
-  const exportarAExcelCompleto = () => {
-    const wb = generarWorkbookVentasCompleto();
-    if (!wb) {
-      message.warning('No hay datos para exportar');
-      return;
-    }
-
-    try {
-      const nombreArchivo = `Reporte_Ventas_Completo_${moment().format('YYYY-MM-DD_HH-mm-ss')}.xlsx`;
-      XLSX.writeFile(wb, nombreArchivo);
-      message.success('Reporte exportado exitosamente');
-    } catch (error) {
-      console.error('Error al exportar a Excel:', error);
-      message.error('Error al exportar el reporte a Excel');
+      console.error('Error al exportar ventas a Excel:', error);
+      message.error({ content: 'Error al exportar el archivo Excel', key: 'exp-vts' });
     }
   };
 
@@ -759,14 +523,13 @@ const VentasReportes = () => {
     formData.append('cantidadVentas', totalVentasCount || 0);
 
     if (opciones.adjuntarExcel) {
-      const wb = generarWorkbookVentasCompleto();
-      if (wb) {
-        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const excelBlob = new Blob([wbout], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        });
-        const nombreArchivo = `Reporte_Ventas_${moment().format('YYYY-MM-DD')}.xlsx`;
+      try {
+        const params = obtenerRangoFechasFiltro();
+        const excelBlob = await reportesService.exportarExcelVentasBackend(params);
+        const nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Ventas', filtros.mes, filtros.anio);
         formData.append('archivo', excelBlob, nombreArchivo);
+      } catch (err) {
+        console.warn('No se pudo adjuntar el Excel del backend:', err);
       }
     }
 
