@@ -18,7 +18,8 @@ import {
   Input,
   Collapse,
   Layout,
-  Tabs
+  Tabs,
+  Tooltip
 } from 'antd';
 import {
   ShoppingCartOutlined,
@@ -31,11 +32,15 @@ import {
   InboxOutlined,
   FileExcelOutlined,
   DashboardOutlined,
-  ArrowUpOutlined
+  ArrowUpOutlined,
+  MailOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import ventasEmpleadosService from '../../api/ventasEmpleados';
 import { buscarTransacciones } from '../../api/transacciones';
+import reportesService from '../../api/reportes';
+import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReporteEmail';
+import { formatCurrency } from '../../utils/formatters';
 import { useVistaExcelMesActual, useVistaExcelMesEspecifico, useGenerarReporteVentasExcel } from '../../hooks/useReportes';
 import { useEmpleados } from '../../hooks/useEmpleados';
 import * as XLSX from 'xlsx';
@@ -74,6 +79,7 @@ const VentasReportes = () => {
     exportar: false,
     exportandoExcel: false
   });
+  const [modalEmailVisible, setModalEmailVisible] = useState(false);
 
   const empleados = React.useMemo(() => {
     return empleadosData.map(e => ({
@@ -589,13 +595,12 @@ const VentasReportes = () => {
     return data;
   }, [vistaExcelEspecifico, vistaExcelActual, filtros.busqueda, filtros.vendedor, filtros.tipoProducto, empleados]);
 
-  // Función para exportar a Excel con múltiples hojas
-  const exportarAExcelCompleto = () => {
+  // Función para generar workbook de ventas con múltiples hojas
+  const generarWorkbookVentasCompleto = () => {
     const datosActuales = datosVistaExcel;
 
     if (!datosActuales || datosActuales.length === 0) {
-      message.warning('No hay datos para exportar');
-      return;
+      return null;
     }
 
     try {
@@ -608,10 +613,6 @@ const VentasReportes = () => {
         }
         datosPorMes[claveMes].push(item);
       });
-
-      // Debug: Mostrar primeros datos para verificar campos
-      console.log('🔍 [DEBUG] Primer item de datos:', datosActuales[0]);
-      console.log('🔍 [DEBUG] Campos disponibles:', Object.keys(datosActuales[0] || {}));
 
       // Crear workbook
       const wb = XLSX.utils.book_new();
@@ -632,8 +633,6 @@ const VentasReportes = () => {
           'Ingreso': item.precioUnitario || 0,
           'Comisión Equipo': item.comision || 0
         }));
-
-        // Crear hoja
 
         // Agregar título y subtítulo
         const titulo = `REPORTE DE VENTAS EMPLEADOS - ${primerItem.nombreMes} ${primerItem.anio}`;
@@ -665,7 +664,6 @@ const VentasReportes = () => {
         // Recrear hoja con títulos
         const wsConTitulo = XLSX.utils.aoa_to_sheet(datosConTitulo);
 
-        // Agregar colores de fondo a los títulos
         // Color para el título principal (azul oscuro)
         wsConTitulo['A1'].s = {
           fill: { fgColor: { rgb: "FF2E75B6" } },
@@ -673,42 +671,34 @@ const VentasReportes = () => {
           alignment: { horizontal: "center" }
         };
 
-        // Color para el subtítulo (verde) - aplicado a grupos de 3 celdas
+        // Color para el subtítulo (verde)
         const subtitleStyle = {
           fill: { fgColor: { rgb: "FF70AD47" } },
           font: { sz: 12, bold: true, color: { rgb: "FFFFFFFF" } },
           alignment: { horizontal: "center" }
         };
 
-        // Aplicar estilo a las celdas de comisión (A2, B2, C2)
         wsConTitulo['A2'].s = subtitleStyle;
         wsConTitulo['B2'].s = subtitleStyle;
         wsConTitulo['C2'].s = subtitleStyle;
-
-        // Aplicar estilo a las celdas de ingresos brutos (D2, E2, F2)
         wsConTitulo['D2'].s = subtitleStyle;
         wsConTitulo['E2'].s = subtitleStyle;
         wsConTitulo['F2'].s = subtitleStyle;
-
-        // Aplicar estilo a las celdas de ingreso neto (G2, H2)
         wsConTitulo['G2'].s = subtitleStyle;
         wsConTitulo['H2'].s = subtitleStyle;
 
-        // Estilo para los títulos de columnas (negrita)
         const headerStyle = {
           font: { bold: true, sz: 12 },
           fill: { fgColor: { rgb: "FFF2CC" } },
           alignment: { horizontal: "center", vertical: "center" }
         };
 
-        // Aplicar estilo de negrita a los títulos de columnas (fila 4)
         const columnHeaders = ['A4', 'B4', 'C4', 'D4', 'E4', 'F4'];
         columnHeaders.forEach(cell => {
           if (wsConTitulo[cell]) {
             wsConTitulo[cell].s = headerStyle;
           } else {
-            // Si la celda no existe, crearla con el estilo
-            const col = cell.charCodeAt(0) - 65; // Convertir A=0, B=1, etc.
+            const col = cell.charCodeAt(0) - 65;
             wsConTitulo[cell] = {
               v: ['Fecha', 'Vendedor', 'Descripción/Observación', 'Forma de Pago', 'Ingreso', 'Comisión Equipo'][col],
               s: headerStyle
@@ -716,32 +706,38 @@ const VentasReportes = () => {
           }
         });
 
-        // Aplicar el estilo a todas las celdas del título (merge effect)
         const range = XLSX.utils.decode_range(wsConTitulo['!ref']);
         for (let col = 0; col <= range.e.c; col++) {
           const cellTitle = XLSX.utils.encode_cell({ r: 0, c: col });
-
-          if (col > 0) { // Copiar estilo a otras columnas del título
+          if (col > 0) {
             wsConTitulo[cellTitle] = { v: '', s: wsConTitulo['A1'].s };
           }
         }
 
-        // Ajustar ancho de columnas
         const colWidths = [
-          { wch: 12 },  // Fecha
-          { wch: 15 },  // Vendedor
-          { wch: 40 },  // Descripción/Observación
-          { wch: 15 },  // Forma de Pago
-          { wch: 15 },  // Ingreso
-          { wch: 15 }   // Comisión Equipo
+          { wch: 12 }, { wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
         ];
         wsConTitulo['!cols'] = colWidths;
 
-        // Agregar hoja al workbook
         XLSX.utils.book_append_sheet(wb, wsConTitulo, claveMes);
       });
 
-      // Generar y descargar archivo
+      return wb;
+    } catch (error) {
+      console.error('Error al generar workbook de ventas:', error);
+      return null;
+    }
+  };
+
+  // Función para exportar a Excel con múltiples hojas
+  const exportarAExcelCompleto = () => {
+    const wb = generarWorkbookVentasCompleto();
+    if (!wb) {
+      message.warning('No hay datos para exportar');
+      return;
+    }
+
+    try {
       const nombreArchivo = `Reporte_Ventas_Completo_${moment().format('YYYY-MM-DD_HH-mm-ss')}.xlsx`;
       XLSX.writeFile(wb, nombreArchivo);
       message.success('Reporte exportado exitosamente');
@@ -749,6 +745,32 @@ const VentasReportes = () => {
       console.error('Error al exportar a Excel:', error);
       message.error('Error al exportar el reporte a Excel');
     }
+  };
+
+  const handleEnviarEmail = async (opciones) => {
+    const formData = new FormData();
+    if (opciones.asunto) formData.append('asunto', opciones.asunto);
+    if (opciones.periodo) formData.append('periodo', opciones.periodo);
+    if (opciones.mensaje) formData.append('mensaje', opciones.mensaje);
+    formData.append('totalVentas', totalIngresos || 0);
+    const comisionesSum = ventasAgrupadas.reduce((sum, v) => sum + (v.totalComisiones || 0), 0);
+    formData.append('totalComisiones', comisionesSum || 0);
+    formData.append('balanceNeto', (totalIngresos || 0) - (comisionesSum || 0));
+    formData.append('cantidadVentas', totalVentasCount || 0);
+
+    if (opciones.adjuntarExcel) {
+      const wb = generarWorkbookVentasCompleto();
+      if (wb) {
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const excelBlob = new Blob([wbout], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const nombreArchivo = `Reporte_Ventas_${moment().format('YYYY-MM-DD')}.xlsx`;
+        formData.append('archivo', excelBlob, nombreArchivo);
+      }
+    }
+
+    await reportesService.enviarReporteVentasEmail(formData);
   };
 
   // Columnas para la tabla de vista Excel
@@ -857,6 +879,16 @@ const VentasReportes = () => {
             <Text type="secondary" style={{ marginTop: 4, display: 'block' }}>
               Análisis financiero, comisiones y trazabilidad de operaciones de ventas.
             </Text>
+          </Col>
+          <Col>
+            <Tooltip title="Enviar reporte por correo electrónico">
+              <Button
+                icon={<MailOutlined />}
+                onClick={() => setModalEmailVisible(true)}
+              >
+                Enviar por Correo
+              </Button>
+            </Tooltip>
           </Col>
         </Row>
       </div>
@@ -1421,6 +1453,19 @@ const VentasReportes = () => {
           }
         }
       `}</style>
+
+      <ModalEnviarReporteEmail
+        visible={modalEmailVisible}
+        onCancel={() => setModalEmailVisible(false)}
+        tipoReporte="Ventas"
+        periodo={labelPeriodo || `${MESES_NOMBRES[mesExcel - 1]} ${anioExcel}`}
+        metricasPersonalizadas={[
+          { label: 'Ventas Totales', value: formatCurrency(totalIngresos || 0), color: '#52c41a' },
+          { label: 'Comisiones Equipo', value: formatCurrency((ventasAgrupadas || []).reduce((sum, v) => sum + (v.totalComisiones || 0), 0)), color: '#fa8c16' },
+          { label: 'Operaciones', value: `${totalVentasCount || 0} ventas`, color: '#1890ff' }
+        ]}
+        onEnviar={handleEnviarEmail}
+      />
     </Content>
   );
 };

@@ -93,4 +93,14 @@ public class UsersRepository {
                          .execute();
         return updated > 0;
     }
+
+    public List<String> findActiveAdminEmails() {
+        return dsl.select(USERS.EMAIL)
+                .from(USERS)
+                .join(ROLES).on(USERS.ROL_ID.eq(ROLES.ID))
+                .where(ROLES.NOMBRE.upper().eq("ADMIN"))
+                .and(USERS.IS_ACTIVE.ne((byte) 0))
+                .and(USERS.EMAIL.isNotNull())
+                .fetch(USERS.EMAIL);
+    }
 }

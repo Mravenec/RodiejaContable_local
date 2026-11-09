@@ -17,7 +17,8 @@ import {
   DatePicker,
   Input,
   Space,
-  message
+  message,
+  Tooltip
 } from 'antd';
 import {
   DollarOutlined,
@@ -30,9 +31,12 @@ import {
   BarChartOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
-  FileExcelOutlined
+  FileExcelOutlined,
+  MailOutlined,
+  SyncOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReporteEmail';
 
 const { Title, Text } = Typography;
 
@@ -52,6 +56,8 @@ const Reportes = () => {
     general: true,
     exportarAudatex: false
   });
+  const [modalEmailVisible, setModalEmailVisible] = useState(false);
+  const [ejecutandoMensuales, setEjecutandoMensuales] = useState(false);
 
   // Estados para los datos de la API
   const [ventasMensuales, setVentasMensuales] = useState([]);
@@ -306,6 +312,49 @@ const Reportes = () => {
     }
   };
 
+  const handleEnviarAudatexEmail = async (opciones) => {
+    const params = {};
+    if (fechaRange && fechaRange[0]) {
+      params.desde = fechaRange[0].format('YYYY-MM-DD');
+    }
+    if (fechaRange && fechaRange[1]) {
+      params.hasta = fechaRange[1].format('YYYY-MM-DD');
+    }
+    if (marcaFiltro) {
+      params.armadora = marcaFiltro;
+    }
+
+    const formData = new FormData();
+    if (opciones.asunto) formData.append('asunto', opciones.asunto);
+    if (opciones.periodo) formData.append('periodo', opciones.periodo);
+    if (opciones.mensaje) formData.append('mensaje', opciones.mensaje);
+    if (marcaFiltro) formData.append('marcaFiltro', marcaFiltro);
+
+    if (opciones.adjuntarExcel) {
+      const blob = await reportesService.exportarOportunidadesAudatex(params);
+      const timestamp = dayjs().format('YYYYMMDD_HHmm');
+      const filename = `oportunidades_inpart_${timestamp}.xlsx`;
+      formData.append('archivo', blob, filename);
+    }
+
+    await reportesService.enviarReporteAudatexEmail(formData);
+  };
+
+  const handleDispararMensuales = async () => {
+    try {
+      setEjecutandoMensuales(true);
+      const res = await reportesService.dispararReportesMensualesAhora();
+      const exitosos = res?.exitosos || 0;
+      const destinatarios = (res?.destinatarios || []).join(', ');
+      message.success(`Se ejecutaron y enviaron ${exitosos} reportes mensuales a ${destinatarios}`);
+    } catch (err) {
+      console.error('Error al disparar reportes mensuales:', err);
+      message.error(err.response?.data?.error || err.message || 'Error al disparar reportes mensuales');
+    } finally {
+      setEjecutandoMensuales(false);
+    }
+  };
+
   return (
     <div style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
@@ -347,6 +396,23 @@ const Reportes = () => {
             style={{ width: 200, marginRight: 8 }}
             allowClear
           />
+          <Tooltip title="Enviar reporte de oportunidades por correo electrónico">
+            <Button
+              icon={<MailOutlined />}
+              onClick={() => setModalEmailVisible(true)}
+            >
+              Enviar por Correo
+            </Button>
+          </Tooltip>
+          <Tooltip title="Prueba de disparo manual de todos los reportes mensuales automáticos (Repuestos, Vehículos, Ventas)">
+            <Button
+              icon={<SyncOutlined spin={ejecutandoMensuales} />}
+              onClick={handleDispararMensuales}
+              loading={ejecutandoMensuales}
+            >
+              Probar Envío Mensual
+            </Button>
+          </Tooltip>
           <Button
             type="primary"
             icon={<FileExcelOutlined />}
@@ -691,6 +757,17 @@ const Reportes = () => {
           </Card>
         </Col>
       </Row>
+
+      <ModalEnviarReporteEmail
+        visible={modalEmailVisible}
+        onCancel={() => setModalEmailVisible(false)}
+        tipoReporte="Oportunidades InPart"
+        periodo={fechaRange && fechaRange[0] && fechaRange[1] ? `${fechaRange[0].format('DD/MM/YYYY')} - ${fechaRange[1].format('DD/MM/YYYY')}` : 'Todo el histórico'}
+        metricasPersonalizadas={[
+          { label: 'Filtro Marca / Armadora', value: marcaFiltro || 'Todas las marcas', color: '#1890ff' }
+        ]}
+        onEnviar={handleEnviarAudatexEmail}
+      />
     </div>
   );
 };

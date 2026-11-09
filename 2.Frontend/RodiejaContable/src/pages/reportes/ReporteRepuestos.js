@@ -10,7 +10,7 @@ import {
   CalendarOutlined, DashboardOutlined, ToolOutlined,
   FilterOutlined, FileExcelOutlined,
   ArrowUpOutlined, ArrowDownOutlined,
-  ShopOutlined
+  ShopOutlined, MailOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +18,9 @@ import inventarioService from '../../api/inventario';
 import vehiculosService from '../../api/vehiculos';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import finanzasService from '../../api/finanzas';
+import reportesService from '../../api/reportes';
 import { usePartesVehiculo } from '../../hooks';
+import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReporteEmail';
 import * as XLSX from 'xlsx';
 
 const { Title, Text } = Typography;
@@ -68,6 +70,7 @@ const ReporteRepuestos = () => {
 
   const [movimientos, setMovimientos] = useState([]);
   const [loadingMovimientos, setLoadingMovimientos] = useState(false);
+  const [modalEmailVisible, setModalEmailVisible] = useState(false);
 
 
   // Cargar partes de vehículo desde API (para el selector de filtros)
@@ -484,13 +487,20 @@ const ReporteRepuestos = () => {
   // Opciones completas para parte del vehículo - Ahora dinámicas desde usePartesVehiculo
   const getParteOptions = () => partesVehiculo.map(p => ({ value: p.id, label: p.nombre }));
 
-  const exportarAExcel = () => {
-    if (data.length === 0) {
-      message.warning('No hay datos para exportar');
-      return;
+  const formatFechaExcel = (fecha) => {
+    if (!fecha) return '';
+    if (Array.isArray(fecha)) {
+      return `${String(fecha[2]).padStart(2, '0')}/${String(fecha[1]).padStart(2, '0')}/${fecha[0]}`;
     }
+    const m = moment(fecha);
+    return m.isValid() ? m.format('DD/MM/YYYY') : String(fecha);
+  };
 
-    const exportData = data.map(item => ({
+  const generarExcelWorkbook = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Hoja 1: Resumen Financiero Mensual
+    const exportDataResumen = data.map(item => ({
       'Año': item.anio,
       'Mes': item.nombreMes,
       'Ingresos': item.totalIngresos,
@@ -499,7 +509,7 @@ const ReporteRepuestos = () => {
       'Balance Neto': item.balanceNeto
     }));
 
-    exportData.push({
+    exportDataResumen.push({
       'Año': 'TOTALES',
       'Mes': '',
       'Ingresos': totales.ingresos,
@@ -508,23 +518,92 @@ const ReporteRepuestos = () => {
       'Balance Neto': totales.balanceNeto
     });
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    
-    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const nombreHoja = (filtros.mes && filtros.anio) 
-      ? `${meses[filtros.mes - 1]} ${filtros.anio}` 
-      : `Reporte ${moment().format('MMM YYYY')}`;
-      
-    XLSX.utils.book_append_sheet(wb, ws, nombreHoja.substring(0, 31));
-
-    const colWidths = [
-      { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+    const wsResumen = XLSX.utils.json_to_sheet(exportDataResumen);
+    wsResumen['!cols'] = [
+      { wch: 10 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }
     ];
-    ws['!cols'] = colWidths;
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen Financiero');
 
+    // Hoja 2: Detalle de Movimientos y Transacciones
+    const exportDataMovimientos = (movimientos || []).map(m => {
+      const isIngreso = m.tipoTransaccion === 'INGRESO' || m.categoria === 'INGRESO';
+      const estaPagada = m.comisionPagada === true || m.comisionPagada === 1 || m.comisionPagada === '1';
+
+      let concepto = '';
+      if (m.codigoRepuesto || m.repuestoId != null) {
+        concepto = m.codigoRepuesto || `Repuesto ID: ${m.repuestoId}`;
+      } else if (m.codigoVehiculo || m.vehiculoId != null) {
+        concepto = `Vehículo ${m.codigoVehiculo || 'ID: ' + m.vehiculoId}`;
+      } else if (m.esGastoOperativo) {
+        concepto = m.tipoTransaccion || 'Gasto Operativo';
+      } else {
+        concepto = m.referencia ? `Ref: ${m.referencia}` : (m.tipoTransaccion || m.categoria || 'General');
+      }
+
+      let origen = 'General / Sin Vehículo';
+      if (m._infoOrigen) {
+        origen = m._infoOrigen;
+      } else if (m.esGastoOperativo) {
+        origen = 'Gasto Operativo';
+      }
+
+      return {
+        'Fecha': formatFechaExcel(m.fecha),
+        'Clasificación': m.tipoTransaccion || m.categoria || 'DESCONOCIDO',
+        'Pieza / Concepto': concepto,
+        'Referencia': m.referencia || '',
+        'Descripción': m.descripcion || '',
+        'Origen': origen,
+        'Impacto Financiero': isIngreso ? 'Ingreso (+)' : 'Egreso (-)',
+        'Monto': parseFloat(m.monto || 0),
+        'Comisión': parseFloat(m.comisionEmpleado || 0),
+        'Comisión Pagada': estaPagada ? 'Sí' : 'No'
+      };
+    });
+
+    const wsMovimientos = XLSX.utils.json_to_sheet(exportDataMovimientos);
+    wsMovimientos['!cols'] = [
+      { wch: 12 }, { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 38 }, { wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 16 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsMovimientos, 'Detalle Movimientos');
+
+    return wb;
+  };
+
+  const exportarAExcel = () => {
+    if (data.length === 0 && (!movimientos || movimientos.length === 0)) {
+      message.warning('No hay datos para exportar');
+      return;
+    }
+
+    const wb = generarExcelWorkbook();
     XLSX.writeFile(wb, `Reporte_Repuestos_${moment().format('YYYY-MM-DD')}.xlsx`);
     message.success('Reporte exportado exitosamente');
+  };
+
+  const handleEnviarEmail = async (opciones) => {
+    const formData = new FormData();
+    if (opciones.destinatarios) formData.append('destinatarios', opciones.destinatarios);
+    if (opciones.asunto) formData.append('asunto', opciones.asunto);
+    if (opciones.periodo) formData.append('periodo', opciones.periodo);
+    if (opciones.mensaje) formData.append('mensaje', opciones.mensaje);
+    formData.append('ingresos', totales?.ingresos || 0);
+    formData.append('egresos', totales?.egresos || 0);
+    formData.append('comisiones', totales?.comisiones || 0);
+    formData.append('balanceNeto', totales?.balanceNeto || 0);
+    formData.append('cantidadMovimientos', movimientos?.length || 0);
+
+    if (opciones.adjuntarExcel && (data.length > 0 || (movimientos && movimientos.length > 0))) {
+      const wb = generarExcelWorkbook();
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const excelBlob = new Blob([wbout], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const nombreArchivo = `Reporte_Repuestos_${moment().format('YYYY-MM-DD')}.xlsx`;
+      formData.append('archivo', excelBlob, nombreArchivo);
+    }
+
+    await reportesService.enviarReporteRepuestosEmail(formData);
   };
 
   // ----- Columnas de Tablas -----
@@ -782,11 +861,21 @@ const ReporteRepuestos = () => {
             </Text>
           </Col>
           <Col>
-            <Tooltip title="Exportar a Microsoft Excel">
-              <Button type="primary" icon={<FileExcelOutlined />} onClick={exportarAExcel}>
-                Exportar
-              </Button>
-            </Tooltip>
+            <Space>
+              <Tooltip title="Enviar reporte por correo electrónico">
+                <Button
+                  icon={<MailOutlined />}
+                  onClick={() => setModalEmailVisible(true)}
+                >
+                  Enviar por Correo
+                </Button>
+              </Tooltip>
+              <Tooltip title="Exportar a Microsoft Excel">
+                <Button type="primary" icon={<FileExcelOutlined />} onClick={exportarAExcel}>
+                  Exportar
+                </Button>
+              </Tooltip>
+            </Space>
           </Col>
         </Row>
       </div>
@@ -1244,6 +1333,15 @@ const ReporteRepuestos = () => {
             )
           }
         ]}
+      />
+
+      <ModalEnviarReporteEmail
+        visible={modalEmailVisible}
+        onCancel={() => setModalEmailVisible(false)}
+        periodo={(filtros.mes && filtros.anio) ? `${MESES_NOMBRES[filtros.mes - 1]} ${filtros.anio}` : `Año ${filtros.anio || moment().year()}`}
+        totales={totales}
+        cantidadMovimientos={movimientos?.length || 0}
+        onEnviar={handleEnviarEmail}
       />
     </Content>
   );

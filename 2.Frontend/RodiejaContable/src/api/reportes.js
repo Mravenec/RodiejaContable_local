@@ -2,7 +2,7 @@ import api from './axios';
 
 const reportesService = {
   generarReporteInventario: async (params = {}) => {
-    const response = await api.get('/api/inventario/exportar', { 
+    const response = await api.get('/inventario/exportar', { 
       params,
       responseType: 'blob' 
     });
@@ -10,7 +10,7 @@ const reportesService = {
   },
 
   generarReporteVentas: async (params = {}) => {
-    const response = await api.get('/api/v1/transacciones/exportar', { 
+    const response = await api.get('/v1/transacciones/exportar', { 
       params: { ...params, tipo: 'VENTA' },
       responseType: 'blob' 
     });
@@ -18,7 +18,7 @@ const reportesService = {
   },
 
   generarReporteFinanciero: async (params = {}) => {
-    const response = await api.get('/api/analisis-financiero/exportar', { 
+    const response = await api.get('/analisis-financiero/exportar', { 
       params,
       responseType: 'blob' 
     });
@@ -26,7 +26,7 @@ const reportesService = {
   },
 
   generarReporteVehiculos: async (params = {}) => {
-    const response = await api.get('/api/v1/vehiculos/exportar', { 
+    const response = await api.get('/v1/vehiculos/exportar', { 
       params,
       responseType: 'blob' 
     });
@@ -88,6 +88,67 @@ const reportesService = {
   // Invalidar caché de Audatex
   invalidarCacheAudatex: async () => {
     const response = await api.post('/audatex/cache/invalidar');
+    return response.data;
+  },
+
+  // Enviar reporte de repuestos por correo electrónico con plantilla HTML y Excel adjunto
+  enviarReporteRepuestosEmail: async (formData) => {
+    const response = await api.post('/reportes/email/repuestos', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  // Enviar reporte de vehículos por correo electrónico con plantilla HTML y Excel adjunto
+  enviarReporteVehiculosEmail: async (formData) => {
+    const response = await api.post('/reportes/email/vehiculos', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  // Enviar reporte de ventas por correo electrónico con plantilla HTML y Excel adjunto
+  enviarReporteVentasEmail: async (formData) => {
+    const response = await api.post('/reportes/email/ventas', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  // Enviar reporte de oportunidades de Audatex por correo electrónico
+  enviarReporteAudatexEmail: async (formData) => {
+    const response = await api.post('/reportes/email/audatex', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  // Obtener la lista de correos de usuarios administradores activos
+  getDestinatariosAdmin: async () => {
+    const response = await api.get('/reportes/email/destinatarios-admin');
+    return response.data;
+  },
+
+  // Enviar correo de prueba para verificar conexión SMTP
+  enviarCorreoPrueba: async (email) => {
+    const response = await api.post('/reportes/email/prueba', null, {
+      params: { email }
+    });
+    return response.data;
+  },
+
+  // Disparar manualmente la ejecución de los reportes mensuales automáticos
+  dispararReportesMensualesAhora: async (periodo = null) => {
+    const params = periodo ? { periodo } : {};
+    const response = await api.post('/reportes/email/disparar-mensuales-ahora', null, { params });
     return response.data;
   },
 
