@@ -96,9 +96,7 @@ def import_full_sql(sql_path):
         print(f"DROP + apply full dump: {sql_path}")
         _drop_silent()
         _apply_sql_file(resolved)
-        from export_db import export_all
-        export_all()
-        print("Full import complete; 04_datos.sql refreshed from live DB.")
+        print("Full import complete.")
     finally:
         if is_temp:
             try:

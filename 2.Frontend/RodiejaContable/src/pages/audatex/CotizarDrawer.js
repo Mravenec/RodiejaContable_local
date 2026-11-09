@@ -157,29 +157,7 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
         porcentajeComision: oportunidad.porcentajeComision || 3
       };
       
-      const resp = await audatexService.enviarCotizacion(payload);
-
-      // Sincronizar en localStorage para visibilidad inmediata en Ventas INS y Pedidos INS
-      if (oportunidad.empleadoId) {
-        try {
-          const stored = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
-          if (resp?.pedido?.id) {
-            stored[resp.pedido.id] = {
-              empleadoId: oportunidad.empleadoId,
-              empleadoNombre: oportunidad.empleadoNombre,
-              porcentajeComision: oportunidad.porcentajeComision || 3
-            };
-          }
-          stored[oportunidad.cotizacionId] = {
-            empleadoId: oportunidad.empleadoId,
-            empleadoNombre: oportunidad.empleadoNombre,
-            porcentajeComision: oportunidad.porcentajeComision || 3
-          };
-          localStorage.setItem('pedidos_ins_asignaciones', JSON.stringify(stored));
-        } catch (e) {
-          console.warn('Error guardando asignación de pedido:', e);
-        }
-      }
+      await audatexService.enviarCotizacion(payload);
 
       message.success('Pedido creado exitosamente para Audatex InPart');
       onClose();

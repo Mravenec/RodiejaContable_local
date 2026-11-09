@@ -138,31 +138,29 @@ const InsPedidos = () => {
         ? res.data 
         : (Array.isArray(res.data?.pedidos) ? res.data.pedidos : []);
       
-      // Leer asignaciones guardadas en localStorage
-      let localAsignaciones = {};
+      // Limpiar claves obsoletas de localStorage para que la base de datos sea la única fuente de la verdad
       try {
-        localAsignaciones = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
+        localStorage.removeItem('pedidos_ins_asignaciones');
       } catch (e) {}
 
-      // Excluir estrictamente los pedidos cancelados y fusionar asignaciones sin alterar el estado del pedido
+      // Excluir estrictamente los pedidos cancelados usando los datos reales de BD
       const fusionados = rawList
         .filter(p => (p.estado || '').toLowerCase() !== 'cancelado')
         .map(p => {
-          const local = localAsignaciones[p.id];
-          if (local) {
-            return {
-              ...p,
-              userId: p.userId || p.usuarioId || local.usuarioId || local.empleadoId,
-              usuarioId: p.usuarioId || p.userId || local.usuarioId || local.empleadoId,
-              usuarioNombre: p.usuarioNombre || p.empleadoNombre || local.usuarioNombre || local.empleadoNombre,
-              empleadoId: p.empleadoId || local.empleadoId || local.usuarioId,
-              empleadoNombre: p.empleadoNombre || local.empleadoNombre || local.usuarioNombre,
-              porcentajeComision: p.porcentajeComision || local.porcentajeComision,
-              // Mantener intacto el estado original que viene del mapeo de pedidos / Audatex
-              estado: p.estado
-            };
+          const empId = p.userId || p.usuarioId || p.empleadoId || null;
+          let empNom = p.usuarioNombre || p.empleadoNombre || null;
+          if (!empNom && empId) {
+            const uFound = (usuariosData || []).find(u => Number(u.id) === Number(empId));
+            if (uFound) empNom = uFound.nombre || uFound.email;
           }
-          return p;
+          return {
+            ...p,
+            userId: empId,
+            usuarioId: empId,
+            empleadoId: empId,
+            usuarioNombre: empNom,
+            empleadoNombre: empNom
+          };
         });
 
       setPedidos(fusionados);
@@ -172,7 +170,7 @@ const InsPedidos = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [usuariosData]);
 
   useEffect(() => {
     cargarPedidos();
@@ -362,23 +360,7 @@ const InsPedidos = () => {
       const uNombre = uFound ? (uFound.nombre || uFound.email) : (Number(idToAssign) === Number(currentUserId) ? currentUserName : `Usuario #${idToAssign}`);
       const pct = porcentajeManual || 3;
 
-      // 1. Guardar en localStorage para persistencia instantánea y permanente en el cliente
-      try {
-        const stored = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
-        stored[selectedPedido.id] = {
-          usuarioId: idToAssign,
-          userId: idToAssign,
-          usuarioNombre: uNombre,
-          empleadoId: idToAssign,
-          empleadoNombre: uNombre,
-          porcentajeComision: pct
-        };
-        localStorage.setItem('pedidos_ins_asignaciones', JSON.stringify(stored));
-      } catch (e) {
-        console.warn('Error guardando en localStorage:', e);
-      }
-
-      // 2. Enviar al backend asignación de usuario y comisión (sin cambiar estado del pedido)
+      // 1. Enviar al backend asignación de usuario y comisión (persiste directamente en BD)
       try {
         if (audatexAPI.asignarUsuario) {
           await audatexAPI.asignarUsuario(selectedPedido.id, {
@@ -396,7 +378,7 @@ const InsPedidos = () => {
           });
         }
       } catch (errAsignar) {
-        console.warn('Backend asignar error, fallback local activo:', errAsignar);
+        console.warn('Backend asignar error:', errAsignar);
       }
 
       // 3. Actualizar memoria inmediata conservando el estado del pedido intacto

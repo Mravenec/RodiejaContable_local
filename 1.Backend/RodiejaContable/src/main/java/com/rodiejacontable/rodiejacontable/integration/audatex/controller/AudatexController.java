@@ -319,6 +319,26 @@ public class AudatexController {
         }
     }
 
+    @PostMapping("/oportunidades/asignar-usuario")
+    public ResponseEntity<?> asignarUsuarioAOportunidad(@RequestBody Map<String, Object> payload) {
+        try {
+            String wan = payload.get("wan") != null ? payload.get("wan").toString() : null;
+            String cotizacionId = payload.get("cotizacionId") != null ? payload.get("cotizacionId").toString() : null;
+            Object uidObj = payload.get("usuarioId") != null ? payload.get("usuarioId") : payload.get("userId");
+            Integer userId = uidObj != null ? ((Number) uidObj).intValue() : null;
+            log.info("[Audatex] POST /oportunidades/asignar-usuario - wan {}, cotizacionId {}, userId {}", wan, cotizacionId, userId);
+            int updated = audatexService.asignarUsuarioAOportunidad(wan, cotizacionId, userId);
+            return ResponseEntity.ok(Map.of(
+                    "mensaje", "Oportunidad asignada exitosamente",
+                    "actualizados", updated
+            ));
+        } catch (Exception e) {
+            log.error("[Audatex] Error asignando usuario a oportunidad: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/oportunidades/{wan}/detalle")
     public ResponseEntity<?> obtenerDetalleOportunidad(@PathVariable String wan) {
         try {

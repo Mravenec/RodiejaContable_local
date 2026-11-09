@@ -249,13 +249,7 @@ const OportunidadesAudatex = () => {
     cargarUsuarios();
   }, [cargarUsuarios]);
 
-  const [asignacionesOportunidades, setAsignacionesOportunidades] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('oportunidades_ins_asignaciones') || '{}');
-    } catch (e) {
-      return {};
-    }
-  });
+  const [asignacionesOportunidades, setAsignacionesOportunidades] = useState({});
 
   const handleMarcarRevisada = useCallback(async (recordOrWan) => {
     const wan = typeof recordOrWan === 'string' ? recordOrWan : recordOrWan?.wan;
@@ -374,10 +368,10 @@ const OportunidadesAudatex = () => {
         console.warn('Backend sincronizar usuario error:', errApi);
       }
 
-      // 2. Persistir en localStorage tanto para pedidos como para oportunidades
-      try {
-        const storedOps = JSON.parse(localStorage.getItem('oportunidades_ins_asignaciones') || '{}');
-        storedOps[key] = {
+      // 2. Persistir en el estado en memoria para reflejo inmediato
+      setAsignacionesOportunidades(prev => ({
+        ...prev,
+        [key]: {
           usuarioId: idToAssign,
           userId: idToAssign,
           empleadoId: idToAssign,
@@ -394,12 +388,8 @@ const OportunidadesAudatex = () => {
           comisionCalculada: Number(selectedOportunidad.comisionCalculada || selectedOportunidad.comision_calculada || 0),
           porcentajeComision: Number(selectedOportunidad.porcentajeComision || 3),
           asignadoEn: new Date().toISOString()
-        };
-        localStorage.setItem('oportunidades_ins_asignaciones', JSON.stringify(storedOps));
-        setAsignacionesOportunidades(storedOps);
-      } catch (e) {
-        console.warn('Error guardando en localStorage:', e);
-      }
+        }
+      }));
 
       // Actualizar objeto en memoria
       selectedOportunidad.usuarioId = idToAssign;

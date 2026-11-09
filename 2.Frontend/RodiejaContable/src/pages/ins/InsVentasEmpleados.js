@@ -198,25 +198,20 @@ const InsVentasEmpleados = () => {
         ? resOpsSync.data
         : (Array.isArray(resOpsSync.data?.oportunidades) ? resOpsSync.data.oportunidades : []);
 
-      // Obtener asignaciones locales de pedidos desde localStorage
-      let localAsignaciones = {};
+      // Limpiar claves obsoletas de localStorage para que la base de datos sea la única fuente de la verdad
       try {
-        localAsignaciones = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
+        localStorage.removeItem('pedidos_ins_asignaciones');
+        localStorage.removeItem('oportunidades_ins_asignaciones');
       } catch (e) {}
 
-      // Obtener asignaciones locales de oportunidades desde localStorage
-      let localOportunidades = {};
-      try {
-        localOportunidades = JSON.parse(localStorage.getItem('oportunidades_ins_asignaciones') || '{}');
-      } catch (e) {}
-
-      // Fusionar oportunidades asignadas desde backend (sync) que tengan usuario asignado
+      // Mapear oportunidades asignadas desde backend (sync) que tengan usuario asignado en BD
+      const opsMap = {};
       rawOpsSync.forEach((os) => {
         const uid = os.userId || os.user_id || os.usuarioId || os.empleadoId;
         if (uid) {
           const cotKey = String(os.cotizacionId || os.cotizacion_id || os.wan || '').trim();
-          if (cotKey && !localOportunidades[cotKey] && !localOportunidades[os.wan]) {
-            localOportunidades[cotKey] = {
+          if (cotKey && !opsMap[cotKey] && !opsMap[os.wan]) {
+            opsMap[cotKey] = {
               cotizacionId: os.cotizacionId || os.cotizacion_id,
               wan: os.wan,
               usuarioId: uid,
@@ -236,16 +231,17 @@ const InsVentasEmpleados = () => {
         }
       });
 
-      setOportunidadesAsignadas(localOportunidades);
+      setOportunidadesAsignadas(opsMap);
 
-      // Fusionar asignaciones sin descartar cancelados para alimentar los 3 bloques
+      // Usar directamente los pedidos que existen en la base de datos
       const fusionados = rawList.map(p => {
-        const local = localAsignaciones[p.id] || localAsignaciones[p.cotizacionId];
-        const empleadoId = p.empleadoId || p.userId || p.usuarioId || local?.empleadoId || local?.usuarioId || local?.userId || null;
-        const empleadoNombre = p.empleadoNombre || p.usuarioNombre || local?.empleadoNombre || local?.usuarioNombre || null;
-        const porcentajeComision = p.porcentajeComision || local?.porcentajeComision || null;
-        const estado = local?.estado || p.estado;
-        const totalPedido = local?.totalPedido !== undefined ? local.totalPedido : p.totalPedido;
+        const empleadoId = p.empleadoId || p.userId || p.usuarioId || null;
+        let empleadoNombre = p.empleadoNombre || p.usuarioNombre || null;
+        if (!empleadoNombre && empleadoId) {
+          const uFound = (usuariosData || []).find(u => Number(u.id) === Number(empleadoId));
+          const empFound = (empleadosData || []).find(e => Number(e.id) === Number(empleadoId));
+          empleadoNombre = uFound ? (uFound.nombre || uFound.email) : (empFound ? (empFound.nombres || empFound.nombre) : `Usuario #${empleadoId}`);
+        }
         return {
           ...p,
           empleadoId,
@@ -253,55 +249,10 @@ const InsVentasEmpleados = () => {
           userId: empleadoId,
           usuarioId: empleadoId,
           usuarioNombre: empleadoNombre,
-          porcentajeComision,
-          estado,
-          totalPedido
+          porcentajeComision: p.porcentajeComision || 3,
+          estado: p.estado,
+          totalPedido: Number(p.totalPedido || 0)
         };
-      });
-
-      // Incluir oportunidades asignadas que NO tienen pedido referenciado en la BD aún
-      Object.entries(localOportunidades).forEach(([key, op]) => {
-        const cotId = op.cotizacionId || key;
-        const existePedido = rawList.some(p => {
-          const idStr = p.id ? String(p.id).trim() : '';
-          const cotStr = p.cotizacionId ? String(p.cotizacionId).trim() : '';
-          const sinStr = p.siniestro ? String(p.siniestro).trim() : '';
-          const numStr = p.numeroPedido ? String(p.numeroPedido).trim() : '';
-          const targetCot = String(cotId).trim();
-          return idStr === targetCot || cotStr === targetCot || sinStr === targetCot || numStr === targetCot;
-        });
-
-        if (!existePedido) {
-          const est = op.estado || 'En espera';
-          const empId = op.empleadoId || op.usuarioId || op.userId || null;
-          let empNom = op.empleadoNombre || op.usuarioNombre || null;
-          if (!empNom && empId) {
-            const uFound = (usuariosData || []).find(u => Number(u.id) === Number(empId));
-            const empFound = (empleadosData || []).find(e => Number(e.id) === Number(empId));
-            empNom = uFound ? (uFound.nombre || uFound.email) : (empFound ? (empFound.nombres || empFound.nombre) : `Usuario #${empId}`);
-          }
-
-          fusionados.push({
-            id: `op_${cotId}`,
-            cotizacionId: cotId,
-            wan: op.wan,
-            numeroPedido: `COT-${cotId}`,
-            vehiculo: op.vehiculo || 'Vehículo Oportunidad',
-            siniestro: cotId,
-            totalPedido: Number(op.totalPedido || op.total_pedido || 0),
-            estado: est,
-            empleadoId: empId,
-            empleadoNombre: empNom,
-            userId: empId,
-            usuarioId: empId,
-            usuarioNombre: empNom,
-            porcentajeComision: op.porcentajeComision || 3,
-            fecha: op.fechaCotizacion || op.asignadoEn,
-            fechaCreacion: op.asignadoEn,
-            esOportunidadSinPedido: true,
-            datosOportunidad: op
-          });
-        }
       });
 
       setPedidosRaw(fusionados);
@@ -385,50 +336,8 @@ const InsVentasEmpleados = () => {
         try {
           await audatexAPI.enviarCotizacion(payload);
         } catch (errReg) {
-          console.warn('Backend enviarCotizacion fallo, fallback local activo:', errReg);
+          console.warn('Backend enviarCotizacion fallo:', errReg);
         }
-      }
-
-      // 2. Persistir en localStorage pedidos_ins_asignaciones
-      try {
-        const storedPedidos = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
-        const updateObj = {
-          empleadoId: empIdNum,
-          empleadoNombre: empNombre,
-          porcentajeComision: pctNum,
-          estado: 'Entregado',
-          totalPedido: totalNum
-        };
-        storedPedidos[cotId] = updateObj;
-        if (itemAEntregar.id) {
-          storedPedidos[itemAEntregar.id] = updateObj;
-        }
-        localStorage.setItem('pedidos_ins_asignaciones', JSON.stringify(storedPedidos));
-      } catch (e) {
-        console.warn('Error guardando en pedidos_ins_asignaciones:', e);
-      }
-
-      // 3. Persistir en localStorage oportunidades_ins_asignaciones
-      try {
-        const storedOps = JSON.parse(localStorage.getItem('oportunidades_ins_asignaciones') || '{}');
-        const key = cotId;
-        const opKey = storedOps[key] ? key : (storedOps[itemAEntregar.wan] ? itemAEntregar.wan : key);
-        storedOps[opKey] = {
-          ...(storedOps[opKey] || itemAEntregar),
-          cotizacionId: cotId,
-          wan: itemAEntregar.wan,
-          vehiculo: vehiculoStr,
-          estado: 'Entregado',
-          totalPedido: totalNum,
-          empleadoId: empIdNum,
-          empleadoNombre: empNombre,
-          porcentajeComision: pctNum,
-          asignadoEn: new Date().toISOString()
-        };
-        localStorage.setItem('oportunidades_ins_asignaciones', JSON.stringify(storedOps));
-        setOportunidadesAsignadas(storedOps);
-      } catch (e) {
-        console.warn('Error guardando en oportunidades_ins_asignaciones:', e);
       }
 
       message.success(`¡Cotización #${cotId} registrada y marcada como ENTREGADA para ${empNombre}!`);
@@ -465,18 +374,32 @@ const InsVentasEmpleados = () => {
       if (anioFiltro && infoFecha.anio && infoFecha.anio !== anioFiltro) return;
       if (mesFiltro && infoFecha.mes && infoFecha.mes !== mesFiltro) return;
 
-      const key = empId ? `id_${empId}` : `nom_${empNom}`;
-      if (!empleadosMap[key]) {
-        let nombreFinal = empNom;
-        if (!nombreFinal && empId) {
-          const uObj = usuariosActivos.find(u => Number(u.id) === Number(empId));
-          const empObj = empleadosData.find(e => Number(e.id) === Number(empId));
-          nombreFinal = uObj ? (uObj.nombre || uObj.email) : (empObj ? (empObj.nombres || empObj.nombre) : `Usuario #${empId}`);
+      let nombreFinal = empNom;
+      if (empId) {
+        const uObj = usuariosActivos.find(u => Number(u.id) === Number(empId));
+        const empObj = (empleadosData || []).find(e => Number(e.id) === Number(empId));
+        if (uObj) {
+          nombreFinal = uObj.nombre || uObj.email;
+        } else if (empObj) {
+          nombreFinal = empObj.nombres || empObj.nombre;
         }
+      }
+      if (!nombreFinal) {
+        nombreFinal = empId ? `Usuario #${empId}` : 'Sin nombre';
+      }
+      // Normalizar nombre con mayúscula inicial respetando nombres compuestos
+      nombreFinal = String(nombreFinal)
+        .trim()
+        .split(/\s+/)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
 
+      // Clave unificada en minúsculas para evitar duplicar nombres por diferencias de mayúsculas (ej. Esteban y esteban)
+      const key = nombreFinal.toLowerCase().trim();
+      if (!empleadosMap[key]) {
         empleadosMap[key] = {
           empleado_id: empId || key,
-          empleado: nombreFinal || 'Sin nombre',
+          empleado: nombreFinal,
           total_pedidos: 0,
           total_ventas: 0,
           total_comision: 0,

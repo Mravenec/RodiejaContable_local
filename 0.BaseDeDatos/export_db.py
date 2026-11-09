@@ -105,18 +105,17 @@ def export_all():
 
     full_sql = os.path.join(exports_dir, f"sistema_vehicular_full_{stamp}.sql")
     full_gz = os.path.join(exports_dir, f"sistema_vehicular_{stamp}.sql.gz")
-    data_path = os.path.join(base, "DB", "04_datos.sql")
     schema_path = os.path.join(base, "DB", "_schema_from_live.sql")
 
     print("=" * 60)
-    print(f"Exporting live database -> project files (mode={_mode()})")
+    print(f"Exporting live database -> .sql.gz (mode={_mode()})")
     print("=" * 60)
 
-    print("1/4 Full dump (schema + data)...")
+    print("1/2 Full dump (schema + data)...")
     _run_dump([], full_sql)
     print(f"   -> {full_sql}")
 
-    print("2/4 Compress full dump -> .sql.gz ...")
+    print("2/2 Compress full dump -> .sql.gz ...")
     _gzip_file(full_sql, full_gz)
     try:
         os.remove(full_sql)
@@ -124,63 +123,9 @@ def export_all():
         pass
     print(f"   -> {full_gz}")
 
-    print("3/4 Data-only -> DB/04_datos.sql ...")
-    header = (
-        "-- ============================================================\n"
-        "-- 04_datos.sql — REAL DATA snapshot (not mocks)\n"
-        f"-- Generated: {datetime.now().isoformat(timespec='seconds')}\n"
-        "-- Loaded by: load_data.py (after setup_db.py)\n"
-        "-- ============================================================\n"
-        "SET FOREIGN_KEY_CHECKS = 0;\n"
-        f"USE `{DB_NAME}`;\n\n"
-    ).encode("utf-8")
-    cmd_data = _dump_cmd(
-        ["--no-create-info", "--complete-insert", "--skip-triggers"],
-        database_flag=False,
-    )
-    # data-only path should not pass --routines/--triggers with skip-triggers conflict:
-    # rebuild without routines/triggers for data-only
-    if _mode() == "direct":
-        cmd_data = [
-            _dump_binary(),
-            f"-h{HOST}",
-            f"-P{PORT}",
-            f"-u{USER}",
-            f"-p{PASSWORD}",
-            "--single-transaction",
-            "--no-create-info",
-            "--complete-insert",
-            "--skip-triggers",
-            DB_NAME,
-        ]
-    else:
-        cmd_data = [
-            "docker", "exec", CONTAINER_NAME,
-            "mariadb-dump",
-            f"-u{USER}", f"-p{PASSWORD}",
-            "--single-transaction",
-            "--no-create-info",
-            "--complete-insert",
-            "--skip-triggers",
-            DB_NAME,
-        ]
-    with open(data_path, "wb") as out:
-        out.write(header)
-        proc = subprocess.run(cmd_data, stdout=out, stderr=subprocess.PIPE)
-        if proc.returncode != 0:
-            raise RuntimeError(proc.stderr.decode("utf-8", errors="replace"))
-        out.write(b"\nSET FOREIGN_KEY_CHECKS = 1;\n")
-    print(f"   -> {data_path}")
-
-    print("4/4 Schema-only snapshot -> DB/_schema_from_live.sql ...")
-    _run_dump(["--no-data"], schema_path)
-    print(f"   -> {schema_path}")
-    print("   (Merge structural diffs into 01/02/03/04 schema files manually when needed.)")
-
     print("\nExport finished.")
     return {
         "full": full_gz,
-        "data": data_path,
         "schema": schema_path,
     }
 
