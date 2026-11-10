@@ -24,7 +24,7 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${rodieja.mail.from:kcamposgo90@gmail.com}")
+    @Value("${rodieja.mail.from:roberto@tuprimernegocio.org}")
     private String defaultFrom;
 
     @Value("${rodieja.mail.from-name:Rodieja Contable}")
