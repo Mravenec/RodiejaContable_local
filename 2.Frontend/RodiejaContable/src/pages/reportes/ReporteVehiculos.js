@@ -750,10 +750,10 @@ const ReporteVehiculos = () => {
               </div>
             ),
             children: (
-              <Row gutter={[24, 16]} align="bottom">
-                <Col xs={24} sm={12} md={5}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Búsqueda</Text>
+              <Row gutter={[16, 16]} align="bottom">
+                <Col xs={24} sm={12} md={8} lg={5}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Búsqueda</Text>
                     {filtros.busqueda && (
                       <Tag color="blue" closable onClose={() => removerFiltro('busqueda')} style={{ margin: 0, fontWeight: 500 }}>
                         "{filtros.busqueda}"
@@ -772,9 +772,9 @@ const ReporteVehiculos = () => {
                     style={{ width: '100%', borderRadius: '6px' }}
                   />
                 </Col>
-                <Col xs={24} sm={12} md={5}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Mes a Consultar</Text>
+                <Col xs={24} sm={12} md={8} lg={5}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Mes a Consultar</Text>
                     {labelPeriodo && (
                       <Tag color="blue" closable onClose={() => removerFiltro('periodo')} style={{ margin: 0, fontWeight: 500 }}>
                         {labelPeriodo}
@@ -822,9 +822,9 @@ const ReporteVehiculos = () => {
                     </Select>
                   </Space.Compact>
                 </Col>
-                <Col xs={24} sm={12} md={5}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Vehículo</Text>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Vehículo</Text>
                     {labelVehiculo && (
                       <Tag color="purple" closable onClose={() => removerFiltro('vehiculoId')} style={{ margin: 0, fontWeight: 500 }}>
                         {labelVehiculo}
@@ -866,9 +866,9 @@ const ReporteVehiculos = () => {
                     })}
                   </Select>
                 </Col>
-                <Col xs={24} sm={12} md={5}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Estado</Text>
+                <Col xs={24} sm={12} md={8} lg={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Estado</Text>
                     {filtros.estadoVehiculo && (
                       <Tag 
                         color={filtros.estadoVehiculo === 'DISPONIBLE' ? 'success' : filtros.estadoVehiculo === 'REPARACION' ? 'warning' : 'blue'} 
@@ -892,7 +892,7 @@ const ReporteVehiculos = () => {
                     <Option value="VENDIDO">Vendido</Option>
                   </Select>
                 </Col>
-                <Col xs={24} sm={24} md={4}>
+                <Col xs={24} sm={24} md={8} lg={4}>
                   <Button 
                     block 
                     icon={<ReloadOutlined />} 

@@ -745,10 +745,10 @@ const VentasReportes = () => {
               </div>
             ),
             children: (
-              <Row gutter={[24, 16]} align="bottom">
-                <Col xs={24} sm={12} md={4}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Búsqueda</Text>
+              <Row gutter={[16, 16]} align="bottom">
+                <Col xs={24} sm={12} md={8} lg={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Búsqueda</Text>
                     {filtros.busqueda && (
                       <Tag color="blue" closable onClose={() => removerFiltro('busqueda')} style={{ margin: 0, fontWeight: 500 }}>
                         "{filtros.busqueda}"
@@ -765,9 +765,9 @@ const VentasReportes = () => {
                     style={{ width: '100%', borderRadius: '6px' }}
                   />
                 </Col>
-                <Col xs={24} sm={12} md={4}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Mes a Consultar</Text>
+                <Col xs={24} sm={12} md={8} lg={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Mes a Consultar</Text>
                     {labelPeriodo && (
                       <Tag color="blue" closable onClose={() => removerFiltro('periodo')} style={{ margin: 0, fontWeight: 500 }}>
                         {labelPeriodo}
@@ -808,9 +808,9 @@ const VentasReportes = () => {
                     </Select>
                   </Space.Compact>
                 </Col>
-                <Col xs={24} sm={12} md={4}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Vendedor</Text>
+                <Col xs={24} sm={12} md={8} lg={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Vendedor</Text>
                     {labelVendedor && (
                       <Tag color="purple" closable onClose={() => removerFiltro('vendedor')} style={{ margin: 0, fontWeight: 500 }}>
                         {labelVendedor}
@@ -837,9 +837,9 @@ const VentasReportes = () => {
                     ))}
                   </Select>
                 </Col>
-                <Col xs={24} sm={12} md={4}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Estado</Text>
+                <Col xs={24} sm={12} md={8} lg={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Estado</Text>
                     {labelEstado && (
                       <Tag 
                         color={filtros.estado === 'COMPLETADA' ? 'success' : filtros.estado === 'PENDIENTE' ? 'processing' : 'error'} 
@@ -865,9 +865,9 @@ const VentasReportes = () => {
                     ))}
                   </Select>
                 </Col>
-                <Col xs={24} sm={12} md={4}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Tipo Producto</Text>
+                <Col xs={24} sm={12} md={8} lg={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Tipo Producto</Text>
                     {labelTipoProducto && (
                       <Tag color="cyan" closable onClose={() => removerFiltro('tipoProducto')} style={{ margin: 0, fontWeight: 500 }}>
                         {labelTipoProducto}
@@ -888,7 +888,7 @@ const VentasReportes = () => {
                     ))}
                   </Select>
                 </Col>
-                <Col xs={24} sm={24} md={4}>
+                <Col xs={24} sm={12} md={8} lg={4}>
                   <Button 
                     block 
                     icon={<ReloadOutlined />} 
