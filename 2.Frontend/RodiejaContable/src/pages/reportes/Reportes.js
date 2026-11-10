@@ -72,8 +72,8 @@ const Reportes = () => {
     tasaConversion: 0,
   });
 
-  // ROD-17: Estados para filtros de exportación Audatex
-  const [fechaRange, setFechaRange] = useState([null, null]);
+  // ROD-17: Estados para filtros de exportación Audatex (inicializado al mes en curso)
+  const [fechaRange, setFechaRange] = useState([dayjs().startOf('month'), dayjs().endOf('month')]);
   const [marcaFiltro, setMarcaFiltro] = useState('');
 
   // Cargar datos iniciales

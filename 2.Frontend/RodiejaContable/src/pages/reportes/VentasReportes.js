@@ -88,8 +88,8 @@ const VentasReportes = () => {
     }));
   }, [empleadosData]);
   const [filtros, setFiltros] = useState({
-    mes: null,
-    anio: null,
+    mes: moment().month() + 1,
+    anio: moment().year(),
     estado: 'todos',
     vendedor: null,
     busqueda: '',
