@@ -34,6 +34,10 @@ public class AudatexPedidos implements Serializable {
     private LocalDateTime ultimaVezVisto;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
+    private Integer userId;
+    private Integer transaccionId;
+    private BigDecimal comisionCalculada;
+    private Byte porcentajeComision;
 
     public AudatexPedidos() {}
 
@@ -53,6 +57,10 @@ public class AudatexPedidos implements Serializable {
         this.ultimaVezVisto = value.ultimaVezVisto;
         this.fechaCreacion = value.fechaCreacion;
         this.fechaActualizacion = value.fechaActualizacion;
+        this.userId = value.userId;
+        this.transaccionId = value.transaccionId;
+        this.comisionCalculada = value.comisionCalculada;
+        this.porcentajeComision = value.porcentajeComision;
     }
 
     public AudatexPedidos(
@@ -70,7 +78,11 @@ public class AudatexPedidos implements Serializable {
         String detalleJson,
         LocalDateTime ultimaVezVisto,
         LocalDateTime fechaCreacion,
-        LocalDateTime fechaActualizacion
+        LocalDateTime fechaActualizacion,
+        Integer userId,
+        Integer transaccionId,
+        BigDecimal comisionCalculada,
+        Byte porcentajeComision
     ) {
         this.id = id;
         this.numeroPedido = numeroPedido;
@@ -87,6 +99,10 @@ public class AudatexPedidos implements Serializable {
         this.ultimaVezVisto = ultimaVezVisto;
         this.fechaCreacion = fechaCreacion;
         this.fechaActualizacion = fechaActualizacion;
+        this.userId = userId;
+        this.transaccionId = transaccionId;
+        this.comisionCalculada = comisionCalculada;
+        this.porcentajeComision = porcentajeComision;
     }
 
     /**
@@ -326,6 +342,70 @@ public class AudatexPedidos implements Serializable {
         return this;
     }
 
+    /**
+     * Getter for <code>sistema_vehicular.audatex_pedidos.user_id</code>.
+     */
+    public Integer getUserId() {
+        return this.userId;
+    }
+
+    /**
+     * Setter for <code>sistema_vehicular.audatex_pedidos.user_id</code>.
+     */
+    public AudatexPedidos setUserId(Integer userId) {
+        this.userId = userId;
+        return this;
+    }
+
+    /**
+     * Getter for <code>sistema_vehicular.audatex_pedidos.transaccion_id</code>.
+     */
+    public Integer getTransaccionId() {
+        return this.transaccionId;
+    }
+
+    /**
+     * Setter for <code>sistema_vehicular.audatex_pedidos.transaccion_id</code>.
+     */
+    public AudatexPedidos setTransaccionId(Integer transaccionId) {
+        this.transaccionId = transaccionId;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.audatex_pedidos.comision_calculada</code>.
+     */
+    public BigDecimal getComisionCalculada() {
+        return this.comisionCalculada;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.audatex_pedidos.comision_calculada</code>.
+     */
+    public AudatexPedidos setComisionCalculada(BigDecimal comisionCalculada) {
+        this.comisionCalculada = comisionCalculada;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.audatex_pedidos.porcentaje_comision</code>.
+     */
+    public Byte getPorcentajeComision() {
+        return this.porcentajeComision;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.audatex_pedidos.porcentaje_comision</code>.
+     */
+    public AudatexPedidos setPorcentajeComision(Byte porcentajeComision) {
+        this.porcentajeComision = porcentajeComision;
+        return this;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -425,6 +505,30 @@ public class AudatexPedidos implements Serializable {
         }
         else if (!this.fechaActualizacion.equals(other.fechaActualizacion))
             return false;
+        if (this.userId == null) {
+            if (other.userId != null)
+                return false;
+        }
+        else if (!this.userId.equals(other.userId))
+            return false;
+        if (this.transaccionId == null) {
+            if (other.transaccionId != null)
+                return false;
+        }
+        else if (!this.transaccionId.equals(other.transaccionId))
+            return false;
+        if (this.comisionCalculada == null) {
+            if (other.comisionCalculada != null)
+                return false;
+        }
+        else if (!this.comisionCalculada.equals(other.comisionCalculada))
+            return false;
+        if (this.porcentajeComision == null) {
+            if (other.porcentajeComision != null)
+                return false;
+        }
+        else if (!this.porcentajeComision.equals(other.porcentajeComision))
+            return false;
         return true;
     }
 
@@ -447,6 +551,10 @@ public class AudatexPedidos implements Serializable {
         result = prime * result + ((this.ultimaVezVisto == null) ? 0 : this.ultimaVezVisto.hashCode());
         result = prime * result + ((this.fechaCreacion == null) ? 0 : this.fechaCreacion.hashCode());
         result = prime * result + ((this.fechaActualizacion == null) ? 0 : this.fechaActualizacion.hashCode());
+        result = prime * result + ((this.userId == null) ? 0 : this.userId.hashCode());
+        result = prime * result + ((this.transaccionId == null) ? 0 : this.transaccionId.hashCode());
+        result = prime * result + ((this.comisionCalculada == null) ? 0 : this.comisionCalculada.hashCode());
+        result = prime * result + ((this.porcentajeComision == null) ? 0 : this.porcentajeComision.hashCode());
         return result;
     }
 
@@ -469,6 +577,10 @@ public class AudatexPedidos implements Serializable {
         sb.append(", ").append(ultimaVezVisto);
         sb.append(", ").append(fechaCreacion);
         sb.append(", ").append(fechaActualizacion);
+        sb.append(", ").append(userId);
+        sb.append(", ").append(transaccionId);
+        sb.append(", ").append(comisionCalculada);
+        sb.append(", ").append(porcentajeComision);
 
         sb.append(")");
         return sb.toString();

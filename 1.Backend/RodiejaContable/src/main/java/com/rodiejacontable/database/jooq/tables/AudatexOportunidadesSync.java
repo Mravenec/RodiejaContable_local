@@ -19,12 +19,12 @@ import java.util.function.Function;
 import org.jooq.Check;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
-import org.jooq.Function18;
+import org.jooq.Function19;
 import org.jooq.Index;
 import org.jooq.Name;
 import org.jooq.Record;
 import org.jooq.Records;
-import org.jooq.Row18;
+import org.jooq.Row19;
 import org.jooq.Schema;
 import org.jooq.SelectField;
 import org.jooq.Table;
@@ -166,6 +166,12 @@ public class AudatexOportunidadesSync extends TableImpl<AudatexOportunidadesSync
      */
     public final TableField<AudatexOportunidadesSyncRecord, String> DETALLE_JSON = createField(DSL.name("detalle_json"), SQLDataType.CLOB.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.CLOB)), this, "");
 
+    /**
+     * The column
+     * <code>sistema_vehicular.audatex_oportunidades_sync.user_id</code>.
+     */
+    public final TableField<AudatexOportunidadesSyncRecord, Integer> USER_ID = createField(DSL.name("user_id"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
+
     private AudatexOportunidadesSync(Name alias, Table<AudatexOportunidadesSyncRecord> aliased) {
         this(alias, aliased, null);
     }
@@ -209,7 +215,7 @@ public class AudatexOportunidadesSync extends TableImpl<AudatexOportunidadesSync
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.AUDATEX_OPORTUNIDADES_SYNC_IDX_ARMADORA, Indexes.AUDATEX_OPORTUNIDADES_SYNC_IDX_ESTADO, Indexes.AUDATEX_OPORTUNIDADES_SYNC_IDX_ULTIMA_VEZ_VISTO);
+        return Arrays.asList(Indexes.AUDATEX_OPORTUNIDADES_SYNC_IDX_ARMADORA, Indexes.AUDATEX_OPORTUNIDADES_SYNC_IDX_ESTADO, Indexes.AUDATEX_OPORTUNIDADES_SYNC_IDX_OPORTUNIDADES_USER_ID, Indexes.AUDATEX_OPORTUNIDADES_SYNC_IDX_ULTIMA_VEZ_VISTO);
     }
 
     @Override
@@ -264,18 +270,18 @@ public class AudatexOportunidadesSync extends TableImpl<AudatexOportunidadesSync
     }
 
     // -------------------------------------------------------------------------
-    // Row18 type methods
+    // Row19 type methods
     // -------------------------------------------------------------------------
 
     @Override
-    public Row18<String, String, String, String, String, String, String, String, String, String, String, Integer, AudatexOportunidadesSyncEstado, AudatexOportunidadesSyncEstadoInteraccion, LocalDateTime, LocalDateTime, LocalDateTime, String> fieldsRow() {
-        return (Row18) super.fieldsRow();
+    public Row19<String, String, String, String, String, String, String, String, String, String, String, Integer, AudatexOportunidadesSyncEstado, AudatexOportunidadesSyncEstadoInteraccion, LocalDateTime, LocalDateTime, LocalDateTime, String, Integer> fieldsRow() {
+        return (Row19) super.fieldsRow();
     }
 
     /**
      * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
      */
-    public <U> SelectField<U> mapping(Function18<? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super AudatexOportunidadesSyncEstado, ? super AudatexOportunidadesSyncEstadoInteraccion, ? super LocalDateTime, ? super LocalDateTime, ? super LocalDateTime, ? super String, ? extends U> from) {
+    public <U> SelectField<U> mapping(Function19<? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super AudatexOportunidadesSyncEstado, ? super AudatexOportunidadesSyncEstadoInteraccion, ? super LocalDateTime, ? super LocalDateTime, ? super LocalDateTime, ? super String, ? super Integer, ? extends U> from) {
         return convertFrom(Records.mapping(from));
     }
 
@@ -283,7 +289,7 @@ public class AudatexOportunidadesSync extends TableImpl<AudatexOportunidadesSync
      * Convenience mapping calling {@link SelectField#convertFrom(Class,
      * Function)}.
      */
-    public <U> SelectField<U> mapping(Class<U> toType, Function18<? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super AudatexOportunidadesSyncEstado, ? super AudatexOportunidadesSyncEstadoInteraccion, ? super LocalDateTime, ? super LocalDateTime, ? super LocalDateTime, ? super String, ? extends U> from) {
+    public <U> SelectField<U> mapping(Class<U> toType, Function19<? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super AudatexOportunidadesSyncEstado, ? super AudatexOportunidadesSyncEstadoInteraccion, ? super LocalDateTime, ? super LocalDateTime, ? super LocalDateTime, ? super String, ? super Integer, ? extends U> from) {
         return convertFrom(toType, Records.mapping(from));
     }
 }

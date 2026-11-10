@@ -37,6 +37,7 @@ public class AudatexOportunidadesSync implements Serializable {
     private LocalDateTime creadoEn;
     private LocalDateTime actualizadoEn;
     private String detalleJson;
+    private Integer userId;
 
     public AudatexOportunidadesSync() {}
 
@@ -59,6 +60,7 @@ public class AudatexOportunidadesSync implements Serializable {
         this.creadoEn = value.creadoEn;
         this.actualizadoEn = value.actualizadoEn;
         this.detalleJson = value.detalleJson;
+        this.userId = value.userId;
     }
 
     public AudatexOportunidadesSync(
@@ -79,7 +81,8 @@ public class AudatexOportunidadesSync implements Serializable {
         LocalDateTime ultimaVezVisto,
         LocalDateTime creadoEn,
         LocalDateTime actualizadoEn,
-        String detalleJson
+        String detalleJson,
+        Integer userId
     ) {
         this.wan = wan;
         this.aseguradora = aseguradora;
@@ -99,6 +102,7 @@ public class AudatexOportunidadesSync implements Serializable {
         this.creadoEn = creadoEn;
         this.actualizadoEn = actualizadoEn;
         this.detalleJson = detalleJson;
+        this.userId = userId;
     }
 
     /**
@@ -405,6 +409,23 @@ public class AudatexOportunidadesSync implements Serializable {
         return this;
     }
 
+    /**
+     * Getter for
+     * <code>sistema_vehicular.audatex_oportunidades_sync.user_id</code>.
+     */
+    public Integer getUserId() {
+        return this.userId;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.audatex_oportunidades_sync.user_id</code>.
+     */
+    public AudatexOportunidadesSync setUserId(Integer userId) {
+        this.userId = userId;
+        return this;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -522,6 +543,12 @@ public class AudatexOportunidadesSync implements Serializable {
         }
         else if (!this.detalleJson.equals(other.detalleJson))
             return false;
+        if (this.userId == null) {
+            if (other.userId != null)
+                return false;
+        }
+        else if (!this.userId.equals(other.userId))
+            return false;
         return true;
     }
 
@@ -547,6 +574,7 @@ public class AudatexOportunidadesSync implements Serializable {
         result = prime * result + ((this.creadoEn == null) ? 0 : this.creadoEn.hashCode());
         result = prime * result + ((this.actualizadoEn == null) ? 0 : this.actualizadoEn.hashCode());
         result = prime * result + ((this.detalleJson == null) ? 0 : this.detalleJson.hashCode());
+        result = prime * result + ((this.userId == null) ? 0 : this.userId.hashCode());
         return result;
     }
 
@@ -572,6 +600,7 @@ public class AudatexOportunidadesSync implements Serializable {
         sb.append(", ").append(creadoEn);
         sb.append(", ").append(actualizadoEn);
         sb.append(", ").append(detalleJson);
+        sb.append(", ").append(userId);
 
         sb.append(")");
         return sb.toString();

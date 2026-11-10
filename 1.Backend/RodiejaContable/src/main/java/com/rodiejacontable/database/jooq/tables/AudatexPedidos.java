@@ -19,13 +19,13 @@ import java.util.function.Function;
 import org.jooq.Check;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
-import org.jooq.Function15;
+import org.jooq.Function19;
 import org.jooq.Identity;
 import org.jooq.Index;
 import org.jooq.Name;
 import org.jooq.Record;
 import org.jooq.Records;
-import org.jooq.Row15;
+import org.jooq.Row19;
 import org.jooq.Schema;
 import org.jooq.SelectField;
 import org.jooq.Table;
@@ -140,6 +140,28 @@ public class AudatexPedidos extends TableImpl<AudatexPedidosRecord> {
      */
     public final TableField<AudatexPedidosRecord, LocalDateTime> FECHA_ACTUALIZACION = createField(DSL.name("fecha_actualizacion"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("current_timestamp()"), SQLDataType.LOCALDATETIME)), this, "");
 
+    /**
+     * The column <code>sistema_vehicular.audatex_pedidos.user_id</code>.
+     */
+    public final TableField<AudatexPedidosRecord, Integer> USER_ID = createField(DSL.name("user_id"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column <code>sistema_vehicular.audatex_pedidos.transaccion_id</code>.
+     */
+    public final TableField<AudatexPedidosRecord, Integer> TRANSACCION_ID = createField(DSL.name("transaccion_id"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.audatex_pedidos.comision_calculada</code>.
+     */
+    public final TableField<AudatexPedidosRecord, BigDecimal> COMISION_CALCULADA = createField(DSL.name("comision_calculada"), SQLDataType.DECIMAL(12, 2).defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.DECIMAL)), this, "");
+
+    /**
+     * The column
+     * <code>sistema_vehicular.audatex_pedidos.porcentaje_comision</code>.
+     */
+    public final TableField<AudatexPedidosRecord, Byte> PORCENTAJE_COMISION = createField(DSL.name("porcentaje_comision"), SQLDataType.TINYINT.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.TINYINT)), this, "");
+
     private AudatexPedidos(Name alias, Table<AudatexPedidosRecord> aliased) {
         this(alias, aliased, null);
     }
@@ -247,18 +269,18 @@ public class AudatexPedidos extends TableImpl<AudatexPedidosRecord> {
     }
 
     // -------------------------------------------------------------------------
-    // Row15 type methods
+    // Row19 type methods
     // -------------------------------------------------------------------------
 
     @Override
-    public Row15<Integer, String, String, String, String, String, String, String, BigDecimal, AudatexPedidosEstado, String, String, LocalDateTime, LocalDateTime, LocalDateTime> fieldsRow() {
-        return (Row15) super.fieldsRow();
+    public Row19<Integer, String, String, String, String, String, String, String, BigDecimal, AudatexPedidosEstado, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Integer, Integer, BigDecimal, Byte> fieldsRow() {
+        return (Row19) super.fieldsRow();
     }
 
     /**
      * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
      */
-    public <U> SelectField<U> mapping(Function15<? super Integer, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super BigDecimal, ? super AudatexPedidosEstado, ? super String, ? super String, ? super LocalDateTime, ? super LocalDateTime, ? super LocalDateTime, ? extends U> from) {
+    public <U> SelectField<U> mapping(Function19<? super Integer, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super BigDecimal, ? super AudatexPedidosEstado, ? super String, ? super String, ? super LocalDateTime, ? super LocalDateTime, ? super LocalDateTime, ? super Integer, ? super Integer, ? super BigDecimal, ? super Byte, ? extends U> from) {
         return convertFrom(Records.mapping(from));
     }
 
@@ -266,7 +288,7 @@ public class AudatexPedidos extends TableImpl<AudatexPedidosRecord> {
      * Convenience mapping calling {@link SelectField#convertFrom(Class,
      * Function)}.
      */
-    public <U> SelectField<U> mapping(Class<U> toType, Function15<? super Integer, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super BigDecimal, ? super AudatexPedidosEstado, ? super String, ? super String, ? super LocalDateTime, ? super LocalDateTime, ? super LocalDateTime, ? extends U> from) {
+    public <U> SelectField<U> mapping(Class<U> toType, Function19<? super Integer, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super BigDecimal, ? super AudatexPedidosEstado, ? super String, ? super String, ? super LocalDateTime, ? super LocalDateTime, ? super LocalDateTime, ? super Integer, ? super Integer, ? super BigDecimal, ? super Byte, ? extends U> from) {
         return convertFrom(toType, Records.mapping(from));
     }
 }
