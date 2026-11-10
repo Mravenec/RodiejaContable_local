@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card, Table, Button, Row, Col, Typography, Statistic,
   Select, Tag, message, Modal, Input, Space, Descriptions, Tabs,
-  InputNumber
+  InputNumber, Tooltip
 } from 'antd';
 import {
   ReloadOutlined, SearchOutlined, EyeOutlined, UserOutlined,
   CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined,
-  DollarOutlined, ShoppingCartOutlined, TeamOutlined, FileTextOutlined
+  DollarOutlined, ShoppingCartOutlined, FileTextOutlined,
+  FileExcelOutlined
 } from '@ant-design/icons';
 import { audatexAPI } from '../../api/audatex';
 import { useEmpleados } from '../../hooks/useEmpleados';
@@ -130,6 +131,21 @@ const InsVentasEmpleados = () => {
   });
   const [procesandoEntrega, setProcesandoEntrega] = useState(false);
 
+  // Estados para liquidación de comisiones y reporte Excel
+  const [exportandoExcel, setExportandoExcel] = useState(false);
+  const [modalPagarVisible, setModalPagarVisible] = useState(false);
+  const [pagoForm, setPagoForm] = useState({
+    esGrupal: false,
+    item: null,
+    empleadoId: null,
+    empleadoNombre: '',
+    monto: 0,
+    fechaPago: dayjs().format('YYYY-MM-DD'),
+    referencia: '',
+    notas: ''
+  });
+  const [procesandoPago, setProcesandoPago] = useState(false);
+
   const { user } = useAuth();
   const esAdmin = (user?.rol || '').toUpperCase() === 'ADMIN';
   const currentUserId = user?.id || user?.userId || null;
@@ -250,6 +266,11 @@ const InsVentasEmpleados = () => {
           usuarioId: empleadoId,
           usuarioNombre: empleadoNombre,
           porcentajeComision: p.porcentajeComision || 3,
+          comisionCalculada: p.comisionCalculada,
+          comisionPagada: Boolean(p.comisionPagada),
+          fechaPagoComision: p.fechaPagoComision,
+          referenciaPagoComision: p.referenciaPagoComision,
+          notasPagoComision: p.notasPagoComision,
           estado: p.estado,
           totalPedido: Number(p.totalPedido || 0)
         };
@@ -355,6 +376,103 @@ const InsVentasEmpleados = () => {
     }
   };
 
+  // Abrir modal para liquidar comisiones grupales de un colaborador
+  const handleAbrirModalPagarGrupal = (emp) => {
+    setPagoForm({
+      esGrupal: true,
+      item: null,
+      empleadoId: emp.empleado_id,
+      empleadoNombre: emp.empleado,
+      monto: emp.total_comision_pendiente,
+      fechaPago: dayjs().format('YYYY-MM-DD'),
+      referencia: '',
+      notas: `Liquidación comisiones INS ${filtros.mes ? `mes ${filtros.mes}/` : ''}${filtros.anio || dayjs().year()}`
+    });
+    setModalPagarVisible(true);
+  };
+
+  // Abrir modal para pagar comisión de un pedido individual
+  const handleAbrirModalPagarIndividual = (pedido) => {
+    setPagoForm({
+      esGrupal: false,
+      item: pedido,
+      empleadoId: pedido.userId || pedido.empleadoId,
+      empleadoNombre: pedido.usuarioNombre || pedido.empleadoNombre,
+      monto: pedido.comision,
+      fechaPago: dayjs().format('YYYY-MM-DD'),
+      referencia: '',
+      notas: `Pago comisión pedido #${pedido.numeroPedido || pedido.id}`
+    });
+    setModalPagarVisible(true);
+  };
+
+  // Confirmar y registrar pago de comisiones
+  const handleConfirmarPagoComision = async () => {
+    if (!pagoForm.referencia.trim()) {
+      message.warning('Por favor ingresa un número de comprobante o referencia de pago');
+      return;
+    }
+    setProcesandoPago(true);
+    try {
+      if (pagoForm.esGrupal) {
+        const idNum = Number(pagoForm.empleadoId) || (typeof pagoForm.empleadoId === 'string' && pagoForm.empleadoId.startsWith('id_') ? Number(pagoForm.empleadoId.replace('id_', '')) : null);
+        await audatexAPI.liquidarComisionesEmpleado({
+          usuarioId: idNum,
+          empleadoId: idNum,
+          anio: filtros.anio,
+          mes: filtros.mes,
+          fechaPago: pagoForm.fechaPago,
+          referencia: pagoForm.referencia,
+          notas: pagoForm.notas
+        });
+        message.success(`Comisiones de ${pagoForm.empleadoNombre} liquidadas exitosamente`);
+      } else {
+        await audatexAPI.pagarComisionPedido(pagoForm.item.id, {
+          fechaPago: pagoForm.fechaPago,
+          referencia: pagoForm.referencia,
+          notas: pagoForm.notas
+        });
+        message.success(`Comisión del pedido #${pagoForm.item.numeroPedido || pagoForm.item.id} pagada exitosamente`);
+      }
+      setModalPagarVisible(false);
+      await cargarDatos();
+      if (modalDetalleVisible) {
+        setModalDetalleVisible(false);
+      }
+    } catch (err) {
+      console.error('Error al registrar pago de comisión:', err);
+      message.error(err.response?.data?.error || 'Error al procesar el pago de comisión');
+    } finally {
+      setProcesandoPago(false);
+    }
+  };
+
+  // Exportar reporte de ventas y comisiones a Excel
+  const handleExportarExcel = async () => {
+    try {
+      setExportandoExcel(true);
+      const res = await audatexAPI.exportarExcelVentasEmpleados({
+        anio: filtros.anio,
+        mes: filtros.mes
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const periodoStr = (filtros.anio || 'Historico') + (filtros.mes ? `_${filtros.mes}` : '');
+      link.setAttribute('download', `Reporte_Ventas_INS_${periodoStr}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      message.success('Reporte Excel de Ventas INS descargado exitosamente');
+    } catch (err) {
+      console.error('Error al exportar Excel:', err);
+      message.error('No se pudo generar el reporte Excel');
+    } finally {
+      setExportandoExcel(false);
+    }
+  };
+
   // Agrupar pedidos por colaborador
   const procesarGrupo = useCallback((listaPedidos, esCancelado = false) => {
     const anioFiltro = filtros.anio;
@@ -362,6 +480,8 @@ const InsVentasEmpleados = () => {
     const empleadosMap = {};
 
     let totalComisiones = 0;
+    let totalComisionesPagadas = 0;
+    let totalComisionesPendientes = 0;
     let totalVentas = 0;
     let totalPedidos = 0;
 
@@ -403,6 +523,8 @@ const InsVentasEmpleados = () => {
           total_pedidos: 0,
           total_ventas: 0,
           total_comision: 0,
+          total_comision_pagada: 0,
+          total_comision_pendiente: 0,
           pedidos_ordinarios: 0,
           pedidos_fuera_horario: 0,
           pedidos_detalle: []
@@ -411,12 +533,18 @@ const InsVentasEmpleados = () => {
 
       const total = Number(p.totalPedido) || 0;
       const evalCom = evaluarHorarioComision(p);
-      const comisionCalculada = esCancelado ? 0 : (total * evalCom.porcentaje) / 100;
+      const comisionCalculada = esCancelado ? 0 : (p.comisionCalculada != null ? Number(p.comisionCalculada) : (total * evalCom.porcentaje) / 100);
       const comisionPotencial = (total * evalCom.porcentaje) / 100;
+
+      const estaPagada = Boolean(p.comisionPagada);
+      const montoPagado = (!esCancelado && estaPagada) ? comisionCalculada : 0;
+      const montoPendiente = (!esCancelado && !estaPagada) ? comisionCalculada : 0;
 
       empleadosMap[key].total_pedidos += 1;
       empleadosMap[key].total_ventas += total;
       empleadosMap[key].total_comision += comisionCalculada;
+      empleadosMap[key].total_comision_pagada += montoPagado;
+      empleadosMap[key].total_comision_pendiente += montoPendiente;
 
       if (evalCom.esDentro) {
         empleadosMap[key].pedidos_ordinarios += 1;
@@ -442,6 +570,10 @@ const InsVentasEmpleados = () => {
         porcentaje: evalCom.porcentaje,
         esDentro: evalCom.esDentro,
         comision: esCancelado ? comisionPotencial : comisionCalculada,
+        comisionPagada: estaPagada,
+        fechaPagoComision: p.fechaPagoComision,
+        referenciaPagoComision: p.referenciaPagoComision,
+        notasPagoComision: p.notasPagoComision,
         estado: p.estado,
         esOportunidadSinPedido: Boolean(p.esOportunidadSinPedido),
         datosOportunidad: p.datosOportunidad,
@@ -449,6 +581,8 @@ const InsVentasEmpleados = () => {
       });
 
       totalComisiones += comisionCalculada;
+      totalComisionesPagadas += montoPagado;
+      totalComisionesPendientes += montoPendiente;
       totalVentas += total;
       totalPedidos += 1;
     });
@@ -479,6 +613,8 @@ const InsVentasEmpleados = () => {
     return {
       filas,
       totalComisiones,
+      totalComisionesPagadas,
+      totalComisionesPendientes,
       totalVentas,
       totalPedidos,
       totalEmpleados: filas.length
@@ -519,97 +655,154 @@ const InsVentasEmpleados = () => {
     setModalDetalleVisible(true);
   };
 
-  const getColumns = (tipoBloque) => [
-    {
-      title: 'Empleado',
-      dataIndex: 'empleado',
-      key: 'empleado',
-      render: (text) => (
-        <Space>
-          <UserOutlined style={{ color: '#2563eb' }} />
-          <Text strong style={{ color: '#1e40af' }}>{text}</Text>
-        </Space>
-      ),
-    },
-    {
-      title: 'Pedidos',
-      dataIndex: 'total_pedidos',
-      key: 'total_pedidos',
-      align: 'center',
-      render: (val) => (
-        <Tag
-          color={tipoBloque === 'entregados' ? 'green' : tipoBloque === 'en_espera' ? 'blue' : 'red'}
-          style={{ fontWeight: 600 }}
-        >
-          {val} {val === 1 ? 'pedido' : 'pedidos'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Horario',
-      key: 'horarios',
-      render: (_, record) => (
-        <Space size={4}>
-          {record.pedidos_ordinarios > 0 && (
-            <Tag color="success">3% ({record.pedidos_ordinarios})</Tag>
-          )}
-          {record.pedidos_fuera_horario > 0 && (
-            <Tag color="warning">5% ({record.pedidos_fuera_horario})</Tag>
-          )}
-        </Space>
-      )
-    },
-    {
-      title: 'Ventas',
-      dataIndex: 'total_ventas',
-      key: 'total_ventas',
-      align: 'right',
-      render: (val) => formatColones(val)
-    },
-    {
-      title: 'Oportunidades',
-      dataIndex: 'oportunidades_asignadas',
-      key: 'oportunidades_asignadas',
-      align: 'center',
-      render: (count) => (
-        <Tag color={count > 0 ? 'purple' : 'default'} style={{ fontWeight: 600 }}>
-          {count || 0} {count === 1 ? 'activa' : 'activas'}
-        </Tag>
-      )
-    },
-    {
-      title: tipoBloque === 'cancelados' ? 'Estado' : 'Comisión',
-      dataIndex: 'total_comision',
-      key: 'total_comision',
-      align: 'right',
-      render: (val) => {
-        if (tipoBloque === 'cancelados') {
-          return <Tag color="error">Cancelado (₡0)</Tag>;
-        }
-        return (
-          <Text strong style={{ color: tipoBloque === 'entregados' ? '#16a34a' : '#2563eb', fontSize: 14 }}>
-            {formatColones(val)}
-          </Text>
-        );
+  const getColumns = (tipoBloque) => {
+    const cols = [
+      {
+        title: 'Empleado',
+        dataIndex: 'empleado',
+        key: 'empleado',
+        render: (text) => (
+          <Space>
+            <UserOutlined style={{ color: '#2563eb' }} />
+            <Text strong style={{ color: '#1e40af' }}>{text}</Text>
+          </Space>
+        ),
       },
-    },
-    {
+      {
+        title: 'Pedidos',
+        dataIndex: 'total_pedidos',
+        key: 'total_pedidos',
+        align: 'center',
+        render: (val) => (
+          <Tag
+            color={tipoBloque === 'entregados' ? 'green' : tipoBloque === 'en_espera' ? 'blue' : 'red'}
+            style={{ fontWeight: 600 }}
+          >
+            {val} {val === 1 ? 'pedido' : 'pedidos'}
+          </Tag>
+        ),
+      },
+      {
+        title: 'Horario',
+        key: 'horarios',
+        render: (_, record) => (
+          <Space size={4}>
+            {record.pedidos_ordinarios > 0 && (
+              <Tag color="success">3% ({record.pedidos_ordinarios})</Tag>
+            )}
+            {record.pedidos_fuera_horario > 0 && (
+              <Tag color="warning">5% ({record.pedidos_fuera_horario})</Tag>
+            )}
+          </Space>
+        )
+      },
+      {
+        title: 'Ventas',
+        dataIndex: 'total_ventas',
+        key: 'total_ventas',
+        align: 'right',
+        render: (val) => formatColones(val)
+      },
+      {
+        title: 'Oportunidades',
+        dataIndex: 'oportunidades_asignadas',
+        key: 'oportunidades_asignadas',
+        align: 'center',
+        render: (count) => (
+          <Tag color={count > 0 ? 'purple' : 'default'} style={{ fontWeight: 600 }}>
+            {count || 0} {count === 1 ? 'activa' : 'activas'}
+          </Tag>
+        )
+      }
+    ];
+
+    if (tipoBloque === 'entregados') {
+      cols.push(
+        {
+          title: 'Comisión Ganada',
+          dataIndex: 'total_comision',
+          key: 'total_comision',
+          align: 'right',
+          render: (val) => (
+            <Text strong style={{ color: '#16a34a', fontSize: 13 }}>
+              {formatColones(val)}
+            </Text>
+          ),
+        },
+        {
+          title: 'Comisión Pagada',
+          dataIndex: 'total_comision_pagada',
+          key: 'total_comision_pagada',
+          align: 'right',
+          render: (val) => (
+            <Tag color={val > 0 ? 'success' : 'default'} style={{ fontWeight: 600 }}>
+              {formatColones(val)}
+            </Tag>
+          ),
+        },
+        {
+          title: 'Pendiente de Pago',
+          dataIndex: 'total_comision_pendiente',
+          key: 'total_comision_pendiente',
+          align: 'right',
+          render: (val) => (
+            <Tag color={val > 0 ? 'orange' : 'default'} style={{ fontWeight: 700 }}>
+              {formatColones(val)}
+            </Tag>
+          ),
+        }
+      );
+    } else {
+      cols.push({
+        title: tipoBloque === 'cancelados' ? 'Estado' : 'Comisión',
+        dataIndex: 'total_comision',
+        key: 'total_comision',
+        align: 'right',
+        render: (val) => {
+          if (tipoBloque === 'cancelados') {
+            return <Tag color="error">Cancelado (₡0)</Tag>;
+          }
+          return (
+            <Text strong style={{ color: '#2563eb', fontSize: 14 }}>
+              {formatColones(val)}
+            </Text>
+          );
+        },
+      });
+    }
+
+    cols.push({
       title: 'Acción',
       key: 'acciones',
       align: 'center',
       render: (_, record) => (
-        <Button
-          type="primary"
-          ghost
-          size="small"
-          icon={<EyeOutlined />}
-          onClick={() => handleVerDetalle(record, tipoBloque)}
-        >
-          Ver Detalle
-        </Button>
+        <Space size={6}>
+          <Button
+            type="primary"
+            ghost
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handleVerDetalle(record, tipoBloque)}
+          >
+            Ver Detalle
+          </Button>
+          {tipoBloque === 'entregados' && record.total_comision_pendiente > 0 && esAdmin && (
+            <Button
+              type="primary"
+              size="small"
+              style={{ background: '#10b981', borderColor: '#10b981' }}
+              icon={<DollarOutlined />}
+              onClick={() => handleAbrirModalPagarGrupal(record)}
+            >
+              Liquidar Pago
+            </Button>
+          )}
+        </Space>
       ),
-    },
-  ];
+    });
+
+    return cols;
+  };
 
   const totalOportunidadesGlobal = Object.keys(oportunidadesAsignadas).length;
 
@@ -629,15 +822,24 @@ const InsVentasEmpleados = () => {
         <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
           Ventas Empleados INS
         </Title>
-        <Button
-          type="primary"
-          icon={<ReloadOutlined />}
-          onClick={cargarDatos}
-          loading={loading}
-          style={{ background: '#2563eb' }}
-        >
-          Recargar
-        </Button>
+        <Space size={8}>
+          <Button
+            icon={<FileExcelOutlined style={{ color: '#107c41' }} />}
+            onClick={handleExportarExcel}
+            loading={exportandoExcel}
+          >
+            Exportar Excel
+          </Button>
+          <Button
+            type="primary"
+            icon={<ReloadOutlined />}
+            onClick={cargarDatos}
+            loading={loading}
+            style={{ background: '#2563eb' }}
+          >
+            Recargar
+          </Button>
+        </Space>
       </div>
 
       {/* Barra de Filtros */}
@@ -686,40 +888,62 @@ const InsVentasEmpleados = () => {
 
       {/* Dashboard Resumen */}
       <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-        <Col xs={24} sm={12} md={true} style={{ flex: '1 1 180px' }}>
+        <Col xs={24} sm={12} md={4}>
           <Card size="small" style={{ borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
             <Statistic
-              title={<Text strong style={{ color: '#15803d' }}>Comisiones Efectivas</Text>}
+              title={<Text strong style={{ color: '#15803d' }}>Comisiones Ganadas</Text>}
               value={datosBloques.bloqueEntregados.totalComisiones}
               formatter={(val) => formatColones(val)}
-              valueStyle={{ color: '#16a34a', fontWeight: 700, fontSize: 20 }}
+              valueStyle={{ color: '#16a34a', fontWeight: 700, fontSize: 18 }}
               prefix={<DollarOutlined />}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={true} style={{ flex: '1 1 180px' }}>
+        <Col xs={24} sm={12} md={4}>
+          <Card size="small" style={{ borderRadius: 8, background: '#ecfdf5', border: '1px solid #a7f3d0' }}>
+            <Statistic
+              title={<Text strong style={{ color: '#047857' }}>Comisiones Pagadas</Text>}
+              value={datosBloques.bloqueEntregados.totalComisionesPagadas}
+              formatter={(val) => formatColones(val)}
+              valueStyle={{ color: '#059669', fontWeight: 700, fontSize: 18 }}
+              prefix={<CheckCircleOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={4}>
+          <Card size="small" style={{ borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a' }}>
+            <Statistic
+              title={<Text strong style={{ color: '#b45309' }}>Saldo Pendiente</Text>}
+              value={datosBloques.bloqueEntregados.totalComisionesPendientes}
+              formatter={(val) => formatColones(val)}
+              valueStyle={{ color: '#d97706', fontWeight: 700, fontSize: 18 }}
+              prefix={<ClockCircleOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={4}>
           <Card size="small" style={{ borderRadius: 8, background: '#eff6ff', border: '1px solid #bfdbfe' }}>
             <Statistic
               title={<Text strong style={{ color: '#1d4ed8' }}>Comisiones en Espera</Text>}
               value={datosBloques.bloqueEnEspera.totalComisiones}
               formatter={(val) => formatColones(val)}
-              valueStyle={{ color: '#2563eb', fontWeight: 700, fontSize: 20 }}
+              valueStyle={{ color: '#2563eb', fontWeight: 700, fontSize: 18 }}
               prefix={<ClockCircleOutlined />}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={true} style={{ flex: '1 1 180px' }}>
+        <Col xs={24} sm={12} md={4}>
           <Card size="small" style={{ borderRadius: 8, background: '#faf5ff', border: '1px solid #e9d5ff' }}>
             <Statistic
               title={<Text strong style={{ color: '#6b21a8' }}>Total Pedidos</Text>}
               value={datosBloques.bloqueEntregados.totalPedidos + datosBloques.bloqueEnEspera.totalPedidos}
-              suffix={<span style={{ fontSize: 12, color: '#6b7280' }}>({datosBloques.bloqueCancelados.totalPedidos} canc.)</span>}
-              valueStyle={{ color: '#7c3aed', fontWeight: 700, fontSize: 20 }}
+              suffix={<span style={{ fontSize: 11, color: '#6b7280' }}>({datosBloques.bloqueCancelados.totalPedidos} canc.)</span>}
+              valueStyle={{ color: '#7c3aed', fontWeight: 700, fontSize: 18 }}
               prefix={<ShoppingCartOutlined />}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={true} style={{ flex: '1 1 180px' }}>
+        <Col xs={24} sm={12} md={4}>
           <Card
             size="small"
             style={{
@@ -733,30 +957,17 @@ const InsVentasEmpleados = () => {
             hoverable
           >
             <Statistic
-              title={<Text strong style={{ color: '#86198f' }}>Oportunidades Asignadas</Text>}
+              title={<Text strong style={{ color: '#86198f' }}>Oportunidades</Text>}
               value={totalOportunidadesGlobal}
               suffix={
                 opsSinPedido.length > 0 ? (
-                  <Tag color="orange" style={{ marginLeft: 6, fontSize: 11 }}>
-                    {opsSinPedido.length} sin entregar
+                  <Tag color="orange" style={{ marginLeft: 4, fontSize: 10 }}>
+                    {opsSinPedido.length} s/entregar
                   </Tag>
                 ) : null
               }
-              valueStyle={{ color: '#a21caf', fontWeight: 700, fontSize: 20 }}
+              valueStyle={{ color: '#a21caf', fontWeight: 700, fontSize: 18 }}
               prefix={<FileTextOutlined />}
-            />
-            <div style={{ fontSize: 11, color: '#a21caf', marginTop: 4, fontWeight: 500 }}>
-              Ver todas las cotizaciones ➔
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={true} style={{ flex: '1 1 180px' }}>
-          <Card size="small" style={{ borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a' }}>
-            <Statistic
-              title={<Text strong style={{ color: '#b45309' }}>Colaboradores</Text>}
-              value={Math.max(datosBloques.bloqueEntregados.totalEmpleados, datosBloques.bloqueEnEspera.totalEmpleados)}
-              valueStyle={{ color: '#d97706', fontWeight: 700, fontSize: 20 }}
-              prefix={<TeamOutlined />}
             />
           </Card>
         </Col>
@@ -880,15 +1091,26 @@ const InsVentasEmpleados = () => {
           setEmpleadoDetalle(null);
         }}
         footer={[
-          <Button key="cerrar" type="primary" onClick={() => setModalDetalleVisible(false)}>
+          empleadoDetalle?.tipoBloque === 'entregados' && empleadoDetalle?.total_comision_pendiente > 0 && esAdmin && (
+            <Button
+              key="liquidar"
+              type="primary"
+              style={{ background: '#10b981', borderColor: '#10b981' }}
+              icon={<DollarOutlined />}
+              onClick={() => handleAbrirModalPagarGrupal(empleadoDetalle)}
+            >
+              Liquidar Saldo Pendiente ({formatColones(empleadoDetalle.total_comision_pendiente)})
+            </Button>
+          ),
+          <Button key="cerrar" onClick={() => setModalDetalleVisible(false)}>
             Cerrar
           </Button>
-        ]}
-        width={800}
+        ].filter(Boolean)}
+        width={950}
       >
         {empleadoDetalle && (
           <div>
-            <Descriptions size="small" column={{ xs: 1, sm: 4 }} style={{ marginBottom: 12 }}>
+            <Descriptions size="small" column={{ xs: 1, sm: 3 }} bordered style={{ marginBottom: 14 }}>
               <Descriptions.Item label="Pedidos">
                 <strong>{empleadoDetalle.total_pedidos}</strong>
               </Descriptions.Item>
@@ -900,11 +1122,25 @@ const InsVentasEmpleados = () => {
               <Descriptions.Item label="Total Ventas">
                 <strong>{formatColones(empleadoDetalle.total_ventas)}</strong>
               </Descriptions.Item>
-              <Descriptions.Item label="Comisión">
-                <strong style={{ color: empleadoDetalle.tipoBloque === 'cancelados' ? '#dc2626' : '#16a34a' }}>
+              <Descriptions.Item label="Comisión Ganada">
+                <strong style={{ color: empleadoDetalle.tipoBloque === 'cancelados' ? '#dc2626' : '#16a34a', fontSize: 14 }}>
                   {empleadoDetalle.tipoBloque === 'cancelados' ? '₡0' : formatColones(empleadoDetalle.total_comision)}
                 </strong>
               </Descriptions.Item>
+              {empleadoDetalle.tipoBloque === 'entregados' && (
+                <>
+                  <Descriptions.Item label="Comisión Pagada">
+                    <Tag color={empleadoDetalle.total_comision_pagada > 0 ? 'success' : 'default'} style={{ fontWeight: 600, fontSize: 13 }}>
+                      {formatColones(empleadoDetalle.total_comision_pagada || 0)}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Saldo Pendiente">
+                    <Tag color={empleadoDetalle.total_comision_pendiente > 0 ? 'orange' : 'default'} style={{ fontWeight: 700, fontSize: 13 }}>
+                      {formatColones(empleadoDetalle.total_comision_pendiente || 0)}
+                    </Tag>
+                  </Descriptions.Item>
+                </>
+              )}
             </Descriptions>
 
             <Tabs
@@ -995,6 +1231,24 @@ const InsVentasEmpleados = () => {
                           )
                         },
                         {
+                          title: 'Estado Comisión',
+                          key: 'comisionPagada',
+                          align: 'center',
+                          render: (_, r) => {
+                            if (empleadoDetalle.tipoBloque !== 'entregados') return null;
+                            if (r.comisionPagada) {
+                              return (
+                                <Tooltip title={`Pagado: ${r.fechaPagoComision || 'N/D'} | Ref: ${r.referenciaPagoComision || 'N/D'} ${r.notasPagoComision ? `| ${r.notasPagoComision}` : ''}`}>
+                                  <Tag color="success" icon={<CheckCircleOutlined />} style={{ cursor: 'pointer' }}>
+                                    PAGADA
+                                  </Tag>
+                                </Tooltip>
+                              );
+                            }
+                            return <Tag color="orange">PENDIENTE</Tag>;
+                          }
+                        },
+                        {
                           title: 'Acción',
                           key: 'accion',
                           align: 'center',
@@ -1014,7 +1268,22 @@ const InsVentasEmpleados = () => {
                               );
                             }
                             if (esEntregado) {
-                              return <Tag color="success" icon={<CheckCircleOutlined />}>Entregado</Tag>;
+                              return (
+                                <Space size={6}>
+                                  <Tag color="success" icon={<CheckCircleOutlined />}>Entregado</Tag>
+                                  {!r.comisionPagada && esAdmin && (
+                                    <Button
+                                      type="primary"
+                                      size="small"
+                                      style={{ background: '#10b981', borderColor: '#10b981' }}
+                                      icon={<DollarOutlined />}
+                                      onClick={() => handleAbrirModalPagarIndividual(r)}
+                                    >
+                                      Pagar
+                                    </Button>
+                                  )}
+                                </Space>
+                              );
                             }
                             return null;
                           }
@@ -1355,6 +1624,89 @@ const InsVentasEmpleados = () => {
             }
           ]}
         />
+      </Modal>
+
+      {/* Modal para Liquidar / Pagar Comisiones */}
+      <Modal
+        title={
+          <Space>
+            <DollarOutlined style={{ color: '#10b981' }} />
+            <span>
+              {pagoForm.esGrupal
+                ? `Liquidar Comisiones — ${pagoForm.empleadoNombre}`
+                : `Pagar Comisión — Pedido #${pagoForm.item?.numeroPedido || pagoForm.item?.id}`}
+            </span>
+          </Space>
+        }
+        open={modalPagarVisible}
+        onCancel={() => {
+          if (!procesandoPago) {
+            setModalPagarVisible(false);
+          }
+        }}
+        confirmLoading={procesandoPago}
+        onOk={handleConfirmarPagoComision}
+        okText="Registrar Pago"
+        cancelText="Cancelar"
+        okButtonProps={{ style: { background: '#10b981', borderColor: '#10b981' } }}
+        destroyOnClose
+      >
+        <div style={{ marginTop: 12 }}>
+          <Descriptions size="small" bordered column={1} style={{ marginBottom: 16 }}>
+            <Descriptions.Item label="Colaborador">
+              <strong>{pagoForm.empleadoNombre}</strong>
+            </Descriptions.Item>
+            <Descriptions.Item label="Monto a Liquidar">
+              <strong style={{ color: '#16a34a', fontSize: 16 }}>
+                {formatColones(pagoForm.monto || 0)}
+              </strong>
+            </Descriptions.Item>
+            {pagoForm.esGrupal ? (
+              <Descriptions.Item label="Período">
+                {filtros.mes ? `Mes ${filtros.mes} / ` : 'Año '} {filtros.anio || 'Histórico'}
+              </Descriptions.Item>
+            ) : (
+              <Descriptions.Item label="Pedido">
+                #{pagoForm.item?.numeroPedido || pagoForm.item?.id} — {pagoForm.item?.vehiculo || ''}
+              </Descriptions.Item>
+            )}
+          </Descriptions>
+
+          <div style={{ marginBottom: 16 }}>
+            <Text strong style={{ display: 'block', marginBottom: 6 }}>
+              Fecha de Pago:
+            </Text>
+            <Input
+              type="date"
+              style={{ width: '100%' }}
+              value={pagoForm.fechaPago}
+              onChange={(e) => setPagoForm({ ...pagoForm, fechaPago: e.target.value })}
+            />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <Text strong style={{ display: 'block', marginBottom: 6 }}>
+              Número de Referencia / Comprobante (SINPE / Transferencia): <span style={{ color: '#dc2626' }}>*</span>
+            </Text>
+            <Input
+              placeholder="Ej: SINPE-849202 o Transferencia #12345"
+              value={pagoForm.referencia}
+              onChange={(e) => setPagoForm({ ...pagoForm, referencia: e.target.value })}
+            />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <Text strong style={{ display: 'block', marginBottom: 6 }}>
+              Notas / Observaciones:
+            </Text>
+            <Input.TextArea
+              rows={3}
+              placeholder="Detalle o notas adicionales del pago..."
+              value={pagoForm.notas}
+              onChange={(e) => setPagoForm({ ...pagoForm, notas: e.target.value })}
+            />
+          </div>
+        </div>
       </Modal>
     </div>
   );

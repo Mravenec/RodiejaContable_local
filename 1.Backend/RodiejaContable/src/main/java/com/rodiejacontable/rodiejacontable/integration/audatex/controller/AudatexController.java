@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -35,6 +36,9 @@ public class AudatexController {
     private final AudatexService audatexService;
     private final AudatexExcelExportService excelService;
     private final com.rodiejacontable.rodiejacontable.integration.audatex.service.AudatexSyncWorker syncWorker;
+
+    @Autowired
+    private com.rodiejacontable.rodiejacontable.service.reportes.ReporteExcelGeneratorService reporteExcelGeneratorService;
 
     public AudatexController(AudatexService audatexService, AudatexExcelExportService excelService, com.rodiejacontable.rodiejacontable.integration.audatex.service.AudatexSyncWorker syncWorker) {
         this.audatexService = audatexService;
@@ -362,6 +366,71 @@ public class AudatexController {
             log.error("[Audatex] Error consultando pedidos: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Error interno: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/pedidos/{id}/pagar-comision")
+    public ResponseEntity<?> pagarComisionPedido(
+            @PathVariable Integer id,
+            @RequestBody Map<String, Object> payload
+    ) {
+        try {
+            String fechaStr = payload.get("fechaPago") != null ? payload.get("fechaPago").toString() : null;
+            java.time.LocalDate fecha = (fechaStr != null && !fechaStr.isBlank()) ? java.time.LocalDate.parse(fechaStr) : java.time.LocalDate.now();
+            String referencia = payload.get("referencia") != null ? payload.get("referencia").toString() : "";
+            String notas = payload.get("notas") != null ? payload.get("notas").toString() : "";
+            log.info("[Audatex] POST /pedidos/{}/pagar-comision - fecha {}, ref {}", id, fecha, referencia);
+            audatexService.marcarComisionPagada(id, fecha, referencia, notas);
+            return ResponseEntity.ok(Map.of("mensaje", "Comisión del pedido #" + id + " marcada como PAGADA exitosamente"));
+        } catch (Exception e) {
+            log.error("[Audatex] Error marcando comisión pagada: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/pedidos/liquidar-comisiones-empleado")
+    public ResponseEntity<?> liquidarComisionesEmpleado(@RequestBody Map<String, Object> payload) {
+        try {
+            Integer userId = payload.get("usuarioId") != null ? ((Number) payload.get("usuarioId")).intValue() :
+                             (payload.get("empleadoId") != null ? ((Number) payload.get("empleadoId")).intValue() : null);
+            Integer anio = payload.get("anio") != null ? ((Number) payload.get("anio")).intValue() : null;
+            Integer mes = payload.get("mes") != null ? ((Number) payload.get("mes")).intValue() : null;
+            String fechaStr = payload.get("fechaPago") != null ? payload.get("fechaPago").toString() : null;
+            java.time.LocalDate fecha = (fechaStr != null && !fechaStr.isBlank()) ? java.time.LocalDate.parse(fechaStr) : java.time.LocalDate.now();
+            String referencia = payload.get("referencia") != null ? payload.get("referencia").toString() : "";
+            String notas = payload.get("notas") != null ? payload.get("notas").toString() : "";
+            log.info("[Audatex] POST /pedidos/liquidar-comisiones-empleado - user {}, periodo {}/{}, fecha {}, ref {}", userId, mes, anio, fecha, referencia);
+
+            int actualizados = audatexService.liquidarComisionesEmpleado(userId, anio, mes, fecha, referencia, notas);
+            return ResponseEntity.ok(Map.of(
+                    "mensaje", "Se liquidaron comisiones para " + actualizados + " pedidos",
+                    "actualizados", actualizados
+            ));
+        } catch (Exception e) {
+            log.error("[Audatex] Error liquidando comisiones de empleado: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/ventas-empleados/exportar-excel")
+    public ResponseEntity<byte[]> exportarExcelVentasEmpleados(
+            @RequestParam(value = "anio", required = false) Integer anio,
+            @RequestParam(value = "mes", required = false) Integer mes
+    ) {
+        try {
+            List<Map<String, Object>> pedidos = audatexService.obtenerPedidosConItems();
+            byte[] bytes = reporteExcelGeneratorService.generarReporteVentasInsExcel(pedidos, anio, mes);
+
+            String periodo = (anio != null ? anio.toString() : "Historico") + (mes != null ? "_" + mes : "");
+            String filename = "Reporte_Ventas_INS_" + periodo + ".xlsx";
+
+            return ResponseEntity.ok()
+                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(bytes);
+        } catch (Exception e) {
+            log.error("[Audatex] Error exportando Excel ventas INS: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

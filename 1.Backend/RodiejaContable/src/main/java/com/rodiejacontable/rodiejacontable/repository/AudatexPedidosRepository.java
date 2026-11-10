@@ -29,9 +29,34 @@ public class AudatexPedidosRepository {
                 "ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL, " +
                 "ADD COLUMN IF NOT EXISTS transaccion_id INT DEFAULT NULL, " +
                 "ADD COLUMN IF NOT EXISTS comision_calculada DECIMAL(12,2) DEFAULT NULL, " +
-                "ADD COLUMN IF NOT EXISTS porcentaje_comision TINYINT DEFAULT NULL"
+                "ADD COLUMN IF NOT EXISTS porcentaje_comision TINYINT DEFAULT NULL, " +
+                "ADD COLUMN IF NOT EXISTS comision_pagada TINYINT(1) DEFAULT 0, " +
+                "ADD COLUMN IF NOT EXISTS fecha_pago_comision DATE DEFAULT NULL, " +
+                "ADD COLUMN IF NOT EXISTS referencia_pago_comision VARCHAR(100) DEFAULT NULL, " +
+                "ADD COLUMN IF NOT EXISTS notas_pago_comision TEXT DEFAULT NULL"
             );
         } catch (Exception ignored) {
+        }
+    }
+
+    public void marcarComisionPagada(Integer pedidoId, java.time.LocalDate fechaPago, String referencia, String notas) {
+        ensureColumns();
+        String sql = "UPDATE audatex_pedidos SET comision_pagada = 1, fecha_pago_comision = ?, referencia_pago_comision = ?, notas_pago_comision = ? WHERE id = ?";
+        jdbcTemplate.update(sql, fechaPago, referencia, notas, pedidoId);
+    }
+
+    public int liquidarComisionesEmpleado(Integer userId, Integer anio, Integer mes, java.time.LocalDate fechaPago, String referencia, String notas) {
+        ensureColumns();
+        String sql = "UPDATE audatex_pedidos SET comision_pagada = 1, fecha_pago_comision = ?, referencia_pago_comision = ?, notas_pago_comision = ? " +
+                     "WHERE user_id = ? AND estado = 'Entregado' AND (comision_pagada IS NULL OR comision_pagada = 0)";
+        if (anio != null && mes != null) {
+            sql += " AND YEAR(fecha_creacion) = ? AND MONTH(fecha_creacion) = ?";
+            return jdbcTemplate.update(sql, fechaPago, referencia, notas, userId, anio, mes);
+        } else if (anio != null) {
+            sql += " AND YEAR(fecha_creacion) = ?";
+            return jdbcTemplate.update(sql, fechaPago, referencia, notas, userId, anio);
+        } else {
+            return jdbcTemplate.update(sql, fechaPago, referencia, notas, userId);
         }
     }
 

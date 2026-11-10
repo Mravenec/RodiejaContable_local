@@ -87,6 +87,25 @@ export const audatexAPI = {
     return axios.put(`/audatex/oportunidades/revisada`, { wan });
   },
 
+  // Marcar comisión de un pedido individual como pagada
+  pagarComisionPedido: (pedidoId, data = {}) => {
+    return axios.post(`/audatex/pedidos/${pedidoId}/pagar-comision`, data);
+  },
+
+  // Liquidar todas las comisiones pendientes de un colaborador en un período
+  liquidarComisionesEmpleado: (data = {}) => {
+    return axios.post('/audatex/pedidos/liquidar-comisiones-empleado', data);
+  },
+
+  // Descargar exportación Excel XLSX de Ventas y Comisiones por Empleado
+  exportarExcelVentasEmpleados: (params = {}) => {
+    return axios.get('/audatex/ventas-empleados/exportar-excel', {
+      params,
+      responseType: 'blob',
+      timeout: 60000
+    });
+  },
+
   // Obtener exportación Excel XLSX
   exportarExcelUrl: (params) => {
     const query = new URLSearchParams(params).toString();

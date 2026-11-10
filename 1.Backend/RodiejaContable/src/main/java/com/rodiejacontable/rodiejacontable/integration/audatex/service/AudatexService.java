@@ -530,6 +530,11 @@ public class AudatexService {
             map.put("porcentajeComision", row.get("porcentaje_comision"));
             map.put("comisionCalculada", row.get("comision_calculada"));
             map.put("transaccionId", row.get("transaccion_id"));
+            Object comPagObj = row.get("comision_pagada");
+            map.put("comisionPagada", comPagObj != null && (((Number) comPagObj).intValue() == 1 || Boolean.TRUE.equals(comPagObj)));
+            map.put("fechaPagoComision", row.get("fecha_pago_comision"));
+            map.put("referenciaPagoComision", row.get("referencia_pago_comision"));
+            map.put("notasPagoComision", row.get("notas_pago_comision"));
             
             Object detalleJsonObj = row.get("detalle_json");
             if (detalleJsonObj != null) {
@@ -573,6 +578,16 @@ public class AudatexService {
     public void asignarEmpleado(Integer pedidoId, Integer empleadoId, Integer porcentajeComision) {
         log.info("[AudatexService] Asignando empleado {} al pedido {} con comision {}% sin cambiar estado", empleadoId, pedidoId, porcentajeComision);
         audatexPedidosRepository.asignarEmpleado(pedidoId, empleadoId, porcentajeComision);
+    }
+
+    public void marcarComisionPagada(Integer pedidoId, java.time.LocalDate fechaPago, String referencia, String notas) {
+        log.info("[AudatexService] Marcando comisión pagada pedido {}, fecha {}, ref {}", pedidoId, fechaPago, referencia);
+        audatexPedidosRepository.marcarComisionPagada(pedidoId, fechaPago, referencia, notas);
+    }
+
+    public int liquidarComisionesEmpleado(Integer userId, Integer anio, Integer mes, java.time.LocalDate fechaPago, String referencia, String notas) {
+        log.info("[AudatexService] Liquidando comisiones empleado {}, periodo {}/{}, ref {}", userId, mes, anio, referencia);
+        return audatexPedidosRepository.liquidarComisionesEmpleado(userId, anio, mes, fechaPago, referencia, notas);
     }
 
     private boolean coincideVehiculo(Map<String, Object> o, String marca, String modelo, Integer anio) {

@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -1175,6 +1176,243 @@ public class ReporteExcelGeneratorService {
     private <T> List<T> toList(Object val) {
         if (val instanceof List) return (List<T>) val;
         return java.util.Collections.emptyList();
+    }
+
+    private String normalizarNombre(String nombre) {
+        if (nombre == null || nombre.isBlank()) return "Sin asignar";
+        String[] partes = nombre.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String p : partes) {
+            if (p.isBlank()) continue;
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(Character.toUpperCase(p.charAt(0)));
+            if (p.length() > 1) {
+                sb.append(p.substring(1).toLowerCase());
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Genera el Reporte de Ventas y Comisiones INS (Audatex) en formato Excel XLSX.
+     * Hoja 1: Resumen por Colaborador (Total Ventas, Comisiones Ganadas, Comisiones Pagadas, Saldo Pendiente)
+     * Hoja 2: Detalle de Pedidos INS (Número, Cotización, Siniestro, Vehículo, Colaborador, Montos, Estado Comisión)
+     */
+    public byte[] generarReporteVentasInsExcel(
+            List<Map<String, Object>> pedidos,
+            Integer anioFiltro,
+            Integer mesFiltro
+    ) throws IOException {
+        try (Workbook wb = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            StylesHelper styles = new StylesHelper(wb);
+
+            // Hoja 1: Resumen por Colaborador
+            Sheet sheetResumen = wb.createSheet("Resumen por Colaborador");
+            sheetResumen.setDisplayGridlines(true);
+
+            String[] headersResumen = {
+                    "Colaborador",
+                    "Pedidos Entregados",
+                    "Total Ventas",
+                    "Comisiones Ganadas",
+                    "Comisiones Pagadas",
+                    "Saldo Pendiente",
+                    "% Comisión Promedio"
+            };
+
+            Row hRow = sheetResumen.createRow(0);
+            for (int i = 0; i < headersResumen.length; i++) {
+                Cell c = hRow.createCell(i);
+                c.setCellValue(headersResumen[i]);
+                c.setCellStyle(styles.headerStyle);
+            }
+
+            Map<String, double[]> totalesPorEmpleado = new LinkedHashMap<>();
+            Map<String, int[]> conteoPorEmpleado = new LinkedHashMap<>();
+
+            for (Map<String, Object> p : pedidos) {
+                String estado = p.get("estado") != null ? p.get("estado").toString() : "";
+                if (!"Entregado".equalsIgnoreCase(estado)) {
+                    continue;
+                }
+
+                String fechaStr = p.get("fecha") != null ? p.get("fecha").toString() : (p.get("fechaCreacion") != null ? p.get("fechaCreacion").toString() : "");
+                if (anioFiltro != null && !fechaStr.isBlank() && !fechaStr.contains(String.valueOf(anioFiltro))) {
+                    continue;
+                }
+
+                String emp = p.get("empleadoNombre") != null ? p.get("empleadoNombre").toString() :
+                             (p.get("usuarioNombre") != null ? p.get("usuarioNombre").toString() : "Sin asignar");
+                emp = normalizarNombre(emp);
+
+                double total = p.get("totalPedido") != null ? ((Number) p.get("totalPedido")).doubleValue() : 0.0;
+                double comision = p.get("comisionCalculada") != null ? ((Number) p.get("comisionCalculada")).doubleValue() : (total * 0.03);
+                boolean pagada = Boolean.TRUE.equals(p.get("comisionPagada"));
+                double comPagada = pagada ? comision : 0.0;
+                double comPendiente = pagada ? 0.0 : comision;
+
+                double[] vals = totalesPorEmpleado.computeIfAbsent(emp, k -> new double[4]);
+                vals[0] += total;
+                vals[1] += comision;
+                vals[2] += comPagada;
+                vals[3] += comPendiente;
+
+                int[] counts = conteoPorEmpleado.computeIfAbsent(emp, k -> new int[1]);
+                counts[0] += 1;
+            }
+
+            int rIdx = 1;
+            double sumVentas = 0.0;
+            double sumComGanadas = 0.0;
+            double sumComPagadas = 0.0;
+            double sumSaldoPendiente = 0.0;
+            int sumPedidos = 0;
+
+            for (Map.Entry<String, double[]> entry : totalesPorEmpleado.entrySet()) {
+                String emp = entry.getKey();
+                double[] vals = entry.getValue();
+                int cant = conteoPorEmpleado.get(emp)[0];
+
+                sumPedidos += cant;
+                sumVentas += vals[0];
+                sumComGanadas += vals[1];
+                sumComPagadas += vals[2];
+                sumSaldoPendiente += vals[3];
+
+                Row row = sheetResumen.createRow(rIdx++);
+                boolean isAlt = (rIdx % 2 == 0);
+                CellStyle textStyle = isAlt ? styles.altTextStyle : styles.textStyle;
+                CellStyle currStyle = isAlt ? styles.altCurrencyStyle : styles.currencyStyle;
+
+                Cell cEmp = row.createCell(0);
+                cEmp.setCellValue(emp);
+                cEmp.setCellStyle(textStyle);
+
+                Cell cCant = row.createCell(1);
+                cCant.setCellValue(cant);
+                cCant.setCellStyle(isAlt ? styles.altTextCenterStyle : styles.textCenterStyle);
+
+                crearCeldaMoneda(row, 2, vals[0], currStyle);
+                crearCeldaMoneda(row, 3, vals[1], currStyle);
+                crearCeldaMoneda(row, 4, vals[2], currStyle);
+                crearCeldaMoneda(row, 5, vals[3], currStyle);
+
+                double pct = vals[0] > 0 ? (vals[1] / vals[0]) * 100.0 : 0.0;
+                Cell cPct = row.createCell(6);
+                cPct.setCellValue(String.format(Locale.US, "%.1f%%", pct));
+                cPct.setCellStyle(isAlt ? styles.altTextCenterStyle : styles.textCenterStyle);
+            }
+
+            // Fila de TOTALES Resumen
+            Row tRow = sheetResumen.createRow(rIdx);
+            Cell tCell = tRow.createCell(0);
+            tCell.setCellValue("TOTALES");
+            tCell.setCellStyle(styles.totalHeaderStyle);
+
+            Cell tCant = tRow.createCell(1);
+            tCant.setCellValue(sumPedidos);
+            tCant.setCellStyle(styles.totalHeaderStyle);
+
+            crearCeldaMoneda(tRow, 2, sumVentas, styles.totalCurrencyStyle);
+            crearCeldaMoneda(tRow, 3, sumComGanadas, styles.totalCurrencyStyle);
+            crearCeldaMoneda(tRow, 4, sumComPagadas, styles.totalCurrencyStyle);
+            crearCeldaMoneda(tRow, 5, sumSaldoPendiente, styles.totalCurrencyStyle);
+
+            double sumPct = sumVentas > 0 ? (sumComGanadas / sumVentas) * 100.0 : 0.0;
+            Cell tPct = tRow.createCell(6);
+            tPct.setCellValue(String.format(Locale.US, "%.1f%%", sumPct));
+            tPct.setCellStyle(styles.totalHeaderStyle);
+
+            // Hoja 2: Detalle de Pedidos INS
+            Sheet sheetDetalle = wb.createSheet("Detalle Pedidos INS");
+            sheetDetalle.setDisplayGridlines(true);
+
+            String[] headersDetalle = {
+                    "Pedido #",
+                    "Cotización ID",
+                    "Siniestro",
+                    "Vehículo",
+                    "Aseguradora",
+                    "Colaborador",
+                    "Fecha",
+                    "Total Venta",
+                    "% Com.",
+                    "Comisión",
+                    "Estado Comisión",
+                    "Fecha Pago",
+                    "Comprobante / Ref.",
+                    "Notas"
+            };
+
+            Row dRow = sheetDetalle.createRow(0);
+            for (int i = 0; i < headersDetalle.length; i++) {
+                Cell c = dRow.createCell(i);
+                c.setCellValue(headersDetalle[i]);
+                c.setCellStyle(styles.headerStyle);
+            }
+
+            int dIdx = 1;
+            for (Map<String, Object> p : pedidos) {
+                String estado = p.get("estado") != null ? p.get("estado").toString() : "";
+                if (!"Entregado".equalsIgnoreCase(estado)) continue;
+
+                Row row = sheetDetalle.createRow(dIdx++);
+                boolean isAlt = (dIdx % 2 == 0);
+                CellStyle textStyle = isAlt ? styles.altTextStyle : styles.textStyle;
+                CellStyle currStyle = isAlt ? styles.altCurrencyStyle : styles.currencyStyle;
+                CellStyle centerStyle = isAlt ? styles.altTextCenterStyle : styles.textCenterStyle;
+
+                String numPed = p.get("numeroPedido") != null ? p.get("numeroPedido").toString() : ("ID-" + p.get("id"));
+                String cotId = p.get("cotizacionId") != null ? p.get("cotizacionId").toString() : "";
+                String sin = p.get("siniestro") != null ? p.get("siniestro").toString() : "";
+                String veh = p.get("vehiculo") != null ? p.get("vehiculo").toString() : (p.get("armadora") != null ? p.get("armadora").toString() : "");
+                String aseg = p.get("aseguradora") != null ? p.get("aseguradora").toString() : "INS";
+                String emp = p.get("empleadoNombre") != null ? p.get("empleadoNombre").toString() :
+                             (p.get("usuarioNombre") != null ? p.get("usuarioNombre").toString() : "Sin asignar");
+                emp = normalizarNombre(emp);
+                String fec = p.get("fecha") != null ? p.get("fecha").toString() : (p.get("fechaCreacion") != null ? p.get("fechaCreacion").toString() : "");
+
+                double tot = p.get("totalPedido") != null ? ((Number) p.get("totalPedido")).doubleValue() : 0.0;
+                int pct = p.get("porcentajeComision") != null ? ((Number) p.get("porcentajeComision")).intValue() : 3;
+                double com = p.get("comisionCalculada") != null ? ((Number) p.get("comisionCalculada")).doubleValue() : (tot * pct / 100.0);
+                boolean pag = Boolean.TRUE.equals(p.get("comisionPagada"));
+                String estCom = pag ? "PAGADA" : "PENDIENTE";
+                String fecPago = p.get("fechaPagoComision") != null ? p.get("fechaPagoComision").toString() : "";
+                String refPago = p.get("referenciaPagoComision") != null ? p.get("referenciaPagoComision").toString() : "";
+                String notasPago = p.get("notasPagoComision") != null ? p.get("notasPagoComision").toString() : "";
+
+                Cell c0 = row.createCell(0); c0.setCellValue(numPed); c0.setCellStyle(centerStyle);
+                Cell c1 = row.createCell(1); c1.setCellValue(cotId); c1.setCellStyle(centerStyle);
+                Cell c2 = row.createCell(2); c2.setCellValue(sin); c2.setCellStyle(textStyle);
+                Cell c3 = row.createCell(3); c3.setCellValue(veh); c3.setCellStyle(textStyle);
+                Cell c4 = row.createCell(4); c4.setCellValue(aseg); c4.setCellStyle(textStyle);
+                Cell c5 = row.createCell(5); c5.setCellValue(emp); c5.setCellStyle(textStyle);
+                Cell c6 = row.createCell(6); c6.setCellValue(fec); c6.setCellStyle(centerStyle);
+
+                crearCeldaMoneda(row, 7, tot, currStyle);
+                Cell c8 = row.createCell(8); c8.setCellValue(pct + "%"); c8.setCellStyle(centerStyle);
+                crearCeldaMoneda(row, 9, com, currStyle);
+
+                Cell c10 = row.createCell(10); c10.setCellValue(estCom); c10.setCellStyle(centerStyle);
+                Cell c11 = row.createCell(11); c11.setCellValue(fecPago); c11.setCellStyle(centerStyle);
+                Cell c12 = row.createCell(12); c12.setCellValue(refPago); c12.setCellStyle(textStyle);
+                Cell c13 = row.createCell(13); c13.setCellValue(notasPago); c13.setCellStyle(textStyle);
+            }
+
+            for (int i = 0; i < headersResumen.length; i++) {
+                sheetResumen.autoSizeColumn(i);
+                sheetResumen.setColumnWidth(i, Math.max(sheetResumen.getColumnWidth(i) + 1000, 3800));
+            }
+            for (int i = 0; i < headersDetalle.length; i++) {
+                sheetDetalle.autoSizeColumn(i);
+                sheetDetalle.setColumnWidth(i, Math.max(sheetDetalle.getColumnWidth(i) + 800, 3500));
+            }
+
+            wb.write(out);
+            return out.toByteArray();
+        }
     }
 
     private void crearCeldaMoneda(Row row, int colIndex, double value, CellStyle style) {
