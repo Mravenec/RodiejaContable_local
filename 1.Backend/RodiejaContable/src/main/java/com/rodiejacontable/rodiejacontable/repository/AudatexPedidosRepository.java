@@ -196,7 +196,7 @@ public class AudatexPedidosRepository {
     }
 
     public List<Map<String, Object>> findAllWithEmpleado() {
-        String sql = "SELECT ap.*, ap.user_id, ap.user_id AS empleado_id, " +
+        String sql = "SELECT ap.*, ap.user_id AS empleado_id, " +
                      "COALESCE(pd.full_name, u.email) AS empleado_nombre, " +
                      "COALESCE(pd.full_name, u.email) AS usuario_nombre " +
                      "FROM audatex_pedidos ap " +
@@ -205,9 +205,15 @@ public class AudatexPedidosRepository {
                      "ORDER BY ap.fecha_creacion DESC";
         try {
             return jdbcTemplate.queryForList(sql);
-        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+        } catch (Exception e) {
+            log.warn("Error en findAllWithEmpleado, asegurando columnas y reintentando: {}", e.getMessage());
             ensureColumns();
-            return jdbcTemplate.queryForList(sql);
+            try {
+                return jdbcTemplate.queryForList(sql);
+            } catch (Exception ex) {
+                log.error("Error definitivo en findAllWithEmpleado: {}", ex.getMessage(), ex);
+                return java.util.Collections.emptyList();
+            }
         }
     }
 

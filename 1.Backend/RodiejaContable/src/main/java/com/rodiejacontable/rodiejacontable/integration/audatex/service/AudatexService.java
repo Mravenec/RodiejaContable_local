@@ -530,11 +530,21 @@ public class AudatexService {
             map.put("porcentajeComision", row.get("porcentaje_comision"));
             map.put("comisionCalculada", row.get("comision_calculada"));
             map.put("transaccionId", row.get("transaccion_id"));
+
+            boolean comisionPagada = false;
             Object comPagObj = row.get("comision_pagada");
-            map.put("comisionPagada", comPagObj != null && (((Number) comPagObj).intValue() == 1 || Boolean.TRUE.equals(comPagObj)));
-            map.put("fechaPagoComision", row.get("fecha_pago_comision"));
-            map.put("referenciaPagoComision", row.get("referencia_pago_comision"));
-            map.put("notasPagoComision", row.get("notas_pago_comision"));
+            if (comPagObj instanceof Boolean) {
+                comisionPagada = (Boolean) comPagObj;
+            } else if (comPagObj instanceof Number) {
+                comisionPagada = ((Number) comPagObj).intValue() == 1;
+            } else if (comPagObj != null) {
+                String strVal = comPagObj.toString().trim();
+                comisionPagada = "1".equals(strVal) || "true".equalsIgnoreCase(strVal);
+            }
+            map.put("comisionPagada", comisionPagada);
+            map.put("fechaPagoComision", row.get("fecha_pago_comision") != null ? row.get("fecha_pago_comision").toString() : null);
+            map.put("referenciaPagoComision", row.get("referencia_pago_comision") != null ? row.get("referencia_pago_comision").toString() : null);
+            map.put("notasPagoComision", row.get("notas_pago_comision") != null ? row.get("notas_pago_comision").toString() : null);
             
             Object detalleJsonObj = row.get("detalle_json");
             if (detalleJsonObj != null) {
