@@ -16,6 +16,8 @@ import static com.rodiejacontable.database.jooq.Tables.AUDATEX_PEDIDOS;
 @Repository
 public class AudatexPedidosRepository {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AudatexPedidosRepository.class);
+
     @Autowired
     private DSLContext dsl;
 
@@ -45,19 +47,152 @@ public class AudatexPedidosRepository {
         jdbcTemplate.update(sql, fechaPago, referencia, notas, pedidoId);
     }
 
-    public int liquidarComisionesEmpleado(Integer userId, Integer anio, Integer mes, java.time.LocalDate fechaPago, String referencia, String notas) {
+    public int liquidarComisionesEmpleado(Integer userId, String empleadoNombre, Integer anio, Integer mes, java.time.LocalDate fechaPago, String referencia, String notas) {
         ensureColumns();
-        String sql = "UPDATE audatex_pedidos SET comision_pagada = 1, fecha_pago_comision = ?, referencia_pago_comision = ?, notas_pago_comision = ? " +
-                     "WHERE user_id = ? AND estado = 'Entregado' AND (comision_pagada IS NULL OR comision_pagada = 0)";
-        if (anio != null && mes != null) {
-            sql += " AND YEAR(fecha_creacion) = ? AND MONTH(fecha_creacion) = ?";
-            return jdbcTemplate.update(sql, fechaPago, referencia, notas, userId, anio, mes);
-        } else if (anio != null) {
-            sql += " AND YEAR(fecha_creacion) = ?";
-            return jdbcTemplate.update(sql, fechaPago, referencia, notas, userId, anio);
-        } else {
-            return jdbcTemplate.update(sql, fechaPago, referencia, notas, userId);
+
+        int anioVal = anio != null ? anio : (fechaPago != null ? fechaPago.getYear() : java.time.LocalDate.now().getYear());
+        int mesVal = mes != null ? mes : (fechaPago != null ? fechaPago.getMonthValue() : java.time.LocalDate.now().getMonthValue());
+
+        String refFinal = (referencia != null && !referencia.trim().isEmpty())
+                ? referencia.trim()
+                : "PAGO-COM-INS-" + (userId != null ? userId : "COL") + "-" + anioVal + "-" + mesVal;
+
+        // 1. Calcular el total de comisiones pendientes a liquidar
+        StringBuilder sumSb = new StringBuilder();
+        sumSb.append("SELECT COALESCE(SUM(COALESCE(comision_calculada, (total_pedido * COALESCE(porcentaje_comision, 3) / 100))), 0) ");
+        sumSb.append("FROM audatex_pedidos WHERE estado = 'Entregado' AND (comision_pagada IS NULL OR comision_pagada = 0) ");
+
+        java.util.List<Object> sumParams = new java.util.ArrayList<>();
+        if (userId != null) {
+            sumSb.append("AND user_id = ? ");
+            sumParams.add(userId);
+        } else if (empleadoNombre != null && !empleadoNombre.trim().isEmpty()) {
+            sumSb.append("AND (user_id IN (SELECT u.id FROM users u LEFT JOIN personal_data pd ON u.id = pd.user_id WHERE LOWER(COALESCE(pd.full_name, u.email)) LIKE ?)) ");
+            sumParams.add("%" + empleadoNombre.trim().toLowerCase() + "%");
         }
+        if (anio != null) {
+            sumSb.append("AND YEAR(fecha_creacion) = ? ");
+            sumParams.add(anio);
+        }
+        if (mes != null) {
+            sumSb.append("AND MONTH(fecha_creacion) = ? ");
+            sumParams.add(mes);
+        }
+
+        java.math.BigDecimal totalComisiones = java.math.BigDecimal.ZERO;
+        try {
+            totalComisiones = jdbcTemplate.queryForObject(sumSb.toString(), java.math.BigDecimal.class, sumParams.toArray());
+        } catch (Exception e) {
+            log.warn("Error sumando comisiones a liquidar: {}", e.getMessage());
+        }
+
+        // 2. Actualizar pedidos como pagados
+        StringBuilder updateSb = new StringBuilder();
+        updateSb.append("UPDATE audatex_pedidos SET comision_pagada = 1, fecha_pago_comision = ?, referencia_pago_comision = ?, notas_pago_comision = ? ");
+        updateSb.append("WHERE estado = 'Entregado' AND (comision_pagada IS NULL OR comision_pagada = 0) ");
+
+        java.util.List<Object> updateParams = new java.util.ArrayList<>();
+        updateParams.add(fechaPago);
+        updateParams.add(refFinal);
+        updateParams.add(notas);
+
+        if (userId != null) {
+            updateSb.append("AND user_id = ? ");
+            updateParams.add(userId);
+        } else if (empleadoNombre != null && !empleadoNombre.trim().isEmpty()) {
+            updateSb.append("AND (user_id IN (SELECT u.id FROM users u LEFT JOIN personal_data pd ON u.id = pd.user_id WHERE LOWER(COALESCE(pd.full_name, u.email)) LIKE ?)) ");
+            updateParams.add("%" + empleadoNombre.trim().toLowerCase() + "%");
+        }
+        if (anio != null) {
+            updateSb.append("AND YEAR(fecha_creacion) = ? ");
+            updateParams.add(anio);
+        }
+        if (mes != null) {
+            updateSb.append("AND MONTH(fecha_creacion) = ? ");
+            updateParams.add(mes);
+        }
+
+        int actualizados = jdbcTemplate.update(updateSb.toString(), updateParams.toArray());
+
+        // 3. Registrar en pagos_comisiones para disparar el trigger tr_pago_comisiones_after_insert (crea transacción EGRESO)
+        if (totalComisiones != null && totalComisiones.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            try {
+                Integer empId = null;
+                String finalNombre = empleadoNombre;
+                if (finalNombre == null && userId != null) {
+                    try {
+                        finalNombre = jdbcTemplate.queryForObject(
+                            "SELECT COALESCE(pd.full_name, u.email) FROM users u LEFT JOIN personal_data pd ON u.id = pd.user_id WHERE u.id = ?",
+                            String.class, userId
+                        );
+                    } catch (Exception ignored) {}
+                }
+                if (finalNombre != null) {
+                    java.util.List<Integer> empIds = jdbcTemplate.queryForList(
+                        "SELECT id FROM empleados WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?)) LIMIT 1",
+                        Integer.class, finalNombre
+                    );
+                    if (!empIds.isEmpty()) {
+                        empId = empIds.get(0);
+                    } else {
+                        jdbcTemplate.update("INSERT INTO empleados (nombre, activo) VALUES (?, 1)", finalNombre);
+                        empId = jdbcTemplate.queryForObject(
+                            "SELECT id FROM empleados WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?)) LIMIT 1",
+                            Integer.class, finalNombre
+                        );
+                    }
+                } else if (userId != null) {
+                    java.util.List<Integer> empIds = jdbcTemplate.queryForList("SELECT id FROM empleados WHERE id = ? LIMIT 1", Integer.class, userId);
+                    if (!empIds.isEmpty()) {
+                        empId = empIds.get(0);
+                    }
+                }
+
+                if (empId != null) {
+                    int countExistente = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM pagos_comisiones WHERE empleado_id = ? AND anio = ? AND mes = ?",
+                        Integer.class, empId, anioVal, mesVal
+                    );
+                    if (countExistente == 0) {
+                        // El trigger tr_pago_comisiones_after_insert inserta automáticamente el EGRESO en transacciones_financieras
+                        jdbcTemplate.update(
+                            "INSERT INTO pagos_comisiones (empleado_id, anio, mes, total_comisiones, fecha_pago, estado, referencia_pago, notas) " +
+                            "VALUES (?, ?, ?, ?, ?, 'PAGADO', ?, ?)",
+                            empId, anioVal, mesVal, totalComisiones, fechaPago, refFinal,
+                            (notas != null && !notas.isBlank() ? notas : "Liquidación comisiones INS")
+                        );
+                    } else {
+                        jdbcTemplate.update(
+                            "UPDATE pagos_comisiones SET total_comisiones = total_comisiones + ?, fecha_actualizacion = NOW() WHERE empleado_id = ? AND anio = ? AND mes = ?",
+                            totalComisiones, empId, anioVal, mesVal
+                        );
+                        Integer tipoEgresoId = jdbcTemplate.queryForObject(
+                            "SELECT id FROM tipos_transacciones WHERE nombre = 'Comisión Vendedor' OR categoria = 'EGRESO' ORDER BY (nombre = 'Comisión Vendedor') DESC LIMIT 1",
+                            Integer.class
+                        );
+                        jdbcTemplate.update(
+                            "INSERT INTO transacciones_financieras (codigo_transaccion, fecha, tipo_transaccion_id, empleado_id, monto, comision_empleado, descripcion, referencia, estado, activo, fecha_creacion, fecha_actualizacion) " +
+                            "VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'COMPLETADA', 1, NOW(), NOW())",
+                            "PAGO-COM-INS-" + empId + "-" + (System.currentTimeMillis() % 1000000),
+                            fechaPago,
+                            tipoEgresoId,
+                            empId,
+                            totalComisiones.negate(),
+                            "Pago de comisiones INS período " + anioVal + "-" + mesVal + " para colaborador: " + (finalNombre != null ? finalNombre : "ID " + empId),
+                            refFinal
+                        );
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error registrando pago de comisiones y transacción de egreso: {}", e.getMessage(), e);
+            }
+        }
+
+        return actualizados;
+    }
+
+    public int liquidarComisionesEmpleado(Integer userId, Integer anio, Integer mes, java.time.LocalDate fechaPago, String referencia, String notas) {
+        return liquidarComisionesEmpleado(userId, null, anio, mes, fechaPago, referencia, notas);
     }
 
     public List<Map<String, Object>> findAllWithEmpleado() {

@@ -376,11 +376,9 @@ const InsVentasEmpleados = () => {
     }
   };
 
-  // Abrir modal para liquidar comisiones grupales de un colaborador
+  // Abrir modal para liquidar comisiones de un colaborador (un solo pago)
   const handleAbrirModalPagarGrupal = (emp) => {
     setPagoForm({
-      esGrupal: true,
-      item: null,
       empleadoId: emp.empleado_id,
       empleadoNombre: emp.empleado,
       monto: emp.total_comision_pendiente,
@@ -391,49 +389,22 @@ const InsVentasEmpleados = () => {
     setModalPagarVisible(true);
   };
 
-  // Abrir modal para pagar comisión de un pedido individual
-  const handleAbrirModalPagarIndividual = (pedido) => {
-    setPagoForm({
-      esGrupal: false,
-      item: pedido,
-      empleadoId: pedido.userId || pedido.empleadoId,
-      empleadoNombre: pedido.usuarioNombre || pedido.empleadoNombre,
-      monto: pedido.comision,
-      fechaPago: dayjs().format('YYYY-MM-DD'),
-      referencia: '',
-      notas: `Pago comisión pedido #${pedido.numeroPedido || pedido.id}`
-    });
-    setModalPagarVisible(true);
-  };
-
-  // Confirmar y registrar pago de comisiones
+  // Confirmar y registrar pago único de comisiones (dispara transacción de EGRESO)
   const handleConfirmarPagoComision = async () => {
-    if (!pagoForm.referencia.trim()) {
-      message.warning('Por favor ingresa un número de comprobante o referencia de pago');
-      return;
-    }
     setProcesandoPago(true);
     try {
-      if (pagoForm.esGrupal) {
-        const idNum = Number(pagoForm.empleadoId) || (typeof pagoForm.empleadoId === 'string' && pagoForm.empleadoId.startsWith('id_') ? Number(pagoForm.empleadoId.replace('id_', '')) : null);
-        await audatexAPI.liquidarComisionesEmpleado({
-          usuarioId: idNum,
-          empleadoId: idNum,
-          anio: filtros.anio,
-          mes: filtros.mes,
-          fechaPago: pagoForm.fechaPago,
-          referencia: pagoForm.referencia,
-          notas: pagoForm.notas
-        });
-        message.success(`Comisiones de ${pagoForm.empleadoNombre} liquidadas exitosamente`);
-      } else {
-        await audatexAPI.pagarComisionPedido(pagoForm.item.id, {
-          fechaPago: pagoForm.fechaPago,
-          referencia: pagoForm.referencia,
-          notas: pagoForm.notas
-        });
-        message.success(`Comisión del pedido #${pagoForm.item.numeroPedido || pagoForm.item.id} pagada exitosamente`);
-      }
+      const idNum = Number(pagoForm.empleadoId) || (typeof pagoForm.empleadoId === 'string' && pagoForm.empleadoId.startsWith('id_') ? Number(pagoForm.empleadoId.replace('id_', '')) : null);
+      await audatexAPI.liquidarComisionesEmpleado({
+        usuarioId: idNum,
+        empleadoId: idNum,
+        empleadoNombre: pagoForm.empleadoNombre,
+        anio: filtros.anio,
+        mes: filtros.mes,
+        fechaPago: pagoForm.fechaPago,
+        referencia: pagoForm.referencia,
+        notas: pagoForm.notas
+      });
+      message.success(`Comisiones de ${pagoForm.empleadoNombre} liquidadas exitosamente y registradas como EGRESO contable`);
       setModalPagarVisible(false);
       await cargarDatos();
       if (modalDetalleVisible) {
@@ -441,7 +412,7 @@ const InsVentasEmpleados = () => {
       }
     } catch (err) {
       console.error('Error al registrar pago de comisión:', err);
-      message.error(err.response?.data?.error || 'Error al procesar el pago de comisión');
+      message.error(err.response?.data?.error || 'Error al procesar la liquidación de comisiones');
     } finally {
       setProcesandoPago(false);
     }
@@ -1268,22 +1239,7 @@ const InsVentasEmpleados = () => {
                               );
                             }
                             if (esEntregado) {
-                              return (
-                                <Space size={6}>
-                                  <Tag color="success" icon={<CheckCircleOutlined />}>Entregado</Tag>
-                                  {!r.comisionPagada && esAdmin && (
-                                    <Button
-                                      type="primary"
-                                      size="small"
-                                      style={{ background: '#10b981', borderColor: '#10b981' }}
-                                      icon={<DollarOutlined />}
-                                      onClick={() => handleAbrirModalPagarIndividual(r)}
-                                    >
-                                      Pagar
-                                    </Button>
-                                  )}
-                                </Space>
-                              );
+                              return <Tag color="success" icon={<CheckCircleOutlined />}>Entregado</Tag>;
                             }
                             return null;
                           }
@@ -1626,16 +1582,12 @@ const InsVentasEmpleados = () => {
         />
       </Modal>
 
-      {/* Modal para Liquidar / Pagar Comisiones */}
+      {/* Modal para Liquidar Comisiones (Registro único con Egreso Contable) */}
       <Modal
         title={
           <Space>
             <DollarOutlined style={{ color: '#10b981' }} />
-            <span>
-              {pagoForm.esGrupal
-                ? `Liquidar Comisiones — ${pagoForm.empleadoNombre}`
-                : `Pagar Comisión — Pedido #${pagoForm.item?.numeroPedido || pagoForm.item?.id}`}
-            </span>
+            <span>Liquidar Comisiones — {pagoForm.empleadoNombre}</span>
           </Space>
         }
         open={modalPagarVisible}
@@ -1646,30 +1598,36 @@ const InsVentasEmpleados = () => {
         }}
         confirmLoading={procesandoPago}
         onOk={handleConfirmarPagoComision}
-        okText="Registrar Pago"
+        okText="Confirmar Pago y Registrar Egreso"
         cancelText="Cancelar"
         okButtonProps={{ style: { background: '#10b981', borderColor: '#10b981' } }}
         destroyOnClose
       >
         <div style={{ marginTop: 12 }}>
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: 6,
+            padding: '10px 14px',
+            marginBottom: 16,
+            fontSize: 13,
+            color: '#475569'
+          }}>
+            Esta acción liquidará en un <strong>único pago</strong> todas las comisiones pendientes del colaborador y registrará la <strong>transacción de EGRESO</strong> correspondiente en el sistema financiero.
+          </div>
+
           <Descriptions size="small" bordered column={1} style={{ marginBottom: 16 }}>
             <Descriptions.Item label="Colaborador">
               <strong>{pagoForm.empleadoNombre}</strong>
             </Descriptions.Item>
-            <Descriptions.Item label="Monto a Liquidar">
-              <strong style={{ color: '#16a34a', fontSize: 16 }}>
+            <Descriptions.Item label="Monto Total a Liquidar">
+              <strong style={{ color: '#16a34a', fontSize: 17 }}>
                 {formatColones(pagoForm.monto || 0)}
               </strong>
             </Descriptions.Item>
-            {pagoForm.esGrupal ? (
-              <Descriptions.Item label="Período">
-                {filtros.mes ? `Mes ${filtros.mes} / ` : 'Año '} {filtros.anio || 'Histórico'}
-              </Descriptions.Item>
-            ) : (
-              <Descriptions.Item label="Pedido">
-                #{pagoForm.item?.numeroPedido || pagoForm.item?.id} — {pagoForm.item?.vehiculo || ''}
-              </Descriptions.Item>
-            )}
+            <Descriptions.Item label="Período">
+              {filtros.mes ? `Mes ${filtros.mes} / ` : 'Año '} {filtros.anio || 'Histórico'}
+            </Descriptions.Item>
           </Descriptions>
 
           <div style={{ marginBottom: 16 }}>
@@ -1686,10 +1644,10 @@ const InsVentasEmpleados = () => {
 
           <div style={{ marginBottom: 16 }}>
             <Text strong style={{ display: 'block', marginBottom: 6 }}>
-              Número de Referencia / Comprobante (SINPE / Transferencia): <span style={{ color: '#dc2626' }}>*</span>
+              Referencia / Comprobante (Opcional):
             </Text>
             <Input
-              placeholder="Ej: SINPE-849202 o Transferencia #12345"
+              placeholder="Ej: PAGO-COM-INS o transferencia (opcional)"
               value={pagoForm.referencia}
               onChange={(e) => setPagoForm({ ...pagoForm, referencia: e.target.value })}
             />
@@ -1697,11 +1655,11 @@ const InsVentasEmpleados = () => {
 
           <div style={{ marginBottom: 16 }}>
             <Text strong style={{ display: 'block', marginBottom: 6 }}>
-              Notas / Observaciones:
+              Notas / Observaciones (Opcional):
             </Text>
             <Input.TextArea
-              rows={3}
-              placeholder="Detalle o notas adicionales del pago..."
+              rows={2}
+              placeholder="Notas u observaciones adicionales..."
               value={pagoForm.notas}
               onChange={(e) => setPagoForm({ ...pagoForm, notas: e.target.value })}
             />

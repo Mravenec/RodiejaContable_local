@@ -393,15 +393,17 @@ public class AudatexController {
         try {
             Integer userId = payload.get("usuarioId") != null ? ((Number) payload.get("usuarioId")).intValue() :
                              (payload.get("empleadoId") != null ? ((Number) payload.get("empleadoId")).intValue() : null);
+            String empleadoNombre = payload.get("empleadoNombre") != null ? payload.get("empleadoNombre").toString() :
+                                   (payload.get("usuarioNombre") != null ? payload.get("usuarioNombre").toString() : null);
             Integer anio = payload.get("anio") != null ? ((Number) payload.get("anio")).intValue() : null;
             Integer mes = payload.get("mes") != null ? ((Number) payload.get("mes")).intValue() : null;
             String fechaStr = payload.get("fechaPago") != null ? payload.get("fechaPago").toString() : null;
             java.time.LocalDate fecha = (fechaStr != null && !fechaStr.isBlank()) ? java.time.LocalDate.parse(fechaStr) : java.time.LocalDate.now();
             String referencia = payload.get("referencia") != null ? payload.get("referencia").toString() : "";
             String notas = payload.get("notas") != null ? payload.get("notas").toString() : "";
-            log.info("[Audatex] POST /pedidos/liquidar-comisiones-empleado - user {}, periodo {}/{}, fecha {}, ref {}", userId, mes, anio, fecha, referencia);
+            log.info("[Audatex] POST /pedidos/liquidar-comisiones-empleado - user {} ({}), periodo {}/{}, fecha {}, ref {}", userId, empleadoNombre, mes, anio, fecha, referencia);
 
-            int actualizados = audatexService.liquidarComisionesEmpleado(userId, anio, mes, fecha, referencia, notas);
+            int actualizados = audatexService.liquidarComisionesEmpleado(userId, empleadoNombre, anio, mes, fecha, referencia, notas);
             return ResponseEntity.ok(Map.of(
                     "mensaje", "Se liquidaron comisiones para " + actualizados + " pedidos",
                     "actualizados", actualizados

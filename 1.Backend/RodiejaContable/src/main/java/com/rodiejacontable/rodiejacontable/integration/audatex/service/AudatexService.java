@@ -586,8 +586,12 @@ public class AudatexService {
     }
 
     public int liquidarComisionesEmpleado(Integer userId, Integer anio, Integer mes, java.time.LocalDate fechaPago, String referencia, String notas) {
-        log.info("[AudatexService] Liquidando comisiones empleado {}, periodo {}/{}, ref {}", userId, mes, anio, referencia);
-        return audatexPedidosRepository.liquidarComisionesEmpleado(userId, anio, mes, fechaPago, referencia, notas);
+        return liquidarComisionesEmpleado(userId, null, anio, mes, fechaPago, referencia, notas);
+    }
+
+    public int liquidarComisionesEmpleado(Integer userId, String empleadoNombre, Integer anio, Integer mes, java.time.LocalDate fechaPago, String referencia, String notas) {
+        log.info("[AudatexService] Liquidando comisiones empleado {} ({}), periodo {}/{}, ref {}", userId, empleadoNombre, mes, anio, referencia);
+        return audatexPedidosRepository.liquidarComisionesEmpleado(userId, empleadoNombre, anio, mes, fechaPago, referencia, notas);
     }
 
     private boolean coincideVehiculo(Map<String, Object> o, String marca, String modelo, Integer anio) {
