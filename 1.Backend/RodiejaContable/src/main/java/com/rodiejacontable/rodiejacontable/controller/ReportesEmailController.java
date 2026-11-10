@@ -21,10 +21,11 @@ public class ReportesEmailController {
 
     private static final Logger logger = LoggerFactory.getLogger(ReportesEmailController.class);
 
-    // MODO PRUEBAS: Forzar envío exclusivo a Kimberly (kimfh1996@gmail.com)
-    // Cambiar a false cuando se desee enviar a todos los administradores en producción
-    private static final boolean MODO_PRUEBA_DESTINATARIO_UNICO = true;
-    private static final String CORREO_PRUEBA = "kimfh1996@gmail.com";
+    @org.springframework.beans.factory.annotation.Value("${reportes.email.test-only-kimberly:false}")
+    private boolean modoPruebaDestinatarioUnico;
+
+    @org.springframework.beans.factory.annotation.Value("${reportes.email.test-address:kimfh1996@gmail.com}")
+    private String correoPrueba;
 
     @Autowired
     private EmailService emailService;
@@ -69,8 +70,8 @@ public class ReportesEmailController {
     @GetMapping("/destinatarios-admin")
     public ResponseEntity<List<String>> getDestinatariosAdmin() {
         try {
-            if (MODO_PRUEBA_DESTINATARIO_UNICO) {
-                return ResponseEntity.ok(Collections.singletonList(CORREO_PRUEBA));
+            if (modoPruebaDestinatarioUnico) {
+                return ResponseEntity.ok(Collections.singletonList(correoPrueba));
             }
             List<String> adminEmails = usersRepository.findActiveAdminEmails();
             return ResponseEntity.ok(adminEmails != null ? adminEmails : Collections.emptyList());
@@ -281,8 +282,8 @@ public class ReportesEmailController {
     }
 
     private String[] resolverDestinatarios(String destinatariosStr) {
-        if (MODO_PRUEBA_DESTINATARIO_UNICO) {
-            return new String[]{CORREO_PRUEBA};
+        if (modoPruebaDestinatarioUnico) {
+            return new String[]{correoPrueba};
         }
 
         List<String> validRecipients = new ArrayList<>();
