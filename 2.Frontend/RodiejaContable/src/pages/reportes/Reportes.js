@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import VentasEmpleadosService from '../../api/ventasEmpleados';
-import { getTransaccionesIngresos } from '../../api/transacciones';
+import React, { useState, useEffect, useCallback } from 'react';
 import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import vehiculosService from '../../api/vehiculos';
 import reportesService from '../../api/reportes';
@@ -39,6 +37,21 @@ import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReport
 
 const { Title, Text } = Typography;
 
+// Función para parsear fecha con seguridad
+const parseFecha = (fecha) => {
+  if (!fecha) return null;
+  if (Array.isArray(fecha)) {
+    return new Date(fecha[0], fecha[1] - 1, fecha[2]);
+  }
+  if (typeof fecha === 'string') {
+    const parts = fecha.split('T')[0].split('-');
+    if (parts.length === 3) {
+      return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
+  }
+  return new Date(fecha);
+};
+
 // Función para formatear moneda
 const formatCurrency = (value) => {
   if (value === null || value === undefined || isNaN(value)) {
@@ -48,6 +61,78 @@ const formatCurrency = (value) => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   })}`;
+};
+
+// Función para calcular porcentajes de ventas
+const calcularPorcentajes = (empleados) => {
+  if (!Array.isArray(empleados) || empleados.length === 0) {
+    return [];
+  }
+
+  const totalVentas = empleados.reduce((total, emp) => {
+    return total + (emp.totalTransacciones || emp.transaccionesVenta || 0);
+  }, 0);
+
+  return empleados.map(emp => {
+    const ventasEmpleado = emp.totalTransacciones || emp.transaccionesVenta || 0;
+    const porcentaje = totalVentas > 0 ? Math.round((ventasEmpleado / totalVentas) * 100) : 0;
+
+    return {
+      ...emp,
+      porcentaje: porcentaje
+    };
+  });
+};
+
+// Función para agrupar transacciones por mes
+const agruparTransaccionesPorMes = (transacciones) => {
+  if (!Array.isArray(transacciones) || transacciones.length === 0) {
+    return [];
+  }
+
+  const meses = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  const agrupado = {};
+
+  transacciones.forEach((transaccion) => {
+    const fechaTransaccion = transaccion.fecha || transaccion.fechaTransaccion || transaccion.createdAt;
+    const fObj = parseFecha(fechaTransaccion);
+
+    if (fObj && !isNaN(fObj.getTime())) {
+      const mesNum = fObj.getMonth() + 1;
+      const mesNombre = meses[mesNum - 1];
+      const anio = fObj.getFullYear();
+      const key = `${anio}-${mesNum}`;
+
+      if (!agrupado[key]) {
+        agrupado[key] = {
+          mes: mesNum,
+          nombreMes: mesNombre,
+          anio: anio,
+          totalTransacciones: 0,
+          totalVentas: 0,
+          totalIngresos: 0,
+          totalComisiones: 0
+        };
+      }
+
+      const monto = parseFloat(transaccion.monto || 0);
+      const comision = parseFloat(transaccion.comisionEmpleado || transaccion.comision || 0);
+
+      agrupado[key].totalTransacciones += 1;
+      agrupado[key].totalVentas += 1;
+      agrupado[key].totalIngresos += monto;
+      agrupado[key].totalComisiones += comision;
+    }
+  });
+
+  return Object.values(agrupado).sort((a, b) => {
+    if (a.anio !== b.anio) return a.anio - b.anio;
+    return a.mes - b.mes;
+  });
 };
 
 const Reportes = () => {
@@ -72,211 +157,143 @@ const Reportes = () => {
     tasaConversion: 0,
   });
 
-  // ROD-17: Estados para filtros de exportación Audatex (inicializado al mes en curso)
+  // Estados para filtros de exportación Audatex y Dashboard (inicializado al mes en curso)
   const [fechaRange, setFechaRange] = useState([dayjs().startOf('month'), dayjs().endOf('month')]);
   const [marcaFiltro, setMarcaFiltro] = useState('');
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    cargarDatosIniciales();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const cargarDatosIniciales = async () => {
+  // Cargar datos según el rango de fechas seleccionado
+  const cargarDatos = useCallback(async (rango) => {
     try {
-      setLoading({ general: true });
+      setLoading(prev => ({ ...prev, general: true }));
 
-      // 1 y 2. Cargar ventas mensuales y métricas
-      try {
-        const estadisticas = await VentasEmpleadosService.getEstadisticasVentas().catch(() => ({}));
+      const hayRango = Boolean(rango && rango[0] && rango[1]);
+      const fechaInicio = hayRango ? rango[0].format('YYYY-MM-DD') : null;
+      const fechaFin = hayRango ? rango[1].format('YYYY-MM-DD') : null;
 
-        const [transaccionesData, vehiculosData] = await Promise.all([
-          getTransaccionesIngresos().catch(() => []),
-          vehiculosService.getVehiculosCompletos().catch(() => [])
-        ]);
+      const [transaccionesAll, vehiculosData] = await Promise.all([
+        hayRango
+          ? transaccionesCompletasService.getTransaccionesPorRangoFechas(fechaInicio, fechaFin).catch(() => [])
+          : transaccionesCompletasService.getTransacciones().catch(() => []),
+        vehiculosService.getVehiculosCompletos().catch(() => [])
+      ]);
 
-        const cantidadVentas = transaccionesData.length;
-        const ingresosTotales = transaccionesData.reduce((sum, t) => sum + (t.monto || 0), 0);
-        const promedio = cantidadVentas > 0 ? (ingresosTotales / cantidadVentas) : 0;
+      const transaccionesLista = Array.isArray(transaccionesAll) ? transaccionesAll : [];
 
-        // Calcular vehículos en stock real (Disponibles o en Reparación)
-        let stockReal = 0;
-        if (vehiculosData && vehiculosData.length > 0) {
-          stockReal = vehiculosData.filter(v => v.estado === 'DISPONIBLE' || v.estado === 'REPARACION' || v.estado === 'RESERVADO').length;
-        } else {
-          stockReal = estadisticas?.vehiculosStock || 0;
+      // Filtrar transacciones de tipo Ingreso / Venta
+      const transaccionesIngresos = transaccionesLista.filter(t => {
+        const cat = (t.categoria || '').toUpperCase();
+        const tipo = (t.tipoTransaccion || t.tipo_transaccion || '').toUpperCase();
+        return cat === 'INGRESO' || tipo.includes('VENTA');
+      });
+
+      const cantidadVentas = transaccionesIngresos.length;
+      const ingresosTotales = transaccionesIngresos.reduce((sum, t) => sum + (parseFloat(t.monto) || 0), 0);
+      const promedio = cantidadVentas > 0 ? (ingresosTotales / cantidadVentas) : 0;
+
+      // Calcular vehículos en stock real (Disponibles, en Reparación o Reservados)
+      const stockReal = (vehiculosData || []).filter(v =>
+        v.estado === 'DISPONIBLE' || v.estado === 'REPARACION' || v.estado === 'RESERVADO'
+      ).length;
+
+      const tasaConv = (cantidadVentas > 0 && (cantidadVentas + stockReal) > 0)
+        ? Math.round((cantidadVentas / (cantidadVentas + stockReal)) * 100)
+        : 0;
+
+      setMetricas({
+        totalVentas: cantidadVentas,
+        totalIngresos: ingresosTotales,
+        promedioVenta: promedio,
+        vehiculosStock: stockReal,
+        tasaConversion: tasaConv,
+      });
+
+      // Ventas agrupadas por mes para la tabla mensual
+      const transaccionesAgrupadasPorMes = agruparTransaccionesPorMes(transaccionesIngresos);
+      setVentasMensuales(Array.isArray(transaccionesAgrupadasPorMes) ? transaccionesAgrupadasPorMes : []);
+
+      // Resumen Financiero: Vehículos y Repuestos en el rango
+      let vehVentas = 0, vehCostos = 0, vehComisiones = 0;
+      let repVentas = 0, repCostos = 0, repComisiones = 0;
+
+      transaccionesLista.forEach(t => {
+        const monto = parseFloat(t.monto || 0);
+        const comision = parseFloat(t.comisionEmpleado || t.comision_empleado || 0);
+        const tipo = (t.tipoTransaccion || t.tipo_transaccion || '').toUpperCase();
+        const categoria = (t.categoria || '').toUpperCase();
+
+        const esRepuesto = tipo.includes('REPUESTO') || tipo.includes('MAYOREO') || Boolean(t.codigoRepuesto && !tipo.includes('VEH'));
+        const esVehiculo = tipo.includes('VEH') || tipo.includes('GRÚA') || tipo.includes('GRUA') || tipo.includes('REPARAC') || Boolean(t.codigoVehiculo && !esRepuesto);
+
+        if (esRepuesto) {
+          if (categoria === 'INGRESO' || tipo.includes('VENTA')) {
+            repVentas += monto;
+          } else if (categoria === 'EGRESO' || tipo.includes('COMPRA') || tipo.includes('GASTO')) {
+            repCostos += monto;
+          }
+          repComisiones += comision;
+        } else if (esVehiculo) {
+          if (categoria === 'INGRESO' || tipo.includes('VENTA')) {
+            vehVentas += monto;
+          } else if (categoria === 'EGRESO' || tipo.includes('COMPRA') || tipo.includes('REPARAC') || tipo.includes('GRUA') || tipo.includes('REEMBOLSO')) {
+            vehCostos += monto;
+          }
+          vehComisiones += comision;
         }
+      });
 
-        let tasaConv = 0;
-        if (cantidadVentas > 0 && stockReal > 0) {
-          tasaConv = Math.round((cantidadVentas / (cantidadVentas + stockReal)) * 100);
-        } else {
-          tasaConv = estadisticas?.tasaConversion || 0;
-        }
+      setResumenVehiculos({
+        ventas: vehVentas,
+        inversion: vehCostos + vehComisiones,
+        ganancia: vehVentas - (vehCostos + vehComisiones)
+      });
 
-        setMetricas({
-          totalVentas: cantidadVentas, // cantidad real de registros/ventas
-          totalIngresos: ingresosTotales,
-          promedioVenta: promedio,
-          vehiculosStock: stockReal,
-          tasaConversion: tasaConv,
-        });
+      setResumenRepuestos({
+        ventas: repVentas,
+        costos: repCostos + repComisiones,
+        ganancia: repVentas - (repCostos + repComisiones)
+      });
 
-        const transaccionesAgrupadasPorMes = agruparTransaccionesPorMes(transaccionesData);
-        setVentasMensuales(Array.isArray(transaccionesAgrupadasPorMes) ? transaccionesAgrupadasPorMes : []);
-      } catch (error) {
-        console.error('Error al cargar métricas y ventas:', error);
-        setVentasMensuales([]);
-      }
-
-      // 3. Cargar top empleados
-      try {
-        const topEmpleadosData = await VentasEmpleadosService.getTopEmpleados(5);
-        const empleadosConPorcentajes = calcularPorcentajes(topEmpleadosData);
-        setTopEmpleados(Array.isArray(empleadosConPorcentajes) ? empleadosConPorcentajes : []);
-      } catch (error) {
-        console.error('Error al cargar top empleados:', error);
-        setTopEmpleados([]);
-      }
-
-      // 4. Cargar comisiones
-      try {
-        const comisionesData = await VentasEmpleadosService.getVentasPorEmpleado();
-        const comisionesConVentas = Array.isArray(comisionesData) ? comisionesData.filter(c =>
-          (c.totalTransacciones || c.total_transacciones || 0) > 0 &&
-          (c.totalComisiones || c.total_comision || 0) > 0
-        ) : [];
-        setComisiones(comisionesConVentas);
-      } catch (error) {
-        console.error('Error al cargar comisiones:', error);
-        setComisiones([]);
-      }
-
-      // 5. Cargar resúmenes de utilidades (Vehículos y Repuestos)
-      try {
-        const transaccionesAll = await transaccionesCompletasService.getTransacciones();
-
-        let vehVentas = 0, vehCostos = 0, vehComisiones = 0;
-        let repVentas = 0, repCostos = 0, repComisiones = 0;
-
-        if (Array.isArray(transaccionesAll)) {
-          transaccionesAll.forEach(t => {
-            const monto = parseFloat(t.monto || 0);
-            const comision = parseFloat(t.comisionEmpleado || t.comision_empleado || 0);
-            const tipo = (t.tipoTransaccion || t.tipo_transaccion || '').toUpperCase();
-            const categoria = (t.categoria || '').toUpperCase();
-
-            // Clasificación lógica precisa:
-            // Si el tipo de transacción indica repuesto o tiene código de repuesto
-            const esRepuesto = tipo.includes('REPUESTO') || tipo.includes('MAYOREO') || Boolean(t.codigoRepuesto && !tipo.includes('VEH'));
-            // Si el tipo indica vehículo o grúa/reparación o tiene código de vehículo sin ser repuesto
-            const esVehiculo = tipo.includes('VEH') || tipo.includes('GRÚA') || tipo.includes('GRUA') || tipo.includes('REPARAC') || Boolean(t.codigoVehiculo && !esRepuesto);
-
-            if (esRepuesto) {
-              if (categoria === 'INGRESO' || tipo.includes('VENTA')) {
-                repVentas += monto;
-              } else if (categoria === 'EGRESO' || tipo.includes('COMPRA') || tipo.includes('GASTO')) {
-                repCostos += monto;
-              }
-              repComisiones += comision;
-            } else if (esVehiculo) {
-              if (categoria === 'INGRESO' || tipo.includes('VENTA')) {
-                vehVentas += monto;
-              } else if (categoria === 'EGRESO' || tipo.includes('COMPRA') || tipo.includes('REPARAC') || tipo.includes('GRUA') || tipo.includes('REEMBOLSO')) {
-                vehCostos += monto;
-              }
-              vehComisiones += comision;
-            }
-          });
-        }
-
-        setResumenVehiculos({
-          ventas: vehVentas,
-          inversion: vehCostos + vehComisiones,
-          ganancia: vehVentas - (vehCostos + vehComisiones)
-        });
-
-        setResumenRepuestos({
-          ventas: repVentas,
-          costos: repCostos + repComisiones,
-          ganancia: repVentas - (repCostos + repComisiones)
-        });
-      } catch (error) {
-        console.error('Error al calcular flujo financiero:', error);
-      }
-
-    } catch (error) {
-      console.error('Error al cargar datos iniciales:', error);
-    } finally {
-      setLoading({ general: false });
-    }
-  };
-
-  // Función para calcular porcentajes de ventas
-  const calcularPorcentajes = (empleados) => {
-    if (!Array.isArray(empleados) || empleados.length === 0) {
-      return empleados;
-    }
-
-    const totalVentas = empleados.reduce((total, emp) => {
-      return total + (emp.totalTransacciones || emp.transaccionesVenta || 0);
-    }, 0);
-
-    return empleados.map(emp => {
-      const ventasEmpleado = emp.totalTransacciones || emp.transaccionesVenta || 0;
-      const porcentaje = totalVentas > 0 ? Math.round((ventasEmpleado / totalVentas) * 100) : 0;
-
-      return {
-        ...emp,
-        porcentaje: porcentaje
-      };
-    });
-  };
-
-  // Función para agrupar transacciones por mes
-  const agruparTransaccionesPorMes = (transacciones) => {
-    if (!Array.isArray(transacciones) || transacciones.length === 0) {
-      return [];
-    }
-
-    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-
-    const agrupado = {};
-
-    transacciones.forEach((transaccion) => {
-      const fechaTransaccion = transaccion.fecha || transaccion.createdAt;
-
-      if (fechaTransaccion) {
-        const fecha = new Date(fechaTransaccion);
-        const mesNum = fecha.getMonth() + 1;
-        const mesNombre = meses[mesNum - 1];
-        const anio = fecha.getFullYear();
-
-        if (!agrupado[mesNum]) {
-          agrupado[mesNum] = {
-            mes: mesNum,
-            nombreMes: mesNombre,
-            anio: anio,
+      // Top Vendedores y Comisiones para el período seleccionado
+      const empMap = {};
+      transaccionesIngresos.forEach(t => {
+        const emp = t.empleado;
+        if (!emp || !emp.trim()) return;
+        const nombreEmp = emp.trim();
+        if (!empMap[nombreEmp]) {
+          empMap[nombreEmp] = {
+            id: nombreEmp,
+            empleado: nombreEmp,
             totalTransacciones: 0,
+            transaccionesVenta: 0,
             totalVentas: 0,
-            totalIngresos: 0,
             totalComisiones: 0
           };
         }
+        empMap[nombreEmp].totalTransacciones += 1;
+        empMap[nombreEmp].transaccionesVenta += 1;
+        empMap[nombreEmp].totalVentas += parseFloat(t.monto || 0);
+        empMap[nombreEmp].totalComisiones += parseFloat(t.comisionEmpleado || t.comision_empleado || 0);
+      });
 
-        const monto = transaccion.monto || 0;
-        const comision = transaccion.comision || transaccion.comisionEmpleado || 0;
+      const empleadosLista = Object.values(empMap);
+      const topOrdenados = [...empleadosLista].sort((a, b) => b.totalTransacciones - a.totalTransacciones).slice(0, 5);
+      setTopEmpleados(calcularPorcentajes(topOrdenados));
 
-        agrupado[mesNum].totalTransacciones += 1;
-        agrupado[mesNum].totalVentas += 1;
-        agrupado[mesNum].totalIngresos += monto;
-        agrupado[mesNum].totalComisiones += comision;
-      }
-    });
+      const comisionesLista = empleadosLista.filter(c => c.totalTransacciones > 0);
+      setComisiones(comisionesLista);
 
-    return Object.values(agrupado).sort((a, b) => a.mes - b.mes);
-  };
+    } catch (error) {
+      console.error('Error al cargar datos del reporte:', error);
+      message.error('Error al cargar datos de reportes');
+    } finally {
+      setLoading(prev => ({ ...prev, general: false }));
+    }
+  }, []);
+
+  // Cargar datos cada vez que cambia el rango de fechas
+  useEffect(() => {
+    cargarDatos(fechaRange);
+  }, [fechaRange, cargarDatos]);
 
   // ROD-17: Función para exportar oportunidades de Audatex
   const handleExportarAudatex = async () => {
