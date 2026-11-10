@@ -409,6 +409,11 @@ const Reportes = () => {
             icon={<FileExcelOutlined />}
             onClick={handleExportarAudatex}
             loading={loading.exportarAudatex}
+            style={{
+              backgroundColor: '#52c41a',
+              borderColor: '#52c41a',
+              color: '#fff'
+            }}
           >
             Exportar Oportunidades InPart
           </Button>

@@ -653,7 +653,16 @@ const ReporteVehiculos = () => {
                 </Button>
               </Tooltip>
               <Tooltip title="Exportar a Microsoft Excel">
-                <Button type="primary" icon={<FileExcelOutlined />} onClick={exportarAExcel}>
+                <Button
+                  type="primary"
+                  icon={<FileExcelOutlined />}
+                  onClick={exportarAExcel}
+                  style={{
+                    backgroundColor: '#52c41a',
+                    borderColor: '#52c41a',
+                    color: '#fff'
+                  }}
+                >
                   Exportar
                 </Button>
               </Tooltip>
