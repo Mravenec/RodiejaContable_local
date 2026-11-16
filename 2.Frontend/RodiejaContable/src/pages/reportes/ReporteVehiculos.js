@@ -79,16 +79,32 @@ const ReporteVehiculos = () => {
         }
       }
 
-      // Fetch all vehicles and transactions concurrently
-      const [vehiculosRes, transaccionesResVista] = await Promise.all([
+      // Fetch all vehicles (complete view + base table with financial fields) and transactions concurrently
+      const [vehiculosRes, vehiculosBaseRes, transaccionesResVista] = await Promise.all([
         vehiculosService.getVehiculosCompletos(),
+        vehiculosService.getVehiculosBase().catch(() => []),
         (params.fechaInicio && params.fechaFin)
           ? transaccionesCompletasService.getTransaccionesPorRangoFechas(params.fechaInicio, params.fechaFin)
           : transaccionesCompletasService.getTransacciones()
       ]);
 
-      // 1. Filtrar los vehículos que NO sean desarmados
-      const vehiculosNoDesarmados = (vehiculosRes || []).filter(v => v.estado !== 'DESARMADO');
+      const baseMap = new Map((vehiculosBaseRes || []).map(b => [b.id, b]));
+
+      // 1. Filtrar los vehículos que NO sean desarmados y combinar costoRecuperado / costoPendiente
+      const vehiculosNoDesarmados = (vehiculosRes || [])
+        .filter(v => v.estado !== 'DESARMADO')
+        .map(v => {
+          const base = baseMap.get(v.id);
+          const crBase = base ? Number(base.costoRecuperado ?? base.costo_recuperado) : NaN;
+          const crOrig = Number(v.costoRecuperado ?? v.costo_recuperado);
+          const costoRecuperadoVal = !isNaN(crBase) && crBase !== 0 ? crBase : (!isNaN(crOrig) && crOrig !== 0 ? crOrig : (base?.costoRecuperado != null ? Number(base.costoRecuperado) : 0));
+
+          return {
+            ...v,
+            costoRecuperado: costoRecuperadoVal,
+            costoPendiente: base?.costoPendiente != null ? Number(base.costoPendiente) : v.costoPendiente
+          };
+        });
 
       const vehiculosIdsValid = new Set(vehiculosNoDesarmados.map(v => v.id));
       const vehiculosCodigosValid = new Set(vehiculosNoDesarmados.map(v => v.codigoVehiculo).filter(Boolean));
@@ -376,33 +392,51 @@ const ReporteVehiculos = () => {
     });
   }, [vehiculosListado, movimientos, filtros.mes, filtros.anio, filtros.vehiculoId, filtros.estadoVehiculo, filtros.busqueda]);
 
-  // Obtener precio de venta alineado con VehiculosJerarquicos (precioVenta o costoRecuperado)
+  // Obtener precio de venta puro (ingreso facturado por venta del vehículo)
   const obtenerPrecioVenta = (v) => {
-    const pV = Number(v?.precioVenta ?? v?.precio_venta ?? 0);
+    return Number(v?.precioVenta ?? v?.precio_venta ?? 0);
+  };
+
+  // Obtener monto recuperado real (flujo neto registrado en el vehículo tras ingresos y egresos)
+  const obtenerMontoRecuperado = (v) => {
     const cR = Number(v?.costoRecuperado ?? v?.costo_recuperado ?? 0);
-    return pV > 0 ? pV : cR;
+    const pV = Number(v?.precioVenta ?? v?.precio_venta ?? 0);
+    return cR !== 0 ? cR : pV;
+  };
+
+  // Obtener ganancia neta real considerando inversión total y monto recuperado
+  const obtenerGananciaReal = (v) => {
+    const inv = Number(v?.inversionTotal ?? v?.inversion_total ?? 0);
+    const rec = obtenerMontoRecuperado(v);
+    return rec - inv;
   };
 
   const statsVendidos = useMemo(() => {
     let totInversion = 0;
     let totVenta = 0;
+    let totRecuperado = 0;
 
     vehiculosVendidos.forEach(v => {
       const inv = Number(v.inversionTotal ?? v.inversion_total ?? 0);
       const ven = obtenerPrecioVenta(v);
+      const rec = obtenerMontoRecuperado(v);
       totInversion += inv;
-      totVenta += ven;
+      totVenta += (ven > 0 ? ven : rec);
+      totRecuperado += rec;
     });
 
-    const ganancia = totVenta - totInversion;
+    const ganancia = totRecuperado - totInversion;
     const margen = totInversion > 0 ? (ganancia / totInversion) * 100 : 0;
+    const pctRecuperacion = totInversion > 0 ? (totRecuperado / totInversion) * 100 : 0;
 
     return {
       cantidad: vehiculosVendidos.length,
       totInversion,
       totVenta,
+      totRecuperado,
       ganancia,
-      margen
+      margen,
+      pctRecuperacion
     };
   }, [vehiculosVendidos]);
 
@@ -448,7 +482,8 @@ const ReporteVehiculos = () => {
       const exportVendidos = vehiculosVendidos.map(v => {
         const inv = Number(v.inversionTotal ?? v.inversion_total ?? 0);
         const ven = obtenerPrecioVenta(v);
-        const gan = ven - inv;
+        const rec = obtenerMontoRecuperado(v);
+        const gan = obtenerGananciaReal(v);
         const mar = inv > 0 ? (gan / inv) * 100 : 0;
         return {
           'Código': v.codigoVehiculo,
@@ -459,6 +494,7 @@ const ReporteVehiculos = () => {
           'Fecha Venta': v.fechaVenta || v.fecha_venta || '',
           'Inversión Total': inv,
           'Precio Venta': ven,
+          'Monto Recuperado': rec,
           'Ganancia Neta': gan,
           '% Margen (ROI)': `${mar.toFixed(2)}%`
         };
@@ -473,6 +509,7 @@ const ReporteVehiculos = () => {
         'Fecha Venta': '',
         'Inversión Total': statsVendidos.totInversion,
         'Precio Venta': statsVendidos.totVenta,
+        'Monto Recuperado': statsVendidos.totRecuperado,
         'Ganancia Neta': statsVendidos.ganancia,
         '% Margen (ROI)': `${statsVendidos.margen.toFixed(2)}%`
       });
@@ -480,7 +517,7 @@ const ReporteVehiculos = () => {
       const wsVendidos = XLSX.utils.json_to_sheet(exportVendidos);
       XLSX.utils.book_append_sheet(wb, wsVendidos, 'Vehículos Vendidos');
       wsVendidos['!cols'] = [
-        { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 8 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 15 }
+        { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 8 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 15 }
       ];
     }
 
@@ -844,7 +881,7 @@ const ReporteVehiculos = () => {
       title: 'Inversión Total',
       key: 'inversionTotal',
       align: 'right',
-      width: '15%',
+      width: '13%',
       render: (_, record) => {
         const inv = Number(record.inversionTotal ?? record.inversion_total ?? 0);
         return (
@@ -860,7 +897,7 @@ const ReporteVehiculos = () => {
       title: 'Precio Venta',
       key: 'precioVenta',
       align: 'right',
-      width: '15%',
+      width: '13%',
       render: (_, record) => {
         const venta = obtenerPrecioVenta(record);
         return (
@@ -875,14 +912,36 @@ const ReporteVehiculos = () => {
       sorter: (a, b) => obtenerPrecioVenta(a) - obtenerPrecioVenta(b)
     },
     {
+      title: 'Monto Recuperado',
+      key: 'costoRecuperado',
+      align: 'right',
+      width: '14%',
+      render: (_, record) => {
+        const rec = obtenerMontoRecuperado(record);
+        const inv = Number(record.inversionTotal ?? record.inversion_total ?? 0);
+        const pct = inv > 0 ? (rec / inv) * 100 : 0;
+        const esNegativo = rec < 0;
+
+        return (
+          <Space direction="vertical" size={0} style={{ textAlign: 'right' }}>
+            <Text strong style={{ color: esNegativo ? '#722ed1' : '#52c41a', fontSize: '14px' }}>
+              ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(rec)}
+            </Text>
+            <Text type="secondary" style={{ fontSize: '11px' }}>
+              {pct.toLocaleString('es-CR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% de inversión
+            </Text>
+          </Space>
+        );
+      },
+      sorter: (a, b) => obtenerMontoRecuperado(a) - obtenerMontoRecuperado(b)
+    },
+    {
       title: 'Ganancia Neta',
       key: 'ganancia',
       align: 'right',
-      width: '16%',
+      width: '14%',
       render: (_, record) => {
-        const inv = Number(record.inversionTotal ?? record.inversion_total ?? 0);
-        const venta = obtenerPrecioVenta(record);
-        const ganancia = venta - inv;
+        const ganancia = obtenerGananciaReal(record);
         const esPositivo = ganancia >= 0;
 
         return (
@@ -896,23 +955,19 @@ const ReporteVehiculos = () => {
           />
         );
       },
-      sorter: (a, b) => {
-        const gA = obtenerPrecioVenta(a) - Number(a.inversionTotal ?? a.inversion_total ?? 0);
-        const gB = obtenerPrecioVenta(b) - Number(b.inversionTotal ?? b.inversion_total ?? 0);
-        return gA - gB;
-      }
+      sorter: (a, b) => obtenerGananciaReal(a) - obtenerGananciaReal(b)
     },
     {
       title: '% Margen (ROI)',
       key: 'margen',
       align: 'center',
-      width: '12%',
+      width: '11%',
       render: (_, record) => {
         const inv = Number(record.inversionTotal ?? record.inversion_total ?? 0);
-        const venta = obtenerPrecioVenta(record);
         if (inv <= 0) return <Text type="secondary">N/A</Text>;
 
-        const margen = ((venta - inv) / inv) * 100;
+        const ganancia = obtenerGananciaReal(record);
+        const margen = (ganancia / inv) * 100;
         const color = margen >= 20 ? 'success' : margen >= 0 ? 'gold' : 'error';
 
         return (
@@ -924,8 +979,8 @@ const ReporteVehiculos = () => {
       sorter: (a, b) => {
         const invA = Number(a.inversionTotal ?? a.inversion_total ?? 0);
         const invB = Number(b.inversionTotal ?? b.inversion_total ?? 0);
-        const rA = invA > 0 ? (obtenerPrecioVenta(a) - invA) / invA : -999;
-        const rB = invB > 0 ? (obtenerPrecioVenta(b) - invB) / invB : -999;
+        const rA = invA > 0 ? (obtenerGananciaReal(a) / invA) : -999;
+        const rB = invB > 0 ? (obtenerGananciaReal(b) / invB) : -999;
         return rA - rB;
       }
     },
@@ -1073,10 +1128,9 @@ const ReporteVehiculos = () => {
             <Space>
               <Tooltip title="Enviar reporte por correo electrónico">
                 <Button
-                  type="primary"
                   icon={<MailOutlined />}
                   onClick={() => setModalEmailVisible(true)}
-                  className="btn-purple"
+                  className="btn-correo"
                 >
                   Enviar por Correo
                 </Button>
@@ -1484,9 +1538,12 @@ const ReporteVehiculos = () => {
                       <span style={{ fontWeight: 600, color: '#262626' }}>
                         Rentabilidad de Unidades Vendidas {labelPeriodo ? `(${labelPeriodo})` : '(Histórico Completo)'}
                       </span>
-                      <Space>
+                      <Space wrap>
                         <Tag color="blue" style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px' }}>
                           Total Ventas: ₡{statsVendidos.totVenta.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                        </Tag>
+                        <Tag color="cyan" style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>
+                          Total Recuperado: ₡{statsVendidos.totRecuperado.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
                         </Tag>
                         <Tag color={statsVendidos.ganancia >= 0 ? 'success' : 'error'} style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>
                           Ganancia Neta: {statsVendidos.ganancia >= 0 ? '+' : ''}₡{statsVendidos.ganancia.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
@@ -1519,16 +1576,21 @@ const ReporteVehiculos = () => {
                             </Text>
                           </Table.Summary.Cell>
                           <Table.Summary.Cell index={3} align="right">
+                            <Text strong style={{ color: '#52c41a' }}>
+                              ₡{statsVendidos.totRecuperado.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                            </Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={4} align="right">
                             <Text style={{ color: statsVendidos.ganancia >= 0 ? '#52c41a' : '#f5222d', fontSize: '15px' }}>
                               {statsVendidos.ganancia >= 0 ? '+' : ''}₡{statsVendidos.ganancia.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
                             </Text>
                           </Table.Summary.Cell>
-                          <Table.Summary.Cell index={4} align="center">
+                          <Table.Summary.Cell index={5} align="center">
                             <Tag color={statsVendidos.margen >= 20 ? 'success' : statsVendidos.margen >= 0 ? 'gold' : 'error'} style={{ fontWeight: 600 }}>
                               {statsVendidos.margen >= 0 ? `+${statsVendidos.margen.toFixed(1)}%` : `${statsVendidos.margen.toFixed(1)}%`}
                             </Tag>
                           </Table.Summary.Cell>
-                          <Table.Summary.Cell index={5} />
+                          <Table.Summary.Cell index={6} />
                         </Table.Summary.Row>
                       </Table.Summary>
                     )}

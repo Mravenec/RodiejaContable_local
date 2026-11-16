@@ -192,6 +192,21 @@ class VehiculoService {
     }
   }
   
+  /**
+   * Obtiene la lista base de vehículos directamente desde la tabla vehiculos
+   * (rápido, sin cargar relaciones pesadas de generación/marca)
+   * @returns {Promise<Array>} Lista de vehículos
+   */
+  async getVehiculosBase() {
+    try {
+      const response = await api.get('/vehiculos');
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      this.error('Error fetching base vehicles:', error);
+      return [];
+    }
+  }
+
   // Obtener todos los vehículos con sus relaciones
   /**
    * Obtiene vehículos en formato plano o jerárquico según los parámetros

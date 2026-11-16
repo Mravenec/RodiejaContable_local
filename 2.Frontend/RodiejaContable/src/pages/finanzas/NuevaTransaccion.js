@@ -17,7 +17,8 @@ import {
   Col,
   Divider,
   Tabs,
-  Alert
+  Alert,
+  Spin
 } from 'antd';
 import { 
   SaveOutlined, 
@@ -32,6 +33,8 @@ import {
 import { useCreateTransaccion } from '../../hooks/useFinanzas';
 import vehiculoService from '../../api/vehiculos';
 import { useTiposByCategoria, useVehiculosParaTransacciones, useVehiculosParaEgreso, useEmpleados, useRepuestos } from '../../hooks';
+import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import api from '../../api/axios';
 
 const { Title, Text } = Typography;
@@ -40,10 +43,22 @@ const { Option } = Select;
 const { TabPane } = Tabs;
 
 const NuevaTransaccion = () => {
+  const { user } = useAuth();
+  const { canCreate, loading: loadingPermisos } = usePermissions('finanzas_lista');
+  const isAdmin = user?.rol === 'ADMIN';
+  const tienePermiso = isAdmin || canCreate;
+
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!loadingPermisos && !tienePermiso) {
+      message.error('No tienes permisos para crear transacciones.');
+      navigate('/finanzas');
+    }
+  }, [loadingPermisos, tienePermiso, navigate]);
   
   const prefilledData = React.useMemo(() => location.state || {}, [location.state]);
   
@@ -533,6 +548,18 @@ const NuevaTransaccion = () => {
     setMonto(montoNumerico);
   };
 
+  if (loadingPermisos) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <Spin size="large" tip="Verificando permisos..." />
+      </div>
+    );
+  }
+
+  if (!tienePermiso) {
+    return null;
+  }
+
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '40px' }}>
       {/* ── Header de navegación ─────────────────────── */}
@@ -984,6 +1011,7 @@ const NuevaTransaccion = () => {
                   loading={isCreating}
                   disabled={isCreating}
                   size="large"
+                  className="btn-guardar"
                   style={{ borderRadius: '6px', padding: '0 32px' }}
                 >
                   {isCreating ? 'Guardando...' : 'Guardar Transacción'}
@@ -1256,6 +1284,7 @@ const NuevaTransaccion = () => {
                   icon={<SaveOutlined />}
                   loading={isCreating}
                   size="large"
+                  className="btn-guardar"
                   style={{ borderRadius: '6px', padding: '0 32px' }}
                 >
                   Registrar Egreso

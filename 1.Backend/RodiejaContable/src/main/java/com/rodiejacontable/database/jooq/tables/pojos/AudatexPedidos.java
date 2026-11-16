@@ -8,6 +8,7 @@ import com.rodiejacontable.database.jooq.enums.AudatexPedidosEstado;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 
@@ -38,6 +39,10 @@ public class AudatexPedidos implements Serializable {
     private Integer transaccionId;
     private BigDecimal comisionCalculada;
     private Byte porcentajeComision;
+    private Byte comisionPagada;
+    private LocalDate fechaPagoComision;
+    private String referenciaPagoComision;
+    private String notasPagoComision;
 
     public AudatexPedidos() {}
 
@@ -61,6 +66,10 @@ public class AudatexPedidos implements Serializable {
         this.transaccionId = value.transaccionId;
         this.comisionCalculada = value.comisionCalculada;
         this.porcentajeComision = value.porcentajeComision;
+        this.comisionPagada = value.comisionPagada;
+        this.fechaPagoComision = value.fechaPagoComision;
+        this.referenciaPagoComision = value.referenciaPagoComision;
+        this.notasPagoComision = value.notasPagoComision;
     }
 
     public AudatexPedidos(
@@ -82,7 +91,11 @@ public class AudatexPedidos implements Serializable {
         Integer userId,
         Integer transaccionId,
         BigDecimal comisionCalculada,
-        Byte porcentajeComision
+        Byte porcentajeComision,
+        Byte comisionPagada,
+        LocalDate fechaPagoComision,
+        String referenciaPagoComision,
+        String notasPagoComision
     ) {
         this.id = id;
         this.numeroPedido = numeroPedido;
@@ -103,6 +116,10 @@ public class AudatexPedidos implements Serializable {
         this.transaccionId = transaccionId;
         this.comisionCalculada = comisionCalculada;
         this.porcentajeComision = porcentajeComision;
+        this.comisionPagada = comisionPagada;
+        this.fechaPagoComision = fechaPagoComision;
+        this.referenciaPagoComision = referenciaPagoComision;
+        this.notasPagoComision = notasPagoComision;
     }
 
     /**
@@ -406,6 +423,74 @@ public class AudatexPedidos implements Serializable {
         return this;
     }
 
+    /**
+     * Getter for
+     * <code>sistema_vehicular.audatex_pedidos.comision_pagada</code>.
+     */
+    public Byte getComisionPagada() {
+        return this.comisionPagada;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.audatex_pedidos.comision_pagada</code>.
+     */
+    public AudatexPedidos setComisionPagada(Byte comisionPagada) {
+        this.comisionPagada = comisionPagada;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.audatex_pedidos.fecha_pago_comision</code>.
+     */
+    public LocalDate getFechaPagoComision() {
+        return this.fechaPagoComision;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.audatex_pedidos.fecha_pago_comision</code>.
+     */
+    public AudatexPedidos setFechaPagoComision(LocalDate fechaPagoComision) {
+        this.fechaPagoComision = fechaPagoComision;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.audatex_pedidos.referencia_pago_comision</code>.
+     */
+    public String getReferenciaPagoComision() {
+        return this.referenciaPagoComision;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.audatex_pedidos.referencia_pago_comision</code>.
+     */
+    public AudatexPedidos setReferenciaPagoComision(String referenciaPagoComision) {
+        this.referenciaPagoComision = referenciaPagoComision;
+        return this;
+    }
+
+    /**
+     * Getter for
+     * <code>sistema_vehicular.audatex_pedidos.notas_pago_comision</code>.
+     */
+    public String getNotasPagoComision() {
+        return this.notasPagoComision;
+    }
+
+    /**
+     * Setter for
+     * <code>sistema_vehicular.audatex_pedidos.notas_pago_comision</code>.
+     */
+    public AudatexPedidos setNotasPagoComision(String notasPagoComision) {
+        this.notasPagoComision = notasPagoComision;
+        return this;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -529,6 +614,30 @@ public class AudatexPedidos implements Serializable {
         }
         else if (!this.porcentajeComision.equals(other.porcentajeComision))
             return false;
+        if (this.comisionPagada == null) {
+            if (other.comisionPagada != null)
+                return false;
+        }
+        else if (!this.comisionPagada.equals(other.comisionPagada))
+            return false;
+        if (this.fechaPagoComision == null) {
+            if (other.fechaPagoComision != null)
+                return false;
+        }
+        else if (!this.fechaPagoComision.equals(other.fechaPagoComision))
+            return false;
+        if (this.referenciaPagoComision == null) {
+            if (other.referenciaPagoComision != null)
+                return false;
+        }
+        else if (!this.referenciaPagoComision.equals(other.referenciaPagoComision))
+            return false;
+        if (this.notasPagoComision == null) {
+            if (other.notasPagoComision != null)
+                return false;
+        }
+        else if (!this.notasPagoComision.equals(other.notasPagoComision))
+            return false;
         return true;
     }
 
@@ -555,6 +664,10 @@ public class AudatexPedidos implements Serializable {
         result = prime * result + ((this.transaccionId == null) ? 0 : this.transaccionId.hashCode());
         result = prime * result + ((this.comisionCalculada == null) ? 0 : this.comisionCalculada.hashCode());
         result = prime * result + ((this.porcentajeComision == null) ? 0 : this.porcentajeComision.hashCode());
+        result = prime * result + ((this.comisionPagada == null) ? 0 : this.comisionPagada.hashCode());
+        result = prime * result + ((this.fechaPagoComision == null) ? 0 : this.fechaPagoComision.hashCode());
+        result = prime * result + ((this.referenciaPagoComision == null) ? 0 : this.referenciaPagoComision.hashCode());
+        result = prime * result + ((this.notasPagoComision == null) ? 0 : this.notasPagoComision.hashCode());
         return result;
     }
 
@@ -581,6 +694,10 @@ public class AudatexPedidos implements Serializable {
         sb.append(", ").append(transaccionId);
         sb.append(", ").append(comisionCalculada);
         sb.append(", ").append(porcentajeComision);
+        sb.append(", ").append(comisionPagada);
+        sb.append(", ").append(fechaPagoComision);
+        sb.append(", ").append(referenciaPagoComision);
+        sb.append(", ").append(notasPagoComision);
 
         sb.append(")");
         return sb.toString();

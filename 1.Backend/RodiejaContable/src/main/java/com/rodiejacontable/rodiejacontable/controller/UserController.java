@@ -4,6 +4,7 @@ import com.rodiejacontable.rodiejacontable.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,13 +56,14 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteUser(@PathVariable Integer id) {
+    public ResponseEntity<?> deleteUser(@PathVariable Integer id, Authentication authentication) {
         try {
-            boolean success = usersService.deleteUser(id);
+            String currentEmail = authentication != null ? authentication.getName() : null;
+            boolean success = usersService.deleteUser(id, currentEmail);
             if (success) {
                 return ResponseEntity.ok(Map.of("message", "Usuario eliminado exitosamente"));
             }
-            return ResponseEntity.badRequest().body(Map.of("message", "No se puede eliminar el usuario administrador o el usuario no existe."));
+            return ResponseEntity.badRequest().body(Map.of("message", "No puedes eliminar tu propia cuenta de usuario o el usuario no existe."));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("message", "No se pudo eliminar el usuario, puede estar en uso por otros registros."));
         }

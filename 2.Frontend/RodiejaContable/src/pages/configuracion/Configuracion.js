@@ -1,25 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs } from 'antd';
 import { TeamOutlined, SafetyCertificateOutlined, DatabaseOutlined } from '@ant-design/icons';
 import UsuariosTab from './UsuariosTab';
 import RolesPrivacidadTab from './RolesPrivacidadTab';
 import DatabaseImportExportTab from './DatabaseImportExportTab';
-import '../../styles/Settings.css';
+import './Settings.css';
 
 const { TabPane } = Tabs;
 
 const Configuracion = () => {
   const [activeTab, setActiveTab] = useState('usuarios');
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 992);
 
-  React.useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 992);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
-    <div className="settings-container mx-auto" style={{ padding: isMobile ? '16px' : '32px', maxWidth: '1200px' }}>
+    <div className="settings-container mx-auto" style={{ padding: isMobile ? '16px' : '32px', maxWidth: '1200px', width: '100%' }}>
       <div className="settings-header">
         <h1>Ajustes del Sistema</h1>
         <p>Gestiona los usuarios, roles y preferencias del sistema</p>

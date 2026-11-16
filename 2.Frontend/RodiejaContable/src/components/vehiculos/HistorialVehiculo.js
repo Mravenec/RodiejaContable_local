@@ -4,6 +4,10 @@ import {
   HistoryOutlined,
   UserOutlined,
   CalendarOutlined,
+  PlusCircleOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import api from '../../api/axios';
 
@@ -50,12 +54,16 @@ const HistorialVehiculo = ({ vehiculoId }) => {
   };
 
   const getAccionIcon = (accion) => {
-    const iconos = {
-      'INSERT': '📝',
-      'UPDATE': '✏️',
-      'DELETE': '🗑️'
-    };
-    return iconos[accion] || '📋';
+    switch (accion) {
+      case 'INSERT':
+        return <PlusCircleOutlined />;
+      case 'UPDATE':
+        return <EditOutlined />;
+      case 'DELETE':
+        return <DeleteOutlined />;
+      default:
+        return <FileTextOutlined />;
+    }
   };
 
   const formatearFecha = (fecha) => {

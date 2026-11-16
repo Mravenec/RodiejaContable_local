@@ -37,6 +37,7 @@ import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import finanzasService from '../../api/finanzas';
 import { useTransaccionesCompletas } from '../../hooks/useTransacciones';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import vehiculoService from '../../api/vehiculos';
 
 const { Option } = Select;
@@ -44,6 +45,11 @@ const { Text } = Typography;
 
 const Finanzas = () => {
   const { user } = useAuth();
+  const { canCreate, canEdit, canDelete } = usePermissions('finanzas_lista');
+  const isAdmin = user?.rol === 'ADMIN';
+  const tienePermisoCrear = isAdmin || canCreate;
+  const tienePermisoEditar = isAdmin || canEdit;
+  const tienePermisoEliminar = isAdmin || canDelete;
   const [filtros, setFiltros] = useState({
     tipo: null,
     estado: null,
@@ -389,8 +395,9 @@ const Finanzas = () => {
       width: 150,
       render: (_, record) => {
         const esCompraAutomatica = record.descripcion?.startsWith('Compra automática');
-        const puedeReembolsar = record.estado === 'COMPLETADA' && !record.esReembolso && !record.yaReembolsada && user?.rol !== 'CONTADOR' && !esCompraAutomatica;
-        const puedeModificar = !record.esReembolso && !record.yaReembolsada && user?.rol !== 'CONTADOR' && !esCompraAutomatica;
+        const puedeReembolsar = record.estado === 'COMPLETADA' && !record.esReembolso && !record.yaReembolsada && tienePermisoEditar && !esCompraAutomatica;
+        const puedeModificar = !record.esReembolso && !record.yaReembolsada && tienePermisoEditar && !esCompraAutomatica;
+        const puedeEliminar = !record.esReembolso && !record.yaReembolsada && tienePermisoEliminar && !esCompraAutomatica;
 
         return (
           <Space size="middle">
@@ -417,7 +424,7 @@ const Finanzas = () => {
                 title="Editar"
               />
             )}
-            {puedeModificar && (
+            {puedeEliminar && (
               <Button 
                 type="text" 
                 danger 
@@ -628,12 +635,13 @@ const Finanzas = () => {
               />
             )}
           </Button>
-          {user?.rol !== 'CONTADOR' && (
+          {tienePermisoCrear && (
             <Button 
               type="primary" 
               icon={<PlusOutlined />} 
               onClick={handleNuevaTransaccion}
               size="large"
+              className="btn-agregar"
               style={{ borderRadius: '6px' }}
             >
               Nueva Transacción

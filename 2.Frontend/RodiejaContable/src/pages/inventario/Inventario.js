@@ -24,7 +24,8 @@ import {
   SyncOutlined,
   EditOutlined,
   DeleteOutlined,
-  ToolOutlined
+  ToolOutlined,
+  StarFilled
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import InventarioService from '../../api/inventario';
@@ -32,6 +33,8 @@ import { usePartesVehiculo } from '../../hooks/usePartesVehiculo';
 import { audatexService } from '../../api';
 import { useRepuesto } from '../../hooks/useInventario';
 import { formatImageUrl } from '../../utils/imageUtils';
+import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const StockCell = ({ record }) => {
   const { data: repuesto, isLoading } = useRepuesto(record.id);
@@ -57,6 +60,12 @@ const { useBreakpoint } = Grid;
 const Inventario = () => {
   const screens = useBreakpoint();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { canCreate, canEdit, canDelete } = usePermissions('inventario_lista');
+  const isAdmin = user?.rol === 'ADMIN';
+  const tienePermisoCrear = isAdmin || canCreate;
+  const tienePermisoEditar = isAdmin || canEdit;
+  const tienePermisoEliminar = isAdmin || canDelete;
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
   const [oportunidadesPorRepuesto, setOportunidadesPorRepuesto] = useState({});
@@ -328,16 +337,16 @@ const Inventario = () => {
         const oportunidades = oportunidadesPorRepuesto[record.id] || 0;
         if (oportunidades > 0) {
           let color = 'cyan';
-          let prefix = '⭐ ';
-          if (oportunidades >= 7) { color = 'red'; prefix = '🌟 '; }
-          else if (oportunidades >= 4) { color = 'gold'; prefix = '✨ '; }
+          if (oportunidades >= 7) { color = 'red'; }
+          else if (oportunidades >= 4) { color = 'gold'; }
           return (
             <Tag 
               color={color} 
               style={{ cursor: 'pointer', fontWeight: color === 'red' ? 700 : 600, padding: '2px 8px', fontSize: '13px', borderRadius: '12px' }}
               onClick={() => navigate(`/inventario/${record.id}?tab=oportunidades`)}
             >
-              {prefix} {oportunidades} {oportunidades === 1 ? 'Op.' : 'Ops.'}
+              <StarFilled style={{ marginRight: 4 }} />
+              {oportunidades} {oportunidades === 1 ? 'Op.' : 'Ops.'}
             </Tag>
           );
         }
@@ -351,28 +360,32 @@ const Inventario = () => {
       width: 120,
       render: (_, record) => (
         <Space size="middle">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={(e) => { e.stopPropagation(); navigate(`/inventario/editar/${record.id}`); }}
-          />
-          <Popconfirm
-            title="¿Eliminar permanentemente?"
-            description="Si tiene transacciones asociadas, la eliminación fallará."
-            onConfirm={(e) => { e.stopPropagation(); handleDelete(record.id); }}
-            onCancel={(e) => e.stopPropagation()}
-            okText="Sí, eliminar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
-          >
-            <div onClick={(e) => e.stopPropagation()}>
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-              />
-            </div>
-          </Popconfirm>
+          {tienePermisoEditar && (
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={(e) => { e.stopPropagation(); navigate(`/inventario/editar/${record.id}`); }}
+            />
+          )}
+          {tienePermisoEliminar && (
+            <Popconfirm
+              title="¿Eliminar permanentemente?"
+              description="Si tiene transacciones asociadas, la eliminación fallará."
+              onConfirm={(e) => { e.stopPropagation(); handleDelete(record.id); }}
+              onCancel={(e) => e.stopPropagation()}
+              okText="Sí, eliminar"
+              cancelText="Cancelar"
+              okButtonProps={{ danger: true }}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <Button
+                  type="text"
+                  danger
+                  icon={<DeleteOutlined />}
+                />
+              </div>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -386,15 +399,18 @@ const Inventario = () => {
           <Title level={3} style={{ margin: 0, fontWeight: 600 }}>Gestión de Inventario</Title>
           <Text type="secondary">Administra los repuestos disponibles, en reparación o agotados.</Text>
         </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => navigate('/inventario/nuevo')}
-          size="large"
-          style={{ minWidth: '180px', borderRadius: '6px' }}
-        >
-          Nuevo Repuesto
-        </Button>
+        {tienePermisoCrear && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate('/inventario/nuevo')}
+            size="large"
+            className="btn-agregar"
+            style={{ minWidth: '180px', borderRadius: '6px' }}
+          >
+            Nuevo Repuesto
+          </Button>
+        )}
       </div>
 
       <Card

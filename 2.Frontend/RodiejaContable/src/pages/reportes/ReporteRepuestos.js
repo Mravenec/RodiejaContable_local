@@ -10,7 +10,8 @@ import {
   CalendarOutlined, DashboardOutlined, ToolOutlined,
   FilterOutlined, FileExcelOutlined,
   ArrowUpOutlined, ArrowDownOutlined,
-  ShopOutlined, MailOutlined, DollarOutlined
+  ShopOutlined, MailOutlined, DollarOutlined,
+  UserOutlined, BulbOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
@@ -970,10 +971,9 @@ const ReporteRepuestos = () => {
               </Tooltip>
               <Tooltip title="Enviar reporte mensual consolidado por correo a los administradores">
                 <Button
-                  type="primary"
                   icon={<MailOutlined />}
                   onClick={() => setModalEmailVisible(true)}
-                  className="btn-purple"
+                  className="btn-correo"
                 >
                   Enviar por Correo
                 </Button>
@@ -1335,13 +1335,13 @@ const ReporteRepuestos = () => {
           >
             <div className="dashboard-kpi-footer-chips">
               <Tag style={{ margin: 0, fontSize: '11px', background: '#ffffff', borderColor: '#ffd591', color: '#ad4e00', borderRadius: '4px' }}>
-                💼 Salarios: ₡{Number(gastosOperativos.salarios || 0).toLocaleString('es-CR')}
+                <UserOutlined style={{ marginRight: 4 }} />Salarios: ₡{Number(gastosOperativos.salarios || 0).toLocaleString('es-CR')}
               </Tag>
               <Tag style={{ margin: 0, fontSize: '11px', background: '#ffffff', borderColor: '#ffd591', color: '#ad4e00', borderRadius: '4px' }}>
-                🔧 Mant: ₡{Number(gastosOperativos.mantenimiento || 0).toLocaleString('es-CR')}
+                <ToolOutlined style={{ marginRight: 4 }} />Mant: ₡{Number(gastosOperativos.mantenimiento || 0).toLocaleString('es-CR')}
               </Tag>
               <Tag style={{ margin: 0, fontSize: '11px', background: '#ffffff', borderColor: '#ffd591', color: '#ad4e00', borderRadius: '4px' }}>
-                💡 Serv: ₡{Number(gastosOperativos.serviciosPublicos || 0).toLocaleString('es-CR')}
+                <BulbOutlined style={{ marginRight: 4 }} />Serv: ₡{Number(gastosOperativos.serviciosPublicos || 0).toLocaleString('es-CR')}
               </Tag>
             </div>
           </DashboardKpiCard>
@@ -1426,13 +1426,13 @@ const ReporteRepuestos = () => {
                       </span>
                       <Space wrap>
                         <Tag color="gold" style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px' }}>
-                          💼 Salarios: ₡{gastosOperativos.salarios.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                          <UserOutlined style={{ marginRight: 4 }} />Salarios: ₡{gastosOperativos.salarios.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
                         </Tag>
                         <Tag color="cyan" style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px' }}>
-                          🔧 Mantenimiento: ₡{gastosOperativos.mantenimiento.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                          <ToolOutlined style={{ marginRight: 4 }} />Mantenimiento: ₡{gastosOperativos.mantenimiento.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
                         </Tag>
                         <Tag color="blue" style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px' }}>
-                          💡 Servicios: ₡{gastosOperativos.serviciosPublicos.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                          <BulbOutlined style={{ marginRight: 4 }} />Servicios: ₡{gastosOperativos.serviciosPublicos.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
                         </Tag>
                         <Tag color="orange" style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>
                           Total: ₡{gastosOperativos.total.toLocaleString('es-CR', { minimumFractionDigits: 2 })}

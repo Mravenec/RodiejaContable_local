@@ -285,12 +285,13 @@ const normalizarEOrdenar = (
     });
 
     let costoRecuperado = toNum(v.costo_recuperado ?? v.costoRecuperado, 0);
-    if (totalIngresosTransacciones > 0) {
-      costoRecuperado = Math.max(costoRecuperado, totalIngresosTransacciones);
-    }
     const precioVenta = isNullish(v.precio_venta ?? v.precioVenta) ? null : Number(v.precio_venta ?? v.precioVenta);
-    if (toStr(v.estado).toUpperCase() === 'VENDIDO' && precioVenta && precioVenta > 0) {
-      costoRecuperado = Math.max(costoRecuperado, precioVenta);
+    if (costoRecuperado === 0) {
+      if (toStr(v.estado).toUpperCase() === 'VENDIDO' && precioVenta && precioVenta > 0) {
+        costoRecuperado = precioVenta;
+      } else if (totalIngresosTransacciones > 0) {
+        costoRecuperado = totalIngresosTransacciones;
+      }
     }
 
     const costoPendiente = inversionTotal - costoRecuperado;
@@ -1629,8 +1630,9 @@ const VehiculosJerarquicos = () => {
           (mod.generaciones || []).forEach(gen => {
             (gen.vehiculos || []).forEach(v => {
               const invTot = Number(v.inversion_total || 0);
-              const rec = Number(v.precio_venta || v.costo_recuperado || 0);
-              const gan = Number(v.balance_neto || (rec - invTot));
+              const pVenta = Number(v.precio_venta || 0);
+              const rec = Number(v.costo_recuperado || (pVenta > 0 ? pVenta : 0));
+              const gan = Number(v.balance_neto != null ? v.balance_neto : (rec - invTot));
               const roi = invTot > 0 ? `${((gan / invTot) * 100).toFixed(1)}%` : '0.0%';
 
               listVehiculos.push({
@@ -1642,7 +1644,8 @@ const VehiculosJerarquicos = () => {
                 'Estado': v.estado,
                 'Fecha Venta': v.fecha_venta || '-',
                 'Inversión Total': invTot,
-                'Precio Venta / Ingresos': rec,
+                'Precio Venta': pVenta,
+                'Monto Recuperado': rec,
                 'Ganancia Neta': gan,
                 '% Margen / ROI': roi,
                 'Repuestos Extraídos': (v.repuestos || []).length
@@ -1658,7 +1661,8 @@ const VehiculosJerarquicos = () => {
                   'Fecha Ingreso': v.fecha_ingreso || '-',
                   'Fecha Venta': v.fecha_venta || '-',
                   'Inversión Total': invTot,
-                  'Precio Venta': rec,
+                  'Precio Venta': pVenta,
+                  'Monto Recuperado': rec,
                   'Ganancia Neta': gan,
                   '% Margen Ganancia (ROI)': roi
                 });

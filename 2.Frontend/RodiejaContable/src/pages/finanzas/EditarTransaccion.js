@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Form, Input, InputNumber, Button, Card, Typography, Select, Row, Col, Divider, Spin } from 'antd';
+import { Form, Input, InputNumber, Button, Card, Typography, Select, Row, Col, Divider, Spin, message } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useQuery } from 'react-query';
 
@@ -8,6 +8,8 @@ import { useTransaccion, useUpdateTransaccion } from '../../hooks/useFinanzas';
 import { useEmpleados } from '../../hooks/useEmpleados';
 import { useVehiculos } from '../../hooks/useVehiculos';
 import { getTiposTransacciones } from '../../api/transacciones';
+import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -16,6 +18,17 @@ const EditarTransaccion = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  const { user } = useAuth();
+  const { canEdit, loading: loadingPermisos } = usePermissions('finanzas_lista');
+  const isAdmin = user?.rol === 'ADMIN';
+  const tienePermiso = isAdmin || canEdit;
+
+  useEffect(() => {
+    if (!loadingPermisos && !tienePermiso) {
+      message.error('No tienes permisos para editar transacciones.');
+      navigate('/finanzas');
+    }
+  }, [loadingPermisos, tienePermiso, navigate]);
 
   // Queries
   const { data: transaccion, isLoading: loadingTransaccion } = useTransaccion(id);
@@ -86,12 +99,16 @@ const EditarTransaccion = () => {
 
   const isLoading = loadingTransaccion || loadingEmpleados || loadingVehiculos || loadingTipos;
 
-  if (loadingTransaccion) {
+  if (loadingPermisos || loadingTransaccion) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '50px' }}>
-        <Spin size="large" tip="Cargando transacción..." />
+        <Spin size="large" tip="Verificando permisos y cargando transacción..." />
       </div>
     );
+  }
+
+  if (!tienePermiso) {
+    return null;
   }
 
   return (

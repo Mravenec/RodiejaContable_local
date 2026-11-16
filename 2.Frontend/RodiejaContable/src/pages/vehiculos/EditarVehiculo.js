@@ -19,7 +19,6 @@ import {
   Row,
   Col,
   Divider,
-  Alert,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -29,18 +28,24 @@ import {
   FileTextOutlined,
   UploadOutlined,
   DeleteOutlined,
-  LockOutlined,
+  PlusOutlined,
+  CloseOutlined,
+  CheckOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import { useUpdateVehiculo } from '../../hooks/useVehiculos';
+import { useMarcas } from '../../hooks/useMarcas';
+import { useModelos } from '../../hooks/useModelos';
+import { useGeneraciones } from '../../hooks/useGeneraciones';
 import vehiculoService from '../../api/vehiculos';
 import finanzaService from '../../api/finanzas';
 import inventarioService from '../../api/inventario';
 import { getTiposTransacciones } from '../../api/transacciones';
-import { generacionesAPI } from '../../api/generaciones';
-import { formatCurrency, formatCurrencyWithColor, formatDate } from '../../utils/formatters';
+import { formatCurrency } from '../../utils/formatters';
 import api from '../../api/axios';
 import dayjs from 'dayjs';
 import ImageCarousel from '../../components/common/ImageCarousel';
+import { API_BASE_URL } from '../../api/config';
 
 
 // Servicio para repuestos
@@ -131,11 +136,63 @@ const EditarVehiculo = () => {
   const [vehiculo, setVehiculo] = useState(null);
   const [transacciones, setTransacciones] = useState([]);
   const [repuestos, setRepuestos] = useState([]);
-  const [generaciones, setGeneraciones] = useState([]);
-  const [loadingGeneraciones, setLoadingGeneraciones] = useState(false);
+  const [allVehiculos, setAllVehiculos] = useState([]);
   const [loadingTransacciones, setLoadingTransacciones] = useState(false);
   const [loadingRepuestos, setLoadingRepuestos] = useState(false);
   const [imagenUrlValue, setImagenUrlValue] = useState(null);
+
+  // Estados para selección en cascada
+  const [marcaId, setMarcaId] = useState(null);
+  const [modeloId, setModeloId] = useState(null);
+  const [selectedGeneracionId, setSelectedGeneracionId] = useState(null);
+  const [aniosDisponibles, setAniosDisponibles] = useState([]);
+
+  // Estados para creación/edición de marcas
+  const [nuevaMarcaModal, setNuevaMarcaModal] = useState(false);
+  const [nuevaMarcaNombre, setNuevaMarcaNombre] = useState('');
+  const [creandoMarca, setCreandoMarca] = useState(false);
+  const [editingMarcaId, setEditingMarcaId] = useState(null);
+  const [editingMarcaNombre, setEditingMarcaNombre] = useState('');
+
+  // Estados para creación/edición de modelos
+  const [nuevoModeloModal, setNuevoModeloModal] = useState(false);
+  const [nuevoModeloNombre, setNuevoModeloNombre] = useState('');
+  const [creandoModelo, setCreandoModelo] = useState(false);
+  const [editingModeloId, setEditingModeloId] = useState(null);
+  const [editingModeloNombre, setEditingModeloNombre] = useState('');
+
+  // Estados para creación/edición de generaciones
+  const [nuevaGeneracionModal, setNuevaGeneracionModal] = useState(false);
+  const [nuevaGeneracionNombre, setNuevaGeneracionNombre] = useState('');
+  const [anioInicio, setAnioInicio] = useState(new Date().getFullYear());
+  const [anioFin, setAnioFin] = useState(new Date().getFullYear());
+  const [creandoGeneracion, setCreandoGeneracion] = useState(false);
+  const [editingGeneracionId, setEditingGeneracionId] = useState(null);
+  const [editingGeneracionNombre, setEditingGeneracionNombre] = useState('');
+  const [editingAnioInicio, setEditingAnioInicio] = useState(new Date().getFullYear());
+  const [editingAnioFin, setEditingAnioFin] = useState(new Date().getFullYear());
+
+  // Hooks para cargar marcas, modelos y generaciones
+  const {
+    data: marcas = [],
+    isLoading: isLoadingMarcas,
+    createMarcaMutation,
+    updateMarca
+  } = useMarcas();
+
+  const {
+    data: modelos = [],
+    isLoading: isLoadingModelos,
+    createModelo,
+    updateModelo
+  } = useModelos(marcaId);
+
+  const {
+    data: generaciones = [],
+    isLoading: isLoadingGeneraciones,
+    createGeneracion,
+    updateGeneracion
+  } = useGeneraciones(modeloId);
 
   // Use the same update logic as the hook
   const updateVehiculo = useUpdateVehiculo({
@@ -206,6 +263,14 @@ const EditarVehiculo = () => {
 
       setVehiculo(vehiculoConGeneracion);
 
+      // Cargar lista de vehículos para correlativos de código
+      try {
+        const todos = await vehiculoService.getVehiculos();
+        setAllVehiculos(Array.isArray(todos) ? todos : []);
+      } catch (err) {
+        console.error('Error cargando vehículos para correlativos:', err);
+      }
+
     } catch (error) {
       console.error('Error loading vehicle:', error);
       message.error(`Error al cargar el vehículo: ${error.message}`);
@@ -218,6 +283,283 @@ const EditarVehiculo = () => {
     loadVehicleData();
   }, [loadVehicleData]);
 
+  // Actualizar los años disponibles según la generación seleccionada
+  useEffect(() => {
+    if (!selectedGeneracionId || !generaciones || generaciones.length === 0) {
+      setAniosDisponibles([]);
+      return;
+    }
+
+    const generacionSeleccionada = generaciones.find(g => g.id === selectedGeneracionId);
+    if (!generacionSeleccionada) {
+      setAniosDisponibles([]);
+      return;
+    }
+
+    const anioIni = generacionSeleccionada.anioInicio || 1990;
+    const anioEnd = generacionSeleccionada.anioFin || new Date().getFullYear();
+
+    const anios = [];
+    for (let i = anioIni; i <= anioEnd; i++) {
+      anios.push(i);
+    }
+    setAniosDisponibles(anios.sort((a, b) => b - a));
+  }, [selectedGeneracionId, generaciones]);
+
+  // Regenerar código del vehículo basado en Marca y Modelo
+  const regenerarCodigo = useCallback((targetMarcaId, targetModeloId) => {
+    const targetMarca = marcas.find(m => m.id === targetMarcaId);
+    const targetModelo = modelos.find(m => m.id === targetModeloId);
+
+    if (!targetMarca || !targetModelo) return;
+
+    const cleanMarca = (targetMarca.nombre || '').replace(/\s+/g, '').toUpperCase();
+    const cleanModelo = (targetModelo.nombre || '').replace(/\s+/g, '').toUpperCase();
+    const prefix = `${cleanMarca.slice(0, 2)}${cleanModelo.slice(0, 2)}`.slice(0, 5);
+
+    if (!prefix) return;
+
+    // Si el vehículo actual ya tenía un código con este prefijo, mantenemos su código original
+    if (vehiculo?.codigoVehiculo && vehiculo.codigoVehiculo.startsWith(`${prefix}-`)) {
+      form.setFieldsValue({ codigoVehiculo: vehiculo.codigoVehiculo });
+      return;
+    }
+
+    // Buscar el máximo correlativo existente en otros vehículos con ese prefijo
+    let maxNum = 0;
+    if (Array.isArray(allVehiculos)) {
+      allVehiculos.forEach(v => {
+        if (v.id !== vehiculo?.id && v.codigoVehiculo && v.codigoVehiculo.startsWith(`${prefix}-`)) {
+          const parts = v.codigoVehiculo.split('-');
+          const num = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      });
+    }
+
+    const nextCorrelativo = String(maxNum + 1).padStart(3, '0');
+    const nuevoCodigo = `${prefix}-${nextCorrelativo}`;
+    form.setFieldsValue({ codigoVehiculo: nuevoCodigo });
+  }, [marcas, modelos, vehiculo, allVehiculos, form]);
+
+  // Manejadores de cambios en cascada
+  const handleMarcaChange = (value) => {
+    setMarcaId(value);
+    setModeloId(null);
+    setSelectedGeneracionId(null);
+    form.setFieldsValue({ modeloId: undefined, generacionId: undefined });
+  };
+
+  const handleModeloChange = (value) => {
+    setModeloId(value);
+    setSelectedGeneracionId(null);
+    form.setFieldsValue({ generacionId: undefined });
+    regenerarCodigo(marcaId, value);
+  };
+
+  const handleGeneracionChange = (value) => {
+    setSelectedGeneracionId(value);
+    form.setFieldsValue({ generacionId: value });
+    if (marcaId && modeloId) {
+      regenerarCodigo(marcaId, modeloId);
+    }
+  };
+
+  // ─── CRUD de Marcas ──────────────────────────────────
+  const handleNuevaMarca = async () => {
+    if (!nuevaMarcaNombre.trim()) {
+      message.warning('Por favor ingresa el nombre de la marca');
+      return;
+    }
+
+    try {
+      setCreandoMarca(true);
+      const response = await createMarcaMutation.mutateAsync({ nombre: nuevaMarcaNombre.trim() });
+      if (response?.data?.id) {
+        setMarcaId(response.data.id);
+        form.setFieldsValue({ marcaId: response.data.id, modeloId: undefined, generacionId: undefined });
+        message.success(`Marca "${nuevaMarcaNombre}" creada exitosamente`);
+        setNuevaMarcaModal(false);
+        setNuevaMarcaNombre('');
+      }
+    } catch (error) {
+      console.error('Error al crear la marca:', error);
+      message.error('Error al crear la marca. Por favor intenta nuevamente.');
+    } finally {
+      setCreandoMarca(false);
+    }
+  };
+
+  const handleEditarMarca = (m) => {
+    setEditingMarcaId(m.id);
+    setEditingMarcaNombre(m.nombre);
+  };
+
+  const handleGuardarEdicionMarca = async () => {
+    if (!editingMarcaNombre.trim()) {
+      message.warning('El nombre de la marca no puede estar vacío');
+      return;
+    }
+
+    try {
+      await updateMarca.mutateAsync({
+        id: editingMarcaId,
+        nombre: editingMarcaNombre.trim()
+      });
+      setEditingMarcaId(null);
+      setEditingMarcaNombre('');
+    } catch (error) {
+      console.error('Error al actualizar la marca:', error);
+      message.error('Error al actualizar la marca');
+    }
+  };
+
+  const handleCancelarEdicionMarca = () => {
+    setEditingMarcaId(null);
+    setEditingMarcaNombre('');
+  };
+
+  // ─── CRUD de Modelos ─────────────────────────────────
+  const handleNuevoModelo = async () => {
+    if (!nuevoModeloNombre.trim()) {
+      message.warning('Por favor ingresa el nombre del modelo');
+      return;
+    }
+
+    if (!marcaId) {
+      message.warning('Por favor selecciona una marca primero');
+      return;
+    }
+
+    try {
+      setCreandoModelo(true);
+      const response = await createModelo.mutateAsync({
+        nombre: nuevoModeloNombre.trim(),
+        marcaId: marcaId
+      });
+
+      if (response?.data?.id) {
+        setModeloId(response.data.id);
+        form.setFieldsValue({ modeloId: response.data.id, generacionId: undefined });
+        message.success(`Modelo "${nuevoModeloNombre}" creado exitosamente`);
+        setNuevoModeloModal(false);
+        setNuevoModeloNombre('');
+        regenerarCodigo(marcaId, response.data.id);
+      }
+    } catch (error) {
+      console.error('Error al crear el modelo:', error);
+      message.error('Error al crear el modelo. Por favor intenta nuevamente.');
+    } finally {
+      setCreandoModelo(false);
+    }
+  };
+
+  const handleEditarModelo = (mo) => {
+    setEditingModeloId(mo.id);
+    setEditingModeloNombre(mo.nombre);
+  };
+
+  const handleGuardarEdicionModelo = async () => {
+    if (!editingModeloNombre.trim()) {
+      message.warning('El nombre del modelo no puede estar vacío');
+      return;
+    }
+
+    try {
+      await updateModelo.mutateAsync({
+        id: editingModeloId,
+        nombre: editingModeloNombre.trim(),
+        marcaId: marcaId
+      });
+      setEditingModeloId(null);
+      setEditingModeloNombre('');
+    } catch (error) {
+      console.error('Error al actualizar el modelo:', error);
+      message.error('Error al actualizar el modelo');
+    }
+  };
+
+  const handleCancelarEdicionModelo = () => {
+    setEditingModeloId(null);
+    setEditingModeloNombre('');
+  };
+
+  // ─── CRUD de Generaciones ────────────────────────────
+  const handleNuevaGeneracion = async () => {
+    if (!nuevaGeneracionNombre.trim()) {
+      message.warning('Por favor ingresa el nombre de la generación');
+      return;
+    }
+
+    if (!modeloId) {
+      message.warning('Por favor selecciona un modelo primero');
+      return;
+    }
+
+    try {
+      setCreandoGeneracion(true);
+      const response = await createGeneracion.mutateAsync({
+        nombre: nuevaGeneracionNombre.trim(),
+        modeloId: modeloId,
+        anioInicio: parseInt(anioInicio, 10),
+        anioFin: parseInt(anioFin, 10)
+      });
+
+      if (response?.data?.id) {
+        const newGeneration = response.data;
+        setSelectedGeneracionId(newGeneration.id);
+        form.setFieldsValue({ generacionId: newGeneration.id });
+        message.success(`Generación "${nuevaGeneracionNombre}" creada exitosamente`);
+        setNuevaGeneracionModal(false);
+        setNuevaGeneracionNombre('');
+        if (marcaId && modeloId) {
+          regenerarCodigo(marcaId, modeloId);
+        }
+      }
+    } catch (error) {
+      console.error('Error al crear la generación:', error);
+      message.error('Error al crear la generación. Por favor intenta nuevamente.');
+    } finally {
+      setCreandoGeneracion(false);
+    }
+  };
+
+  const handleEditarGeneracion = (g) => {
+    setEditingGeneracionId(g.id);
+    setEditingGeneracionNombre(g.nombre);
+    setEditingAnioInicio(g.anioInicio || new Date().getFullYear());
+    setEditingAnioFin(g.anioFin || new Date().getFullYear());
+  };
+
+  const handleGuardarEdicionGeneracion = async () => {
+    if (!editingGeneracionId || !editingGeneracionNombre.trim()) return;
+
+    try {
+      await updateGeneracion.mutateAsync({
+        id: editingGeneracionId,
+        nombre: editingGeneracionNombre.trim(),
+        anioInicio: editingAnioInicio,
+        anioFin: editingAnioFin,
+        modeloId: modeloId
+      });
+
+      setEditingGeneracionId(null);
+      setEditingGeneracionNombre('');
+    } catch (error) {
+      console.error('Error al actualizar la generación:', error);
+      message.error('Error al actualizar la generación');
+    }
+  };
+
+  const handleCancelarEdicionGeneracion = () => {
+    setEditingGeneracionId(null);
+    setEditingGeneracionNombre('');
+    setEditingAnioInicio(new Date().getFullYear());
+    setEditingAnioFin(new Date().getFullYear());
+  };
+
   // Update form when vehicle data changes and load transactions/repuestos
   useEffect(() => {
     if (vehiculo) {
@@ -226,6 +568,15 @@ const EditarVehiculo = () => {
       // Handle both imagenUrl and imagen_url field names
       const imagenUrl = vehiculo.imagenUrl || vehiculo.imagen_url || '';
       setImagenUrlValue(imagenUrl);
+
+      // Identificar IDs de marca, modelo y generación para la cascada
+      const mId = vehiculo.generacion?.modelo?.marcaId || vehiculo.generacion?.modelo?.marca?.id || vehiculo.marcaId;
+      const moId = vehiculo.generacion?.modeloId || vehiculo.generacion?.modelo?.id || vehiculo.modeloId;
+      const gId = vehiculo.generacionId;
+
+      if (mId) setMarcaId(mId);
+      if (moId) setModeloId(moId);
+      if (gId) setSelectedGeneracionId(gId);
 
       // Handle date parsing more robustly
       let fechaIngresoDayjs = null;
@@ -264,6 +615,8 @@ const EditarVehiculo = () => {
       }
 
       console.log('Setting form values:', {
+        marcaId: mId,
+        modeloId: moId,
         codigoVehiculo: vehiculo.codigoVehiculo,
         generacionId: vehiculo.generacionId,
         imagenUrl: imagenUrl,
@@ -281,6 +634,8 @@ const EditarVehiculo = () => {
       });
 
       form.setFieldsValue({
+        marcaId: mId,
+        modeloId: moId,
         codigoVehiculo: vehiculo.codigoVehiculo,
         generacionId: vehiculo.generacionId,
         imagenUrl: imagenUrl,
@@ -302,20 +657,10 @@ const EditarVehiculo = () => {
         combustible: vehiculo.combustible || null
       });
 
-      // Load transactions, repuestos and generaciones for this vehicle
+      // Load transactions and repuestos for this vehicle
       if (vehiculo.id) {
         loadTransactions(vehiculo.id);
         loadRepuestos(vehiculo.id);
-      }
-
-      // Load generaciones based on the vehicle's modeloId
-      const modeloId = vehiculo.generacion?.modeloId || vehiculo.modeloId;
-      if (modeloId) {
-        setLoadingGeneraciones(true);
-        generacionesAPI.getByModeloId(modeloId)
-          .then(response => setGeneraciones(response.data || []))
-          .catch(err => console.error('Error cargando generaciones:', err))
-          .finally(() => setLoadingGeneraciones(false));
       }
     }
   }, [vehiculo, form]);
@@ -360,12 +705,13 @@ const EditarVehiculo = () => {
       setSaving(true);
 
       const formattedValues = {
-        generacionId: values.generacionId ? parseInt(values.generacionId) : null,
-        anio: values.anio ? parseInt(values.anio) : null,
-        precioCompra: values.precioCompra ? parseFloat(values.precioCompra) : null,
-        costoGrua: values.costoGrua ? parseFloat(values.costoGrua) : 0,
-        comisiones: values.comisiones ? parseFloat(values.comisiones) : 0,
-        precioVenta: values.precioVenta ? parseFloat(values.precioVenta) : null,
+        codigoVehiculo: values.codigoVehiculo ? values.codigoVehiculo.trim() : null,
+        generacionId: values.generacionId ? parseInt(values.generacionId, 10) : null,
+        anio: values.anio ? parseInt(values.anio, 10) : null,
+        precioCompra: values.precioCompra !== undefined && values.precioCompra !== null && values.precioCompra !== '' ? parseFloat(values.precioCompra) : null,
+        costoGrua: values.costoGrua !== undefined && values.costoGrua !== null && values.costoGrua !== '' ? parseFloat(values.costoGrua) : 0,
+        comisiones: values.comisiones !== undefined && values.comisiones !== null && values.comisiones !== '' ? parseFloat(values.comisiones) : 0,
+        precioVenta: values.precioVenta !== undefined && values.precioVenta !== null && values.precioVenta !== '' ? parseFloat(values.precioVenta) : null,
         imagenUrl: values.imagenUrl || imagenUrlValue || '',
         fechaIngreso: values.fechaIngreso && values.fechaIngreso.isValid() ? values.fechaIngreso.format('YYYY-MM-DD') : null,
         fechaVenta: values.fechaVenta && values.fechaVenta.isValid() ? values.fechaVenta.format('YYYY-MM-DD') : null,
@@ -381,9 +727,6 @@ const EditarVehiculo = () => {
       delete formattedValues.inversionTotal;
       delete formattedValues.costoRecuperado;
       delete formattedValues.costoPendiente;
-
-      // Remove codigoVehiculo as it shouldn't be updated
-      delete formattedValues.codigoVehiculo;
 
       // Debug: Log the data being sent
       console.log('Sending to API:', JSON.stringify(formattedValues, null, 2));
@@ -436,18 +779,50 @@ const EditarVehiculo = () => {
     return <Tag color={color}>{nombre}</Tag>;
   };
 
-  const getMarcaModelo = () => {
-    if (vehiculo?.generacion?.modelo?.marca?.nombre && vehiculo?.generacion?.modelo?.nombre) {
-      return {
-        marca: vehiculo.generacion.modelo.marca.nombre,
-        modelo: vehiculo.generacion.modelo.nombre
-      };
+  const formatCurrencyWithColor = (amount, tipo) => {
+    const formattedAmount = new Intl.NumberFormat('es-CR', {
+      style: 'currency',
+      currency: 'CRC',
+      minimumFractionDigits: 0
+    }).format(amount);
+
+    if (tipo !== undefined) {
+      const isIngreso = tipo === 'INGRESO';
+      return (
+        <span style={{ color: isIngreso ? '#52c41a' : '#f5222d' }}>
+          {isIngreso ? '+' : '-'} {formattedAmount}
+        </span>
+      );
     }
-    return { marca: 'Marca no disponible', modelo: 'Modelo no disponible' };
+
+    return formattedAmount;
   };
 
-  const { marca, modelo } = getMarcaModelo();
-  const esVendido = vehiculo?.estado === 'VENDIDO';
+  const formatDate = (dateValue) => {
+    if (!dateValue) return 'No especificada';
+
+    try {
+      if (Array.isArray(dateValue)) {
+        const [year, month, day] = dateValue;
+        return new Date(year, month - 1, day).toLocaleDateString();
+      }
+
+      const date = new Date(dateValue);
+      return isNaN(date.getTime()) ? 'Fecha inválida' : date.toLocaleDateString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Fecha inválida';
+    }
+  };
+
+  const getMarcaModelo = () => {
+    const currentMarca = marcas.find(m => m.id === marcaId)?.nombre || vehiculo?.generacion?.modelo?.marca?.nombre || 'Marca no disponible';
+    const currentModelo = modelos.find(m => m.id === modeloId)?.nombre || vehiculo?.generacion?.modelo?.nombre || 'Modelo no disponible';
+    const currentGeneracion = generaciones.find(g => g.id === selectedGeneracionId)?.nombre || vehiculo?.generacion?.nombre || 'Generación';
+    return { marca: currentMarca, modelo: currentModelo, generacion: currentGeneracion };
+  };
+
+  const { marca, modelo, generacion: generacionNombre } = getMarcaModelo();
 
   if (loading) {
     return (
@@ -477,6 +852,7 @@ const EditarVehiculo = () => {
             form="editar-vehiculo-form"
             loading={loading || saving}
             icon={<SaveOutlined />}
+            className="btn-guardar"
             style={{ borderRadius: '6px' }}
           >
             Guardar Cambios
@@ -499,10 +875,10 @@ const EditarVehiculo = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
             {/* Imagen */}
             <div style={{ flex: '0 0 220px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '180px' }}>
-              <ImageCarousel 
-                imageUrlString={vehiculo?.imagenUrl || vehiculo?.imagen_url || ''} 
-                alt={`${marca} ${modelo}`} 
-                width="220px" 
+              <ImageCarousel
+                imageUrlString={vehiculo?.imagenUrl || vehiculo?.imagen_url || ''}
+                alt={`${marca} ${modelo}`}
+                width="220px"
                 height="160px"
                 borderRadius="8px"
                 preview={true}
@@ -514,7 +890,7 @@ const EditarVehiculo = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                   <Typography.Text type="secondary" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    {vehiculo?.generacion?.nombre || 'Generación'}
+                    {generacionNombre}
                   </Typography.Text>
                   <Typography.Title level={3} style={{ margin: '4px 0 8px' }}>
                     {marca} {modelo}
@@ -525,10 +901,16 @@ const EditarVehiculo = () => {
                   </Typography.Text>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <Typography.Text type="secondary" style={{ fontSize: '12px' }}>Precio de venta</Typography.Text>
-                  <Typography.Title level={3} style={{ margin: '2px 0', color: '#1890ff' }}>
-                    {formatCurrency(vehiculo?.precioVenta || vehiculo?.precioCompra || 0)}
-                  </Typography.Title>
+                  {(vehiculo?.precioVenta > 0 || vehiculo?.precioCompra > 0) && (
+                    <>
+                      <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                        {vehiculo?.precioVenta > 0 ? 'Precio de venta' : 'Precio de compra'}
+                      </Typography.Text>
+                      <Typography.Title level={3} style={{ margin: '2px 0', color: '#1890ff' }}>
+                        {formatCurrency(vehiculo?.precioVenta || vehiculo?.precioCompra)}
+                      </Typography.Title>
+                    </>
+                  )}
                   <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
                     Inversión: {formatCurrency(vehiculo?.inversionTotal || 0)}
                   </Typography.Text>
@@ -544,17 +926,6 @@ const EditarVehiculo = () => {
             {/* ─── TAB 1: Información General ─── */}
             <Tabs.TabPane tab={<span><FileTextOutlined /> Información General</span>} key="1">
 
-              {esVendido && (
-                <Alert
-                  message="Vehículo Vendido - Estado y Venta Protegidos"
-                  description="Este vehículo se encuentra en estado VENDIDO. El estado y los datos de venta no pueden modificarse manualmente para preservar la integridad contable. Si la venta se canceló o fue devuelta, debe procesarse como un Reembolso desde el módulo de Finanzas."
-                  type="warning"
-                  showIcon
-                  icon={<LockOutlined />}
-                  style={{ marginBottom: '20px', borderRadius: '8px' }}
-                />
-              )}
-
               {/* Sección: Identificación */}
               <Typography.Text strong style={{ color: '#8c8c8c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                 Identificación
@@ -562,28 +933,512 @@ const EditarVehiculo = () => {
               <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
               <Row gutter={[16, 0]}>
                 <Col xs={24} sm={12} md={8}>
-                  <Form.Item label="Año" name="anio" rules={[{ required: true, message: 'Requerido' }]}>
-                    <InputNumber style={{ width: '100%' }} placeholder="Ej: 2020" min={1900} max={new Date().getFullYear() + 1} />
+                  <Form.Item
+                    label="Marca"
+                    name="marcaId"
+                    rules={[{ required: true, message: 'Por favor selecciona una marca' }]}
+                  >
+                    <Select
+                      placeholder="Selecciona una marca"
+                      loading={isLoadingMarcas}
+                      onChange={handleMarcaChange}
+                      showSearch
+                      optionFilterProp="label"
+                      filterOption={(input, option) =>
+                        option.props.className === 'add-new-option' ||
+                        (option.label && option.label.toLowerCase().includes(input.toLowerCase()))
+                      }
+                      dropdownRender={(menu) => (
+                        <div>
+                          {menu}
+                          <Divider style={{ margin: '8px 0' }} />
+                          {nuevaMarcaModal ? (
+                            <div style={{ padding: '8px', display: 'flex', gap: '8px' }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                placeholder="Nombre de la marca"
+                                value={nuevaMarcaNombre}
+                                onChange={(e) => setNuevaMarcaNombre(e.target.value)}
+                                onPressEnter={handleNuevaMarca}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    setNuevaMarcaModal(false);
+                                    setNuevaMarcaNombre('');
+                                  }
+                                }}
+                                style={{ flex: 1 }}
+                              />
+                              <Button
+                                type="text"
+                                icon={<CheckOutlined style={{ color: '#52c41a' }} />}
+                                onClick={handleNuevaMarca}
+                                loading={creandoMarca}
+                                disabled={!nuevaMarcaNombre.trim()}
+                                title="Agregar"
+                              />
+                              <Button
+                                type="text"
+                                danger
+                                icon={<CloseOutlined />}
+                                onClick={() => {
+                                  setNuevaMarcaModal(false);
+                                  setNuevaMarcaNombre('');
+                                }}
+                                disabled={creandoMarca}
+                                title="Cancelar"
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#1890ff'
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setNuevaMarcaModal(true);
+                                setNuevaMarcaNombre('');
+                              }}
+                            >
+                              <PlusOutlined style={{ marginRight: 8 }} />
+                              Agregar nueva marca
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    >
+                      {marcas.map((m) => (
+                        <Select.Option key={m.id} value={m.id} label={m.nombre}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            {editingMarcaId === m.id ? (
+                              <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
+                                <Input
+                                  value={editingMarcaNombre}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingMarcaNombre(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 1 }}
+                                  autoFocus
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: 'green' }} />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGuardarEdicionMarca();
+                                  }}
+                                  size="small"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CloseOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelarEdicionMarca();
+                                  }}
+                                  size="small"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span>{m.nombre}</span>
+                                <Button
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditarMarca(m);
+                                  }}
+                                  size="small"
+                                />
+                              </>
+                            )}
+                          </div>
+                        </Select.Option>
+                      ))}
+                      {nuevaMarcaModal && (
+                        <Select.Option className="add-new-option" value="" style={{ display: 'none' }}>
+                          {nuevaMarcaNombre}
+                        </Select.Option>
+                      )}
+                    </Select>
                   </Form.Item>
                 </Col>
+
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item
+                    label="Modelo"
+                    name="modeloId"
+                    rules={[{ required: true, message: 'Por favor selecciona un modelo' }]}
+                  >
+                    <Select
+                      placeholder="Selecciona un modelo"
+                      loading={isLoadingModelos}
+                      onChange={handleModeloChange}
+                      disabled={!marcaId}
+                      showSearch
+                      optionFilterProp="label"
+                      filterOption={(input, option) =>
+                        option.props.className === 'add-new-option' ||
+                        (option.label && option.label.toLowerCase().includes(input.toLowerCase()))
+                      }
+                      dropdownRender={(menu) => (
+                        <div>
+                          {menu}
+                          <Divider style={{ margin: '8px 0' }} />
+                          {nuevoModeloModal ? (
+                            <div style={{ padding: '8px', display: 'flex', gap: '8px' }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                placeholder="Nombre del modelo"
+                                value={nuevoModeloNombre}
+                                onChange={(e) => setNuevoModeloNombre(e.target.value)}
+                                onPressEnter={handleNuevoModelo}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    setNuevoModeloModal(false);
+                                    setNuevoModeloNombre('');
+                                  }
+                                }}
+                                style={{ flex: 1 }}
+                              />
+                              <Button
+                                type="text"
+                                icon={<PlusOutlined />}
+                                onClick={handleNuevoModelo}
+                                loading={creandoModelo}
+                                disabled={!nuevoModeloNombre.trim()}
+                                title="Agregar"
+                              />
+                              <Button
+                                type="text"
+                                danger
+                                icon={<CloseOutlined />}
+                                onClick={() => {
+                                  setNuevoModeloModal(false);
+                                  setNuevoModeloNombre('');
+                                }}
+                                disabled={creandoModelo}
+                                title="Cancelar"
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#1890ff',
+                                opacity: marcaId ? 1 : 0.5,
+                                pointerEvents: marcaId ? 'auto' : 'none'
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setNuevoModeloModal(true);
+                                setNuevoModeloNombre('');
+                              }}
+                            >
+                              <PlusOutlined style={{ marginRight: 8 }} />
+                              Agregar nuevo modelo
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    >
+                      {modelos.map((mo) => (
+                        <Select.Option key={mo.id} value={mo.id} label={mo.nombre}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            {editingModeloId === mo.id ? (
+                              <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
+                                <Input
+                                  value={editingModeloNombre}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditingModeloNombre(e.target.value);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  style={{ flex: 1 }}
+                                  autoFocus
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined style={{ color: 'green' }} />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGuardarEdicionModelo();
+                                  }}
+                                  size="small"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CloseOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelarEdicionModelo();
+                                  }}
+                                  size="small"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span>{mo.nombre}</span>
+                                <Button
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditarModelo(mo);
+                                  }}
+                                  size="small"
+                                />
+                              </>
+                            )}
+                          </div>
+                        </Select.Option>
+                      ))}
+                      {nuevoModeloModal && (
+                        <Select.Option className="add-new-option" value="" style={{ display: 'none' }}>
+                          {nuevoModeloNombre}
+                        </Select.Option>
+                      )}
+                    </Select>
+                  </Form.Item>
+                </Col>
+
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item
+                    label="Generación"
+                    name="generacionId"
+                    rules={[{ required: true, message: 'Por favor selecciona una generación' }]}
+                  >
+                    <Select
+                      placeholder="Selecciona una generación"
+                      loading={isLoadingGeneraciones}
+                      onChange={handleGeneracionChange}
+                      disabled={!modeloId}
+                      showSearch
+                      optionFilterProp="label"
+                      filterOption={(input, option) =>
+                        option.props.className === 'add-new-option' ||
+                        (option.label && option.label.toLowerCase().includes(input.toLowerCase()))
+                      }
+                      dropdownRender={(menu) => (
+                        <div>
+                          {menu}
+                          <Divider style={{ margin: '8px 0' }} />
+                          {nuevaGeneracionModal ? (
+                            <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                placeholder="Nombre de la generación"
+                                value={nuevaGeneracionNombre}
+                                onChange={(e) => setNuevaGeneracionNombre(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    setNuevaGeneracionModal(false);
+                                    setNuevaGeneracionNombre('');
+                                  } else if (e.key === 'Enter') {
+                                    handleNuevaGeneracion();
+                                  }
+                                }}
+                              />
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <InputNumber
+                                  size="small"
+                                  placeholder="Año inicio"
+                                  min={1900}
+                                  max={2100}
+                                  value={anioInicio}
+                                  onChange={(value) => setAnioInicio(value)}
+                                  style={{ width: '50%' }}
+                                />
+                                <InputNumber
+                                  size="small"
+                                  placeholder="Año fin"
+                                  min={anioInicio}
+                                  max={2100}
+                                  value={anioFin}
+                                  onChange={(value) => setAnioFin(value)}
+                                  style={{ width: '50%' }}
+                                />
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <Button
+                                  type="text"
+                                  danger
+                                  icon={<CloseOutlined />}
+                                  onClick={() => {
+                                    setNuevaGeneracionModal(false);
+                                    setNuevaGeneracionNombre('');
+                                  }}
+                                  disabled={creandoGeneracion}
+                                  title="Cancelar"
+                                />
+                                <Button
+                                  type="text"
+                                  icon={<CheckOutlined />}
+                                  onClick={handleNuevaGeneracion}
+                                  loading={creandoGeneracion}
+                                  disabled={!nuevaGeneracionNombre.trim()}
+                                  title="Agregar"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#1890ff',
+                                opacity: modeloId ? 1 : 0.5,
+                                pointerEvents: modeloId ? 'auto' : 'none'
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setNuevaGeneracionModal(true);
+                                setNuevaGeneracionNombre('');
+                              }}
+                            >
+                              <PlusOutlined style={{ marginRight: 8 }} />
+                              Agregar nueva generación
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    >
+                      {generaciones.map((g) => {
+                        const startYear = g.anioInicio || 1990;
+                        const endYear = g.anioFin || new Date().getFullYear();
+                        const displayText = `${g.nombre} (${startYear}–${endYear})`;
+
+                        return (
+                          <Select.Option key={g.id} value={g.id} label={displayText}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                              {editingGeneracionId === g.id ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '8px' }}>
+                                  <Input
+                                    value={editingGeneracionNombre}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      setEditingGeneracionNombre(e.target.value);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    style={{ width: '100%' }}
+                                    autoFocus
+                                  />
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    <InputNumber
+                                      value={editingAnioInicio}
+                                      min={1900}
+                                      max={2100}
+                                      onChange={(value) => setEditingAnioInicio(value)}
+                                      style={{ width: '50%' }}
+                                    />
+                                    <InputNumber
+                                      value={editingAnioFin}
+                                      min={editingAnioInicio}
+                                      max={2100}
+                                      onChange={(value) => setEditingAnioFin(value)}
+                                      style={{ width: '50%' }}
+                                    />
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                    <Button
+                                      type="text"
+                                      icon={<CheckOutlined style={{ color: 'green' }} />}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleGuardarEdicionGeneracion();
+                                      }}
+                                      size="small"
+                                    />
+                                    <Button
+                                      type="text"
+                                      icon={<CloseOutlined />}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCancelarEdicionGeneracion();
+                                      }}
+                                      size="small"
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <span>{displayText}</span>
+                                  <Button
+                                    type="text"
+                                    icon={<EditOutlined />}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditarGeneracion(g);
+                                    }}
+                                    size="small"
+                                  />
+                                </>
+                              )}
+                            </div>
+                          </Select.Option>
+                        );
+                      })}
+                      {nuevaGeneracionModal && (
+                        <Select.Option className="add-new-option" value="" style={{ display: 'none' }}>
+                          {nuevaGeneracionNombre} ({anioInicio} - {anioFin})
+                        </Select.Option>
+                      )}
+                    </Select>
+                  </Form.Item>
+                </Col>
+
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item label="Año" name="anio" rules={[{ required: true, message: 'Requerido' }]}>
+                    {aniosDisponibles.length > 0 ? (
+                      <Select
+                        showSearch
+                        style={{ width: '100%' }}
+                        placeholder="Selecciona el año"
+                        filterOption={(input, option) =>
+                          option.children.toString().toLowerCase().includes(input.toLowerCase())
+                        }
+                      >
+                        {aniosDisponibles.map(a => (
+                          <Select.Option key={a} value={a}>
+                            {a}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <InputNumber style={{ width: '100%' }} placeholder="Ej: 2020" min={1900} max={new Date().getFullYear() + 1} />
+                    )}
+                  </Form.Item>
+                </Col>
+
                 <Col xs={24} sm={12} md={8}>
                   <Form.Item label="Código" name="codigoVehiculo" rules={[{ required: true, message: 'Requerido' }]}>
                     <Input placeholder="Ej: TOCO-001" />
                   </Form.Item>
                 </Col>
+
                 <Col xs={24} sm={12} md={8}>
-                  <Form.Item 
-                    label={
-                      <Space>
-                        <span>Estado</span>
-                        {esVendido && <LockOutlined style={{ color: '#faad14' }} title="Estado protegido por venta" />}
-                      </Space>
-                    } 
-                    name="estado" 
-                    rules={[{ required: true, message: 'Requerido' }]}
-                    extra={esVendido ? <span style={{ fontSize: '11px', color: '#faad14' }}>Bloqueado: Para cambiarlo procese un reembolso en Finanzas</span> : null}
-                  >
-                    <Select placeholder="Selecciona estado" disabled={esVendido}>
+                  <Form.Item label="Estado" name="estado" rules={[{ required: true, message: 'Requerido' }]}>
+                    <Select placeholder="Selecciona estado">
                       <Select.Option value="DISPONIBLE">Disponible</Select.Option>
                       <Select.Option value="VENDIDO">Vendido</Select.Option>
                       <Select.Option value="DESARMADO">Desarmado</Select.Option>
@@ -591,36 +1446,20 @@ const EditarVehiculo = () => {
                     </Select>
                   </Form.Item>
                 </Col>
-                <Col xs={24} sm={12} md={8}>
-                  <Form.Item label="Generación" name="generacionId" rules={[{ required: true, message: 'Requerido' }]}>
-                    <Select
-                      placeholder="Seleccionar generación"
-                      loading={loadingGeneraciones}
-                      showSearch
-                      filterOption={(input, option) =>
-                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                      }
-                    >
-                      {generaciones.map(g => (
-                        <Select.Option key={g.id} value={g.id}>
-                          {g.nombre} ({g.anioInicio}–{g.anioFin})
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
+
                 <Col xs={24} sm={12} md={8}>
                   <Form.Item label="Fecha de Ingreso" name="fechaIngreso" rules={[{ required: true, message: 'Requerido' }]}>
                     <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Selecciona fecha" />
                   </Form.Item>
                 </Col>
-                <Col xs={24} sm={12} md={8}>
+
+                <Col xs={24} sm={12} md={16}>
                   <Form.Item label="Foto del vehículo (Subir o URL)">
                     <Space direction="vertical" style={{ width: '100%' }}>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <Upload
                           name="file"
-                          action="http://localhost:8080/api/upload/vehiculo"
+                          action={`${API_BASE_URL}/api/upload/vehiculo`}
                           headers={{
                             Authorization: `Bearer ${localStorage.getItem('token')}`
                           }}
@@ -634,7 +1473,7 @@ const EditarVehiculo = () => {
                               const serverUrl = info.file.response.url;
                               form.setFieldsValue({ imagenUrl: serverUrl });
                               setImagenUrlValue(serverUrl);
-                              setVehiculo(prev => ({...prev, imagenUrl: serverUrl}));
+                              setVehiculo(prev => ({ ...prev, imagenUrl: serverUrl }));
                             } else if (info.file.status === 'error') {
                               message.error(`${info.file.name} falló al subir.`);
                             }
@@ -642,28 +1481,28 @@ const EditarVehiculo = () => {
                         >
                           <Button icon={<UploadOutlined />} style={{ width: '100%' }}>Seleccionar archivo</Button>
                         </Upload>
-                        <Button 
-                          icon={<DeleteOutlined />} 
+                        <Button
+                          icon={<DeleteOutlined />}
                           danger
                           title="Limpiar imagen"
                           onClick={() => {
                             form.setFieldsValue({ imagenUrl: '' });
                             setImagenUrlValue('');
-                            setVehiculo(prev => ({...prev, imagenUrl: ''}));
+                            setVehiculo(prev => ({ ...prev, imagenUrl: '' }));
                           }}
                           disabled={!imagenUrlValue}
                         />
                       </div>
-                      <Form.Item 
-                        name="imagenUrl" 
+                      <Form.Item
+                        name="imagenUrl"
                         style={{ marginBottom: 0 }}
                       >
-                        <Input 
-                          placeholder="https://ejemplo.com/imagen.jpg o ruta local" 
+                        <Input
+                          placeholder="https://ejemplo.com/imagen.jpg o ruta local"
                           allowClear
                           onChange={(e) => {
                             setImagenUrlValue(e.target.value);
-                            setVehiculo(prev => ({...prev, imagenUrl: e.target.value}));
+                            setVehiculo(prev => ({ ...prev, imagenUrl: e.target.value }));
                           }}
                         />
                       </Form.Item>
@@ -747,35 +1586,24 @@ const EditarVehiculo = () => {
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12} md={8}>
-                  <Form.Item 
-                    label={
-                      <Space>
-                        <span>Precio de Venta</span>
-                        {esVendido && <LockOutlined style={{ color: '#faad14' }} />}
-                      </Space>
-                    } 
-                    name="precioVenta"
-                  >
+                  <Form.Item label="Precio de Venta" name="precioVenta">
                     <InputNumber
                       style={{ width: '100%' }}
                       formatter={v => `₡ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={v => v.replace(/₡\s?|(,*)/g, '')}
-                      min={0} precision={2}
-                      disabled={esVendido}
+                      min={0}
+                      precision={2}
+                      onChange={(value) => {
+                        if (value === null || value === undefined || value === '') {
+                          form.setFieldValue('precioVenta', 0);
+                        }
+                      }}
                     />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12} md={8}>
-                  <Form.Item 
-                    label={
-                      <Space>
-                        <span>Fecha de Venta</span>
-                        {esVendido && <LockOutlined style={{ color: '#faad14' }} />}
-                      </Space>
-                    } 
-                    name="fechaVenta"
-                  >
-                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" disabled={esVendido} />
+                  <Form.Item label="Fecha de Venta" name="fechaVenta">
+                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12} md={8}>

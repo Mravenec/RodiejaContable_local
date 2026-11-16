@@ -102,6 +102,51 @@ const PrivateRoute = ({ children, roles = [] }) => {
   return children;
 };
 
+// Componente para proteger rutas basadas en permisos por submódulo y acción
+const PermissionRoute = ({ children, submodulo, action = 'view', adminOnly = false }) => {
+  const { user, isAuthenticated, loading, hasAccess } = useAuth();
+  const location = useLocation();
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (!loading) {
+      setInitialized(true);
+    }
+  }, [loading]);
+
+  if (loading || !initialized) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <div style={{ fontSize: '18px', color: '#1890ff' }}>Verificando autenticación y permisos...</div>
+        <div>Cargando la aplicación, por favor espere...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  const isAdmin = user?.rol === 'ADMIN';
+
+  if (adminOnly && !isAdmin) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  if (submodulo && !isAdmin && !hasAccess(submodulo, action)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return children;
+};
+
 // Componente para rutas de autenticación (login, registro, etc.)
 const AuthRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -283,15 +328,15 @@ function App() {
         }
       />
 
-      {/* Rutas protegidas */}
+      {/* Rutas protegidas con control de submódulo y acción */}
       <Route
         path="/"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="inicio_dashboard">
             <MainLayout>
               <Dashboard />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
 
@@ -299,51 +344,51 @@ function App() {
       <Route
         path="/vehiculos"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="vehiculos_lista">
             <MainLayout>
               <Vehiculos />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/vehiculos/jerarquia"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="vehiculos_jerarquia">
             <MainLayout>
               <VehiculosJerarquicos />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/vehiculos/nuevo"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="vehiculos_lista" action="create">
             <MainLayout>
               <NuevoVehiculo />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/vehiculos/editar/:id"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="vehiculos_lista" action="edit">
             <MainLayout>
               <EditarVehiculo />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/vehiculos/:id"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="vehiculos_lista">
             <MainLayout>
               <VehiculoDetalle />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
 
@@ -351,41 +396,41 @@ function App() {
       <Route
         path="/inventario"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="inventario_lista">
             <MainLayout>
               <Inventario />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/inventario/nuevo"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="inventario_lista" action="create">
             <MainLayout>
               <NuevoRepuesto />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/inventario/editar/:id"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="inventario_lista" action="edit">
             <MainLayout>
               <EditarRepuesto />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/inventario/:id"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="inventario_lista">
             <MainLayout>
               <DetalleRepuesto />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
 
@@ -393,41 +438,41 @@ function App() {
       <Route
         path="/finanzas"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="finanzas_lista">
             <MainLayout>
               <Finanzas />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/finanzas/nueva"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="finanzas_lista" action="create">
             <MainLayout>
               <NuevaTransaccion />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/finanzas/editar/:id"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="finanzas_lista" action="edit">
             <MainLayout>
               <EditarTransaccion />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/finanzas/:id"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="finanzas_lista">
             <MainLayout>
               <DetalleTransaccion />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
 
@@ -435,50 +480,53 @@ function App() {
       <Route
         path="/reportes"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="reportes_general">
             <MainLayout>
               <Reportes />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/reportes/ventas"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="reportes_ventas">
             <MainLayout>
               <VentasReportes />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/reportes/repuestos"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="reportes_repuestos">
             <MainLayout>
               <ReporteRepuestos />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
-      <Route path="/reportes/vehiculos" element={
-          <PrivateRoute>
+      <Route 
+        path="/reportes/vehiculos" 
+        element={
+          <PermissionRoute submodulo="reportes_vehiculos">
             <MainLayout>
               <ReporteVehiculos />
             </MainLayout>
-          </PrivateRoute>
-        } />
+          </PermissionRoute>
+        } 
+      />
 
       {/* Rutas de Audatex */}
       <Route
         path="/audatex/oportunidades"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="audatex_oportunidades">
             <MainLayout>
               <OportunidadesAudatex />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
@@ -488,11 +536,11 @@ function App() {
       <Route
         path="/audatex/pedidos"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="audatex_pedidos">
             <MainLayout>
               <PedidosAudatex />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
 
@@ -500,21 +548,21 @@ function App() {
       <Route
         path="/ins/pedidos"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="ins_pedidos">
             <MainLayout>
               <InsPedidos />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/ins/ventas-empleados"
         element={
-          <PrivateRoute>
+          <PermissionRoute submodulo="ins_ventas_empleados">
             <MainLayout>
               <InsVentasEmpleados />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
 
@@ -532,21 +580,21 @@ function App() {
       <Route
         path="/configuracion"
         element={
-          <PrivateRoute>
+          <PermissionRoute adminOnly>
             <MainLayout>
               <Configuracion />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
       <Route
         path="/configuracion/ajustes"
         element={
-          <PrivateRoute>
+          <PermissionRoute adminOnly>
             <MainLayout>
               <Configuracion />
             </MainLayout>
-          </PrivateRoute>
+          </PermissionRoute>
         }
       />
 

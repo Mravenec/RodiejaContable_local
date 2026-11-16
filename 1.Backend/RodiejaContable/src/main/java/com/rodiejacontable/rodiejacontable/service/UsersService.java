@@ -45,8 +45,13 @@ public class UsersService {
     }
 
     @Transactional
+    public boolean deleteUser(Integer id, String currentEmail) {
+        return usersRepository.deleteUser(id, currentEmail);
+    }
+
+    @Transactional
     public boolean deleteUser(Integer id) {
-        return usersRepository.deleteUser(id);
+        return usersRepository.deleteUser(id, null);
     }
 
     @Transactional

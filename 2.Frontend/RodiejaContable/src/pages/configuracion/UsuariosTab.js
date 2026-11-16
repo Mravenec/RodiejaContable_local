@@ -2,11 +2,15 @@ import React, { useState } from 'react';
 import { List, Button, Tooltip, message, Avatar, Space, Typography, Form, Input, Select, Modal } from 'antd';
 import { UserOutlined, PlusOutlined, DeleteOutlined, EditOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
 import { useUsers, useCreateUser, useDeleteUser, useUpdateUserRole } from '../../hooks';
+import { useAuth } from '../../context/AuthContext';
 import './Settings.css';
 
 const { Text } = Typography;
 
 const UsuariosTab = () => {
+  const { user: currentUser } = useAuth();
+  const esAdmin = (currentUser?.rol || '').toUpperCase() === 'ADMIN';
+
   const { data: usuarios = [], isLoading: loading } = useUsers();
   const createUserMutation = useCreateUser();
   const deleteUserMutation = useDeleteUser();
@@ -40,6 +44,14 @@ const UsuariosTab = () => {
   };
 
   const handleDeleteUser = (id) => {
+    const isSelf = 
+      (currentUser?.id && Number(id) === Number(currentUser.id)) ||
+      (currentUser?.userId && Number(id) === Number(currentUser.userId));
+    if (isSelf) {
+      message.warning('No puedes eliminar tu propia cuenta de usuario');
+      return;
+    }
+
     Modal.confirm({
       title: '¿Estás seguro de eliminar este usuario?',
       content: 'Esta acción no se puede deshacer.',
@@ -93,49 +105,57 @@ const UsuariosTab = () => {
   };
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Gestión de Usuarios</h2>
+    <div style={{ width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Gestión de Usuarios</h2>
         <Button className="glass-btn" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
           Nuevo Usuario
         </Button>
       </div>
 
-      <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #f1f5f9', overflow: 'hidden' }}>
+      <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #f1f5f9', overflow: 'hidden', width: '100%' }}>
         <List
           loading={loading}
           itemLayout="horizontal"
           dataSource={usuarios}
           className="premium-list"
-          renderItem={(user) => (
-            <List.Item
-              className="premium-list-item"
-              actions={[
-                <Space key="actions">
-                  <Tooltip title="Editar Rol">
-                    <Button 
-                      type="text" 
-                      className="user-action-btn" 
-                      icon={<EditOutlined style={{ color: '#0284c7' }} />} 
-                      onClick={() => handleEditRoleClick(user)}
-                    />
-                  </Tooltip>
-                  {user.rol !== 'ADMIN' && (
-                    <Tooltip title="Eliminar Usuario">
+          renderItem={(user) => {
+            const esMismoUsuario = 
+              (currentUser?.id && Number(user.id) === Number(currentUser.id)) ||
+              (currentUser?.userId && Number(user.id) === Number(currentUser.userId)) ||
+              (currentUser?.email && user.email?.toLowerCase() === currentUser.email?.toLowerCase());
+
+            const puedeEliminar = esAdmin && !esMismoUsuario;
+
+            return (
+              <List.Item
+                className="premium-list-item"
+                actions={[
+                  <Space key="actions">
+                    <Tooltip title="Editar Rol">
                       <Button 
                         type="text" 
                         className="user-action-btn" 
-                        icon={<DeleteOutlined style={{ color: '#ef4444' }} />} 
-                        onClick={() => handleDeleteUser(user.id)}
+                        icon={<EditOutlined style={{ color: '#0284c7' }} />} 
+                        onClick={() => handleEditRoleClick(user)}
                       />
                     </Tooltip>
-                  )}
-                </Space>
-              ]}
-            >
+                    {puedeEliminar && (
+                      <Tooltip title="Eliminar Usuario">
+                        <Button 
+                          type="text" 
+                          className="user-action-btn" 
+                          icon={<DeleteOutlined style={{ color: '#ef4444' }} />} 
+                          onClick={() => handleDeleteUser(user.id)}
+                        />
+                      </Tooltip>
+                    )}
+                  </Space>
+                ]}
+              >
               <List.Item.Meta
                 avatar={
-                  <div className="user-avatar-wrapper" style={{ marginRight: '16px' }}>
+                  <div className="user-avatar-wrapper" style={{ marginRight: '16px', flexShrink: 0 }}>
                     <Avatar 
                       size={48}
                       style={{ 
@@ -152,24 +172,27 @@ const UsuariosTab = () => {
                   </div>
                 }
                 title={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-                    <Text style={{ fontSize: '16px', fontWeight: 600, color: '#1e293b' }}>{user.nombre}</Text>
-                    <span className={`user-role-tag ${getRoleClass(user.rol)}`} style={{ fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                    <Text style={{ fontSize: '16px', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap' }}>
+                      {user.nombre}
+                    </Text>
+                    <span className={`user-role-tag ${getRoleClass(user.rol)}`} style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
                       {user.rol || 'Sin Rol'}
                     </span>
                   </div>
                 }
                 description={
-                  <Space size="large" style={{ marginTop: '4px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b' }}>
+                  <div style={{ marginTop: '4px', wordBreak: 'break-all' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '13px' }}>
                       <MailOutlined />
                       {user.email}
                     </span>
-                  </Space>
+                  </div>
                 }
               />
             </List.Item>
-          )}
+          );
+        }}
         />
       </div>
 
@@ -244,7 +267,7 @@ const UsuariosTab = () => {
               type="primary" 
               htmlType="submit" 
               loading={createUserMutation.isLoading}
-              className="premium-submit-btn"
+              className="btn-guardar"
             >
               Crear Usuario
             </Button>
@@ -296,7 +319,7 @@ const UsuariosTab = () => {
               type="primary" 
               htmlType="submit" 
               loading={updateUserRoleMutation.isLoading}
-              className="premium-submit-btn"
+              className="btn-guardar"
             >
               Guardar Cambios
             </Button>

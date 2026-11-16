@@ -153,6 +153,7 @@ const ComisionesPendientes = ({ mesFiltro, anioFiltro }) => {
         <Space>
           <Button
             type="primary"
+            className="btn-pagar"
             icon={<MoneyCollectOutlined />}
             onClick={() => mostrarDialogoPago({
               empleado: record.nombreEmpleado,
@@ -214,6 +215,7 @@ const ComisionesPendientes = ({ mesFiltro, anioFiltro }) => {
         confirmLoading={loadingPagos}
         okText="Confirmar Pago"
         cancelText="Cancelar"
+        okButtonProps={{ className: 'btn-pagar' }}
       >
         {empleadoSeleccionado && (
           <Descriptions column={1} size="small">

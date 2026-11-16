@@ -348,10 +348,9 @@ const Reportes = () => {
           />
           <Tooltip title="Enviar reporte de oportunidades por correo electrónico">
             <Button
-              type="primary"
               icon={<MailOutlined />}
               onClick={() => setModalEmailVisible(true)}
-              className="btn-purple"
+              className="btn-correo"
             >
               Enviar por Correo
             </Button>

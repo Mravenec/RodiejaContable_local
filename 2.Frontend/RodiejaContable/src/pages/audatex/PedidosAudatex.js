@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, Table, Typography, Tag, Button, message, Space, Input, DatePicker, Row, Col, Select, Tabs, Descriptions, Modal, Divider } from 'antd';
 import {
   ReloadOutlined, SyncOutlined, LoadingOutlined, SearchOutlined, DownloadOutlined,
-  FilterOutlined, UpOutlined, DownOutlined, FileTextOutlined, UserOutlined
+  FilterOutlined, UpOutlined, DownOutlined, FileTextOutlined, UserOutlined, InboxOutlined
 } from '@ant-design/icons';
 import { audatexAPI } from '../../api/audatex';
 import { API_BASE_URL } from '../../api/config';
@@ -808,7 +808,7 @@ const PedidosAudatex = () => {
                     <Col xs={24} sm={8}>
                       <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Pedido Confirmado</Text>
                       <Text strong style={{ color: '#166534', fontSize: 15 }}>
-                        📦 #{selectedPedido.numeroPedido || selectedPedido.id || selectedPedido.cotizacionId}
+                        <InboxOutlined style={{ marginRight: 6 }} />#{selectedPedido.numeroPedido || selectedPedido.id || selectedPedido.cotizacionId}
                       </Text>
                       <div style={{ marginTop: 4 }}>
                         <Tag color="green" style={{ fontWeight: 500 }}>

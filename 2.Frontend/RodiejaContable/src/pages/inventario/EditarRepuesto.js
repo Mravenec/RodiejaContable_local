@@ -1536,6 +1536,7 @@ const EditarRepuesto = () => {
               icon={<SaveOutlined />}
               loading={loading}
               size="large"
+              className="btn-guardar"
               style={{ borderRadius: '6px', padding: '0 32px' }}
             >
               Guardar Cambios

@@ -2,7 +2,9 @@
 .settings-container {
   padding: 32px;
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -29,6 +31,7 @@
 }
 
 .settings-card {
+  width: 100%;
   border-radius: 16px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
   overflow: hidden;
@@ -36,15 +39,66 @@
   background: #ffffff;
 }
 
-.settings-tabs .ant-tabs-nav {
+.settings-tabs {
+  width: 100% !important;
+}
+
+.settings-tabs.ant-tabs-left {
+  display: flex !important;
+  width: 100% !important;
+}
+
+.settings-tabs.ant-tabs-left > .ant-tabs-nav {
   background-color: #f8fafc;
   padding: 24px 0;
   width: 240px;
+  min-width: 240px;
+  max-width: 240px;
+  flex-shrink: 0 !important;
+}
+
+.settings-tabs.ant-tabs-left > .ant-tabs-content-holder {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  width: calc(100% - 240px) !important;
+}
+
+.settings-tabs .ant-tabs-content {
+  width: 100% !important;
+  height: 100%;
+}
+
+.settings-tabs .ant-tabs-tabpane {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+.settings-tabs.ant-tabs-left .ant-tabs-tab {
+  padding: 12px 24px !important;
+  margin: 4px 16px !important;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.settings-tabs.ant-tabs-top > .ant-tabs-nav {
+  background-color: #f8fafc;
+  padding: 8px 12px;
+  width: 100% !important;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.settings-tabs.ant-tabs-top .ant-tabs-tab {
+  padding: 8px 16px !important;
+  margin: 4px 6px !important;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  color: #64748b;
 }
 
 .settings-tabs .ant-tabs-tab {
-  padding: 12px 24px !important;
-  margin: 4px 16px !important;
   border-radius: 8px;
   transition: all 0.2s ease;
   font-weight: 500;
@@ -187,6 +241,8 @@
 .tab-content-wrapper {
   padding: 32px 40px;
   min-height: 500px;
+  width: 100% !important;
+  box-sizing: border-box;
 }
 
 /* Roles Table Styling */
@@ -207,10 +263,19 @@
 }
 
 /* Premium List Styles */
+.premium-list {
+  width: 100%;
+}
+
 .premium-list .ant-list-item {
-  padding: 24px !important;
+  width: 100% !important;
+  padding: 20px 24px !important;
   border-bottom: 1px solid #f1f5f9 !important;
   transition: all 0.2s ease;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
 }
 
 .premium-list .ant-list-item:hover {
@@ -219,6 +284,24 @@
 
 .premium-list .ant-list-item:last-child {
   border-bottom: none !important;
+}
+
+.premium-list .ant-list-item-meta {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.premium-list .ant-list-item-meta-content {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+.premium-list .ant-list-item-action {
+  flex-shrink: 0 !important;
+  margin-left: 16px !important;
 }
 
 .premium-submit-btn {
@@ -238,4 +321,57 @@
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Responsive media queries */
+@media (max-width: 992px) {
+  .settings-container {
+    padding: 20px 16px !important;
+  }
+  .settings-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+  }
+  .settings-header h1 {
+    font-size: 26px;
+  }
+  .tab-content-wrapper {
+    padding: 20px 16px !important;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .premium-list .ant-list-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px;
+    padding: 16px !important;
+  }
+  .premium-list .ant-list-item-action {
+    margin-left: 0 !important;
+    margin-top: 8px;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-container {
+    padding: 12px !important;
+  }
+  .settings-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+  .settings-header h1 {
+    font-size: 22px;
+  }
+  .settings-header p {
+    font-size: 14px;
+  }
+  .tab-content-wrapper {
+    padding: 16px 12px !important;
+  }
 }

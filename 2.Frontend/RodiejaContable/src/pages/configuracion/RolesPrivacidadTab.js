@@ -153,9 +153,9 @@ const RolesPrivacidadTab = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Roles y Privacidad</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Roles y Privacidad</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <Text style={{ fontWeight: 500, color: '#64748b' }}>Seleccionar Rol:</Text>
           {loadingRoles ? (
             <Spin size="small" />
@@ -163,8 +163,8 @@ const RolesPrivacidadTab = () => {
             <Select 
               value={selectedRol} 
               onChange={handleRolChange}
-              style={{ width: 200 }}
-              size="large"
+              style={{ minWidth: 160, width: 200 }}
+              size="middle"
             >
               {roles.map(rol => (
                 <Option key={rol.id} value={rol.id}>{rol.nombre}</Option>
@@ -180,6 +180,7 @@ const RolesPrivacidadTab = () => {
           dataSource={tableData} 
           pagination={false}
           loading={loadingPermisos}
+          scroll={{ x: 600 }}
           rowClassName={(record) => record.isModule ? 'table-row-module' : 'table-row-submodule'}
           style={{ width: '100%' }}
         />

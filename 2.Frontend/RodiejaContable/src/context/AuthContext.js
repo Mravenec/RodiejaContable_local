@@ -20,8 +20,13 @@ export const AuthProvider = ({ children }) => {
       const data = response.data || [];
       const permMap = {};
       data.forEach(mod => {
-        mod.submodulos.forEach(sub => {
-          permMap[sub.clave] = sub.canView;
+        (mod.submodulos || []).forEach(sub => {
+          permMap[sub.clave] = {
+            canView: !!sub.canView,
+            canCreate: !!sub.canCreate,
+            canEdit: !!sub.canEdit,
+            canDelete: !!sub.canDelete
+          };
         });
       });
       setPermissions(permMap);
@@ -171,9 +176,18 @@ export const AuthProvider = ({ children }) => {
     return user?.role === role;
   }, [user]);
 
-  const hasAccess = (clave) => {
+  const hasAccess = (clave, action = 'view') => {
     if (user?.rol === 'ADMIN') return true; // El admin siempre tiene acceso a todo
-    return !!permissions[clave];
+    let targetClave = clave;
+    if (clave === 'ins_pedidos' && !permissions['ins_pedidos']) targetClave = 'audatex_pedidos';
+    if (clave === 'ins_ventas_empleados' && !permissions['ins_ventas_empleados']) targetClave = 'reportes_ventas';
+    const perm = permissions[targetClave];
+    if (!perm) return false;
+    if (typeof perm === 'boolean') return perm;
+    if (action === 'create') return !!perm.canCreate;
+    if (action === 'edit') return !!perm.canEdit;
+    if (action === 'delete') return !!perm.canDelete;
+    return !!perm.canView;
   };
 
   // Valor del contexto

@@ -67,8 +67,134 @@
 .font-bold { font-weight: 700 !important; }
 
 /* ==========================================================================
-   Botones Semánticos (Herencia y Estados de Interacción)
+   Botones Semánticos Globales y Reutilizables
    ========================================================================== */
+
+/* 1. Acción POST / PUT -> Verde Esmeralda Guardar */
+.btn-guardar,
+.btn-save,
+.btn-emerald {
+  background-color: #059669 !important;
+  border-color: #059669 !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-guardar:hover,
+.btn-guardar:focus,
+.btn-save:hover,
+.btn-save:focus,
+.btn-emerald:hover,
+.btn-emerald:focus {
+  background-color: #047857 !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3) !important;
+}
+
+.btn-guardar:active,
+.btn-save:active,
+.btn-emerald:active {
+  background-color: #065f46 !important;
+  border-color: #065f46 !important;
+}
+
+/* 2. Acción Agregar (no principal) -> Azul petróleo equilibrado (#0f526e) */
+.btn-agregar,
+.btn-add {
+  background-color: #0f526e !important;
+  border-color: #0f526e !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  box-shadow: 0 2px 4px rgba(15, 82, 110, 0.25) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-agregar:hover,
+.btn-agregar:focus,
+.btn-add:hover,
+.btn-add:focus {
+  background-color: #166587 !important;
+  border-color: #166587 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 8px rgba(15, 82, 110, 0.35) !important;
+}
+
+.btn-agregar:active,
+.btn-add:active {
+  background-color: #0a3a4e !important;
+  border-color: #0a3a4e !important;
+}
+
+/* 3. Acción Enviar Correo -> Blanco */
+.btn-correo,
+.btn-email,
+.btn-white {
+  background-color: #ffffff !important;
+  border-color: #d9d9d9 !important;
+  color: #262626 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-correo:hover,
+.btn-correo:focus,
+.btn-email:hover,
+.btn-email:focus,
+.btn-white:hover,
+.btn-white:focus {
+  background-color: #f8fafc !important;
+  border-color: #1890ff !important;
+  color: #1890ff !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+.btn-correo:active,
+.btn-email:active,
+.btn-white:active {
+  background-color: #f1f5f9 !important;
+  border-color: #096dd9 !important;
+}
+
+/* 4. Acción Liquidar Pago / Pagar -> Verde Olivo (#588157) */
+.btn-pagar,
+.btn-liquidar,
+.btn-pago,
+.btn-olive {
+  background-color: #588157 !important;
+  border-color: #588157 !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  box-shadow: 0 2px 4px rgba(88, 129, 87, 0.25) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-pagar:hover,
+.btn-pagar:focus,
+.btn-liquidar:hover,
+.btn-liquidar:focus,
+.btn-pago:hover,
+.btn-pago:focus,
+.btn-olive:hover,
+.btn-olive:focus {
+  background-color: #4a6f49 !important;
+  border-color: #4a6f49 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 8px rgba(88, 129, 87, 0.35) !important;
+}
+
+.btn-pagar:active,
+.btn-liquidar:active,
+.btn-pago:active,
+.btn-olive:active {
+  background-color: #3d5c3c !important;
+  border-color: #3d5c3c !important;
+}
+
+/* 5. Acción Excel -> Tal como está (#52c41a) */
 .btn-excel {
   background-color: #52c41a !important;
   border-color: #52c41a !important;

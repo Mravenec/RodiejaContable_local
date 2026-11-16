@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Table, Typography, Tag, Button, Modal } from 'antd';
-import { ReloadOutlined, EyeOutlined } from '@ant-design/icons';
+import { ReloadOutlined, EyeOutlined, ShopOutlined, CarOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { useJerarquiaAudatex } from '../../hooks/useJerarquiaAudatex';
 
 const { Title } = Typography;
@@ -92,8 +92,8 @@ const JerarquiaAudatex = () => {
       dataIndex: 'nombre',
       key: 'nombre',
       render: (text, record) => {
-         if (record.tipo === 'marca') return <strong>🏢 {text}</strong>;
-         if (record.tipo === 'modelo') return <span>🚗 {text}</span>;
+         if (record.tipo === 'marca') return <strong><ShopOutlined style={{ marginRight: 6 }} />{text}</strong>;
+         if (record.tipo === 'modelo') return <span><CarOutlined style={{ marginRight: 6 }} />{text}</span>;
          if (record.tipo === 'generacion') return <span>{text} ({record.anio_inicio} - {record.anio_fin || '...'})</span>;
          return text;
       }
@@ -143,7 +143,10 @@ const JerarquiaAudatex = () => {
     <div className="table-container">
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>🛒 Cotizaciones InPart · Jerarquía</Title>
+          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>
+            <ShoppingCartOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+            Cotizaciones InPart · Jerarquía
+          </Title>
           <div style={{ color: '#8c8c8c', fontSize: '14px', marginTop: '4px' }}>Distribución de oportunidades de Audatex vs el Stock en Inventario</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>

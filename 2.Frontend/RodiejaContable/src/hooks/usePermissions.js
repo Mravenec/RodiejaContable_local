@@ -3,13 +3,13 @@ import rolesService from '../api/roles';
 import { useAuth } from '../context/AuthContext';
 
 export const usePermissions = (submoduloClave) => {
-  const { user } = useAuth();
+  const { user, permissions: contextPermissions = {} } = useAuth();
   const [permissions, setPermissions] = useState({
-    canView: false,
-    canCreate: false,
-    canEdit: false,
-    canDelete: false,
-    loading: true
+    canView: user?.rol === 'ADMIN',
+    canCreate: user?.rol === 'ADMIN',
+    canEdit: user?.rol === 'ADMIN',
+    canDelete: user?.rol === 'ADMIN',
+    loading: user?.rol !== 'ADMIN'
   });
 
   useEffect(() => {
@@ -35,9 +35,25 @@ export const usePermissions = (submoduloClave) => {
         return;
       }
 
+      // Si AuthContext ya cargó los permisos
+      let targetClave = submoduloClave;
+      if (submoduloClave === 'ins_pedidos' && !contextPermissions['ins_pedidos']) targetClave = 'audatex_pedidos';
+      if (submoduloClave === 'ins_ventas_empleados' && !contextPermissions['ins_ventas_empleados']) targetClave = 'reportes_ventas';
+      const ctxPerm = contextPermissions[targetClave];
+      if (ctxPerm && typeof ctxPerm === 'object') {
+        if (isMounted) {
+          setPermissions({
+            canView: !!ctxPerm.canView,
+            canCreate: !!ctxPerm.canCreate,
+            canEdit: !!ctxPerm.canEdit,
+            canDelete: !!ctxPerm.canDelete,
+            loading: false
+          });
+        }
+        return;
+      }
+
       try {
-        // En un caso real, el backend podría enviar los permisos en el login.
-        // Aquí hacemos el match buscando el rolId basado en el nombre.
         const rolesRes = await rolesService.getRoles();
         const roles = rolesRes.data || [];
         const userRole = roles.find(r => r.nombre === user.rol);
@@ -48,14 +64,14 @@ export const usePermissions = (submoduloClave) => {
           
           let found = false;
           for (const mod of modulos) {
-            const sub = mod.submodulos?.find(s => s.clave === submoduloClave);
+            const sub = mod.submodulos?.find(s => s.clave === targetClave);
             if (sub) {
               if (isMounted) {
                 setPermissions({
-                  canView: sub.canView,
-                  canCreate: sub.canCreate,
-                  canEdit: sub.canEdit,
-                  canDelete: sub.canDelete,
+                  canView: !!sub.canView,
+                  canCreate: !!sub.canCreate,
+                  canEdit: !!sub.canEdit,
+                  canDelete: !!sub.canDelete,
                   loading: false
                 });
                 found = true;
@@ -65,10 +81,10 @@ export const usePermissions = (submoduloClave) => {
           }
           
           if (!found && isMounted) {
-            setPermissions(prev => ({ ...prev, loading: false }));
+            setPermissions({ canView: false, canCreate: false, canEdit: false, canDelete: false, loading: false });
           }
         } else if (isMounted) {
-          setPermissions(prev => ({ ...prev, loading: false }));
+          setPermissions({ canView: false, canCreate: false, canEdit: false, canDelete: false, loading: false });
         }
       } catch (err) {
         console.error("Error al cargar permisos", err);
@@ -81,7 +97,7 @@ export const usePermissions = (submoduloClave) => {
     return () => {
       isMounted = false;
     };
-  }, [user, submoduloClave]);
+  }, [user, submoduloClave, contextPermissions]);
 
   return permissions;
 };

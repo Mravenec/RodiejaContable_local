@@ -6,7 +6,7 @@ import {
 import {
   ReloadOutlined, SearchOutlined, DownloadOutlined, FilterOutlined,
   CheckCircleOutlined, ClockCircleOutlined, UserOutlined, FileTextOutlined,
-  UpOutlined, DownOutlined
+  UpOutlined, DownOutlined, InboxOutlined
 } from '@ant-design/icons';
 import { audatexAPI } from '../../api/audatex';
 import { useAuth } from '../../context/AuthContext';
@@ -831,7 +831,7 @@ const InsPedidos = () => {
                     <Col xs={24} sm={8}>
                       <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Pedido Confirmado</Text>
                       <Text strong style={{ color: '#166534', fontSize: 15 }}>
-                        📦 #{selectedPedido.numeroPedido || selectedPedido.id || selectedPedido.cotizacionId}
+                        <InboxOutlined style={{ marginRight: 6 }} />#{selectedPedido.numeroPedido || selectedPedido.id || selectedPedido.cotizacionId}
                       </Text>
                       <div style={{ marginTop: 4 }}>
                         <Tag color="green" style={{ fontWeight: 500 }}>
@@ -973,7 +973,7 @@ const InsPedidos = () => {
                         <div style={{ padding: '10px 14px', background: '#fff', borderRadius: 6, border: '1px solid #93c5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div>
                             <Text strong style={{ color: '#1e3a8a', fontSize: 15 }}>
-                              👤 {currentUserName}
+                              <UserOutlined style={{ marginRight: 6 }} />{currentUserName}
                             </Text>
                             <div style={{ color: '#64748b', fontSize: 12 }}>
                               {assignedId ? 'Ya asignado a tu cuenta' : 'Se autoasignará a tu usuario al confirmar'}

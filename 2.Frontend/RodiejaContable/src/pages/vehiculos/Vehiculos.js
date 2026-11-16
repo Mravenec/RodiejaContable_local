@@ -6,6 +6,7 @@ import { useVehiculos } from '../../hooks/useVehiculos';
 import { formatCurrency } from '../../utils/formatters';
 import { formatImageUrl } from '../../utils/imageUtils';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -14,6 +15,9 @@ const { Option } = Select;
 const Vehiculos = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { canCreate } = usePermissions('vehiculos_lista');
+  const isAdmin = user?.rol === 'ADMIN';
+  const tienePermisoCrear = isAdmin || canCreate;
   const [filtros, setFiltros] = useState({});
   const { data, isLoading, isError, refetch } = useVehiculos(filtros);
 
@@ -185,12 +189,13 @@ const Vehiculos = () => {
           >
             Ver por Generaciones
           </Button>
-          {user?.rol !== 'CONTADOR' && (
+          {tienePermisoCrear && (
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => navigate('/vehiculos/nuevo')}
               size="large"
+              className="btn-agregar"
               style={{ minWidth: '180px', borderRadius: '6px' }}
             >
               Agregar Vehículo

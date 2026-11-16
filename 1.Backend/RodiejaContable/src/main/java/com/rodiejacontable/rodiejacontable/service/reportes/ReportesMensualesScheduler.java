@@ -24,7 +24,7 @@ public class ReportesMensualesScheduler {
     private final List<ReporteMensualTask> reportesTasks;
     private final UsersRepository usersRepository;
 
-    @Value("${reportes.email.test-only-kimberly:true}")
+    @Value("${reportes.email.test-only-kimberly:false}")
     private boolean testOnlyKimberly;
 
     @Value("${reportes.email.test-address:kimfh1996@gmail.com}")

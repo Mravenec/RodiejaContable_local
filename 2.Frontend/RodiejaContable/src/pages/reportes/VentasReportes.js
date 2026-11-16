@@ -642,6 +642,7 @@ const VentasReportes = () => {
               <Button
                 icon={<MailOutlined />}
                 onClick={() => setModalEmailVisible(true)}
+                className="btn-correo"
               >
                 Enviar por Correo
               </Button>

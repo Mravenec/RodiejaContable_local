@@ -18,7 +18,13 @@ import {
   MailOutlined,
   SendOutlined,
   FileExcelOutlined,
-  UsergroupAddOutlined
+  UsergroupAddOutlined,
+  CarOutlined,
+  ScheduleOutlined,
+  UserOutlined,
+  ToolOutlined,
+  BulbOutlined,
+  InboxOutlined
 } from '@ant-design/icons';
 import reportesService from '../../api/reportes';
 import { formatCurrency } from '../../utils/formatters';
@@ -154,7 +160,7 @@ const ModalEnviarReporteEmail = ({
           <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #d9d9d9' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <Text strong style={{ fontSize: '13px' }}>
-                🚗 Vehículos Vendidos en el Periodo
+                <CarOutlined style={{ marginRight: 6, color: '#1890ff' }} />Vehículos Vendidos en el Periodo
               </Text>
               <Tag color={(statsVendidos?.cantidad || vehiculosVendidos?.length || 0) > 0 ? 'success' : 'default'} style={{ borderRadius: '10px' }}>
                 {(statsVendidos?.cantidad ?? vehiculosVendidos?.length ?? 0)} vendidos
@@ -162,19 +168,25 @@ const ModalEnviarReporteEmail = ({
             </div>
 
             <Row gutter={8} style={{ marginBottom: (vehiculosVendidos && vehiculosVendidos.length > 0) ? '10px' : '0' }}>
-              <Col span={8}>
+              <Col span={6}>
                 <Text type="secondary" style={{ fontSize: '11px', display: 'block' }}>Inversión Vendidos</Text>
                 <Text style={{ fontSize: '12px', color: '#595959' }}>
                   {formatCurrency(statsVendidos?.totInversion || 0)}
                 </Text>
               </Col>
-              <Col span={8}>
+              <Col span={6}>
                 <Text type="secondary" style={{ fontSize: '11px', display: 'block' }}>Total Ventas</Text>
                 <Text style={{ fontSize: '12px', color: '#1890ff' }}>
                   {formatCurrency(statsVendidos?.totVenta || 0)}
                 </Text>
               </Col>
-              <Col span={8}>
+              <Col span={6}>
+                <Text type="secondary" style={{ fontSize: '11px', display: 'block' }}>Total Recuperado</Text>
+                <Text style={{ fontSize: '12px', color: '#52c41a' }}>
+                  {formatCurrency(statsVendidos?.totRecuperado || statsVendidos?.totVenta || 0)}
+                </Text>
+              </Col>
+              <Col span={6}>
                 <Text type="secondary" style={{ fontSize: '11px', display: 'block' }}>Ganancia Neta (ROI)</Text>
                 <Text strong style={{ fontSize: '12px', color: (statsVendidos?.ganancia || 0) >= 0 ? '#52c41a' : '#f5222d' }}>
                   {(statsVendidos?.ganancia || 0) >= 0 ? '+' : ''}{formatCurrency(statsVendidos?.ganancia || 0)}
@@ -200,20 +212,23 @@ const ModalEnviarReporteEmail = ({
                       <th style={{ padding: '6px 8px', textAlign: 'left' }}>Código</th>
                       <th style={{ padding: '6px 8px', textAlign: 'left' }}>Vehículo</th>
                       <th style={{ padding: '6px 8px', textAlign: 'right' }}>Venta</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Recuperado</th>
                       <th style={{ padding: '6px 8px', textAlign: 'right' }}>Ganancia</th>
                     </tr>
                   </thead>
                   <tbody>
                     {vehiculosVendidos.map((v, i) => {
                       const inv = Number(v.inversionTotal ?? v.inversion_total ?? 0);
-                      const ven = Number(v.precioVenta ?? v.precio_venta ?? v.costoRecuperado ?? 0);
-                      const gan = ven - inv;
+                      const ven = Number(v.precioVenta ?? v.precio_venta ?? 0);
+                      const rec = Number(v.costoRecuperado ?? v.costo_recuperado ?? (ven || 0));
+                      const gan = rec - inv;
                       const nombre = `${v.marca || v.marcaNombre || ''} ${v.modelo || ''} ${v.anio || ''}`.trim() || `ID #${v.id}`;
                       return (
                         <tr key={v.id || i} style={{ borderBottom: '1px solid #f5f5f5' }}>
                           <td style={{ padding: '5px 8px', fontFamily: 'monospace', color: '#1890ff' }}>{v.codigoVehiculo || '-'}</td>
                           <td style={{ padding: '5px 8px', color: '#262626' }}>{nombre}</td>
-                          <td style={{ padding: '5px 8px', textAlign: 'right' }}>{formatCurrency(ven)}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right' }}>{formatCurrency(ven || rec)}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right', color: '#52c41a' }}>{formatCurrency(rec)}</td>
                           <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600, color: gan >= 0 ? '#52c41a' : '#f5222d' }}>
                             {gan >= 0 ? '+' : ''}{formatCurrency(gan)}
                           </td>
@@ -232,7 +247,7 @@ const ModalEnviarReporteEmail = ({
           <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #d9d9d9' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <Text strong style={{ fontSize: '13px' }}>
-                💼 Gastos Operativos y Administrativos
+                <ScheduleOutlined style={{ marginRight: 6, color: '#fa8c16' }} />Gastos Operativos y Administrativos
               </Text>
               <Tag color="orange" style={{ borderRadius: '10px', fontWeight: 600 }}>
                 Total: {formatCurrency(gastosOperativos.total || 0)}
@@ -242,7 +257,9 @@ const ModalEnviarReporteEmail = ({
             <Row gutter={8}>
               <Col span={6}>
                 <div style={{ background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
-                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#d46b08', fontWeight: 600 }}>💼 Salarios</Text>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#d46b08', fontWeight: 600 }}>
+                    <UserOutlined style={{ marginRight: 4 }} />Salarios
+                  </Text>
                   <Text strong style={{ fontSize: '12px', color: '#ad4e00' }}>
                     {formatCurrency(gastosOperativos.salarios || 0)}
                   </Text>
@@ -250,7 +267,9 @@ const ModalEnviarReporteEmail = ({
               </Col>
               <Col span={6}>
                 <div style={{ background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
-                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#389e0d', fontWeight: 600 }}>🔧 Mantenimiento</Text>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#389e0d', fontWeight: 600 }}>
+                    <ToolOutlined style={{ marginRight: 4 }} />Mantenimiento
+                  </Text>
                   <Text strong style={{ fontSize: '12px', color: '#237804' }}>
                     {formatCurrency(gastosOperativos.mantenimiento || 0)}
                   </Text>
@@ -258,7 +277,9 @@ const ModalEnviarReporteEmail = ({
               </Col>
               <Col span={6}>
                 <div style={{ background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
-                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#096dd9', fontWeight: 600 }}>💡 Servicios</Text>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#096dd9', fontWeight: 600 }}>
+                    <BulbOutlined style={{ marginRight: 4 }} />Servicios
+                  </Text>
                   <Text strong style={{ fontSize: '12px', color: '#0050b3' }}>
                     {formatCurrency(gastosOperativos.serviciosPublicos || 0)}
                   </Text>
@@ -266,7 +287,9 @@ const ModalEnviarReporteEmail = ({
               </Col>
               <Col span={6}>
                 <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
-                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#595959', fontWeight: 600 }}>📦 Otros</Text>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#595959', fontWeight: 600 }}>
+                    <InboxOutlined style={{ marginRight: 4 }} />Otros
+                  </Text>
                   <Text strong style={{ fontSize: '12px', color: '#262626' }}>
                     {formatCurrency(gastosOperativos.otros || 0)}
                   </Text>

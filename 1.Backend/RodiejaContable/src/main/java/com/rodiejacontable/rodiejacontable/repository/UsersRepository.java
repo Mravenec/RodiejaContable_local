@@ -72,18 +72,23 @@ public class UsersRepository {
             });
     }
 
-    public boolean deleteUser(Integer id) {
-        // Prevent deleting admin role user
-        Integer roleId = dsl.select(USERS.ROL_ID).from(USERS).where(USERS.ID.eq(id)).fetchOneInto(Integer.class);
-        if (roleId != null) {
-            String roleName = dsl.select(ROLES.NOMBRE).from(ROLES).where(ROLES.ID.eq(roleId)).fetchOneInto(String.class);
-            if ("ADMIN".equalsIgnoreCase(roleName)) {
+    public boolean deleteUser(Integer id, String currentEmail) {
+        if (id == null) return false;
+
+        // Prevent deleting oneself
+        if (currentEmail != null && !currentEmail.trim().isEmpty()) {
+            String userEmail = dsl.select(USERS.EMAIL).from(USERS).where(USERS.ID.eq(id)).fetchOneInto(String.class);
+            if (userEmail != null && userEmail.equalsIgnoreCase(currentEmail.trim())) {
                 return false;
             }
         }
         
         int deleted = dsl.deleteFrom(USERS).where(USERS.ID.eq(id)).execute();
         return deleted > 0;
+    }
+
+    public boolean deleteUser(Integer id) {
+        return deleteUser(id, null);
     }
 
     public boolean updateUserRole(Integer userId, Integer roleId) {

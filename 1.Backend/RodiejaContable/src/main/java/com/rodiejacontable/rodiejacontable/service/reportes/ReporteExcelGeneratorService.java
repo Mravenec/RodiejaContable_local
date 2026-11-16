@@ -1115,8 +1115,8 @@ public class ReporteExcelGeneratorService {
                             double recuperado = toDouble(v.get("costo_recuperado"));
                             double precioVenta = toDouble(v.get("precio_venta"));
                             boolean esVendido = "VENDIDO".equalsIgnoreCase(estado) || precioVenta > 0;
-                            if (esVendido && precioVenta > 0) {
-                                recuperado = Math.max(recuperado, precioVenta);
+                            if (recuperado == 0.0 && esVendido && precioVenta > 0) {
+                                recuperado = precioVenta;
                             }
                             double neto = toDouble(v.get("balance_neto"));
                             if (neto == 0.0 && recuperado > 0) {
@@ -1136,6 +1136,7 @@ public class ReporteExcelGeneratorService {
                                 vVend.put("modeloNombre", nomModelo);
                                 vVend.put("generacionNombre", nomGen);
                                 vVend.put("precioVentaCalculado", precioVenta > 0 ? precioVenta : recuperado);
+                                vVend.put("montoRecuperadoCalculado", recuperado);
                                 vVend.put("gananciaCalculada", neto);
                                 vVend.put("roiCalculado", vRoi);
                                 todosVehiculosVendidos.add(vVend);
@@ -1322,7 +1323,7 @@ public class ReporteExcelGeneratorService {
             String[] headersS3 = {
                     "Código", "Marca", "Modelo", "Generación", "Año", "Estado",
                     "Fecha Venta", "Inversión Base", "Gastos / Reparación", "Inversión Total",
-                    "Precio Venta / Ingresos", "Ganancia Neta", "% Margen / ROI", "Repuestos Extraídos"
+                    "Precio Venta", "Monto Recuperado", "Ganancia Neta", "% Margen / ROI", "Repuestos Extraídos"
             };
 
             Row h3Row = s3.createRow(0);
@@ -1358,8 +1359,8 @@ public class ReporteExcelGeneratorService {
                             double gastos = Math.max(0, invTotal - invBase);
                             double recuperado = toDouble(v.get("costo_recuperado"));
                             double precioVenta = toDouble(v.get("precio_venta"));
-                            if ("VENDIDO".equalsIgnoreCase(estado) && precioVenta > 0) {
-                                recuperado = Math.max(recuperado, precioVenta);
+                            if (recuperado == 0.0 && "VENDIDO".equalsIgnoreCase(estado) && precioVenta > 0) {
+                                recuperado = precioVenta;
                             }
                             double neto = toDouble(v.get("balance_neto"));
                             if (neto == 0.0 && recuperado > 0) {
@@ -1399,27 +1400,28 @@ public class ReporteExcelGeneratorService {
                             crearCeldaMoneda(rVeh, 7, invBase, curSt);
                             crearCeldaMoneda(rVeh, 8, gastos, curSt);
                             crearCeldaMoneda(rVeh, 9, invTotal, curSt);
-                            crearCeldaMoneda(rVeh, 10, recuperado, curSt);
-                            crearCeldaMoneda(rVeh, 11, neto, neto >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
+                            crearCeldaMoneda(rVeh, 10, precioVenta, curSt);
+                            crearCeldaMoneda(rVeh, 11, recuperado, curSt);
+                            crearCeldaMoneda(rVeh, 12, neto, neto >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
 
-                            rVeh.createCell(12).setCellValue(String.format("%.1f%%", roi));
-                            rVeh.getCell(12).setCellStyle(cntSt);
-
-                            rVeh.createCell(13).setCellValue(cantRep);
+                            rVeh.createCell(13).setCellValue(String.format("%.1f%%", roi));
                             rVeh.getCell(13).setCellStyle(cntSt);
+
+                            rVeh.createCell(14).setCellValue(cantRep);
+                            rVeh.getCell(14).setCellStyle(cntSt);
                         }
                     }
                 }
             }
 
-            ajustarAnchos(s3, new int[]{16, 16, 18, 20, 10, 14, 14, 16, 18, 16, 20, 18, 14, 16});
+            ajustarAnchos(s3, new int[]{16, 16, 18, 20, 10, 14, 14, 16, 18, 16, 18, 20, 18, 14, 16});
 
             // ==================== HOJA 4: VEHÍCULOS VENDIDOS Y GANANCIAS ====================
             Sheet s4 = wb.createSheet("Vehículos Vendidos y Ganancias");
             String[] headersS4 = {
                     "Código", "Marca", "Modelo", "Generación", "Año", "Fecha Ingreso", "Fecha Venta",
                     "Inversión Base", "Gastos / Adicionales", "Inversión Total",
-                    "Precio Venta", "Ganancia Neta (₡)", "% Margen Ganancia (ROI)"
+                    "Precio Venta", "Monto Recuperado", "Ganancia Neta (₡)", "% Margen Ganancia (ROI)"
             };
 
             Row h4Row = s4.createRow(0);
@@ -1435,6 +1437,7 @@ public class ReporteExcelGeneratorService {
             double totVendGastos = 0.0;
             double totVendInversion = 0.0;
             double totVendVenta = 0.0;
+            double totVendRecuperado = 0.0;
             double totVendGanancia = 0.0;
 
             for (Map<String, Object> v : todosVehiculosVendidos) {
@@ -1455,6 +1458,10 @@ public class ReporteExcelGeneratorService {
                 double invTot = toDouble(v.get("inversion_total"));
                 double gastos = Math.max(0, invTot - invBase);
                 double pVenta = toDouble(v.get("precioVentaCalculado"));
+                double rec = toDouble(v.get("montoRecuperadoCalculado"));
+                if (rec == 0.0 && pVenta > 0.0) {
+                    rec = pVenta;
+                }
                 double gan = toDouble(v.get("gananciaCalculada"));
                 double roi = toDouble(v.get("roiCalculado"));
 
@@ -1462,6 +1469,7 @@ public class ReporteExcelGeneratorService {
                 totVendGastos += gastos;
                 totVendInversion += invTot;
                 totVendVenta += pVenta;
+                totVendRecuperado += rec;
                 totVendGanancia += gan;
 
                 Row rVend = s4.createRow(s4RowIdx++);
@@ -1492,10 +1500,11 @@ public class ReporteExcelGeneratorService {
                 crearCeldaMoneda(rVend, 8, gastos, curSt);
                 crearCeldaMoneda(rVend, 9, invTot, curSt);
                 crearCeldaMoneda(rVend, 10, pVenta, curSt);
-                crearCeldaMoneda(rVend, 11, gan, gan >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
+                crearCeldaMoneda(rVend, 11, rec, curSt);
+                crearCeldaMoneda(rVend, 12, gan, gan >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
 
-                rVend.createCell(12).setCellValue(String.format("%.2f%%", roi));
-                rVend.getCell(12).setCellStyle(cntSt);
+                rVend.createCell(13).setCellValue(String.format("%.2f%%", roi));
+                rVend.getCell(13).setCellStyle(cntSt);
             }
 
             // Fila de TOTALES en Hoja 4
@@ -1513,13 +1522,14 @@ public class ReporteExcelGeneratorService {
             crearCeldaMoneda(rTotalS4, 8, totVendGastos, styles.totalCurrencyStyle);
             crearCeldaMoneda(rTotalS4, 9, totVendInversion, styles.totalCurrencyStyle);
             crearCeldaMoneda(rTotalS4, 10, totVendVenta, styles.totalCurrencyStyle);
-            crearCeldaMoneda(rTotalS4, 11, totVendGanancia, styles.totalCurrencyStyle);
+            crearCeldaMoneda(rTotalS4, 11, totVendRecuperado, styles.totalCurrencyStyle);
+            crearCeldaMoneda(rTotalS4, 12, totVendGanancia, styles.totalCurrencyStyle);
 
             double roiVendTotal = (totVendInversion > 0) ? ((totVendGanancia / totVendInversion) * 100.0) : 0.0;
-            rTotalS4.createCell(12).setCellValue(String.format("%.2f%%", roiVendTotal));
-            rTotalS4.getCell(12).setCellStyle(styles.totalHeaderStyle);
+            rTotalS4.createCell(13).setCellValue(String.format("%.2f%%", roiVendTotal));
+            rTotalS4.getCell(13).setCellStyle(styles.totalHeaderStyle);
 
-            ajustarAnchos(s4, new int[]{16, 16, 18, 20, 10, 14, 14, 16, 18, 18, 18, 22, 18});
+            ajustarAnchos(s4, new int[]{16, 16, 18, 20, 10, 14, 14, 16, 18, 18, 18, 18, 22, 18});
 
             wb.write(out);
             return out.toByteArray();

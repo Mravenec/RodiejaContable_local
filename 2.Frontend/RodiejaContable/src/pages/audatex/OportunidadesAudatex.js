@@ -14,7 +14,9 @@ import {
   DownOutlined,
   UserOutlined,
   CheckCircleOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  ShoppingCartOutlined,
+  InboxOutlined
 } from '@ant-design/icons';
 import { audatexService } from '../../api';
 import { API_BASE_URL } from '../../api/config';
@@ -1048,7 +1050,10 @@ const OportunidadesAudatex = () => {
       {/* Encabezado */}
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>🛒 Cotizaciones InPart · Vista Global</Title>
+          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>
+            <ShoppingCartOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+            Cotizaciones InPart · Vista Global
+          </Title>
           <div style={{ color: '#8c8c8c', fontSize: '14px', marginTop: '4px' }}>Todas las oportunidades abiertas en Audatex que matchean con tu inventario</div>
         </div>
         <Space>
@@ -1549,7 +1554,7 @@ const OportunidadesAudatex = () => {
                       <Col xs={24} sm={8}>
                         <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Pedido Confirmado</Text>
                         <Text strong style={{ color: '#166534', fontSize: 15 }}>
-                          📦 #{numPedido}
+                          <InboxOutlined style={{ marginRight: 6 }} />#{numPedido}
                         </Text>
                         <div>
                           <Tag color="green" style={{ marginTop: 4, fontWeight: 500 }}>
@@ -1694,7 +1699,7 @@ const OportunidadesAudatex = () => {
                         <div style={{ padding: '10px 14px', background: '#fff', borderRadius: 6, border: '1px solid #93c5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div>
                             <Text strong style={{ color: '#1e3a8a', fontSize: 15 }}>
-                              👤 {currentUserName}
+                              <UserOutlined style={{ marginRight: 6 }} />{currentUserName}
                             </Text>
                             <div style={{ color: '#64748b', fontSize: 12 }}>
                               {assignedId ? 'Ya asignada a tu cuenta' : 'Se autoasignará a tu usuario al confirmar'}
