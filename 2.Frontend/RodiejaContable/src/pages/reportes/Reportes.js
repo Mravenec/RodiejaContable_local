@@ -8,7 +8,6 @@ import {
   Col,
   Table,
   Typography,
-  Statistic,
   Progress,
   Tag,
   Button,
@@ -34,6 +33,8 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReporteEmail';
+import DashboardKpiCard from '../../components/common/DashboardKpiCard';
+import { MESES_NOMBRES } from '../../utils/dateUtils';
 
 const { Title, Text } = Typography;
 
@@ -90,11 +91,6 @@ const agruparTransaccionesPorMes = (transacciones) => {
     return [];
   }
 
-  const meses = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-
   const agrupado = {};
 
   transacciones.forEach((transaccion) => {
@@ -103,7 +99,7 @@ const agruparTransaccionesPorMes = (transacciones) => {
 
     if (fObj && !isNaN(fObj.getTime())) {
       const mesNum = fObj.getMonth() + 1;
-      const mesNombre = meses[mesNum - 1];
+      const mesNombre = MESES_NOMBRES[mesNum - 1];
       const anio = fObj.getFullYear();
       const key = `${anio}-${mesNum}`;
 
@@ -421,50 +417,53 @@ const Reportes = () => {
       </div>
 
       {/* Métricas principales */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Totales</span>}
-              value={metricas.totalVentas}
-              prefix={<ShoppingCartOutlined style={{ fontSize: '20px' }} />}
-              suffix="unidades"
-              valueStyle={{ color: '#1890ff', fontWeight: 600, fontSize: '24px' }}
-            />
-          </Card>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24, display: 'flex', flexWrap: 'wrap' }}>
+        <Col xs={24} sm={12} lg={6} style={{ minWidth: 220, flex: 1 }}>
+          <DashboardKpiCard
+            title="Ventas Totales"
+            value={metricas.totalVentas}
+            isCurrency={false}
+            suffix=" unidades"
+            type="info"
+            icon={<ShoppingCartOutlined />}
+            footer="Volumen total de transacciones"
+            loading={loading.general}
+          />
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
-              value={metricas.totalIngresos}
-              precision={2}
-              prefix={<DollarOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
-              formatter={value => formatCurrency(value)}
-            />
-          </Card>
+        <Col xs={24} sm={12} lg={6} style={{ minWidth: 220, flex: 1 }}>
+          <DashboardKpiCard
+            title="Ingresos Totales"
+            value={metricas.totalIngresos}
+            isCurrency={true}
+            type="success"
+            icon={<DollarOutlined />}
+            footer="Facturación acumulada del negocio"
+            loading={loading.general}
+          />
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Vehículos en Stock</span>}
-              value={metricas.vehiculosStock}
-              prefix={<CarOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#722ed1', fontWeight: 600, fontSize: '24px' }}
-            />
-          </Card>
+        <Col xs={24} sm={12} lg={6} style={{ minWidth: 220, flex: 1 }}>
+          <DashboardKpiCard
+            title="Vehículos en Stock"
+            value={metricas.vehiculosStock}
+            isCurrency={false}
+            suffix=" unidades"
+            type="purple"
+            icon={<CarOutlined />}
+            footer="Inventario activo en patio"
+            loading={loading.general}
+          />
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }} loading={loading.general}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Tasa de Conversión</span>}
-              value={metricas.tasaConversion}
-              suffix="%"
-              prefix={<TrophyOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: '24px' }}
-            />
-          </Card>
+        <Col xs={24} sm={12} lg={6} style={{ minWidth: 220, flex: 1 }}>
+          <DashboardKpiCard
+            title="Tasa de Conversión"
+            value={metricas.tasaConversion}
+            isCurrency={false}
+            suffix="%"
+            type="warning"
+            icon={<TrophyOutlined />}
+            footer="Efectividad sobre cotizaciones"
+            loading={loading.general}
+          />
         </Col>
       </Row>
 
@@ -528,141 +527,72 @@ const Reportes = () => {
         </Col>
 
         <Col xs={24} md={8}>
-          <Card
-            hoverable
-            bordered={false}
-            style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden', height: '100%', transition: 'all 0.3s ease' }}
-            bodyStyle={{ padding: 0 }}
+          <DashboardKpiCard
+            title="Vehículos - Ganancia Neta"
+            value={resumenVehiculos.ganancia}
+            type="featured-blue"
+            icon={<CarOutlined />}
+            tag={
+              <Tag color="blue" style={{ margin: 0, borderRadius: '10px', fontWeight: 600, fontSize: '11px' }}>
+                Vehículos
+              </Tag>
+            }
           >
-            {/* Cabecera con gradiente azul */}
-            <div style={{ background: 'linear-gradient(135deg, #1890ff 0%, #0050b3 100%)', padding: '24px', color: 'white' }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-                  <CarOutlined style={{ color: '#fff', fontSize: '20px' }} />
-                </div>
-                <Title level={4} style={{ margin: 0, color: 'white' }}>Vehículos</Title>
-              </div>
-              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', display: 'block', marginBottom: 4, fontWeight: 500 }}>Ganancia Neta</Text>
-              <Title level={2} style={{ margin: 0, color: 'white' }}>{formatCurrency(resumenVehiculos.ganancia)}</Title>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid #bae7ff', fontSize: '12px' }}>
+              <span style={{ color: '#52c41a', fontWeight: 600 }}>
+                <ArrowUpOutlined /> Ingresos: {formatCurrency(resumenVehiculos.ventas)}
+              </span>
+              <span style={{ color: '#ff4d4f', fontWeight: 600 }}>
+                <ArrowDownOutlined /> Costos: {formatCurrency(resumenVehiculos.inversion)}
+              </span>
             </div>
-
-            {/* Detalles numéricos */}
-            <div style={{ padding: '24px' }}>
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <Statistic
-                    title={<span style={{ fontSize: '13px', color: '#8c8c8c' }}>Ingresos</span>}
-                    value={resumenVehiculos.ventas}
-                    precision={0}
-                    valueStyle={{ fontSize: '16px', fontWeight: 600, color: '#52c41a' }}
-                    prefix={<ArrowUpOutlined style={{ fontSize: '14px' }} />}
-                    formatter={value => formatCurrency(value)}
-                  />
-                </Col>
-                <Col span={12}>
-                  <Statistic
-                    title={<span style={{ fontSize: '13px', color: '#8c8c8c' }}>Costos & Comisiones</span>}
-                    value={resumenVehiculos.inversion}
-                    precision={0}
-                    valueStyle={{ fontSize: '16px', fontWeight: 600, color: '#ff4d4f' }}
-                    prefix={<ArrowDownOutlined style={{ fontSize: '14px' }} />}
-                    formatter={value => formatCurrency(value)}
-                  />
-                </Col>
-              </Row>
-            </div>
-          </Card>
+          </DashboardKpiCard>
         </Col>
 
         <Col xs={24} md={8}>
-          <Card
-            hoverable
-            bordered={false}
-            style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden', height: '100%', transition: 'all 0.3s ease' }}
-            bodyStyle={{ padding: 0 }}
+          <DashboardKpiCard
+            title="Repuestos - Ganancia Neta"
+            value={resumenRepuestos.ganancia}
+            type="featured-orange"
+            icon={<ToolOutlined />}
+            tag={
+              <Tag color="orange" style={{ margin: 0, borderRadius: '10px', fontWeight: 600, fontSize: '11px' }}>
+                Repuestos
+              </Tag>
+            }
           >
-            {/* Cabecera con gradiente morado */}
-            <div style={{ background: 'linear-gradient(135deg, #722ed1 0%, #391085 100%)', padding: '24px', color: 'white' }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-                  <ToolOutlined style={{ color: '#fff', fontSize: '20px' }} />
-                </div>
-                <Title level={4} style={{ margin: 0, color: 'white' }}>Repuestos</Title>
-              </div>
-              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', display: 'block', marginBottom: 4, fontWeight: 500 }}>Ganancia Neta</Text>
-              <Title level={2} style={{ margin: 0, color: 'white' }}>{formatCurrency(resumenRepuestos.ganancia)}</Title>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid #ffd591', fontSize: '12px' }}>
+              <span style={{ color: '#52c41a', fontWeight: 600 }}>
+                <ArrowUpOutlined /> Ingresos: {formatCurrency(resumenRepuestos.ventas)}
+              </span>
+              <span style={{ color: '#ff4d4f', fontWeight: 600 }}>
+                <ArrowDownOutlined /> Costos: {formatCurrency(resumenRepuestos.costos)}
+              </span>
             </div>
-
-            {/* Detalles numéricos */}
-            <div style={{ padding: '24px' }}>
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <Statistic
-                    title={<span style={{ fontSize: '13px', color: '#8c8c8c' }}>Ingresos</span>}
-                    value={resumenRepuestos.ventas}
-                    precision={0}
-                    valueStyle={{ fontSize: '16px', fontWeight: 600, color: '#52c41a' }}
-                    prefix={<ArrowUpOutlined style={{ fontSize: '14px' }} />}
-                    formatter={value => formatCurrency(value)}
-                  />
-                </Col>
-                <Col span={12}>
-                  <Statistic
-                    title={<span style={{ fontSize: '13px', color: '#8c8c8c' }}>Costos & Comisiones</span>}
-                    value={resumenRepuestos.costos}
-                    precision={0}
-                    valueStyle={{ fontSize: '16px', fontWeight: 600, color: '#ff4d4f' }}
-                    prefix={<ArrowDownOutlined style={{ fontSize: '14px' }} />}
-                    formatter={value => formatCurrency(value)}
-                  />
-                </Col>
-              </Row>
-            </div>
-          </Card>
+          </DashboardKpiCard>
         </Col>
 
         <Col xs={24} md={8}>
-          <Card
-            hoverable
-            bordered={false}
-            style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden', height: '100%', transition: 'all 0.3s ease' }}
-            bodyStyle={{ padding: 0 }}
+          <DashboardKpiCard
+            title="Ventas Global - Ingresos Brutos"
+            value={metricas.totalIngresos}
+            type="featured-green"
+            icon={<ShoppingCartOutlined />}
+            tag={
+              <Tag color="green" style={{ margin: 0, borderRadius: '10px', fontWeight: 600, fontSize: '11px' }}>
+                Global
+              </Tag>
+            }
           >
-            {/* Cabecera con gradiente verde */}
-            <div style={{ background: 'linear-gradient(135deg, #52c41a 0%, #237804 100%)', padding: '24px', color: 'white' }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-                  <ShoppingCartOutlined style={{ color: '#fff', fontSize: '20px' }} />
-                </div>
-                <Title level={4} style={{ margin: 0, color: 'white' }}>Ventas Global</Title>
-              </div>
-              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', display: 'block', marginBottom: 4, fontWeight: 500 }}>Ingresos Brutos</Text>
-              <Title level={2} style={{ margin: 0, color: 'white' }}>{formatCurrency(metricas.totalIngresos)}</Title>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid #d9f7be', fontSize: '12px' }}>
+              <span style={{ color: '#595959', fontWeight: 500 }}>
+                {metricas.totalVentas} transacciones
+              </span>
+              <span style={{ color: '#262626', fontWeight: 600 }}>
+                Ticket Prom.: {formatCurrency(metricas.promedioVenta)}
+              </span>
             </div>
-
-            {/* Detalles numéricos */}
-            <div style={{ padding: '24px' }}>
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <Statistic
-                    title={<span style={{ fontSize: '13px', color: '#8c8c8c' }}>Transacciones</span>}
-                    value={metricas.totalVentas}
-                    valueStyle={{ fontSize: '16px', fontWeight: 600, color: '#595959' }}
-                    formatter={value => `${value} regs.`}
-                  />
-                </Col>
-                <Col span={12}>
-                  <Statistic
-                    title={<span style={{ fontSize: '13px', color: '#8c8c8c' }}>Ticket Promedio</span>}
-                    value={metricas.promedioVenta}
-                    precision={0}
-                    valueStyle={{ fontSize: '16px', fontWeight: 600, color: '#595959' }}
-                    formatter={value => formatCurrency(value)}
-                  />
-                </Col>
-              </Row>
-            </div>
-          </Card>
+          </DashboardKpiCard>
         </Col>
 
         {/* Top Vendedores */}

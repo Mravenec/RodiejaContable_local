@@ -1,8 +1,7 @@
 import axios from 'axios';
-import { API_BASE_URL } from './config';
 
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  baseURL: 'http://localhost:8080/api', // Backend API URL
   withCredentials: false, // Disable credentials for now to avoid CORS issues
   // Remove all custom headers that might interfere with CORS
   headers: {
@@ -18,6 +17,11 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Si la data es FormData, eliminar Content-Type para que el navegador y Axios
+    // calculen el boundary correcto automáticamente (evita 'Failed to parse multipart servlet request')
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
     }
     return config;
   },

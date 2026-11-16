@@ -7,11 +7,9 @@ import {
   Typography,
   Button,
   Space,
-  Statistic,
   Select,
   Tag,
   message,
-  Spin,
   Empty,
   Modal,
   Form,
@@ -33,14 +31,17 @@ import {
   FileExcelOutlined,
   DashboardOutlined,
   ArrowUpOutlined,
-  MailOutlined
+  MailOutlined,
+  TrophyOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import ventasEmpleadosService from '../../api/ventasEmpleados';
 import { buscarTransacciones } from '../../api/transacciones';
 import reportesService from '../../api/reportes';
 import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReporteEmail';
+import DashboardKpiCard from '../../components/common/DashboardKpiCard';
 import { formatCurrency } from '../../utils/formatters';
+import { MESES_NOMBRES } from '../../utils/dateUtils';
 import { useVistaExcelMesActual, useVistaExcelMesEspecifico, useGenerarReporteVentasExcel } from '../../hooks/useReportes';
 import { useEmpleados } from '../../hooks/useEmpleados';
 
@@ -51,8 +52,6 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 const { Search } = Input;
 const { Content } = Layout;
-
-const MESES_NOMBRES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 const tiposProducto = [
   { value: 'VEHICULO', label: 'Vehículo' },
@@ -906,60 +905,53 @@ const VentasReportes = () => {
       />
 
       {/* Métricas principales */}
-      <Spin spinning={loading.estadisticas}>
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-              <Statistic
-                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Totales</span>}
-                value={totalVentasCount}
-                prefix={<ShoppingCartOutlined style={{ fontSize: '20px' }} />}
-                valueStyle={{ color: '#1890ff', fontWeight: 600, fontSize: '24px' }}
-                loading={loading.estadisticas}
-                formatter={value => new Intl.NumberFormat('es-CR').format(value)}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-              <Statistic
-                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
-                value={totalIngresos}
-                precision={2}
-                prefix={<ArrowUpOutlined style={{ fontSize: '20px' }} />}
-                valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
-                loading={loading.estadisticas}
-                formatter={value => `₡${new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-              <Statistic
-                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ventas Completadas</span>}
-                value={ventasCompletadas}
-                prefix={<CheckCircleOutlined style={{ fontSize: '20px' }} />}
-                valueStyle={{ color: '#722ed1', fontWeight: 600, fontSize: '24px' }}
-                loading={loading.estadisticas}
-                formatter={value => new Intl.NumberFormat('es-CR').format(value)}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-              <Statistic
-                title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Tasa de Conversión</span>}
-                value={tasaConversion}
-                precision={2}
-                suffix="%"
-                valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: '24px' }}
-                loading={loading.estadisticas}
-                formatter={value => new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}
-              />
-            </Card>
-          </Col>
-        </Row>
-      </Spin>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24, display: 'flex', flexWrap: 'wrap' }}>
+        <Col xs={24} sm={12} lg={6} style={{ minWidth: 220, flex: 1 }}>
+          <DashboardKpiCard
+            title="Ventas Totales"
+            value={totalVentasCount}
+            isCurrency={false}
+            type="info"
+            icon={<ShoppingCartOutlined />}
+            footer="Total de operaciones registradas"
+            loading={loading.estadisticas}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6} style={{ minWidth: 220, flex: 1 }}>
+          <DashboardKpiCard
+            title="Ingresos Totales"
+            value={totalIngresos}
+            isCurrency={true}
+            type="success"
+            icon={<ArrowUpOutlined />}
+            footer="Facturación acumulada en ventas"
+            loading={loading.estadisticas}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6} style={{ minWidth: 220, flex: 1 }}>
+          <DashboardKpiCard
+            title="Ventas Completadas"
+            value={ventasCompletadas}
+            isCurrency={false}
+            type="purple"
+            icon={<CheckCircleOutlined />}
+            footer="Operaciones finalizadas con éxito"
+            loading={loading.estadisticas}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6} style={{ minWidth: 220, flex: 1 }}>
+          <DashboardKpiCard
+            title="Tasa de Conversión"
+            value={Number(tasaConversion || 0).toFixed(2)}
+            isCurrency={false}
+            suffix="%"
+            type="warning"
+            icon={<TrophyOutlined />}
+            footer="Efectividad en cierre comercial"
+            loading={loading.estadisticas}
+          />
+        </Col>
+      </Row>
 
       <Tabs
         defaultActiveKey="1"

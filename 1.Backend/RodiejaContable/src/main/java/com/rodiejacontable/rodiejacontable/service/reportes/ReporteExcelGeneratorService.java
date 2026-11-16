@@ -2,6 +2,7 @@ package com.rodiejacontable.rodiejacontable.service.reportes;
 
 import com.rodiejacontable.database.jooq.tables.pojos.VistaResumenGeneraciones;
 import com.rodiejacontable.database.jooq.tables.pojos.VistaTransaccionesCompletas;
+import com.rodiejacontable.database.jooq.tables.pojos.VistaVehiculosCompleta;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -9,8 +10,12 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -26,9 +31,10 @@ public class ReporteExcelGeneratorService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     /**
-     * Genera el libro Excel para el Reporte de Vehículos con 2 hojas:
+     * Genera el libro Excel para el Reporte de Vehículos con 3 hojas:
      * 1. Resumen Financiero
-     * 2. Detalle Movimientos
+     * 2. Vehículos Vendidos y Rentabilidad
+     * 3. Detalle Movimientos
      */
     public byte[] generarExcelVehiculos(
             String periodoNombre,
@@ -37,15 +43,54 @@ public class ReporteExcelGeneratorService {
             double comisiones,
             double balanceNeto,
             List<VistaTransaccionesCompletas> transacciones) throws IOException {
+        return generarExcelVehiculos(periodoNombre, ingresos, egresos, comisiones, balanceNeto, transacciones, Collections.emptyList());
+    }
+
+    public byte[] generarExcelVehiculos(
+            String periodoNombre,
+            double ingresos,
+            double egresos,
+            double comisiones,
+            double balanceNeto,
+            List<VistaTransaccionesCompletas> transacciones,
+            List<?> vehiculosVendidos) throws IOException {
 
         try (Workbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             StylesHelper styles = new StylesHelper(wb);
 
+            // Calcular consolidados de vehículos vendidos si existen
+            int cantVendidos = (vehiculosVendidos != null) ? vehiculosVendidos.size() : 0;
+            double sumInvVendidos = 0.0;
+            double sumVentaVendidos = 0.0;
+            if (vehiculosVendidos != null) {
+                for (Object obj : vehiculosVendidos) {
+                    if (obj instanceof VistaVehiculosCompleta v) {
+                        double inv = v.getInversionTotal() != null ? v.getInversionTotal().doubleValue() : 0.0;
+                        double ven = v.getPrecioVenta() != null ? v.getPrecioVenta().doubleValue() : 0.0;
+                        sumInvVendidos += inv;
+                        sumVentaVendidos += ven;
+                    } else if (obj instanceof Map<?, ?> m) {
+                        double inv = toDouble(m.get("inversionTotal"));
+                        if (inv == 0.0) inv = toDouble(m.get("inversion_total"));
+                        double ven = toDouble(m.get("precioVenta"));
+                        if (ven == 0.0) ven = toDouble(m.get("precio_venta"));
+                        sumInvVendidos += inv;
+                        sumVentaVendidos += ven;
+                    }
+                }
+            }
+            double gananciaVendidos = sumVentaVendidos - sumInvVendidos;
+            double margenRoiVendidos = (sumInvVendidos > 0) ? ((gananciaVendidos / sumInvVendidos) * 100.0) : 0.0;
+
             // ==================== HOJA 1: RESUMEN FINANCIERO ====================
             Sheet sheetResumen = wb.createSheet("Resumen Financiero");
-            String[] headersResumen = {"Período", "Ingresos por Ventas", "Inversión y Reparación", "Comisiones", "Ganancia Neta Real"};
+            String[] headersResumen = {
+                    "Período", "Ingresos por Ventas (Flujo)", "Inversión y Reparación", "Comisiones Pagadas", "Balance Flujo Caja",
+                    "Vehículos Vendidos", "Inversión Vendidos", "Total Venta Vehículos", "Ganancia Neta en Vehículos", "% Margen ROI"
+            };
 
             Row hRow = sheetResumen.createRow(0);
+            hRow.setHeightInPoints(24);
             for (int i = 0; i < headersResumen.length; i++) {
                 Cell c = hRow.createCell(i);
                 c.setCellValue(headersResumen[i]);
@@ -54,6 +99,7 @@ public class ReporteExcelGeneratorService {
 
             // Fila de datos del período
             Row rRow = sheetResumen.createRow(1);
+            rRow.setHeightInPoints(20);
             rRow.createCell(0).setCellValue(periodoNombre);
             rRow.getCell(0).setCellStyle(styles.textCenterStyle);
 
@@ -62,10 +108,23 @@ public class ReporteExcelGeneratorService {
             crearCeldaMoneda(rRow, 3, comisiones, styles.currencyStyle);
             crearCeldaMoneda(rRow, 4, balanceNeto, balanceNeto >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
 
+            Cell cCantV = rRow.createCell(5);
+            cCantV.setCellValue(cantVendidos + (cantVendidos == 1 ? " unidad" : " unidades"));
+            cCantV.setCellStyle(styles.textCenterStyle);
+
+            crearCeldaMoneda(rRow, 6, sumInvVendidos, styles.currencyStyle);
+            crearCeldaMoneda(rRow, 7, sumVentaVendidos, styles.currencyStyle);
+            crearCeldaMoneda(rRow, 8, gananciaVendidos, gananciaVendidos >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
+
+            Cell cRoiV = rRow.createCell(9);
+            cRoiV.setCellValue(String.format(Locale.US, "%s%.1f%%", margenRoiVendidos >= 0 ? "+" : "", margenRoiVendidos));
+            cRoiV.setCellStyle(styles.textCenterStyle);
+
             // Fila de TOTALES
             Row tRow = sheetResumen.createRow(2);
+            tRow.setHeightInPoints(22);
             Cell tCell = tRow.createCell(0);
-            tCell.setCellValue("TOTALES");
+            tCell.setCellValue("TOTALES CONSOLIDADOS");
             tCell.setCellStyle(styles.totalHeaderStyle);
 
             crearCeldaMoneda(tRow, 1, ingresos, styles.totalCurrencyStyle);
@@ -73,9 +132,159 @@ public class ReporteExcelGeneratorService {
             crearCeldaMoneda(tRow, 3, comisiones, styles.totalCurrencyStyle);
             crearCeldaMoneda(tRow, 4, balanceNeto, styles.totalCurrencyStyle);
 
-            ajustarAnchos(sheetResumen, new int[]{22, 24, 24, 20, 24});
+            Cell tCant = tRow.createCell(5);
+            tCant.setCellValue(cantVendidos + " vehículos");
+            tCant.setCellStyle(styles.totalHeaderStyle);
 
-            // ==================== HOJA 2: DETALLE MOVIMIENTOS ====================
+            crearCeldaMoneda(tRow, 6, sumInvVendidos, styles.totalCurrencyStyle);
+            crearCeldaMoneda(tRow, 7, sumVentaVendidos, styles.totalCurrencyStyle);
+            crearCeldaMoneda(tRow, 8, gananciaVendidos, styles.totalCurrencyStyle);
+
+            Cell tRoi = tRow.createCell(9);
+            tRoi.setCellValue(String.format(Locale.US, "%s%.1f%%", margenRoiVendidos >= 0 ? "+" : "", margenRoiVendidos));
+            tRoi.setCellStyle(styles.totalHeaderStyle);
+
+            ajustarAnchos(sheetResumen, new int[]{22, 24, 24, 20, 24, 18, 24, 24, 26, 16});
+
+            // ==================== HOJA 2: VEHÍCULOS VENDIDOS ====================
+            Sheet sheetVendidos = wb.createSheet("Vehículos Vendidos");
+            String[] headersVendidos = {
+                    "Código", "Vehículo (Marca / Modelo / Año)", "Generación", "Fecha Ingreso",
+                    "Fecha Venta", "Días en Stock", "Inversión Total", "Precio Venta", "Ganancia Neta", "% Margen ROI"
+            };
+
+            Row vHRow = sheetVendidos.createRow(0);
+            vHRow.setHeightInPoints(24);
+            for (int i = 0; i < headersVendidos.length; i++) {
+                Cell c = vHRow.createCell(i);
+                c.setCellValue(headersVendidos[i]);
+                c.setCellStyle(styles.headerStyle);
+            }
+
+            int vRowIdx = 1;
+            if (vehiculosVendidos != null && !vehiculosVendidos.isEmpty()) {
+                for (Object obj : vehiculosVendidos) {
+                    Row row = sheetVendidos.createRow(vRowIdx++);
+                    boolean isAlt = (vRowIdx % 2 == 0);
+                    CellStyle textStyle = isAlt ? styles.altTextStyle : styles.textStyle;
+                    CellStyle centerStyle = isAlt ? styles.altTextCenterStyle : styles.textCenterStyle;
+                    CellStyle currStyle = isAlt ? styles.altCurrencyStyle : styles.currencyStyle;
+
+                    String codigo = "";
+                    String vehiculoDesc = "";
+                    String gen = "";
+                    String fIngresoStr = "-";
+                    String fVentaStr = "-";
+                    String diasStockStr = "-";
+                    double inv = 0.0;
+                    double ven = 0.0;
+
+                    if (obj instanceof VistaVehiculosCompleta v) {
+                        codigo = toStr(v.getCodigoVehiculo(), "-");
+                        vehiculoDesc = String.format("%s %s %s",
+                                toStr(v.getMarca(), ""),
+                                toStr(v.getModelo(), ""),
+                                v.getAnio() != null ? "(" + v.getAnio() + ")" : "").trim();
+                        gen = toStr(v.getGeneracion(), "-");
+                        LocalDate fi = v.getFechaIngreso();
+                        LocalDate fv = v.getFechaVenta();
+                        if (fi != null) fIngresoStr = fi.format(DATE_FORMATTER);
+                        if (fv != null) fVentaStr = fv.format(DATE_FORMATTER);
+                        if (fi != null && fv != null) {
+                            long dias = ChronoUnit.DAYS.between(fi, fv);
+                            diasStockStr = Math.max(0, dias) + " días";
+                        }
+                        inv = v.getInversionTotal() != null ? v.getInversionTotal().doubleValue() : 0.0;
+                        ven = v.getPrecioVenta() != null ? v.getPrecioVenta().doubleValue() : 0.0;
+                    } else if (obj instanceof Map<?, ?> m) {
+                        codigo = toStr(m.get("codigoVehiculo"), toStr(m.get("codigo_vehiculo"), "-"));
+                        String marca = toStr(m.get("marca"), "");
+                        String modelo = toStr(m.get("modelo"), "");
+                        String anio = toStr(m.get("anio"), "");
+                        vehiculoDesc = String.format("%s %s %s", marca, modelo, anio.isEmpty() ? "" : "(" + anio + ")").trim();
+                        gen = toStr(m.get("generacion"), "-");
+                        fIngresoStr = toStr(m.get("fechaIngreso"), toStr(m.get("fecha_ingreso"), "-"));
+                        fVentaStr = toStr(m.get("fechaVenta"), toStr(m.get("fecha_venta"), "-"));
+                        inv = toDouble(m.get("inversionTotal"));
+                        if (inv == 0.0) inv = toDouble(m.get("inversion_total"));
+                        ven = toDouble(m.get("precioVenta"));
+                        if (ven == 0.0) ven = toDouble(m.get("precio_venta"));
+
+                        try {
+                            LocalDate fi = LocalDate.parse(fIngresoStr.substring(0, 10));
+                            LocalDate fv = LocalDate.parse(fVentaStr.substring(0, 10));
+                            diasStockStr = Math.max(0, ChronoUnit.DAYS.between(fi, fv)) + " días";
+                            fIngresoStr = fi.format(DATE_FORMATTER);
+                            fVentaStr = fv.format(DATE_FORMATTER);
+                        } catch (Exception ignored) {}
+                    }
+
+                    double gan = ven - inv;
+                    double roi = (inv > 0) ? ((gan / inv) * 100.0) : 0.0;
+
+                    Cell cCod = row.createCell(0);
+                    cCod.setCellValue(codigo);
+                    cCod.setCellStyle(centerStyle);
+
+                    Cell cVeh = row.createCell(1);
+                    cVeh.setCellValue(vehiculoDesc);
+                    cVeh.setCellStyle(textStyle);
+
+                    Cell cGen = row.createCell(2);
+                    cGen.setCellValue(gen);
+                    cGen.setCellStyle(centerStyle);
+
+                    Cell cFi = row.createCell(3);
+                    cFi.setCellValue(fIngresoStr);
+                    cFi.setCellStyle(centerStyle);
+
+                    Cell cFv = row.createCell(4);
+                    cFv.setCellValue(fVentaStr);
+                    cFv.setCellStyle(centerStyle);
+
+                    Cell cDias = row.createCell(5);
+                    cDias.setCellValue(diasStockStr);
+                    cDias.setCellStyle(centerStyle);
+
+                    crearCeldaMoneda(row, 6, inv, currStyle);
+                    crearCeldaMoneda(row, 7, ven, currStyle);
+                    crearCeldaMoneda(row, 8, gan, gan >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
+
+                    Cell cRoi = row.createCell(9);
+                    cRoi.setCellValue(String.format(Locale.US, "%s%.1f%%", roi >= 0 ? "+" : "", roi));
+                    cRoi.setCellStyle(centerStyle);
+                }
+
+                // Fila de TOTALES
+                Row tRowV = sheetVendidos.createRow(vRowIdx++);
+                tRowV.setHeightInPoints(22);
+                Cell lblTot = tRowV.createCell(0);
+                lblTot.setCellValue("TOTAL VENDIDOS (" + cantVendidos + " vehículos)");
+                lblTot.setCellStyle(styles.totalHeaderStyle);
+                sheetVendidos.addMergedRegion(new CellRangeAddress(vRowIdx - 1, vRowIdx - 1, 0, 5));
+                for (int c = 1; c <= 5; c++) {
+                    Cell emp = tRowV.createCell(c);
+                    emp.setCellStyle(styles.totalHeaderStyle);
+                }
+
+                crearCeldaMoneda(tRowV, 6, sumInvVendidos, styles.totalCurrencyStyle);
+                crearCeldaMoneda(tRowV, 7, sumVentaVendidos, styles.totalCurrencyStyle);
+                crearCeldaMoneda(tRowV, 8, gananciaVendidos, styles.totalCurrencyStyle);
+
+                Cell cTotRoi = tRowV.createCell(9);
+                cTotRoi.setCellValue(String.format(Locale.US, "%s%.1f%%", margenRoiVendidos >= 0 ? "+" : "", margenRoiVendidos));
+                cTotRoi.setCellStyle(styles.totalHeaderStyle);
+            } else {
+                Row emptyRow = sheetVendidos.createRow(1);
+                Cell cEmp = emptyRow.createCell(0);
+                cEmp.setCellValue("No hay vehículos vendidos registrados para el período seleccionado.");
+                cEmp.setCellStyle(styles.textStyle);
+                sheetVendidos.addMergedRegion(new CellRangeAddress(1, 1, 0, 9));
+            }
+
+            ajustarAnchos(sheetVendidos, new int[]{16, 32, 18, 16, 16, 16, 20, 20, 20, 16});
+
+            // ==================== HOJA 3: DETALLE MOVIMIENTOS ====================
             Sheet sheetDetalle = wb.createSheet("Detalle Movimientos");
             String[] headersDetalle = {
                     "Fecha", "Clasificación", "Referencia", "Descripción",
@@ -252,7 +461,7 @@ public class ReporteExcelGeneratorService {
 
             ajustarAnchos(sheetResumen, new int[]{22, 22, 22, 20, 22});
 
-            // ==================== HOJA 2: DETALLE MOVIMIENTOS ====================
+            // ==================== HOJA 3: DETALLE MOVIMIENTOS ====================
             Sheet sheetDetalle = wb.createSheet("Detalle Movimientos");
             String[] headersDetalle = {
                     "Fecha", "Clasificación", "Pieza / Concepto", "Referencia", "Descripción",
@@ -550,7 +759,7 @@ public class ReporteExcelGeneratorService {
             Sheet sheetMarca = wb.createSheet("Resumen por Marca");
             String[] headersMarca = {
                     "Marca", "Generaciones", "Total Vehículos", "Total Repuestos",
-                    "Inversión Total", "Ingresos Totales", "Balance Neto", "% Retorno"
+                    "Inversión Total", "Ingresos Totales", "Ganancia Neta (Balance)", "% Ganancia / ROI"
             };
 
             Row hRow = sheetMarca.createRow(0);
@@ -647,7 +856,7 @@ public class ReporteExcelGeneratorService {
             Sheet sheetDetalle = wb.createSheet("Jerarquía Detallada");
             String[] headersDetalle = {
                     "Marca", "Modelo", "Generación", "Años", "Clave",
-                    "Vehículos", "Repuestos", "Inversión Total", "Ingresos", "Balance Neto", "% Retorno"
+                    "Vehículos", "Repuestos", "Inversión Total", "Ingresos", "Ganancia Neta (Balance)", "% Ganancia / ROI"
             };
 
             Row dHRow = sheetDetalle.createRow(0);
@@ -751,7 +960,7 @@ public class ReporteExcelGeneratorService {
             String[] headersS1 = {
                     "Estructura Jerárquica", "Año", "Estado", "Repuestos Extraídos",
                     "Inversión Base", "Gastos Adicionales", "Inversión Total",
-                    "Ingresos / Recuperado", "Balance Neto", "% Retorno"
+                    "Ingresos / Recuperado", "Ganancia Neta (Balance)", "% Ganancia / Retorno (ROI)"
             };
 
             Row h1Row = s1.createRow(0);
@@ -764,10 +973,13 @@ public class ReporteExcelGeneratorService {
 
             int s1RowIdx = 1;
             long totalVehiculos = 0;
+            long totalVehiculosVendidos = 0;
             long totalRepuestos = 0;
             double totalInversion = 0.0;
             double totalRecuperado = 0.0;
             double totalBalanceNeto = 0.0;
+
+            List<Map<String, Object>> todosVehiculosVendidos = new ArrayList<>();
 
             for (Map<String, Object> marca : marcasTree) {
                 String nomMarca = toStr(marca.get("nombre"), "Sin Marca");
@@ -894,23 +1106,46 @@ public class ReporteExcelGeneratorService {
 
                         for (Map<String, Object> v : vehiculos) {
                             totalVehiculos++;
+                            String codVeh = toStr(v.get("codigo_vehiculo"), "");
                             String anio = toStr(v.get("anio"), "-");
                             String estado = toStr(v.get("estado"), "Registrado");
                             double invBase = toDouble(v.get("precio_compra"));
                             double invTotal = toDouble(v.get("inversion_total"));
                             double gastos = Math.max(0, invTotal - invBase);
                             double recuperado = toDouble(v.get("costo_recuperado"));
+                            double precioVenta = toDouble(v.get("precio_venta"));
+                            boolean esVendido = "VENDIDO".equalsIgnoreCase(estado) || precioVenta > 0;
+                            if (esVendido && precioVenta > 0) {
+                                recuperado = Math.max(recuperado, precioVenta);
+                            }
                             double neto = toDouble(v.get("balance_neto"));
+                            if (neto == 0.0 && recuperado > 0) {
+                                neto = recuperado - invTotal;
+                            }
+                            double vRoi = (invTotal > 0) ? ((neto / invTotal) * 100.0) : 0.0;
+
                             long cantRep = toLong(v.get("total_repuestos"));
                             if (cantRep == 0 && v.get("repuestos") instanceof List) {
                                 cantRep = ((List<?>) v.get("repuestos")).size();
                             }
-                            double vRoi = (invTotal > 0) ? ((neto / invTotal) * 100.0) : 0.0;
+
+                            if (esVendido) {
+                                totalVehiculosVendidos++;
+                                Map<String, Object> vVend = new HashMap<>(v);
+                                vVend.put("marcaNombre", nomMarca);
+                                vVend.put("modeloNombre", nomModelo);
+                                vVend.put("generacionNombre", nomGen);
+                                vVend.put("precioVentaCalculado", precioVenta > 0 ? precioVenta : recuperado);
+                                vVend.put("gananciaCalculada", neto);
+                                vVend.put("roiCalculado", vRoi);
+                                todosVehiculosVendidos.add(vVend);
+                            }
 
                             Row rVeh = s1.createRow(s1RowIdx++);
                             rVeh.setHeightInPoints(18);
 
-                            rVeh.createCell(0).setCellValue("               • Vehículo (" + anio + " - " + estado + ")");
+                            String labelVeh = "               • " + (!codVeh.isEmpty() ? codVeh + " " : "") + "(" + anio + " - " + estado + ")";
+                            rVeh.createCell(0).setCellValue(labelVeh);
                             rVeh.getCell(0).setCellStyle(styles.textStyle);
 
                             rVeh.createCell(1).setCellValue(anio);
@@ -956,7 +1191,7 @@ public class ReporteExcelGeneratorService {
             rTotalS1.createCell(1).setCellValue("");
             rTotalS1.getCell(1).setCellStyle(styles.totalHeaderStyle);
 
-            rTotalS1.createCell(2).setCellValue(totalVehiculos + " Vehículos");
+            rTotalS1.createCell(2).setCellValue(totalVehiculos + " Veh (" + totalVehiculosVendidos + " Vendidos)");
             rTotalS1.getCell(2).setCellStyle(styles.totalHeaderStyle);
 
             rTotalS1.createCell(3).setCellValue(totalRepuestos);
@@ -976,13 +1211,13 @@ public class ReporteExcelGeneratorService {
             rTotalS1.createCell(9).setCellValue(String.format("%.1f%%", totalRoi));
             rTotalS1.getCell(9).setCellStyle(styles.totalHeaderStyle);
 
-            ajustarAnchos(s1, new int[]{38, 14, 16, 18, 18, 18, 18, 22, 18, 14});
+            ajustarAnchos(s1, new int[]{42, 14, 20, 18, 18, 18, 18, 22, 22, 18});
 
             // ==================== HOJA 2: RESUMEN POR MODELO ====================
             Sheet s2 = wb.createSheet("Resumen por Modelo");
             String[] headersS2 = {
-                    "Marca", "Modelo", "Generaciones", "Total Vehículos", "Total Repuestos",
-                    "Inversión Total", "Ingresos / Recuperado", "Balance Neto", "% Retorno"
+                    "Marca", "Modelo", "Generaciones", "Total Vehículos", "Vehículos Vendidos", "Total Repuestos",
+                    "Inversión Total", "Ingresos / Recuperado", "Ganancia Neta (Balance)", "% Ganancia / Retorno (ROI)"
             };
 
             Row h2Row = s2.createRow(0);
@@ -1012,6 +1247,16 @@ public class ReporteExcelGeneratorService {
                     double balNet = toDouble(mod.get("balance_neto"));
                     double roi = (totInv > 0) ? ((balNet / totInv) * 100.0) : 0.0;
 
+                    long vendidosMod = 0;
+                    for (Map<String, Object> g : gens) {
+                        List<Map<String, Object>> vList = toList(g.get("vehiculos"));
+                        for (Map<String, Object> v : vList) {
+                            if ("VENDIDO".equalsIgnoreCase(toStr(v.get("estado"), "")) || toDouble(v.get("precio_venta")) > 0) {
+                                vendidosMod++;
+                            }
+                        }
+                    }
+
                     Row rMod = s2.createRow(s2RowIdx++);
                     rMod.setHeightInPoints(20);
 
@@ -1027,15 +1272,18 @@ public class ReporteExcelGeneratorService {
                     rMod.createCell(3).setCellValue(totVeh);
                     rMod.getCell(3).setCellStyle(cntSt);
 
-                    rMod.createCell(4).setCellValue(totRep);
+                    rMod.createCell(4).setCellValue(vendidosMod);
                     rMod.getCell(4).setCellStyle(cntSt);
 
-                    crearCeldaMoneda(rMod, 5, totInv, curSt);
-                    crearCeldaMoneda(rMod, 6, totIng, curSt);
-                    crearCeldaMoneda(rMod, 7, balNet, curSt);
+                    rMod.createCell(5).setCellValue(totRep);
+                    rMod.getCell(5).setCellStyle(cntSt);
 
-                    rMod.createCell(8).setCellValue(String.format("%.1f%%", roi));
-                    rMod.getCell(8).setCellStyle(cntSt);
+                    crearCeldaMoneda(rMod, 6, totInv, curSt);
+                    crearCeldaMoneda(rMod, 7, totIng, curSt);
+                    crearCeldaMoneda(rMod, 8, balNet, balNet >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
+
+                    rMod.createCell(9).setCellValue(String.format("%.1f%%", roi));
+                    rMod.getCell(9).setCellStyle(cntSt);
                 }
             }
 
@@ -1054,24 +1302,27 @@ public class ReporteExcelGeneratorService {
             rTotalS2.createCell(3).setCellValue(totalVehiculos);
             rTotalS2.getCell(3).setCellStyle(styles.totalHeaderStyle);
 
-            rTotalS2.createCell(4).setCellValue(totalRepuestos);
+            rTotalS2.createCell(4).setCellValue(totalVehiculosVendidos);
             rTotalS2.getCell(4).setCellStyle(styles.totalHeaderStyle);
 
-            crearCeldaMoneda(rTotalS2, 5, totalInversion, styles.totalCurrencyStyle);
-            crearCeldaMoneda(rTotalS2, 6, totalRecuperado, styles.totalCurrencyStyle);
-            crearCeldaMoneda(rTotalS2, 7, totalBalanceNeto, styles.totalCurrencyStyle);
+            rTotalS2.createCell(5).setCellValue(totalRepuestos);
+            rTotalS2.getCell(5).setCellStyle(styles.totalHeaderStyle);
 
-            rTotalS2.createCell(8).setCellValue(String.format("%.1f%%", totalRoi));
-            rTotalS2.getCell(8).setCellStyle(styles.totalHeaderStyle);
+            crearCeldaMoneda(rTotalS2, 6, totalInversion, styles.totalCurrencyStyle);
+            crearCeldaMoneda(rTotalS2, 7, totalRecuperado, styles.totalCurrencyStyle);
+            crearCeldaMoneda(rTotalS2, 8, totalBalanceNeto, styles.totalCurrencyStyle);
 
-            ajustarAnchos(s2, new int[]{18, 20, 14, 16, 16, 18, 22, 18, 14});
+            rTotalS2.createCell(9).setCellValue(String.format("%.1f%%", totalRoi));
+            rTotalS2.getCell(9).setCellStyle(styles.totalHeaderStyle);
+
+            ajustarAnchos(s2, new int[]{18, 20, 14, 16, 16, 16, 18, 22, 22, 18});
 
             // ==================== HOJA 3: DETALLE DE VEHÍCULOS ====================
             Sheet s3 = wb.createSheet("Detalle de Vehículos");
             String[] headersS3 = {
-                    "Marca", "Modelo", "Generación", "Año", "Estado",
-                    "Inversión Base", "Gastos / Reparación", "Inversión Total",
-                    "Ingresos / Recuperado", "Balance Neto", "Repuestos Extraídos"
+                    "Código", "Marca", "Modelo", "Generación", "Año", "Estado",
+                    "Fecha Venta", "Inversión Base", "Gastos / Reparación", "Inversión Total",
+                    "Precio Venta / Ingresos", "Ganancia Neta", "% Margen / ROI", "Repuestos Extraídos"
             };
 
             Row h3Row = s3.createRow(0);
@@ -1098,13 +1349,24 @@ public class ReporteExcelGeneratorService {
                             CellStyle cntSt = isAlt ? styles.altTextCenterStyle : styles.textCenterStyle;
                             CellStyle curSt = isAlt ? styles.altCurrencyStyle : styles.currencyStyle;
 
+                            String codVeh = toStr(v.get("codigo_vehiculo"), "Sin código");
                             String anio = toStr(v.get("anio"), "-");
                             String estado = toStr(v.get("estado"), "-");
+                            String fechaVenta = formatFechaCorta(v.get("fecha_venta"));
                             double invBase = toDouble(v.get("precio_compra"));
                             double invTotal = toDouble(v.get("inversion_total"));
                             double gastos = Math.max(0, invTotal - invBase);
                             double recuperado = toDouble(v.get("costo_recuperado"));
+                            double precioVenta = toDouble(v.get("precio_venta"));
+                            if ("VENDIDO".equalsIgnoreCase(estado) && precioVenta > 0) {
+                                recuperado = Math.max(recuperado, precioVenta);
+                            }
                             double neto = toDouble(v.get("balance_neto"));
+                            if (neto == 0.0 && recuperado > 0) {
+                                neto = recuperado - invTotal;
+                            }
+                            double roi = (invTotal > 0) ? ((neto / invTotal) * 100.0) : 0.0;
+
                             long cantRep = toLong(v.get("total_repuestos"));
                             if (cantRep == 0 && v.get("repuestos") instanceof List) {
                                 cantRep = ((List<?>) v.get("repuestos")).size();
@@ -1113,39 +1375,169 @@ public class ReporteExcelGeneratorService {
                             Row rVeh = s3.createRow(s3RowIdx++);
                             rVeh.setHeightInPoints(19);
 
-                            rVeh.createCell(0).setCellValue(nomMarca);
-                            rVeh.getCell(0).setCellStyle(txtSt);
+                            rVeh.createCell(0).setCellValue(codVeh);
+                            rVeh.getCell(0).setCellStyle(cntSt);
 
-                            rVeh.createCell(1).setCellValue(nomModelo);
+                            rVeh.createCell(1).setCellValue(nomMarca);
                             rVeh.getCell(1).setCellStyle(txtSt);
 
-                            rVeh.createCell(2).setCellValue(nomGen);
+                            rVeh.createCell(2).setCellValue(nomModelo);
                             rVeh.getCell(2).setCellStyle(txtSt);
 
-                            rVeh.createCell(3).setCellValue(anio);
-                            rVeh.getCell(3).setCellStyle(cntSt);
+                            rVeh.createCell(3).setCellValue(nomGen);
+                            rVeh.getCell(3).setCellStyle(txtSt);
 
-                            rVeh.createCell(4).setCellValue(estado);
+                            rVeh.createCell(4).setCellValue(anio);
                             rVeh.getCell(4).setCellStyle(cntSt);
 
-                            crearCeldaMoneda(rVeh, 5, invBase, curSt);
-                            crearCeldaMoneda(rVeh, 6, gastos, curSt);
-                            crearCeldaMoneda(rVeh, 7, invTotal, curSt);
-                            crearCeldaMoneda(rVeh, 8, recuperado, curSt);
-                            crearCeldaMoneda(rVeh, 9, neto, neto >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
+                            rVeh.createCell(5).setCellValue(estado);
+                            rVeh.getCell(5).setCellStyle(cntSt);
 
-                            rVeh.createCell(10).setCellValue(cantRep);
-                            rVeh.getCell(10).setCellStyle(cntSt);
+                            rVeh.createCell(6).setCellValue(fechaVenta);
+                            rVeh.getCell(6).setCellStyle(cntSt);
+
+                            crearCeldaMoneda(rVeh, 7, invBase, curSt);
+                            crearCeldaMoneda(rVeh, 8, gastos, curSt);
+                            crearCeldaMoneda(rVeh, 9, invTotal, curSt);
+                            crearCeldaMoneda(rVeh, 10, recuperado, curSt);
+                            crearCeldaMoneda(rVeh, 11, neto, neto >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
+
+                            rVeh.createCell(12).setCellValue(String.format("%.1f%%", roi));
+                            rVeh.getCell(12).setCellStyle(cntSt);
+
+                            rVeh.createCell(13).setCellValue(cantRep);
+                            rVeh.getCell(13).setCellStyle(cntSt);
                         }
                     }
                 }
             }
 
-            ajustarAnchos(s3, new int[]{16, 18, 22, 10, 14, 16, 18, 16, 20, 16, 18});
+            ajustarAnchos(s3, new int[]{16, 16, 18, 20, 10, 14, 14, 16, 18, 16, 20, 18, 14, 16});
+
+            // ==================== HOJA 4: VEHÍCULOS VENDIDOS Y GANANCIAS ====================
+            Sheet s4 = wb.createSheet("Vehículos Vendidos y Ganancias");
+            String[] headersS4 = {
+                    "Código", "Marca", "Modelo", "Generación", "Año", "Fecha Ingreso", "Fecha Venta",
+                    "Inversión Base", "Gastos / Adicionales", "Inversión Total",
+                    "Precio Venta", "Ganancia Neta (₡)", "% Margen Ganancia (ROI)"
+            };
+
+            Row h4Row = s4.createRow(0);
+            h4Row.setHeightInPoints(26);
+            for (int i = 0; i < headersS4.length; i++) {
+                Cell c = h4Row.createCell(i);
+                c.setCellValue(headersS4[i]);
+                c.setCellStyle(styles.headerStyle);
+            }
+
+            int s4RowIdx = 1;
+            double totVendInvBase = 0.0;
+            double totVendGastos = 0.0;
+            double totVendInversion = 0.0;
+            double totVendVenta = 0.0;
+            double totVendGanancia = 0.0;
+
+            for (Map<String, Object> v : todosVehiculosVendidos) {
+                boolean isAlt = (s4RowIdx % 2 == 0);
+                CellStyle txtSt = isAlt ? styles.altTextStyle : styles.textStyle;
+                CellStyle cntSt = isAlt ? styles.altTextCenterStyle : styles.textCenterStyle;
+                CellStyle curSt = isAlt ? styles.altCurrencyStyle : styles.currencyStyle;
+
+                String codVeh = toStr(v.get("codigo_vehiculo"), "Sin código");
+                String marca = toStr(v.get("marcaNombre"), "-");
+                String modelo = toStr(v.get("modeloNombre"), "-");
+                String gen = toStr(v.get("generacionNombre"), "-");
+                String anio = toStr(v.get("anio"), "-");
+                String fIng = formatFechaCorta(v.get("fecha_ingreso"));
+                String fVen = formatFechaCorta(v.get("fecha_venta"));
+
+                double invBase = toDouble(v.get("precio_compra"));
+                double invTot = toDouble(v.get("inversion_total"));
+                double gastos = Math.max(0, invTot - invBase);
+                double pVenta = toDouble(v.get("precioVentaCalculado"));
+                double gan = toDouble(v.get("gananciaCalculada"));
+                double roi = toDouble(v.get("roiCalculado"));
+
+                totVendInvBase += invBase;
+                totVendGastos += gastos;
+                totVendInversion += invTot;
+                totVendVenta += pVenta;
+                totVendGanancia += gan;
+
+                Row rVend = s4.createRow(s4RowIdx++);
+                rVend.setHeightInPoints(20);
+
+                rVend.createCell(0).setCellValue(codVeh);
+                rVend.getCell(0).setCellStyle(cntSt);
+
+                rVend.createCell(1).setCellValue(marca);
+                rVend.getCell(1).setCellStyle(txtSt);
+
+                rVend.createCell(2).setCellValue(modelo);
+                rVend.getCell(2).setCellStyle(txtSt);
+
+                rVend.createCell(3).setCellValue(gen);
+                rVend.getCell(3).setCellStyle(txtSt);
+
+                rVend.createCell(4).setCellValue(anio);
+                rVend.getCell(4).setCellStyle(cntSt);
+
+                rVend.createCell(5).setCellValue(fIng);
+                rVend.getCell(5).setCellStyle(cntSt);
+
+                rVend.createCell(6).setCellValue(fVen);
+                rVend.getCell(6).setCellStyle(cntSt);
+
+                crearCeldaMoneda(rVend, 7, invBase, curSt);
+                crearCeldaMoneda(rVend, 8, gastos, curSt);
+                crearCeldaMoneda(rVend, 9, invTot, curSt);
+                crearCeldaMoneda(rVend, 10, pVenta, curSt);
+                crearCeldaMoneda(rVend, 11, gan, gan >= 0 ? styles.currencyPositiveStyle : styles.currencyNegativeStyle);
+
+                rVend.createCell(12).setCellValue(String.format("%.2f%%", roi));
+                rVend.getCell(12).setCellStyle(cntSt);
+            }
+
+            // Fila de TOTALES en Hoja 4
+            Row rTotalS4 = s4.createRow(s4RowIdx++);
+            rTotalS4.setHeightInPoints(26);
+            rTotalS4.createCell(0).setCellValue("TOTALES GANANCIAS (" + todosVehiculosVendidos.size() + " VENDIDOS)");
+            rTotalS4.getCell(0).setCellStyle(styles.totalHeaderStyle);
+
+            for (int i = 1; i <= 6; i++) {
+                rTotalS4.createCell(i).setCellValue("");
+                rTotalS4.getCell(i).setCellStyle(styles.totalHeaderStyle);
+            }
+
+            crearCeldaMoneda(rTotalS4, 7, totVendInvBase, styles.totalCurrencyStyle);
+            crearCeldaMoneda(rTotalS4, 8, totVendGastos, styles.totalCurrencyStyle);
+            crearCeldaMoneda(rTotalS4, 9, totVendInversion, styles.totalCurrencyStyle);
+            crearCeldaMoneda(rTotalS4, 10, totVendVenta, styles.totalCurrencyStyle);
+            crearCeldaMoneda(rTotalS4, 11, totVendGanancia, styles.totalCurrencyStyle);
+
+            double roiVendTotal = (totVendInversion > 0) ? ((totVendGanancia / totVendInversion) * 100.0) : 0.0;
+            rTotalS4.createCell(12).setCellValue(String.format("%.2f%%", roiVendTotal));
+            rTotalS4.getCell(12).setCellStyle(styles.totalHeaderStyle);
+
+            ajustarAnchos(s4, new int[]{16, 16, 18, 20, 10, 14, 14, 16, 18, 18, 18, 22, 18});
 
             wb.write(out);
             return out.toByteArray();
         }
+    }
+
+    private String formatFechaCorta(Object val) {
+        if (val == null) return "-";
+        String s = val.toString().trim();
+        if (s.isEmpty() || "null".equalsIgnoreCase(s)) return "-";
+        if (s.contains("T")) {
+            s = s.split("T")[0];
+        }
+        String[] parts = s.split("-");
+        if (parts.length == 3) {
+            return parts[2] + "/" + parts[1] + "/" + parts[0];
+        }
+        return s;
     }
 
     private double toDouble(Object val) {

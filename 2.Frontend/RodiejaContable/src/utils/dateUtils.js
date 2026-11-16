@@ -28,3 +28,29 @@ export const formatYear = (year) => {
   const numYear = Number(year);
   return isNaN(numYear) || numYear < 1900 || numYear > 2100 ? 'Año inválido' : numYear;
 };
+
+/**
+ * Nombres oficiales de los meses en español (1-12)
+ */
+export const MESES_NOMBRES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
+/**
+ * Opciones para componentes Select de Ant Design ({ value: 1..12, label: 'Enero'.. })
+ */
+export const MESES_OPCIONES = MESES_NOMBRES.map((nombre, index) => ({
+  value: index + 1,
+  label: nombre
+}));
+
+/**
+ * Obtiene el nombre del mes correspondiente (1 a 12)
+ * @param {number|string} mesNumero - Número del mes
+ * @returns {string} Nombre del mes o string vacío
+ */
+export const obtenerNombreMes = (mesNumero) => {
+  const num = parseInt(mesNumero, 10);
+  return num >= 1 && num <= 12 ? MESES_NOMBRES[num - 1] : '';
+};

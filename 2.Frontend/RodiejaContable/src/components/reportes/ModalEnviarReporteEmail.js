@@ -32,6 +32,9 @@ const ModalEnviarReporteEmail = ({
   periodo,
   totales,
   metricasPersonalizadas,
+  statsVendidos,
+  vehiculosVendidos,
+  gastosOperativos,
   onEnviar
 }) => {
   const [form] = Form.useForm();
@@ -101,7 +104,7 @@ const ModalEnviarReporteEmail = ({
       onCancel={onCancel}
       footer={null}
       destroyOnClose
-      width={600}
+      width={tipoReporte === 'Vehículos' || gastosOperativos ? 680 : 600}
     >
       {/* Resumen previo de datos a enviar */}
       <Card
@@ -145,6 +148,133 @@ const ModalEnviarReporteEmail = ({
             </Col>
           </Row>
         ) : null}
+
+        {/* Resumen de Vehículos Vendidos si aplica */}
+        {(tipoReporte === 'Vehículos' || (Array.isArray(vehiculosVendidos) && vehiculosVendidos.length > 0)) && (
+          <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #d9d9d9' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <Text strong style={{ fontSize: '13px' }}>
+                🚗 Vehículos Vendidos en el Periodo
+              </Text>
+              <Tag color={(statsVendidos?.cantidad || vehiculosVendidos?.length || 0) > 0 ? 'success' : 'default'} style={{ borderRadius: '10px' }}>
+                {(statsVendidos?.cantidad ?? vehiculosVendidos?.length ?? 0)} vendidos
+              </Tag>
+            </div>
+
+            <Row gutter={8} style={{ marginBottom: (vehiculosVendidos && vehiculosVendidos.length > 0) ? '10px' : '0' }}>
+              <Col span={8}>
+                <Text type="secondary" style={{ fontSize: '11px', display: 'block' }}>Inversión Vendidos</Text>
+                <Text style={{ fontSize: '12px', color: '#595959' }}>
+                  {formatCurrency(statsVendidos?.totInversion || 0)}
+                </Text>
+              </Col>
+              <Col span={8}>
+                <Text type="secondary" style={{ fontSize: '11px', display: 'block' }}>Total Ventas</Text>
+                <Text style={{ fontSize: '12px', color: '#1890ff' }}>
+                  {formatCurrency(statsVendidos?.totVenta || 0)}
+                </Text>
+              </Col>
+              <Col span={8}>
+                <Text type="secondary" style={{ fontSize: '11px', display: 'block' }}>Ganancia Neta (ROI)</Text>
+                <Text strong style={{ fontSize: '12px', color: (statsVendidos?.ganancia || 0) >= 0 ? '#52c41a' : '#f5222d' }}>
+                  {(statsVendidos?.ganancia || 0) >= 0 ? '+' : ''}{formatCurrency(statsVendidos?.ganancia || 0)}
+                  <span style={{ fontSize: '11px', marginLeft: '4px', fontWeight: 'normal' }}>
+                    ({(statsVendidos?.margen || 0).toFixed(1)}%)
+                  </span>
+                </Text>
+              </Col>
+            </Row>
+
+            {Array.isArray(vehiculosVendidos) && vehiculosVendidos.length > 0 && (
+              <div style={{
+                maxHeight: '140px',
+                overflowY: 'auto',
+                marginTop: '8px',
+                border: '1px solid #f0f0f0',
+                borderRadius: '6px',
+                background: '#ffffff'
+              }}>
+                <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#fafafa', borderBottom: '1px solid #f0f0f0', color: '#8c8c8c' }}>
+                      <th style={{ padding: '6px 8px', textAlign: 'left' }}>Código</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'left' }}>Vehículo</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Venta</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Ganancia</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {vehiculosVendidos.map((v, i) => {
+                      const inv = Number(v.inversionTotal ?? v.inversion_total ?? 0);
+                      const ven = Number(v.precioVenta ?? v.precio_venta ?? v.costoRecuperado ?? 0);
+                      const gan = ven - inv;
+                      const nombre = `${v.marca || v.marcaNombre || ''} ${v.modelo || ''} ${v.anio || ''}`.trim() || `ID #${v.id}`;
+                      return (
+                        <tr key={v.id || i} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                          <td style={{ padding: '5px 8px', fontFamily: 'monospace', color: '#1890ff' }}>{v.codigoVehiculo || '-'}</td>
+                          <td style={{ padding: '5px 8px', color: '#262626' }}>{nombre}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right' }}>{formatCurrency(ven)}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600, color: gan >= 0 ? '#52c41a' : '#f5222d' }}>
+                            {gan >= 0 ? '+' : ''}{formatCurrency(gan)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Resumen de Gastos Operativos si aplica (Reporte de Repuestos y Operaciones) */}
+        {gastosOperativos && (
+          <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #d9d9d9' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <Text strong style={{ fontSize: '13px' }}>
+                💼 Gastos Operativos y Administrativos
+              </Text>
+              <Tag color="orange" style={{ borderRadius: '10px', fontWeight: 600 }}>
+                Total: {formatCurrency(gastosOperativos.total || 0)}
+              </Tag>
+            </div>
+
+            <Row gutter={8}>
+              <Col span={6}>
+                <div style={{ background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#d46b08', fontWeight: 600 }}>💼 Salarios</Text>
+                  <Text strong style={{ fontSize: '12px', color: '#ad4e00' }}>
+                    {formatCurrency(gastosOperativos.salarios || 0)}
+                  </Text>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div style={{ background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#389e0d', fontWeight: 600 }}>🔧 Mantenimiento</Text>
+                  <Text strong style={{ fontSize: '12px', color: '#237804' }}>
+                    {formatCurrency(gastosOperativos.mantenimiento || 0)}
+                  </Text>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div style={{ background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#096dd9', fontWeight: 600 }}>💡 Servicios</Text>
+                  <Text strong style={{ fontSize: '12px', color: '#0050b3' }}>
+                    {formatCurrency(gastosOperativos.serviciosPublicos || 0)}
+                  </Text>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', color: '#595959', fontWeight: 600 }}>📦 Otros</Text>
+                  <Text strong style={{ fontSize: '12px', color: '#262626' }}>
+                    {formatCurrency(gastosOperativos.otros || 0)}
+                  </Text>
+                </div>
+              </Col>
+            </Row>
+          </div>
+        )}
       </Card>
 
       <Form

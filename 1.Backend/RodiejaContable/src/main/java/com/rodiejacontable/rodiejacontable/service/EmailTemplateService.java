@@ -1,24 +1,33 @@
 package com.rodiejacontable.rodiejacontable.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class EmailTemplateService {
 
+    private static final Logger logger = LoggerFactory.getLogger(EmailTemplateService.class);
     private final NumberFormat currencyFormat;
+    private final ObjectMapper objectMapper;
 
     public EmailTemplateService() {
         this.currencyFormat = NumberFormat.getCurrencyInstance(new Locale("es", "CR"));
         this.currencyFormat.setMaximumFractionDigits(0);
+        this.objectMapper = new ObjectMapper();
     }
 
     /**
-     * Construye un cuerpo de correo en HTML estilizado para el reporte de repuestos.
+     * Construye un cuerpo de correo en HTML estilizado para el reporte de repuestos (versión básica).
      */
     public String generarHtmlReporteRepuestos(
             String periodo,
@@ -29,8 +38,30 @@ public class EmailTemplateService {
             Integer cantidadMovimientos,
             String mensajePersonalizado) {
 
+        return generarHtmlReporteRepuestos(
+                periodo, ingresos, egresos, comisiones, balanceNeto,
+                cantidadMovimientos, null, mensajePersonalizado
+        );
+    }
+
+    /**
+     * Construye un cuerpo de correo en HTML estilizado para el reporte de repuestos y operaciones,
+     * incluyendo el dashboard de indicadores financieros y el detalle de gastos operativos (Salarios, Mantenimiento, Servicios).
+     */
+    public String generarHtmlReporteRepuestos(
+            String periodo,
+            Double ingresos,
+            Double egresos,
+            Double comisiones,
+            Double balanceNeto,
+            Integer cantidadMovimientos,
+            String gastosOperativosJson,
+            String mensajePersonalizado) {
+
+        String seccionOperativosHtml = construirSeccionGastosOperativos(gastosOperativosJson);
+
         return construirPlantillaFinanciera(
-                "Reporte Oficial de Movimientos de Repuestos",
+                "Reporte Oficial de Movimientos de Repuestos y Operaciones",
                 "A continuación se presenta el resumen financiero consolidado de repuestos y operaciones para este periodo:",
                 periodo,
                 "Ingresos por Ventas",
@@ -43,13 +74,14 @@ public class EmailTemplateService {
                 balanceNeto,
                 "Total de movimientos procesados",
                 cantidadMovimientos,
+                seccionOperativosHtml,
                 "Se adjunta el reporte detallado en formato Excel (.xlsx) con el desglose completo de repuestos y transacciones.",
                 mensajePersonalizado
         );
     }
 
     /**
-     * Construye un cuerpo de correo en HTML estilizado para el reporte de vehículos.
+     * Construye un cuerpo de correo en HTML estilizado para el reporte de vehículos (versión básica).
      */
     public String generarHtmlReporteVehiculos(
             String periodo,
@@ -59,6 +91,32 @@ public class EmailTemplateService {
             Double balanceNeto,
             Integer cantidadVehiculos,
             String mensajePersonalizado) {
+
+        return generarHtmlReporteVehiculos(
+                periodo, ingresos, egresos, comisiones, balanceNeto,
+                cantidadVehiculos, null, null, null, mensajePersonalizado
+        );
+    }
+
+    /**
+     * Construye un cuerpo de correo en HTML estilizado para el reporte de vehículos,
+     * incluyendo el dashboard de indicadores financieros y el detalle completo de vehículos vendidos.
+     */
+    public String generarHtmlReporteVehiculos(
+            String periodo,
+            Double ingresos,
+            Double egresos,
+            Double comisiones,
+            Double balanceNeto,
+            Integer cantidadVehiculos,
+            Integer cantidadVehiculosVendidos,
+            Double gananciaVehiculosVendidos,
+            String vehiculosVendidosJson,
+            String mensajePersonalizado) {
+
+        String seccionVendidosHtml = construirSeccionVehiculosVendidos(
+                cantidadVehiculosVendidos, gananciaVehiculosVendidos, vehiculosVendidosJson
+        );
 
         return construirPlantillaFinanciera(
                 "Reporte Oficial de Operaciones de Vehículos",
@@ -74,6 +132,7 @@ public class EmailTemplateService {
                 balanceNeto,
                 "Total de vehículos procesados",
                 cantidadVehiculos,
+                seccionVendidosHtml,
                 "Se adjunta el reporte detallado en formato Excel (.xlsx) con la trazabilidad y datos de vehículos.",
                 mensajePersonalizado
         );
@@ -230,6 +289,33 @@ public class EmailTemplateService {
             String textoAdjunto,
             String mensajePersonalizado) {
 
+        return construirPlantillaFinanciera(
+                tituloSub, descripcionIntro, periodo,
+                labelKpi1, valKpi1, labelKpi2, valKpi2,
+                labelKpi3, valKpi3, labelKpi4, valKpi4,
+                labelTotalRegistros, cantidadRegistros,
+                null, textoAdjunto, mensajePersonalizado
+        );
+    }
+
+    private String construirPlantillaFinanciera(
+            String tituloSub,
+            String descripcionIntro,
+            String periodo,
+            String labelKpi1,
+            Double valKpi1,
+            String labelKpi2,
+            Double valKpi2,
+            String labelKpi3,
+            Double valKpi3,
+            String labelKpi4,
+            Double valKpi4,
+            String labelTotalRegistros,
+            Integer cantidadRegistros,
+            String contenidoAdicionalHtml,
+            String textoAdjunto,
+            String mensajePersonalizado) {
+
         String fechaEmision = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
 
         String strKpi1 = currencyFormat.format(valKpi1 != null ? valKpi1 : 0.0);
@@ -319,6 +405,11 @@ public class EmailTemplateService {
                     .append(": <strong>").append(cantidadRegistros).append("</strong></p>");
         }
 
+        // Bloque de contenido adicional (por ejemplo, detalle de vehículos vendidos)
+        if (contenidoAdicionalHtml != null && !contenidoAdicionalHtml.trim().isEmpty()) {
+            sb.append(contenidoAdicionalHtml);
+        }
+
         sb.append("<div class='attachment-note'>");
         sb.append(escapeHtml(textoAdjunto));
         sb.append("</div>");
@@ -331,6 +422,301 @@ public class EmailTemplateService {
         sb.append("</div></div></body></html>");
 
         return sb.toString();
+    }
+
+    /**
+     * Construye la sección HTML de Vehículos Vendidos con métricas globales y tabla detallada.
+     */
+    private String construirSeccionVehiculosVendidos(
+            Integer cantidadVendidos,
+            Double gananciaVendidos,
+            String vehiculosVendidosJson) {
+
+        List<Map<String, Object>> listaVendidos = null;
+        if (vehiculosVendidosJson != null && !vehiculosVendidosJson.trim().isEmpty()) {
+            try {
+                listaVendidos = objectMapper.readValue(vehiculosVendidosJson, new TypeReference<List<Map<String, Object>>>() {});
+            } catch (Exception e) {
+                logger.warn("No se pudo deserializar vehiculosVendidosJson para el correo: {}", e.getMessage());
+            }
+        }
+
+        int totalCount = (listaVendidos != null) ? listaVendidos.size() : (cantidadVendidos != null ? cantidadVendidos : 0);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<div style='margin-top: 28px; margin-bottom: 24px; border-top: 2px solid #f0f0f0; padding-top: 20px;'>");
+
+        // Header
+        sb.append("<div style='margin-bottom: 14px;'>");
+        sb.append("<h2 style='margin: 0; font-size: 16px; font-weight: 700; color: #001529; display: inline-block;'>🚗 Vehículos Vendidos en el Periodo</h2>");
+        sb.append("<span style='background: #52c41a; color: #ffffff; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px; margin-left: 10px; vertical-align: middle;'>")
+          .append(totalCount).append(totalCount == 1 ? " vendido" : " vendidos")
+          .append("</span>");
+        sb.append("</div>");
+
+        if (listaVendidos == null || listaVendidos.isEmpty()) {
+            sb.append("<div style='background: #fafafa; border: 1px dashed #d9d9d9; border-radius: 6px; padding: 14px; text-align: center; color: #8c8c8c; font-size: 13px;'>");
+            sb.append("No se registraron ventas de vehículos en este periodo.");
+            sb.append("</div>");
+            sb.append("</div>");
+            return sb.toString();
+        }
+
+        // Totales de vendidos
+        double sumaInversion = 0.0;
+        double sumaVenta = 0.0;
+        double sumaGanancia = 0.0;
+
+        for (Map<String, Object> v : listaVendidos) {
+            double inv = parseDoubleSafe(v.get("inversionTotal"));
+            double ven = parseDoubleSafe(v.get("precioVenta"));
+            double gan = parseDoubleSafe(v.get("ganancia"));
+            if (gan == 0.0 && ven > 0) {
+                gan = ven - inv;
+            }
+            sumaInversion += inv;
+            sumaVenta += ven;
+            sumaGanancia += gan;
+        }
+
+        double roiGlobal = sumaInversion > 0 ? (sumaGanancia / sumaInversion) * 100.0 : 0.0;
+        String colorGananciaGlobal = sumaGanancia >= 0 ? "#237804" : "#cf1322";
+
+        // Mini KPI cards para vehículos vendidos
+        sb.append("<div style='display: table; width: 100%; border-collapse: separate; border-spacing: 8px; margin-bottom: 16px;'>");
+        sb.append("<div style='display: table-row;'>");
+
+        // Card Inversión
+        sb.append("<div style='display: table-cell; width: 33.3%; background: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 6px; padding: 10px; text-align: center; vertical-align: middle;'>");
+        sb.append("<div style='font-size: 10px; color: #8c8c8c; text-transform: uppercase; font-weight: 600;'>Inversión Total</div>");
+        sb.append("<div style='font-size: 13px; font-weight: bold; color: #595959; margin-top: 3px;'>").append(currencyFormat.format(sumaInversion)).append("</div>");
+        sb.append("</div>");
+
+        // Card Ventas
+        sb.append("<div style='display: table-cell; width: 33.3%; background: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 6px; padding: 10px; text-align: center; vertical-align: middle;'>");
+        sb.append("<div style='font-size: 10px; color: #8c8c8c; text-transform: uppercase; font-weight: 600;'>Total Ventas</div>");
+        sb.append("<div style='font-size: 13px; font-weight: bold; color: #1890ff; margin-top: 3px;'>").append(currencyFormat.format(sumaVenta)).append("</div>");
+        sb.append("</div>");
+
+        // Card Ganancia Neta
+        sb.append("<div style='display: table-cell; width: 33.3%; background: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; padding: 10px; text-align: center; vertical-align: middle;'>");
+        sb.append("<div style='font-size: 10px; color: #389e0d; text-transform: uppercase; font-weight: 600;'>Ganancia Neta (ROI)</div>");
+        sb.append("<div style='font-size: 13px; font-weight: bold; color: ").append(colorGananciaGlobal).append("; margin-top: 3px;'>")
+          .append(sumaGanancia >= 0 ? "+" : "").append(currencyFormat.format(sumaGanancia))
+          .append(" <span style='font-size: 11px; font-weight: 600;'>(").append(String.format(Locale.US, "%.1f%%", roiGlobal)).append(")</span>")
+          .append("</div>");
+        sb.append("</div>");
+
+        sb.append("</div></div>");
+
+        // Tabla detallada de vehículos vendidos
+        sb.append("<div style='overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #e8e8e8; border-radius: 6px;'>");
+        sb.append("<table style='width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;'>");
+        sb.append("<thead>");
+        sb.append("<tr style='background: #fafafa; border-bottom: 2px solid #f0f0f0;'>");
+        sb.append("<th style='padding: 8px 10px; font-weight: 600; color: #595959;'>Código</th>");
+        sb.append("<th style='padding: 8px 10px; font-weight: 600; color: #595959;'>Vehículo</th>");
+        sb.append("<th style='padding: 8px 10px; font-weight: 600; color: #595959;'>Fecha Venta</th>");
+        sb.append("<th style='padding: 8px 10px; font-weight: 600; color: #595959; text-align: right;'>Inversión</th>");
+        sb.append("<th style='padding: 8px 10px; font-weight: 600; color: #595959; text-align: right;'>P. Venta</th>");
+        sb.append("<th style='padding: 8px 10px; font-weight: 600; color: #595959; text-align: right;'>Ganancia</th>");
+        sb.append("<th style='padding: 8px 10px; font-weight: 600; color: #595959; text-align: right;'>ROI</th>");
+        sb.append("</tr>");
+        sb.append("</thead>");
+        sb.append("<tbody>");
+
+        int rowIndex = 0;
+        for (Map<String, Object> v : listaVendidos) {
+            String bg = (rowIndex % 2 == 0) ? "#ffffff" : "#fafafa";
+            String codigo = escapeHtml(String.valueOf(v.getOrDefault("codigoVehiculo", "")));
+            String marca = escapeHtml(String.valueOf(v.getOrDefault("marca", "")));
+            String modelo = escapeHtml(String.valueOf(v.getOrDefault("modelo", "")));
+            String anioStr = v.get("anio") != null ? String.valueOf(v.get("anio")) : "";
+            String vehiculoDesc = (marca + " " + modelo + " " + anioStr).trim();
+            if (vehiculoDesc.isEmpty()) vehiculoDesc = "Vehículo #" + codigo;
+
+            String fechaVenta = escapeHtml(String.valueOf(v.getOrDefault("fechaVenta", "")));
+            if (fechaVenta.length() > 10) fechaVenta = fechaVenta.substring(0, 10);
+
+            double inv = parseDoubleSafe(v.get("inversionTotal"));
+            double ven = parseDoubleSafe(v.get("precioVenta"));
+            double gan = parseDoubleSafe(v.get("ganancia"));
+            if (gan == 0.0 && ven > 0) {
+                gan = ven - inv;
+            }
+            double roi = inv > 0 ? (gan / inv) * 100.0 : 0.0;
+            String colorGan = gan >= 0 ? "#237804" : "#cf1322";
+
+            sb.append("<tr style='background: ").append(bg).append("; border-bottom: 1px solid #f0f0f0;'>");
+            sb.append("<td style='padding: 8px 10px; font-family: monospace; font-weight: 600; color: #096dd9;'>").append(codigo).append("</td>");
+            sb.append("<td style='padding: 8px 10px; font-weight: 500; color: #262626;'>").append(vehiculoDesc).append("</td>");
+            sb.append("<td style='padding: 8px 10px; color: #8c8c8c;'>").append(fechaVenta.isEmpty() ? "-" : fechaVenta).append("</td>");
+            sb.append("<td style='padding: 8px 10px; text-align: right; color: #595959;'>").append(currencyFormat.format(inv)).append("</td>");
+            sb.append("<td style='padding: 8px 10px; text-align: right; font-weight: 500; color: #262626;'>").append(currencyFormat.format(ven)).append("</td>");
+            sb.append("<td style='padding: 8px 10px; text-align: right; font-weight: bold; color: ").append(colorGan).append(";'>")
+              .append(gan >= 0 ? "+" : "").append(currencyFormat.format(gan)).append("</td>");
+            sb.append("<td style='padding: 8px 10px; text-align: right; font-weight: 600; color: ").append(colorGan).append(";'>")
+              .append(roi >= 0 ? "+" : "").append(String.format(Locale.US, "%.1f%%", roi)).append("</td>");
+            sb.append("</tr>");
+
+            rowIndex++;
+        }
+
+        // Fila de Totales
+        sb.append("<tr style='background: #f0f5ff; border-top: 2px solid #d6e4ff; font-weight: bold;'>");
+        sb.append("<td colspan='3' style='padding: 9px 10px; color: #002766;'>TOTAL VENDIDOS (").append(totalCount).append(")</td>");
+        sb.append("<td style='padding: 9px 10px; text-align: right; color: #595959;'>").append(currencyFormat.format(sumaInversion)).append("</td>");
+        sb.append("<td style='padding: 9px 10px; text-align: right; color: #002766;'>").append(currencyFormat.format(sumaVenta)).append("</td>");
+        sb.append("<td style='padding: 9px 10px; text-align: right; color: ").append(colorGananciaGlobal).append(";'>")
+          .append(sumaGanancia >= 0 ? "+" : "").append(currencyFormat.format(sumaGanancia)).append("</td>");
+        sb.append("<td style='padding: 9px 10px; text-align: right; color: ").append(colorGananciaGlobal).append(";'>")
+          .append(roiGlobal >= 0 ? "+" : "").append(String.format(Locale.US, "%.1f%%", roiGlobal)).append("</td>");
+        sb.append("</tr>");
+
+        sb.append("</tbody></table></div>");
+        sb.append("</div>"); // Fin contenedor vendidos
+
+        return sb.toString();
+    }
+
+    private String construirSeccionGastosOperativos(String gastosOperativosJson) {
+        if (gastosOperativosJson == null || gastosOperativosJson.trim().isEmpty()) {
+            return null;
+        }
+
+        Map<String, Object> data = null;
+        try {
+            data = objectMapper.readValue(gastosOperativosJson, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            logger.warn("No se pudo deserializar gastosOperativosJson para el correo: {}", e.getMessage());
+            return null;
+        }
+
+        if (data == null || data.isEmpty()) {
+            return null;
+        }
+
+        double salarios = parseDoubleSafe(data.get("salarios"));
+        double mantenimiento = parseDoubleSafe(data.get("mantenimiento"));
+        double serviciosPublicos = parseDoubleSafe(data.get("serviciosPublicos"));
+        double otros = parseDoubleSafe(data.get("otros"));
+        double total = parseDoubleSafe(data.get("total"));
+        if (total == 0.0) {
+            total = salarios + mantenimiento + serviciosPublicos + otros;
+        }
+
+        if (total == 0.0 && salarios == 0.0 && mantenimiento == 0.0 && serviciosPublicos == 0.0 && otros == 0.0) {
+            return null;
+        }
+
+        double pctSalarios = total > 0 ? (salarios / total) * 100.0 : 0.0;
+        double pctMantenimiento = total > 0 ? (mantenimiento / total) * 100.0 : 0.0;
+        double pctServicios = total > 0 ? (serviciosPublicos / total) * 100.0 : 0.0;
+        double pctOtros = total > 0 ? (otros / total) * 100.0 : 0.0;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<div style='margin-top: 28px; margin-bottom: 24px; border-top: 2px solid #f0f0f0; padding-top: 20px;'>");
+
+        // Header
+        sb.append("<div style='margin-bottom: 14px;'>");
+        sb.append("<h2 style='margin: 0; font-size: 16px; font-weight: 700; color: #001529; display: inline-block;'>💼 Gastos Operativos y Administrativos</h2>");
+        sb.append("<span style='background: #fa8c16; color: #ffffff; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px; margin-left: 10px; vertical-align: middle;'>")
+          .append("Total: ").append(currencyFormat.format(total))
+          .append("</span>");
+        sb.append("</div>");
+
+        // 4 Mini KPI cards
+        sb.append("<div style='display: table; width: 100%; border-collapse: separate; border-spacing: 8px; margin-bottom: 16px;'>");
+        sb.append("<div style='display: table-row;'>");
+
+        // Salarios
+        sb.append("<div style='display: table-cell; width: 25%; background: #fffbe6; border: 1px solid #ffe58f; border-radius: 6px; padding: 10px; text-align: center; vertical-align: middle;'>");
+        sb.append("<div style='font-size: 10px; color: #d46b08; text-transform: uppercase; font-weight: 600;'>💼 Salarios</div>");
+        sb.append("<div style='font-size: 13px; font-weight: bold; color: #ad4e00; margin-top: 3px;'>").append(currencyFormat.format(salarios)).append("</div>");
+        sb.append("<div style='font-size: 10px; color: #8c8c8c; margin-top: 2px;'>").append(String.format(Locale.US, "%.1f%%", pctSalarios)).append("</div>");
+        sb.append("</div>");
+
+        // Mantenimiento Local
+        sb.append("<div style='display: table-cell; width: 25%; background: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; padding: 10px; text-align: center; vertical-align: middle;'>");
+        sb.append("<div style='font-size: 10px; color: #389e0d; text-transform: uppercase; font-weight: 600;'>🔧 Mantenimiento</div>");
+        sb.append("<div style='font-size: 13px; font-weight: bold; color: #237804; margin-top: 3px;'>").append(currencyFormat.format(mantenimiento)).append("</div>");
+        sb.append("<div style='font-size: 10px; color: #8c8c8c; margin-top: 2px;'>").append(String.format(Locale.US, "%.1f%%", pctMantenimiento)).append("</div>");
+        sb.append("</div>");
+
+        // Servicios Públicos
+        sb.append("<div style='display: table-cell; width: 25%; background: #e6f7ff; border: 1px solid #91d5ff; border-radius: 6px; padding: 10px; text-align: center; vertical-align: middle;'>");
+        sb.append("<div style='font-size: 10px; color: #096dd9; text-transform: uppercase; font-weight: 600;'>💡 Servicios</div>");
+        sb.append("<div style='font-size: 13px; font-weight: bold; color: #0050b3; margin-top: 3px;'>").append(currencyFormat.format(serviciosPublicos)).append("</div>");
+        sb.append("<div style='font-size: 10px; color: #8c8c8c; margin-top: 2px;'>").append(String.format(Locale.US, "%.1f%%", pctServicios)).append("</div>");
+        sb.append("</div>");
+
+        // Otros Operativos
+        sb.append("<div style='display: table-cell; width: 25%; background: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 6px; padding: 10px; text-align: center; vertical-align: middle;'>");
+        sb.append("<div style='font-size: 10px; color: #595959; text-transform: uppercase; font-weight: 600;'>📦 Otros Gastos</div>");
+        sb.append("<div style='font-size: 13px; font-weight: bold; color: #262626; margin-top: 3px;'>").append(currencyFormat.format(otros)).append("</div>");
+        sb.append("<div style='font-size: 10px; color: #8c8c8c; margin-top: 2px;'>").append(String.format(Locale.US, "%.1f%%", pctOtros)).append("</div>");
+        sb.append("</div>");
+
+        sb.append("</div></div>");
+
+        // Tabla detallada de movimientos operativos si existen
+        Object detallesObj = data.get("detalles");
+        if (detallesObj instanceof List) {
+            List<?> rawList = (List<?>) detallesObj;
+            if (!rawList.isEmpty()) {
+                sb.append("<div style='overflow-x: auto; border: 1px solid #f0f0f0; border-radius: 6px;'>");
+                sb.append("<table style='width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;'>");
+                sb.append("<thead><tr style='background: #fafafa; border-bottom: 2px solid #e8e8e8;'>");
+                sb.append("<th style='padding: 8px 10px; color: #595959; font-weight: 600;'>Fecha</th>");
+                sb.append("<th style='padding: 8px 10px; color: #595959; font-weight: 600;'>Concepto</th>");
+                sb.append("<th style='padding: 8px 10px; color: #595959; font-weight: 600;'>Descripción / Ref</th>");
+                sb.append("<th style='padding: 8px 10px; text-align: right; color: #595959; font-weight: 600;'>Monto</th>");
+                sb.append("</tr></thead><tbody>");
+
+                int rowIndex = 0;
+                int maxItems = Math.min(rawList.size(), 15);
+                for (int i = 0; i < maxItems; i++) {
+                    Object item = rawList.get(i);
+                    if (item instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> d = (Map<String, Object>) item;
+                        String bg = (rowIndex % 2 == 0) ? "#ffffff" : "#fafafa";
+                        String fecha = d.get("fecha") != null ? d.get("fecha").toString() : "-";
+                        String tipo = d.get("tipoTransaccion") != null ? d.get("tipoTransaccion").toString() : (d.get("concepto") != null ? d.get("concepto").toString() : "Operativo");
+                        String desc = d.get("descripcion") != null ? d.get("descripcion").toString() : (d.get("referencia") != null ? d.get("referencia").toString() : "");
+                        double m = parseDoubleSafe(d.get("monto"));
+
+                        sb.append("<tr style='background: ").append(bg).append("; border-bottom: 1px solid #f0f0f0;'>");
+                        sb.append("<td style='padding: 7px 10px; color: #8c8c8c;'>").append(escapeHtml(fecha)).append("</td>");
+                        sb.append("<td style='padding: 7px 10px; font-weight: 500; color: #262626;'>").append(escapeHtml(tipo)).append("</td>");
+                        sb.append("<td style='padding: 7px 10px; color: #595959;'>").append(escapeHtml(desc)).append("</td>");
+                        sb.append("<td style='padding: 7px 10px; text-align: right; font-weight: 600; color: #f5222d;'>")
+                          .append(currencyFormat.format(m)).append("</td>");
+                        sb.append("</tr>");
+                        rowIndex++;
+                    }
+                }
+                if (rawList.size() > maxItems) {
+                    sb.append("<tr style='background: #fafafa;'><td colspan='4' style='padding: 8px 10px; text-align: center; color: #8c8c8c; font-style: italic;'>");
+                    sb.append("Y ").append(rawList.size() - maxItems).append(" movimientos operativos adicionales disponibles en el archivo Excel adjunto.");
+                    sb.append("</td></tr>");
+                }
+                sb.append("</tbody></table></div>");
+            }
+        }
+
+        sb.append("</div>");
+        return sb.toString();
+    }
+
+    private double parseDoubleSafe(Object obj) {
+        if (obj == null) return 0.0;
+        if (obj instanceof Number) return ((Number) obj).doubleValue();
+        try {
+            return Double.parseDouble(obj.toString());
+        } catch (Exception e) {
+            return 0.0;
+        }
     }
 
     /**

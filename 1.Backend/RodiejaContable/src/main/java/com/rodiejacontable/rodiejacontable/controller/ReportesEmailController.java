@@ -122,14 +122,15 @@ public class ReportesEmailController {
             @RequestParam(value = "comisiones", required = false, defaultValue = "0") Double comisiones,
             @RequestParam(value = "balanceNeto", required = false, defaultValue = "0") Double balanceNeto,
             @RequestParam(value = "cantidadMovimientos", required = false, defaultValue = "0") Integer cantidadMovimientos,
+            @RequestParam(value = "gastosOperativos", required = false) String gastosOperativosJson,
             @RequestParam(value = "archivo", required = false) MultipartFile archivo
     ) {
         String asuntoFinal = (asunto != null && !asunto.trim().isEmpty())
                 ? asunto.trim()
-                : "Rodieja Contable - Reporte de Repuestos (" + periodo + ")";
+                : "Rodieja Contable - Reporte de Repuestos y Operaciones (" + periodo + ")";
 
         String htmlContent = emailTemplateService.generarHtmlReporteRepuestos(
-                periodo, ingresos, egresos, comisiones, balanceNeto, cantidadMovimientos, mensaje
+                periodo, ingresos, egresos, comisiones, balanceNeto, cantidadMovimientos, gastosOperativosJson, mensaje
         );
 
         String defaultFilename = "Reporte_Repuestos_" + periodo.replace(" ", "_") + ".xlsx";
@@ -151,6 +152,9 @@ public class ReportesEmailController {
             @RequestParam(value = "comisiones", required = false, defaultValue = "0") Double comisiones,
             @RequestParam(value = "balanceNeto", required = false, defaultValue = "0") Double balanceNeto,
             @RequestParam(value = "cantidadVehiculos", required = false, defaultValue = "0") Integer cantidadVehiculos,
+            @RequestParam(value = "cantidadVehiculosVendidos", required = false, defaultValue = "0") Integer cantidadVehiculosVendidos,
+            @RequestParam(value = "gananciaVehiculosVendidos", required = false, defaultValue = "0") Double gananciaVehiculosVendidos,
+            @RequestParam(value = "vehiculosVendidos", required = false) String vehiculosVendidosJson,
             @RequestParam(value = "archivo", required = false) MultipartFile archivo
     ) {
         String asuntoFinal = (asunto != null && !asunto.trim().isEmpty())
@@ -158,7 +162,8 @@ public class ReportesEmailController {
                 : "Rodieja Contable - Reporte de Vehículos (" + periodo + ")";
 
         String htmlContent = emailTemplateService.generarHtmlReporteVehiculos(
-                periodo, ingresos, egresos, comisiones, balanceNeto, cantidadVehiculos, mensaje
+                periodo, ingresos, egresos, comisiones, balanceNeto, cantidadVehiculos,
+                cantidadVehiculosVendidos, gananciaVehiculosVendidos, vehiculosVendidosJson, mensaje
         );
 
         String defaultFilename = "Reporte_Vehiculos_" + periodo.replace(" ", "_") + ".xlsx";

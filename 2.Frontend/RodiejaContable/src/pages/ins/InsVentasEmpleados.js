@@ -2,18 +2,18 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card, Table, Button, Row, Col, Typography, Statistic,
   Select, Tag, message, Modal, Input, Space, Descriptions, Tabs,
-  InputNumber, Tooltip
+  InputNumber
 } from 'antd';
 import {
   ReloadOutlined, SearchOutlined, EyeOutlined, UserOutlined,
   CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined,
-  DollarOutlined, ShoppingCartOutlined, FileTextOutlined,
-  FileExcelOutlined
+  DollarOutlined, ShoppingCartOutlined, TeamOutlined, FileTextOutlined
 } from '@ant-design/icons';
 import { audatexAPI } from '../../api/audatex';
 import { useEmpleados } from '../../hooks/useEmpleados';
 import { useAuth } from '../../context/AuthContext';
 import usersService from '../../api/users';
+import { MESES_OPCIONES } from '../../utils/dateUtils';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -131,21 +131,6 @@ const InsVentasEmpleados = () => {
   });
   const [procesandoEntrega, setProcesandoEntrega] = useState(false);
 
-  // Estados para liquidación de comisiones y reporte Excel
-  const [exportandoExcel, setExportandoExcel] = useState(false);
-  const [modalPagarVisible, setModalPagarVisible] = useState(false);
-  const [pagoForm, setPagoForm] = useState({
-    esGrupal: false,
-    item: null,
-    empleadoId: null,
-    empleadoNombre: '',
-    monto: 0,
-    fechaPago: dayjs().format('YYYY-MM-DD'),
-    referencia: '',
-    notas: ''
-  });
-  const [procesandoPago, setProcesandoPago] = useState(false);
-
   const { user } = useAuth();
   const esAdmin = (user?.rol || '').toUpperCase() === 'ADMIN';
   const currentUserId = user?.id || user?.userId || null;
@@ -214,20 +199,25 @@ const InsVentasEmpleados = () => {
         ? resOpsSync.data
         : (Array.isArray(resOpsSync.data?.oportunidades) ? resOpsSync.data.oportunidades : []);
 
-      // Limpiar claves obsoletas de localStorage para que la base de datos sea la única fuente de la verdad
+      // Obtener asignaciones locales de pedidos desde localStorage
+      let localAsignaciones = {};
       try {
-        localStorage.removeItem('pedidos_ins_asignaciones');
-        localStorage.removeItem('oportunidades_ins_asignaciones');
+        localAsignaciones = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
       } catch (e) {}
 
-      // Mapear oportunidades asignadas desde backend (sync) que tengan usuario asignado en BD
-      const opsMap = {};
+      // Obtener asignaciones locales de oportunidades desde localStorage
+      let localOportunidades = {};
+      try {
+        localOportunidades = JSON.parse(localStorage.getItem('oportunidades_ins_asignaciones') || '{}');
+      } catch (e) {}
+
+      // Fusionar oportunidades asignadas desde backend (sync) que tengan usuario asignado
       rawOpsSync.forEach((os) => {
         const uid = os.userId || os.user_id || os.usuarioId || os.empleadoId;
         if (uid) {
           const cotKey = String(os.cotizacionId || os.cotizacion_id || os.wan || '').trim();
-          if (cotKey && !opsMap[cotKey] && !opsMap[os.wan]) {
-            opsMap[cotKey] = {
+          if (cotKey && !localOportunidades[cotKey] && !localOportunidades[os.wan]) {
+            localOportunidades[cotKey] = {
               cotizacionId: os.cotizacionId || os.cotizacion_id,
               wan: os.wan,
               usuarioId: uid,
@@ -247,17 +237,16 @@ const InsVentasEmpleados = () => {
         }
       });
 
-      setOportunidadesAsignadas(opsMap);
+      setOportunidadesAsignadas(localOportunidades);
 
-      // Usar directamente los pedidos que existen en la base de datos
+      // Fusionar asignaciones sin descartar cancelados para alimentar los 3 bloques
       const fusionados = rawList.map(p => {
-        const empleadoId = p.empleadoId || p.userId || p.usuarioId || null;
-        let empleadoNombre = p.empleadoNombre || p.usuarioNombre || null;
-        if (!empleadoNombre && empleadoId) {
-          const uFound = (usuariosData || []).find(u => Number(u.id) === Number(empleadoId));
-          const empFound = (empleadosData || []).find(e => Number(e.id) === Number(empleadoId));
-          empleadoNombre = uFound ? (uFound.nombre || uFound.email) : (empFound ? (empFound.nombres || empFound.nombre) : `Usuario #${empleadoId}`);
-        }
+        const local = localAsignaciones[p.id] || localAsignaciones[p.cotizacionId];
+        const empleadoId = p.empleadoId || p.userId || p.usuarioId || local?.empleadoId || local?.usuarioId || local?.userId || null;
+        const empleadoNombre = p.empleadoNombre || p.usuarioNombre || local?.empleadoNombre || local?.usuarioNombre || null;
+        const porcentajeComision = p.porcentajeComision || local?.porcentajeComision || null;
+        const estado = local?.estado || p.estado;
+        const totalPedido = local?.totalPedido !== undefined ? local.totalPedido : p.totalPedido;
         return {
           ...p,
           empleadoId,
@@ -265,15 +254,55 @@ const InsVentasEmpleados = () => {
           userId: empleadoId,
           usuarioId: empleadoId,
           usuarioNombre: empleadoNombre,
-          porcentajeComision: p.porcentajeComision || 3,
-          comisionCalculada: p.comisionCalculada,
-          comisionPagada: Boolean(p.comisionPagada),
-          fechaPagoComision: p.fechaPagoComision,
-          referenciaPagoComision: p.referenciaPagoComision,
-          notasPagoComision: p.notasPagoComision,
-          estado: p.estado,
-          totalPedido: Number(p.totalPedido || 0)
+          porcentajeComision,
+          estado,
+          totalPedido
         };
+      });
+
+      // Incluir oportunidades asignadas que NO tienen pedido referenciado en la BD aún
+      Object.entries(localOportunidades).forEach(([key, op]) => {
+        const cotId = op.cotizacionId || key;
+        const existePedido = rawList.some(p => {
+          const idStr = p.id ? String(p.id).trim() : '';
+          const cotStr = p.cotizacionId ? String(p.cotizacionId).trim() : '';
+          const sinStr = p.siniestro ? String(p.siniestro).trim() : '';
+          const numStr = p.numeroPedido ? String(p.numeroPedido).trim() : '';
+          const targetCot = String(cotId).trim();
+          return idStr === targetCot || cotStr === targetCot || sinStr === targetCot || numStr === targetCot;
+        });
+
+        if (!existePedido) {
+          const est = op.estado || 'En espera';
+          const empId = op.empleadoId || op.usuarioId || op.userId || null;
+          let empNom = op.empleadoNombre || op.usuarioNombre || null;
+          if (!empNom && empId) {
+            const uFound = (usuariosData || []).find(u => Number(u.id) === Number(empId));
+            const empFound = (empleadosData || []).find(e => Number(e.id) === Number(empId));
+            empNom = uFound ? (uFound.nombre || uFound.email) : (empFound ? (empFound.nombres || empFound.nombre) : `Usuario #${empId}`);
+          }
+
+          fusionados.push({
+            id: `op_${cotId}`,
+            cotizacionId: cotId,
+            wan: op.wan,
+            numeroPedido: `COT-${cotId}`,
+            vehiculo: op.vehiculo || 'Vehículo Oportunidad',
+            siniestro: cotId,
+            totalPedido: Number(op.totalPedido || op.total_pedido || 0),
+            estado: est,
+            empleadoId: empId,
+            empleadoNombre: empNom,
+            userId: empId,
+            usuarioId: empId,
+            usuarioNombre: empNom,
+            porcentajeComision: op.porcentajeComision || 3,
+            fecha: op.fechaCotizacion || op.asignadoEn,
+            fechaCreacion: op.asignadoEn,
+            esOportunidadSinPedido: true,
+            datosOportunidad: op
+          });
+        }
       });
 
       setPedidosRaw(fusionados);
@@ -357,8 +386,50 @@ const InsVentasEmpleados = () => {
         try {
           await audatexAPI.enviarCotizacion(payload);
         } catch (errReg) {
-          console.warn('Backend enviarCotizacion fallo:', errReg);
+          console.warn('Backend enviarCotizacion fallo, fallback local activo:', errReg);
         }
+      }
+
+      // 2. Persistir en localStorage pedidos_ins_asignaciones
+      try {
+        const storedPedidos = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
+        const updateObj = {
+          empleadoId: empIdNum,
+          empleadoNombre: empNombre,
+          porcentajeComision: pctNum,
+          estado: 'Entregado',
+          totalPedido: totalNum
+        };
+        storedPedidos[cotId] = updateObj;
+        if (itemAEntregar.id) {
+          storedPedidos[itemAEntregar.id] = updateObj;
+        }
+        localStorage.setItem('pedidos_ins_asignaciones', JSON.stringify(storedPedidos));
+      } catch (e) {
+        console.warn('Error guardando en pedidos_ins_asignaciones:', e);
+      }
+
+      // 3. Persistir en localStorage oportunidades_ins_asignaciones
+      try {
+        const storedOps = JSON.parse(localStorage.getItem('oportunidades_ins_asignaciones') || '{}');
+        const key = cotId;
+        const opKey = storedOps[key] ? key : (storedOps[itemAEntregar.wan] ? itemAEntregar.wan : key);
+        storedOps[opKey] = {
+          ...(storedOps[opKey] || itemAEntregar),
+          cotizacionId: cotId,
+          wan: itemAEntregar.wan,
+          vehiculo: vehiculoStr,
+          estado: 'Entregado',
+          totalPedido: totalNum,
+          empleadoId: empIdNum,
+          empleadoNombre: empNombre,
+          porcentajeComision: pctNum,
+          asignadoEn: new Date().toISOString()
+        };
+        localStorage.setItem('oportunidades_ins_asignaciones', JSON.stringify(storedOps));
+        setOportunidadesAsignadas(storedOps);
+      } catch (e) {
+        console.warn('Error guardando en oportunidades_ins_asignaciones:', e);
       }
 
       message.success(`¡Cotización #${cotId} registrada y marcada como ENTREGADA para ${empNombre}!`);
@@ -376,74 +447,6 @@ const InsVentasEmpleados = () => {
     }
   };
 
-  // Abrir modal para liquidar comisiones de un colaborador (un solo pago)
-  const handleAbrirModalPagarGrupal = (emp) => {
-    setPagoForm({
-      empleadoId: emp.empleado_id,
-      empleadoNombre: emp.empleado,
-      monto: emp.total_comision_pendiente,
-      fechaPago: dayjs().format('YYYY-MM-DD'),
-      referencia: '',
-      notas: `Liquidación comisiones INS ${filtros.mes ? `mes ${filtros.mes}/` : ''}${filtros.anio || dayjs().year()}`
-    });
-    setModalPagarVisible(true);
-  };
-
-  // Confirmar y registrar pago único de comisiones (dispara transacción de EGRESO)
-  const handleConfirmarPagoComision = async () => {
-    setProcesandoPago(true);
-    try {
-      const idNum = Number(pagoForm.empleadoId) || (typeof pagoForm.empleadoId === 'string' && pagoForm.empleadoId.startsWith('id_') ? Number(pagoForm.empleadoId.replace('id_', '')) : null);
-      await audatexAPI.liquidarComisionesEmpleado({
-        usuarioId: idNum,
-        empleadoId: idNum,
-        empleadoNombre: pagoForm.empleadoNombre,
-        anio: filtros.anio,
-        mes: filtros.mes,
-        fechaPago: pagoForm.fechaPago,
-        referencia: pagoForm.referencia,
-        notas: pagoForm.notas
-      });
-      message.success(`Comisiones de ${pagoForm.empleadoNombre} liquidadas exitosamente y registradas como EGRESO contable`);
-      setModalPagarVisible(false);
-      await cargarDatos();
-      if (modalDetalleVisible) {
-        setModalDetalleVisible(false);
-      }
-    } catch (err) {
-      console.error('Error al registrar pago de comisión:', err);
-      message.error(err.response?.data?.error || 'Error al procesar la liquidación de comisiones');
-    } finally {
-      setProcesandoPago(false);
-    }
-  };
-
-  // Exportar reporte de ventas y comisiones a Excel
-  const handleExportarExcel = async () => {
-    try {
-      setExportandoExcel(true);
-      const res = await audatexAPI.exportarExcelVentasEmpleados({
-        anio: filtros.anio,
-        mes: filtros.mes
-      });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      const periodoStr = (filtros.anio || 'Historico') + (filtros.mes ? `_${filtros.mes}` : '');
-      link.setAttribute('download', `Reporte_Ventas_INS_${periodoStr}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      message.success('Reporte Excel de Ventas INS descargado exitosamente');
-    } catch (err) {
-      console.error('Error al exportar Excel:', err);
-      message.error('No se pudo generar el reporte Excel');
-    } finally {
-      setExportandoExcel(false);
-    }
-  };
-
   // Agrupar pedidos por colaborador
   const procesarGrupo = useCallback((listaPedidos, esCancelado = false) => {
     const anioFiltro = filtros.anio;
@@ -451,8 +454,6 @@ const InsVentasEmpleados = () => {
     const empleadosMap = {};
 
     let totalComisiones = 0;
-    let totalComisionesPagadas = 0;
-    let totalComisionesPendientes = 0;
     let totalVentas = 0;
     let totalPedidos = 0;
 
@@ -465,37 +466,21 @@ const InsVentasEmpleados = () => {
       if (anioFiltro && infoFecha.anio && infoFecha.anio !== anioFiltro) return;
       if (mesFiltro && infoFecha.mes && infoFecha.mes !== mesFiltro) return;
 
-      let nombreFinal = empNom;
-      if (empId) {
-        const uObj = usuariosActivos.find(u => Number(u.id) === Number(empId));
-        const empObj = (empleadosData || []).find(e => Number(e.id) === Number(empId));
-        if (uObj) {
-          nombreFinal = uObj.nombre || uObj.email;
-        } else if (empObj) {
-          nombreFinal = empObj.nombres || empObj.nombre;
-        }
-      }
-      if (!nombreFinal) {
-        nombreFinal = empId ? `Usuario #${empId}` : 'Sin nombre';
-      }
-      // Normalizar nombre con mayúscula inicial respetando nombres compuestos
-      nombreFinal = String(nombreFinal)
-        .trim()
-        .split(/\s+/)
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-        .join(' ');
-
-      // Clave unificada en minúsculas para evitar duplicar nombres por diferencias de mayúsculas (ej. Esteban y esteban)
-      const key = nombreFinal.toLowerCase().trim();
+      const key = empId ? `id_${empId}` : `nom_${empNom}`;
       if (!empleadosMap[key]) {
+        let nombreFinal = empNom;
+        if (!nombreFinal && empId) {
+          const uObj = usuariosActivos.find(u => Number(u.id) === Number(empId));
+          const empObj = empleadosData.find(e => Number(e.id) === Number(empId));
+          nombreFinal = uObj ? (uObj.nombre || uObj.email) : (empObj ? (empObj.nombres || empObj.nombre) : `Usuario #${empId}`);
+        }
+
         empleadosMap[key] = {
           empleado_id: empId || key,
-          empleado: nombreFinal,
+          empleado: nombreFinal || 'Sin nombre',
           total_pedidos: 0,
           total_ventas: 0,
           total_comision: 0,
-          total_comision_pagada: 0,
-          total_comision_pendiente: 0,
           pedidos_ordinarios: 0,
           pedidos_fuera_horario: 0,
           pedidos_detalle: []
@@ -504,18 +489,12 @@ const InsVentasEmpleados = () => {
 
       const total = Number(p.totalPedido) || 0;
       const evalCom = evaluarHorarioComision(p);
-      const comisionCalculada = esCancelado ? 0 : (p.comisionCalculada != null ? Number(p.comisionCalculada) : (total * evalCom.porcentaje) / 100);
+      const comisionCalculada = esCancelado ? 0 : (total * evalCom.porcentaje) / 100;
       const comisionPotencial = (total * evalCom.porcentaje) / 100;
-
-      const estaPagada = Boolean(p.comisionPagada);
-      const montoPagado = (!esCancelado && estaPagada) ? comisionCalculada : 0;
-      const montoPendiente = (!esCancelado && !estaPagada) ? comisionCalculada : 0;
 
       empleadosMap[key].total_pedidos += 1;
       empleadosMap[key].total_ventas += total;
       empleadosMap[key].total_comision += comisionCalculada;
-      empleadosMap[key].total_comision_pagada += montoPagado;
-      empleadosMap[key].total_comision_pendiente += montoPendiente;
 
       if (evalCom.esDentro) {
         empleadosMap[key].pedidos_ordinarios += 1;
@@ -541,10 +520,6 @@ const InsVentasEmpleados = () => {
         porcentaje: evalCom.porcentaje,
         esDentro: evalCom.esDentro,
         comision: esCancelado ? comisionPotencial : comisionCalculada,
-        comisionPagada: estaPagada,
-        fechaPagoComision: p.fechaPagoComision,
-        referenciaPagoComision: p.referenciaPagoComision,
-        notasPagoComision: p.notasPagoComision,
         estado: p.estado,
         esOportunidadSinPedido: Boolean(p.esOportunidadSinPedido),
         datosOportunidad: p.datosOportunidad,
@@ -552,8 +527,6 @@ const InsVentasEmpleados = () => {
       });
 
       totalComisiones += comisionCalculada;
-      totalComisionesPagadas += montoPagado;
-      totalComisionesPendientes += montoPendiente;
       totalVentas += total;
       totalPedidos += 1;
     });
@@ -584,8 +557,6 @@ const InsVentasEmpleados = () => {
     return {
       filas,
       totalComisiones,
-      totalComisionesPagadas,
-      totalComisionesPendientes,
       totalVentas,
       totalPedidos,
       totalEmpleados: filas.length
@@ -626,154 +597,97 @@ const InsVentasEmpleados = () => {
     setModalDetalleVisible(true);
   };
 
-  const getColumns = (tipoBloque) => {
-    const cols = [
-      {
-        title: 'Empleado',
-        dataIndex: 'empleado',
-        key: 'empleado',
-        render: (text) => (
-          <Space>
-            <UserOutlined style={{ color: '#2563eb' }} />
-            <Text strong style={{ color: '#1e40af' }}>{text}</Text>
-          </Space>
-        ),
-      },
-      {
-        title: 'Pedidos',
-        dataIndex: 'total_pedidos',
-        key: 'total_pedidos',
-        align: 'center',
-        render: (val) => (
-          <Tag
-            color={tipoBloque === 'entregados' ? 'green' : tipoBloque === 'en_espera' ? 'blue' : 'red'}
-            style={{ fontWeight: 600 }}
-          >
-            {val} {val === 1 ? 'pedido' : 'pedidos'}
-          </Tag>
-        ),
-      },
-      {
-        title: 'Horario',
-        key: 'horarios',
-        render: (_, record) => (
-          <Space size={4}>
-            {record.pedidos_ordinarios > 0 && (
-              <Tag color="success">3% ({record.pedidos_ordinarios})</Tag>
-            )}
-            {record.pedidos_fuera_horario > 0 && (
-              <Tag color="warning">5% ({record.pedidos_fuera_horario})</Tag>
-            )}
-          </Space>
-        )
-      },
-      {
-        title: 'Ventas',
-        dataIndex: 'total_ventas',
-        key: 'total_ventas',
-        align: 'right',
-        render: (val) => formatColones(val)
-      },
-      {
-        title: 'Oportunidades',
-        dataIndex: 'oportunidades_asignadas',
-        key: 'oportunidades_asignadas',
-        align: 'center',
-        render: (count) => (
-          <Tag color={count > 0 ? 'purple' : 'default'} style={{ fontWeight: 600 }}>
-            {count || 0} {count === 1 ? 'activa' : 'activas'}
-          </Tag>
-        )
-      }
-    ];
-
-    if (tipoBloque === 'entregados') {
-      cols.push(
-        {
-          title: 'Comisión Ganada',
-          dataIndex: 'total_comision',
-          key: 'total_comision',
-          align: 'right',
-          render: (val) => (
-            <Text strong style={{ color: '#16a34a', fontSize: 13 }}>
-              {formatColones(val)}
-            </Text>
-          ),
-        },
-        {
-          title: 'Comisión Pagada',
-          dataIndex: 'total_comision_pagada',
-          key: 'total_comision_pagada',
-          align: 'right',
-          render: (val) => (
-            <Tag color={val > 0 ? 'success' : 'default'} style={{ fontWeight: 600 }}>
-              {formatColones(val)}
-            </Tag>
-          ),
-        },
-        {
-          title: 'Pendiente de Pago',
-          dataIndex: 'total_comision_pendiente',
-          key: 'total_comision_pendiente',
-          align: 'right',
-          render: (val) => (
-            <Tag color={val > 0 ? 'orange' : 'default'} style={{ fontWeight: 700 }}>
-              {formatColones(val)}
-            </Tag>
-          ),
+  const getColumns = (tipoBloque) => [
+    {
+      title: 'Empleado',
+      dataIndex: 'empleado',
+      key: 'empleado',
+      render: (text) => (
+        <Space>
+          <UserOutlined style={{ color: '#2563eb' }} />
+          <Text strong style={{ color: '#1e40af' }}>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Pedidos',
+      dataIndex: 'total_pedidos',
+      key: 'total_pedidos',
+      align: 'center',
+      render: (val) => (
+        <Tag
+          color={tipoBloque === 'entregados' ? 'green' : tipoBloque === 'en_espera' ? 'blue' : 'red'}
+          style={{ fontWeight: 600 }}
+        >
+          {val} {val === 1 ? 'pedido' : 'pedidos'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Horario',
+      key: 'horarios',
+      render: (_, record) => (
+        <Space size={4}>
+          {record.pedidos_ordinarios > 0 && (
+            <Tag color="success">3% ({record.pedidos_ordinarios})</Tag>
+          )}
+          {record.pedidos_fuera_horario > 0 && (
+            <Tag color="warning">5% ({record.pedidos_fuera_horario})</Tag>
+          )}
+        </Space>
+      )
+    },
+    {
+      title: 'Ventas',
+      dataIndex: 'total_ventas',
+      key: 'total_ventas',
+      align: 'right',
+      render: (val) => formatColones(val)
+    },
+    {
+      title: 'Oportunidades',
+      dataIndex: 'oportunidades_asignadas',
+      key: 'oportunidades_asignadas',
+      align: 'center',
+      render: (count) => (
+        <Tag color={count > 0 ? 'purple' : 'default'} style={{ fontWeight: 600 }}>
+          {count || 0} {count === 1 ? 'activa' : 'activas'}
+        </Tag>
+      )
+    },
+    {
+      title: tipoBloque === 'cancelados' ? 'Estado' : 'Comisión',
+      dataIndex: 'total_comision',
+      key: 'total_comision',
+      align: 'right',
+      render: (val) => {
+        if (tipoBloque === 'cancelados') {
+          return <Tag color="error">Cancelado (₡0)</Tag>;
         }
-      );
-    } else {
-      cols.push({
-        title: tipoBloque === 'cancelados' ? 'Estado' : 'Comisión',
-        dataIndex: 'total_comision',
-        key: 'total_comision',
-        align: 'right',
-        render: (val) => {
-          if (tipoBloque === 'cancelados') {
-            return <Tag color="error">Cancelado (₡0)</Tag>;
-          }
-          return (
-            <Text strong style={{ color: '#2563eb', fontSize: 14 }}>
-              {formatColones(val)}
-            </Text>
-          );
-        },
-      });
-    }
-
-    cols.push({
+        return (
+          <Text strong style={{ color: tipoBloque === 'entregados' ? '#16a34a' : '#2563eb', fontSize: 14 }}>
+            {formatColones(val)}
+          </Text>
+        );
+      },
+    },
+    {
       title: 'Acción',
       key: 'acciones',
       align: 'center',
       render: (_, record) => (
-        <Space size={6}>
-          <Button
-            type="primary"
-            ghost
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleVerDetalle(record, tipoBloque)}
-          >
-            Ver Detalle
-          </Button>
-          {tipoBloque === 'entregados' && record.total_comision_pendiente > 0 && esAdmin && (
-            <Button
-              type="primary"
-              size="small"
-              style={{ background: '#10b981', borderColor: '#10b981' }}
-              icon={<DollarOutlined />}
-              onClick={() => handleAbrirModalPagarGrupal(record)}
-            >
-              Liquidar Pago
-            </Button>
-          )}
-        </Space>
+        <Button
+          type="primary"
+          ghost
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={() => handleVerDetalle(record, tipoBloque)}
+        >
+          Ver Detalle
+        </Button>
       ),
-    });
-
-    return cols;
-  };
+    },
+  ];
 
   const totalOportunidadesGlobal = Object.keys(oportunidadesAsignadas).length;
 
@@ -793,24 +707,15 @@ const InsVentasEmpleados = () => {
         <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
           Ventas Empleados INS
         </Title>
-        <Space size={8}>
-          <Button
-            icon={<FileExcelOutlined style={{ color: '#107c41' }} />}
-            onClick={handleExportarExcel}
-            loading={exportandoExcel}
-          >
-            Exportar Excel
-          </Button>
-          <Button
-            type="primary"
-            icon={<ReloadOutlined />}
-            onClick={cargarDatos}
-            loading={loading}
-            style={{ background: '#2563eb' }}
-          >
-            Recargar
-          </Button>
-        </Space>
+        <Button
+          type="primary"
+          icon={<ReloadOutlined />}
+          onClick={cargarDatos}
+          loading={loading}
+          style={{ background: '#2563eb' }}
+        >
+          Recargar
+        </Button>
       </div>
 
       {/* Barra de Filtros */}
@@ -845,11 +750,8 @@ const InsVentasEmpleados = () => {
                 onChange={(val) => setFiltros({ ...filtros, mes: val })}
                 allowClear
               >
-                {[
-                  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-                ].map((mes, idx) => (
-                  <Option key={idx + 1} value={idx + 1}>{mes}</Option>
+                {MESES_OPCIONES.map(opt => (
+                  <Option key={opt.value} value={opt.value}>{opt.label}</Option>
                 ))}
               </Select>
             </Space>
@@ -859,62 +761,40 @@ const InsVentasEmpleados = () => {
 
       {/* Dashboard Resumen */}
       <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-        <Col xs={24} sm={12} md={4}>
+        <Col xs={24} sm={12} md={true} style={{ flex: '1 1 180px' }}>
           <Card size="small" style={{ borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
             <Statistic
-              title={<Text strong style={{ color: '#15803d' }}>Comisiones Ganadas</Text>}
+              title={<Text strong style={{ color: '#15803d' }}>Comisiones Efectivas</Text>}
               value={datosBloques.bloqueEntregados.totalComisiones}
               formatter={(val) => formatColones(val)}
-              valueStyle={{ color: '#16a34a', fontWeight: 700, fontSize: 18 }}
+              valueStyle={{ color: '#16a34a', fontWeight: 700, fontSize: 20 }}
               prefix={<DollarOutlined />}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4}>
-          <Card size="small" style={{ borderRadius: 8, background: '#ecfdf5', border: '1px solid #a7f3d0' }}>
-            <Statistic
-              title={<Text strong style={{ color: '#047857' }}>Comisiones Pagadas</Text>}
-              value={datosBloques.bloqueEntregados.totalComisionesPagadas}
-              formatter={(val) => formatColones(val)}
-              valueStyle={{ color: '#059669', fontWeight: 700, fontSize: 18 }}
-              prefix={<CheckCircleOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={4}>
-          <Card size="small" style={{ borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a' }}>
-            <Statistic
-              title={<Text strong style={{ color: '#b45309' }}>Saldo Pendiente</Text>}
-              value={datosBloques.bloqueEntregados.totalComisionesPendientes}
-              formatter={(val) => formatColones(val)}
-              valueStyle={{ color: '#d97706', fontWeight: 700, fontSize: 18 }}
-              prefix={<ClockCircleOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={4}>
+        <Col xs={24} sm={12} md={true} style={{ flex: '1 1 180px' }}>
           <Card size="small" style={{ borderRadius: 8, background: '#eff6ff', border: '1px solid #bfdbfe' }}>
             <Statistic
               title={<Text strong style={{ color: '#1d4ed8' }}>Comisiones en Espera</Text>}
               value={datosBloques.bloqueEnEspera.totalComisiones}
               formatter={(val) => formatColones(val)}
-              valueStyle={{ color: '#2563eb', fontWeight: 700, fontSize: 18 }}
+              valueStyle={{ color: '#2563eb', fontWeight: 700, fontSize: 20 }}
               prefix={<ClockCircleOutlined />}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4}>
+        <Col xs={24} sm={12} md={true} style={{ flex: '1 1 180px' }}>
           <Card size="small" style={{ borderRadius: 8, background: '#faf5ff', border: '1px solid #e9d5ff' }}>
             <Statistic
               title={<Text strong style={{ color: '#6b21a8' }}>Total Pedidos</Text>}
               value={datosBloques.bloqueEntregados.totalPedidos + datosBloques.bloqueEnEspera.totalPedidos}
-              suffix={<span style={{ fontSize: 11, color: '#6b7280' }}>({datosBloques.bloqueCancelados.totalPedidos} canc.)</span>}
-              valueStyle={{ color: '#7c3aed', fontWeight: 700, fontSize: 18 }}
+              suffix={<span style={{ fontSize: 12, color: '#6b7280' }}>({datosBloques.bloqueCancelados.totalPedidos} canc.)</span>}
+              valueStyle={{ color: '#7c3aed', fontWeight: 700, fontSize: 20 }}
               prefix={<ShoppingCartOutlined />}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4}>
+        <Col xs={24} sm={12} md={true} style={{ flex: '1 1 180px' }}>
           <Card
             size="small"
             style={{
@@ -928,17 +808,30 @@ const InsVentasEmpleados = () => {
             hoverable
           >
             <Statistic
-              title={<Text strong style={{ color: '#86198f' }}>Oportunidades</Text>}
+              title={<Text strong style={{ color: '#86198f' }}>Oportunidades Asignadas</Text>}
               value={totalOportunidadesGlobal}
               suffix={
                 opsSinPedido.length > 0 ? (
-                  <Tag color="orange" style={{ marginLeft: 4, fontSize: 10 }}>
-                    {opsSinPedido.length} s/entregar
+                  <Tag color="orange" style={{ marginLeft: 6, fontSize: 11 }}>
+                    {opsSinPedido.length} sin entregar
                   </Tag>
                 ) : null
               }
-              valueStyle={{ color: '#a21caf', fontWeight: 700, fontSize: 18 }}
+              valueStyle={{ color: '#a21caf', fontWeight: 700, fontSize: 20 }}
               prefix={<FileTextOutlined />}
+            />
+            <div style={{ fontSize: 11, color: '#a21caf', marginTop: 4, fontWeight: 500 }}>
+              Ver todas las cotizaciones ➔
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={true} style={{ flex: '1 1 180px' }}>
+          <Card size="small" style={{ borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a' }}>
+            <Statistic
+              title={<Text strong style={{ color: '#b45309' }}>Colaboradores</Text>}
+              value={Math.max(datosBloques.bloqueEntregados.totalEmpleados, datosBloques.bloqueEnEspera.totalEmpleados)}
+              valueStyle={{ color: '#d97706', fontWeight: 700, fontSize: 20 }}
+              prefix={<TeamOutlined />}
             />
           </Card>
         </Col>
@@ -1062,26 +955,15 @@ const InsVentasEmpleados = () => {
           setEmpleadoDetalle(null);
         }}
         footer={[
-          empleadoDetalle?.tipoBloque === 'entregados' && empleadoDetalle?.total_comision_pendiente > 0 && esAdmin && (
-            <Button
-              key="liquidar"
-              type="primary"
-              style={{ background: '#10b981', borderColor: '#10b981' }}
-              icon={<DollarOutlined />}
-              onClick={() => handleAbrirModalPagarGrupal(empleadoDetalle)}
-            >
-              Liquidar Saldo Pendiente ({formatColones(empleadoDetalle.total_comision_pendiente)})
-            </Button>
-          ),
-          <Button key="cerrar" onClick={() => setModalDetalleVisible(false)}>
+          <Button key="cerrar" type="primary" onClick={() => setModalDetalleVisible(false)}>
             Cerrar
           </Button>
-        ].filter(Boolean)}
-        width={950}
+        ]}
+        width={800}
       >
         {empleadoDetalle && (
           <div>
-            <Descriptions size="small" column={{ xs: 1, sm: 3 }} bordered style={{ marginBottom: 14 }}>
+            <Descriptions size="small" column={{ xs: 1, sm: 4 }} style={{ marginBottom: 12 }}>
               <Descriptions.Item label="Pedidos">
                 <strong>{empleadoDetalle.total_pedidos}</strong>
               </Descriptions.Item>
@@ -1093,25 +975,11 @@ const InsVentasEmpleados = () => {
               <Descriptions.Item label="Total Ventas">
                 <strong>{formatColones(empleadoDetalle.total_ventas)}</strong>
               </Descriptions.Item>
-              <Descriptions.Item label="Comisión Ganada">
-                <strong style={{ color: empleadoDetalle.tipoBloque === 'cancelados' ? '#dc2626' : '#16a34a', fontSize: 14 }}>
+              <Descriptions.Item label="Comisión">
+                <strong style={{ color: empleadoDetalle.tipoBloque === 'cancelados' ? '#dc2626' : '#16a34a' }}>
                   {empleadoDetalle.tipoBloque === 'cancelados' ? '₡0' : formatColones(empleadoDetalle.total_comision)}
                 </strong>
               </Descriptions.Item>
-              {empleadoDetalle.tipoBloque === 'entregados' && (
-                <>
-                  <Descriptions.Item label="Comisión Pagada">
-                    <Tag color={empleadoDetalle.total_comision_pagada > 0 ? 'success' : 'default'} style={{ fontWeight: 600, fontSize: 13 }}>
-                      {formatColones(empleadoDetalle.total_comision_pagada || 0)}
-                    </Tag>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Saldo Pendiente">
-                    <Tag color={empleadoDetalle.total_comision_pendiente > 0 ? 'orange' : 'default'} style={{ fontWeight: 700, fontSize: 13 }}>
-                      {formatColones(empleadoDetalle.total_comision_pendiente || 0)}
-                    </Tag>
-                  </Descriptions.Item>
-                </>
-              )}
             </Descriptions>
 
             <Tabs
@@ -1200,24 +1068,6 @@ const InsVentasEmpleados = () => {
                               {empleadoDetalle.tipoBloque === 'cancelados' ? '₡0' : formatColones(val)}
                             </Text>
                           )
-                        },
-                        {
-                          title: 'Estado Comisión',
-                          key: 'comisionPagada',
-                          align: 'center',
-                          render: (_, r) => {
-                            if (empleadoDetalle.tipoBloque !== 'entregados') return null;
-                            if (r.comisionPagada) {
-                              return (
-                                <Tooltip title={`Pagado: ${r.fechaPagoComision || 'N/D'} | Ref: ${r.referenciaPagoComision || 'N/D'} ${r.notasPagoComision ? `| ${r.notasPagoComision}` : ''}`}>
-                                  <Tag color="success" icon={<CheckCircleOutlined />} style={{ cursor: 'pointer' }}>
-                                    PAGADA
-                                  </Tag>
-                                </Tooltip>
-                              );
-                            }
-                            return <Tag color="orange">PENDIENTE</Tag>;
-                          }
                         },
                         {
                           title: 'Acción',
@@ -1580,91 +1430,6 @@ const InsVentasEmpleados = () => {
             }
           ]}
         />
-      </Modal>
-
-      {/* Modal para Liquidar Comisiones (Registro único con Egreso Contable) */}
-      <Modal
-        title={
-          <Space>
-            <DollarOutlined style={{ color: '#10b981' }} />
-            <span>Liquidar Comisiones — {pagoForm.empleadoNombre}</span>
-          </Space>
-        }
-        open={modalPagarVisible}
-        onCancel={() => {
-          if (!procesandoPago) {
-            setModalPagarVisible(false);
-          }
-        }}
-        confirmLoading={procesandoPago}
-        onOk={handleConfirmarPagoComision}
-        okText="Confirmar Pago y Registrar Egreso"
-        cancelText="Cancelar"
-        okButtonProps={{ style: { background: '#10b981', borderColor: '#10b981' } }}
-        destroyOnClose
-      >
-        <div style={{ marginTop: 12 }}>
-          <div style={{
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: 6,
-            padding: '10px 14px',
-            marginBottom: 16,
-            fontSize: 13,
-            color: '#475569'
-          }}>
-            Esta acción liquidará en un <strong>único pago</strong> todas las comisiones pendientes del colaborador y registrará la <strong>transacción de EGRESO</strong> correspondiente en el sistema financiero.
-          </div>
-
-          <Descriptions size="small" bordered column={1} style={{ marginBottom: 16 }}>
-            <Descriptions.Item label="Colaborador">
-              <strong>{pagoForm.empleadoNombre}</strong>
-            </Descriptions.Item>
-            <Descriptions.Item label="Monto Total a Liquidar">
-              <strong style={{ color: '#16a34a', fontSize: 17 }}>
-                {formatColones(pagoForm.monto || 0)}
-              </strong>
-            </Descriptions.Item>
-            <Descriptions.Item label="Período">
-              {filtros.mes ? `Mes ${filtros.mes} / ` : 'Año '} {filtros.anio || 'Histórico'}
-            </Descriptions.Item>
-          </Descriptions>
-
-          <div style={{ marginBottom: 16 }}>
-            <Text strong style={{ display: 'block', marginBottom: 6 }}>
-              Fecha de Pago:
-            </Text>
-            <Input
-              type="date"
-              style={{ width: '100%' }}
-              value={pagoForm.fechaPago}
-              onChange={(e) => setPagoForm({ ...pagoForm, fechaPago: e.target.value })}
-            />
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <Text strong style={{ display: 'block', marginBottom: 6 }}>
-              Referencia / Comprobante (Opcional):
-            </Text>
-            <Input
-              placeholder="Ej: PAGO-COM-INS o transferencia (opcional)"
-              value={pagoForm.referencia}
-              onChange={(e) => setPagoForm({ ...pagoForm, referencia: e.target.value })}
-            />
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <Text strong style={{ display: 'block', marginBottom: 6 }}>
-              Notas / Observaciones (Opcional):
-            </Text>
-            <Input.TextArea
-              rows={2}
-              placeholder="Notas u observaciones adicionales..."
-              value={pagoForm.notas}
-              onChange={(e) => setPagoForm({ ...pagoForm, notas: e.target.value })}
-            />
-          </div>
-        </div>
       </Modal>
     </div>
   );

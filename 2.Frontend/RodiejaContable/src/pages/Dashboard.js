@@ -22,6 +22,7 @@ import ventasEmpleadosService from '../api/ventasEmpleados'; // Importar como en
 import { useAuth } from '../context/AuthContext';
 
 import { formatCurrency } from '../utils/formatters';
+import { MESES_NOMBRES } from '../utils/dateUtils';
 
 // Colores para el gráfico de pastel
 const COLORS = ['#1890ff', '#52c41a', '#fa8c16', '#f5222d', '#722ed1', '#13c2c2', '#eb2f96', '#faad14'];
@@ -87,12 +88,11 @@ const Dashboard = () => {
         ]);
 
         // Formatear ventasMensuales para tener nombreMes
-        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const ventasFormat = (ventasMensuales || []).map(v => {
           const mesNum = v.mes || new Date(v.fecha || v.createdAt).getMonth() + 1;
           return {
             ...v,
-            nombreMes: meses[mesNum - 1] || `Mes ${mesNum}`,
+            nombreMes: MESES_NOMBRES[mesNum - 1] || `Mes ${mesNum}`,
             totalTransacciones: v.totalTransacciones || v.totalVentas || v.transaccionesVenta || 0,
             totalIngresos: v.totalIngresos || v.monto || v.ingresosNetos || v.totalIngresosNetos || 0
           };
@@ -482,7 +482,7 @@ const Dashboard = () => {
               <Row gutter={24} style={{ marginTop: 16 }}>
                 <Col xs={8}>
                   <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>Ingresos</div>
-                  <div style={{ fontWeight: 600, fontSize: '15px', color: '#262626' }}>{formatCurrency(estadisticasVentas.ingresos_mes_actual || 0)}</div>
+                  <div style={{ fontWeight: 600, fontSize: '15px', color: '#262626' }}>{formatCurrency(estadisticasVentas.ventas_mes_actual || 0)}</div>
                 </Col>
                 <Col xs={8}>
                   <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: 4 }}>Vehículos</div>

@@ -11,6 +11,7 @@ import App from './App';
 import 'antd/dist/reset.css';
 import './styles/global.css';
 import './styles/utilities.css';
+import './styles/dashboard.css';
 import theme from './styles/theme';
 
 // Configure global message settings

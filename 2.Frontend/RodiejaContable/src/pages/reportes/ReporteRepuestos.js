@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card, Row, Col, Table, Typography, Button, Space,
-  Select, message, Statistic, Tabs, Tag,
+  Select, message, Tabs, Tag,
   Tooltip, Empty, Layout, Badge, Input, Collapse
 } from 'antd';
 import {
@@ -10,7 +10,7 @@ import {
   CalendarOutlined, DashboardOutlined, ToolOutlined,
   FilterOutlined, FileExcelOutlined,
   ArrowUpOutlined, ArrowDownOutlined,
-  ShopOutlined, MailOutlined
+  ShopOutlined, MailOutlined, DollarOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
@@ -21,13 +21,13 @@ import finanzasService from '../../api/finanzas';
 import reportesService from '../../api/reportes';
 import { usePartesVehiculo } from '../../hooks';
 import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReporteEmail';
-
+import DashboardKpiCard from '../../components/common/DashboardKpiCard';
+import { MESES_NOMBRES } from '../../utils/dateUtils';
+import * as XLSX from 'xlsx';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { Content } = Layout;
-
-const MESES_NOMBRES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 const parseFecha = (fecha) => {
   if (!fecha) return null;
@@ -65,12 +65,21 @@ const ReporteRepuestos = () => {
     balanceNeto: 0
   });
 
+  const [gastosOperativos, setGastosOperativos] = useState({
+    salarios: 0,
+    mantenimiento: 0,
+    serviciosPublicos: 0,
+    otros: 0,
+    total: 0
+  });
+
+  const [modalEmailVisible, setModalEmailVisible] = useState(false);
+
   const [vehiculosDesarmados, setVehiculosDesarmados] = useState([]);
   const [loadingVehiculos, setLoadingVehiculos] = useState(false);
 
   const [movimientos, setMovimientos] = useState([]);
   const [loadingMovimientos, setLoadingMovimientos] = useState(false);
-  const [modalEmailVisible, setModalEmailVisible] = useState(false);
 
 
   // Cargar partes de vehículo desde API (para el selector de filtros)
@@ -331,15 +340,32 @@ const ReporteRepuestos = () => {
       let tIngresos = 0;
       let tEgresos = 0;
       let tComisiones = 0;
+      let sumSalarios = 0;
+      let sumMantenimiento = 0;
+      let sumServiciosPublicos = 0;
+      let sumOtrosOperativos = 0;
       const monthlyDataMap = {};
 
       ordenados.forEach(t => {
         const monto = parseFloat(t.monto || 0);
         const categoria = (t.categoria || '').toUpperCase();
+        const tipoLower = (t.tipoTransaccion || t.tipo_transaccion || '').toLowerCase();
 
         // Determinar si la comisión fue pagada
         const estaPagada = t.comisionPagada === true || t.comisionPagada === 1 || t.comisionPagada === '1';
         const comision = estaPagada ? parseFloat(t.comisionEmpleado || 0) : 0;
+
+        if (categoria === 'EGRESO') {
+          if (t.esSalario) {
+            sumSalarios += monto;
+          } else if (t.esMantenimiento) {
+            sumMantenimiento += monto;
+          } else if (t.esServiciosPublicos) {
+            sumServiciosPublicos += monto;
+          } else if (t.esGastoOperativo || tipoLower.includes('combustible') || tipoLower.includes('transporte') || tipoLower.includes('impuesto') || tipoLower.includes('otros egresos') || tipoLower.includes('alquiler')) {
+            sumOtrosOperativos += monto;
+          }
+        }
 
         const fechaObj = parseFecha(t.fecha);
 
@@ -386,6 +412,15 @@ const ReporteRepuestos = () => {
       const processedData = Object.values(monthlyDataMap).sort((a, b) => {
         if (a.anio !== b.anio) return a.anio - b.anio;
         return a.monthIndex - b.monthIndex;
+      });
+
+      const totalOperativos = sumSalarios + sumMantenimiento + sumServiciosPublicos + sumOtrosOperativos;
+      setGastosOperativos({
+        salarios: sumSalarios,
+        mantenimiento: sumMantenimiento,
+        serviciosPublicos: sumServiciosPublicos,
+        otros: sumOtrosOperativos,
+        total: totalOperativos
       });
 
       setData(processedData);
@@ -487,54 +522,201 @@ const ReporteRepuestos = () => {
   // Opciones completas para parte del vehículo - Ahora dinámicas desde usePartesVehiculo
   const getParteOptions = () => partesVehiculo.map(p => ({ value: p.id, label: p.nombre }));
 
-  const obtenerRangoFechasFiltro = () => {
-    const params = {};
-    if (filtros.mes || filtros.anio) {
-      const targetAnio = filtros.anio || moment().year();
-      if (filtros.mes) {
+  // Generación local en cliente con xlsx (fallback en caso de que el backend no responda)
+  const exportarAExcelCliente = () => {
+    if (data.length === 0 && (!movimientos || movimientos.length === 0)) {
+      message.warning('No hay datos para exportar');
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+
+    // Hoja 1: Resumen Financiero
+    if (data.length > 0) {
+      const exportData = data.map(item => ({
+        'Año': item.anio,
+        'Mes': item.nombreMes,
+        'Ingresos': item.totalIngresos,
+        'Egresos': item.totalEgresos,
+        'Comisiones': item.totalComisiones,
+        'Balance Neto': item.balanceNeto
+      }));
+
+      exportData.push({
+        'Año': 'TOTALES',
+        'Mes': '',
+        'Ingresos': totales.ingresos,
+        'Egresos': totales.egresos,
+        'Comisiones': totales.comisiones,
+        'Balance Neto': totales.balanceNeto
+      });
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      let nombreHoja = 'Histórico Completo';
+      if (filtros.mes && filtros.anio) {
+        nombreHoja = `${MESES_NOMBRES[filtros.mes - 1]} ${filtros.anio}`;
+      } else if (filtros.mes) {
+        nombreHoja = `${MESES_NOMBRES[filtros.mes - 1]}`;
+      } else if (filtros.anio) {
+        nombreHoja = `Año ${filtros.anio}`;
+      }
+
+      XLSX.utils.book_append_sheet(wb, ws, nombreHoja.substring(0, 31));
+      ws['!cols'] = [
+        { wch: 10 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 15 }, { wch: 18 }
+      ];
+    }
+
+    // Hoja 2: Detalle Movimientos
+    if (movimientos && movimientos.length > 0) {
+      const exportMov = movimientos.map(m => {
+        const isIng = m.tipoTransaccion === 'INGRESO' || m.categoria === 'INGRESO' || m.categoria === 'VENTA';
+        const monto = Number(m.monto || 0);
+        const f = parseFecha(m.fecha);
+        return {
+          'Fecha': f && !isNaN(f.getTime()) ? moment(f).format('DD/MM/YYYY') : '-',
+          'Clasificación': m.tipoTransaccion || m.categoria || 'DESCONOCIDO',
+          'Pieza / Concepto': m.codigoRepuesto || (m.codigoVehiculo ? `Vehículo ${m.codigoVehiculo}` : 'General'),
+          'Referencia': m.referencia || `TRX: ${m.codigoTransaccion || m.id}`,
+          'Descripción': m.descripcion || '',
+          'Origen': m._infoOrigen || m.codigoVehiculo || 'General / Sin Vehículo',
+          'Ingreso (₡)': isIng ? monto : 0,
+          'Egreso (₡)': !isIng ? monto : 0,
+          'Comisión (₡)': Number(m.comisionEmpleado || 0),
+          'Comisión Pagada': (m.comisionPagada === true || m.comisionPagada === 1 || m.comisionPagada === '1') ? 'Sí' : 'No'
+        };
+      });
+
+      const wsMov = XLSX.utils.json_to_sheet(exportMov);
+      XLSX.utils.book_append_sheet(wb, wsMov, 'Detalle Movimientos');
+      wsMov['!cols'] = [
+        { wch: 14 }, { wch: 18 }, { wch: 20 }, { wch: 22 }, { wch: 38 }, { wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 }
+      ];
+    }
+
+    let nombreArchivoCliente = 'Reporte_Repuestos_Historico_Completo.xlsx';
+    if (filtros.mes && filtros.anio) {
+      nombreArchivoCliente = `Reporte_Repuestos_${MESES_NOMBRES[filtros.mes - 1]}_${filtros.anio}.xlsx`;
+    } else if (filtros.anio) {
+      nombreArchivoCliente = `Reporte_Repuestos_Anio_${filtros.anio}.xlsx`;
+    }
+
+    XLSX.writeFile(wb, nombreArchivoCliente);
+    message.success('Reporte de repuestos exportado exitosamente');
+  };
+
+  // Exportar el Reporte de Repuestos (con soporte para exportar TODO el histórico si se limpian los filtros de mes)
+  const exportarAExcel = async () => {
+    try {
+      message.loading({ content: 'Generando reporte de repuestos...', key: 'exp-rep' });
+
+      const esHistorico = !filtros.mes && !filtros.anio;
+      const esAnual = !filtros.mes && Boolean(filtros.anio);
+
+      const params = {};
+      if (esHistorico) {
+        params.todos = true;
+      } else if (esAnual) {
+        params.fechaInicio = `${filtros.anio}-01-01`;
+        params.fechaFin = `${filtros.anio}-12-31`;
+      } else {
+        const targetAnio = filtros.anio || moment().year();
         const fechaBase = moment([targetAnio, filtros.mes - 1, 1]);
         params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
         params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
-      } else {
-        params.fechaInicio = `${targetAnio}-01-01`;
-        params.fechaFin = `${targetAnio}-12-31`;
       }
-    }
-    return params;
-  };
 
-  // Exportar el Reporte de Repuestos oficial generado por el Backend (con estilos y 2 hojas)
-  const exportarAExcel = async () => {
-    try {
-      message.loading({ content: 'Generando reporte oficial de repuestos...', key: 'exp-rep' });
-      const params = obtenerRangoFechasFiltro();
-      const blob = await reportesService.exportarExcelRepuestosBackend(params);
-      const nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Repuestos', filtros.mes, filtros.anio);
+      const payload = {
+        todos: esHistorico,
+        totales
+      };
+
+      let nombreArchivo = 'Reporte_Repuestos_Historico_Completo.xlsx';
+      if (!esHistorico) {
+        if (esAnual) {
+          nombreArchivo = `Reporte_Repuestos_Anio_${filtros.anio}.xlsx`;
+        } else {
+          nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Repuestos', filtros.mes, filtros.anio);
+        }
+      }
+
+      const blob = await reportesService.exportarExcelRepuestosBackend(params, payload);
       reportesService.descargarArchivo(blob, nombreArchivo);
       message.success({ content: 'Reporte de repuestos exportado exitosamente', key: 'exp-rep' });
     } catch (error) {
-      console.error('Error al exportar repuestos a Excel:', error);
-      message.error({ content: 'Error al exportar el archivo Excel', key: 'exp-rep' });
+      console.warn('Backend export falló, usando exportación en navegador:', error);
+      exportarAExcelCliente();
     }
   };
 
+  const movimientosOperativos = useMemo(() => {
+    return (movimientos || []).filter(m => {
+      const cat = (m.categoria || '').toUpperCase();
+      const tipoLower = (m.tipoTransaccion || m.tipo_transaccion || '').toLowerCase();
+      const esOperativo = m.esGastoOperativo || m.esSalario || m.esMantenimiento || m.esServiciosPublicos ||
+                          tipoLower.includes('combustible') || tipoLower.includes('transporte') ||
+                          tipoLower.includes('impuesto') || tipoLower.includes('alquiler') ||
+                          tipoLower.includes('otros egresos');
+      return cat === 'EGRESO' && esOperativo;
+    });
+  }, [movimientos]);
+
   const handleEnviarEmail = async (opciones) => {
     const formData = new FormData();
-    if (opciones.destinatarios) formData.append('destinatarios', opciones.destinatarios);
     if (opciones.asunto) formData.append('asunto', opciones.asunto);
     if (opciones.periodo) formData.append('periodo', opciones.periodo);
-    if (opciones.mensaje) formData.append('mensaje', opciones.mensaje);
+    if (opciones.mensaje && opciones.mensaje.trim() !== '') formData.append('mensaje', opciones.mensaje.trim());
     formData.append('ingresos', totales?.ingresos || 0);
     formData.append('egresos', totales?.egresos || 0);
     formData.append('comisiones', totales?.comisiones || 0);
     formData.append('balanceNeto', totales?.balanceNeto || 0);
     formData.append('cantidadMovimientos', movimientos?.length || 0);
 
+    // Adjuntar desglose detallado de gastos operativos
+    const payloadGastosOperativos = {
+      ...gastosOperativos,
+      detalles: (movimientosOperativos || []).slice(0, 20).map(m => ({
+        fecha: Array.isArray(m.fecha) ? `${m.fecha[0]}-${String(m.fecha[1]).padStart(2, '0')}-${String(m.fecha[2]).padStart(2, '0')}` : (typeof m.fecha === 'string' ? m.fecha.split('T')[0] : ''),
+        tipoTransaccion: m.tipoTransaccion || m.tipo_transaccion || 'Gasto Operativo',
+        descripcion: m.descripcion || m.referencia || '',
+        monto: parseFloat(m.monto || 0)
+      }))
+    };
+    formData.append('gastosOperativos', JSON.stringify(payloadGastosOperativos));
+
     if (opciones.adjuntarExcel) {
       try {
-        const params = obtenerRangoFechasFiltro();
-        const excelBlob = await reportesService.exportarExcelRepuestosBackend(params);
-        const nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Repuestos', filtros.mes, filtros.anio);
+        const esHistorico = !filtros.mes && !filtros.anio;
+        const esAnual = !filtros.mes && Boolean(filtros.anio);
+        const params = {};
+        if (esHistorico) {
+          params.todos = true;
+        } else if (esAnual) {
+          params.fechaInicio = `${filtros.anio}-01-01`;
+          params.fechaFin = `${filtros.anio}-12-31`;
+        } else {
+          const targetAnio = filtros.anio || moment().year();
+          const fechaBase = moment([targetAnio, filtros.mes - 1, 1]);
+          params.fechaInicio = fechaBase.clone().startOf('month').format('YYYY-MM-DD');
+          params.fechaFin = fechaBase.clone().endOf('month').format('YYYY-MM-DD');
+        }
+
+        const payload = {
+          todos: esHistorico,
+          totales
+        };
+
+        let nombreArchivo = 'Reporte_Repuestos_Historico_Completo.xlsx';
+        if (!esHistorico) {
+          if (esAnual) {
+            nombreArchivo = `Reporte_Repuestos_Anio_${filtros.anio}.xlsx`;
+          } else {
+            nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Repuestos', filtros.mes, filtros.anio);
+          }
+        }
+
+        const excelBlob = await reportesService.exportarExcelRepuestosBackend(params, payload);
         formData.append('archivo', excelBlob, nombreArchivo);
       } catch (err) {
         console.warn('No se pudo adjuntar el Excel del backend:', err);
@@ -673,7 +855,7 @@ const ReporteRepuestos = () => {
       title: 'Registro',
       dataIndex: 'fecha',
       key: 'fecha',
-      width: 130,
+      width: '15%',
       render: (fecha) => {
         if (!fecha) return '-';
         let formatted = '';
@@ -683,7 +865,7 @@ const ReporteRepuestos = () => {
           formatted = moment(fecha).format('DD/MM/YYYY');
         }
         return (
-          <Space style={{ whiteSpace: 'nowrap' }}>
+          <Space>
             <CalendarOutlined style={{ color: '#bfbfbf' }} />
             <Text>{formatted}</Text>
           </Space>
@@ -693,7 +875,7 @@ const ReporteRepuestos = () => {
     {
       title: 'Clasificación',
       key: 'tipo',
-      width: 150,
+      width: '15%',
       render: (_, record) => {
         const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO';
         let tagColor = isIngreso ? 'success' : 'error';
@@ -701,7 +883,7 @@ const ReporteRepuestos = () => {
           tagColor = 'warning';
         }
         return (
-          <Tag color={tagColor} style={{ borderRadius: '4px', padding: '0 8px', whiteSpace: 'nowrap' }}>
+          <Tag color={tagColor} style={{ borderRadius: '4px', padding: '0 8px' }}>
             {record.tipoTransaccion || record.categoria || 'DESCONOCIDO'}
           </Tag>
         );
@@ -710,7 +892,7 @@ const ReporteRepuestos = () => {
     {
       title: 'Detalle de la Pieza / Concepto',
       key: 'repuesto',
-      minWidth: 220,
+      width: '35%',
       render: (_, record) => {
         let title = '';
         if (record.codigoRepuesto || record.repuestoId != null) {
@@ -741,7 +923,7 @@ const ReporteRepuestos = () => {
     {
       title: 'Origen',
       key: 'vehiculoOrigen',
-      width: 190,
+      width: '20%',
       render: (_, record) => record._infoOrigen ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {record._infoOrigen.split(' | ').map((info, i) => {
@@ -750,9 +932,9 @@ const ReporteRepuestos = () => {
             const text = info.replace('Vehículo: ', '').replace('Pieza: ', '').replace('Gasto: ', '');
             return (
               <Tooltip title={info} key={i}>
-                <div style={{ fontSize: '12px', lineHeight: '1.3', color: '#595959', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>
+                <div style={{ fontSize: '12px', lineHeight: '1.3', color: '#595959', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {isVehiculo ? (
-                     <CarOutlined style={{ marginRight: 4, color: '#8c8c8c' }} />
+                    <CarOutlined style={{ marginRight: 4, color: '#8c8c8c' }} />
                   ) : isGasto ? (
                     <ShopOutlined style={{ marginRight: 4, color: '#fa8c16' }} />
                   ) : (
@@ -767,35 +949,16 @@ const ReporteRepuestos = () => {
       ) : <Text type="secondary" style={{ fontSize: '12px' }}>General / Sin Vehículo</Text>
     },
     {
-      title: 'Ingresos',
-      key: 'ingreso',
+      title: 'Impacto Financiero',
+      dataIndex: 'monto',
+      key: 'monto',
       align: 'right',
-      width: 150,
-      render: (_, record) => {
+      width: '15%',
+      render: (monto, record) => {
         const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO';
-        if (!isIngreso) {
-          return <Text type="secondary" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>-</Text>;
-        }
         return (
-          <Text strong style={{ fontSize: '14px', color: '#52c41a', whiteSpace: 'nowrap' }}>
-            + ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(record.monto || 0)}
-          </Text>
-        );
-      }
-    },
-    {
-      title: 'Egresos',
-      key: 'egreso',
-      align: 'right',
-      width: 150,
-      render: (_, record) => {
-        const isIngreso = record.tipoTransaccion === 'INGRESO' || record.categoria === 'INGRESO';
-        if (isIngreso) {
-          return <Text type="secondary" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>-</Text>;
-        }
-        return (
-          <Text strong style={{ fontSize: '14px', color: '#f5222d', whiteSpace: 'nowrap' }}>
-            - ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(record.monto || 0)}
+          <Text strong style={{ fontSize: '15px', color: isIngreso ? '#52c41a' : '#f5222d' }}>
+            {isIngreso ? '+' : '-'} ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(monto || 0)}
           </Text>
         );
       }
@@ -819,26 +982,18 @@ const ReporteRepuestos = () => {
           </Col>
           <Col>
             <Space>
-              <Tooltip title="Enviar reporte por correo electrónico">
+              <Tooltip title="Exportar a Microsoft Excel">
+                <Button type="primary" icon={<FileExcelOutlined />} onClick={exportarAExcel}>
+                  Exportar
+                </Button>
+              </Tooltip>
+              <Tooltip title="Enviar reporte mensual consolidado por correo a los administradores">
                 <Button
                   icon={<MailOutlined />}
                   onClick={() => setModalEmailVisible(true)}
+                  style={{ background: '#722ed1', borderColor: '#722ed1', color: '#fff', borderRadius: '6px' }}
                 >
                   Enviar por Correo
-                </Button>
-              </Tooltip>
-              <Tooltip title="Exportar a Microsoft Excel">
-                <Button
-                  type="primary"
-                  icon={<FileExcelOutlined />}
-                  onClick={exportarAExcel}
-                  style={{
-                    backgroundColor: '#52c41a',
-                    borderColor: '#52c41a',
-                    color: '#fff'
-                  }}
-                >
-                  Exportar
                 </Button>
               </Tooltip>
             </Space>
@@ -947,10 +1102,10 @@ const ReporteRepuestos = () => {
               </div>
             ),
             children: (
-              <Row gutter={[16, 16]} align="bottom">
-                <Col xs={24} sm={12} md={8} lg={4}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Búsqueda</Text>
+              <Row gutter={[24, 16]} align="bottom">
+                <Col xs={24} sm={12} md={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Búsqueda</Text>
                     {filtros.busqueda && (
                       <Tag color="blue" closable onClose={() => removerFiltro('busqueda')} style={{ margin: 0, fontWeight: 500 }}>
                         "{filtros.busqueda}"
@@ -969,9 +1124,9 @@ const ReporteRepuestos = () => {
                     style={{ width: '100%', borderRadius: '6px' }}
                   />
                 </Col>
-                <Col xs={24} sm={12} md={8} lg={4}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Mes a Consultar</Text>
+                <Col xs={24} sm={12} md={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Mes a Consultar</Text>
                     {labelPeriodo && (
                       <Tag color="blue" closable onClose={() => removerFiltro('periodo')} style={{ margin: 0, fontWeight: 500 }}>
                         {labelPeriodo}
@@ -1019,9 +1174,9 @@ const ReporteRepuestos = () => {
                     </Select>
                   </Space.Compact>
                 </Col>
-                <Col xs={24} sm={12} md={8} lg={4}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Concepto</Text>
+                <Col xs={24} sm={12} md={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Concepto</Text>
                     {labelTipoMovimiento && (
                       <Tag color="orange" closable onClose={() => removerFiltro('tipoMovimiento')} style={{ margin: 0, fontWeight: 500 }}>
                         {labelTipoMovimiento}
@@ -1042,9 +1197,9 @@ const ReporteRepuestos = () => {
                     <Option value="SALARIOS">Salarios</Option>
                   </Select>
                 </Col>
-                <Col xs={24} sm={12} md={8} lg={4}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Vehículo Desarmado</Text>
+                <Col xs={24} sm={12} md={4}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Vehículo Desarmado</Text>
                     {labelVehiculoDesarmado && (
                       <Tag color="purple" closable onClose={() => removerFiltro('vehiculoDesarmadoId')} style={{ margin: 0, fontWeight: 500 }}>
                         {labelVehiculoDesarmado}
@@ -1065,9 +1220,9 @@ const ReporteRepuestos = () => {
                     ))}
                   </Select>
                 </Col>
-                <Col xs={24} sm={12} md={8} lg={3}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Tipo de Parte</Text>
+                <Col xs={24} sm={12} md={3}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Tipo de Parte</Text>
                     {labelParteVehiculo && (
                       <Tag color="cyan" closable onClose={() => removerFiltro('parteVehiculo')} style={{ margin: 0, fontWeight: 500 }}>
                         {labelParteVehiculo}
@@ -1090,9 +1245,9 @@ const ReporteRepuestos = () => {
                     ))}
                   </Select>
                 </Col>
-                <Col xs={24} sm={12} md={8} lg={3}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Estado</Text>
+                <Col xs={24} sm={12} md={3}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Estado</Text>
                     {filtros.estadoRepuesto && (
                       <Tag 
                         color={filtros.estadoRepuesto === 'STOCK' ? 'success' : filtros.estadoRepuesto === 'VENDIDO' ? 'blue' : 'warning'} 
@@ -1118,7 +1273,7 @@ const ReporteRepuestos = () => {
                     <Option value="USADO_INTERNO">Usado Interno</Option>
                   </Select>
                 </Col>
-                <Col xs={24} sm={24} md={8} lg={2}>
+                <Col xs={24} sm={24} md={2}>
                   <Button 
                     block 
                     icon={<ReloadOutlined />} 
@@ -1135,55 +1290,79 @@ const ReporteRepuestos = () => {
         ]}
       />
 
-      {/* Resumen Global (4 Cuadros) Siempre Visible */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Ingresos Totales</span>}
-              value={totales.ingresos}
-              precision={2}
-              prefix={<ArrowUpOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#52c41a', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
+      {/* Resumen Global Siempre Visible */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24, display: 'flex', flexWrap: 'wrap' }}>
+        <Col xs={24} sm={12} md={12} lg={8} xl style={{ minWidth: 210, flex: 1 }}>
+          <DashboardKpiCard
+            title="Ingresos Totales"
+            value={totales.ingresos}
+            type="success"
+            icon={<ArrowUpOutlined />}
+            footer="Ventas de repuestos y operaciones"
+          />
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Egresos / Costos</span>}
-              value={totales.egresos}
-              precision={2}
-              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
+
+        <Col xs={24} sm={12} md={12} lg={8} xl style={{ minWidth: 210, flex: 1 }}>
+          <DashboardKpiCard
+            title="Egresos / Costos"
+            value={totales.egresos}
+            type="danger"
+            icon={<ArrowDownOutlined />}
+            footer="Compras, piezas y gastos operativos"
+          />
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Comisiones (Pagadas)</span>}
-              value={totales.comisiones}
-              precision={2}
-              prefix={<ArrowDownOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: '#faad14', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
+
+        <Col xs={24} sm={12} md={12} lg={8} xl style={{ minWidth: 210, flex: 1 }}>
+          <DashboardKpiCard
+            title="Comisiones Pagadas"
+            value={totales.comisiones}
+            type="warning"
+            icon={<DollarOutlined />}
+            footer="Pago a vendedores y equipo"
+          />
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} bodyStyle={{ padding: '24px' }} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
-            <Statistic
-              title={<span style={{ color: '#8c8c8c', fontSize: '14px', fontWeight: 500 }}>Balance Neto</span>}
-              value={Math.abs(totales.balanceNeto)}
-              precision={2}
-              prefix={totales.balanceNeto >= 0 ? <ArrowUpOutlined style={{ fontSize: '20px' }} /> : <ArrowDownOutlined style={{ fontSize: '20px' }} />}
-              valueStyle={{ color: totales.balanceNeto >= 0 ? '#52c41a' : '#f5222d', fontWeight: 600, fontSize: '24px' }}
-              formatter={(value) => `${totales.balanceNeto < 0 ? '-' : ''}₡${value.toLocaleString('es-CR')}`}
-            />
-          </Card>
+
+        <Col xs={24} sm={12} md={12} lg={8} xl style={{ minWidth: 210, flex: 1 }}>
+          <DashboardKpiCard
+            title="Balance Neto"
+            value={totales.balanceNeto}
+            type={totales.balanceNeto >= 0 ? 'success' : 'danger'}
+            showSign
+            tag={
+              <Tag
+                color={totales.balanceNeto >= 0 ? 'success' : 'error'}
+                style={{ margin: 0, borderRadius: '10px', fontWeight: 600, fontSize: '11px' }}
+              >
+                {totales.balanceNeto >= 0 ? 'Superávit' : 'Déficit'}
+              </Tag>
+            }
+            footer={totales.balanceNeto >= 0 ? 'Flujo de caja positivo' : 'Déficit del período'}
+          />
+        </Col>
+
+        <Col xs={24} sm={12} md={12} lg={8} xl style={{ minWidth: 240, flex: 1.15 }}>
+          <DashboardKpiCard
+            title="Gastos Operativos"
+            value={gastosOperativos.total}
+            type="featured-orange"
+            tag={
+              <Tag color="orange" style={{ margin: 0, borderRadius: '10px', fontWeight: 600, fontSize: '11px' }}>
+                {totales.egresos > 0 ? ((gastosOperativos.total / totales.egresos) * 100).toFixed(0) : 0}% egresos
+              </Tag>
+            }
+          >
+            <div className="dashboard-kpi-footer-chips">
+              <Tag style={{ margin: 0, fontSize: '11px', background: '#ffffff', borderColor: '#ffd591', color: '#ad4e00', borderRadius: '4px' }}>
+                💼 Salarios: ₡{Number(gastosOperativos.salarios || 0).toLocaleString('es-CR')}
+              </Tag>
+              <Tag style={{ margin: 0, fontSize: '11px', background: '#ffffff', borderColor: '#ffd591', color: '#ad4e00', borderRadius: '4px' }}>
+                🔧 Mant: ₡{Number(gastosOperativos.mantenimiento || 0).toLocaleString('es-CR')}
+              </Tag>
+              <Tag style={{ margin: 0, fontSize: '11px', background: '#ffffff', borderColor: '#ffd591', color: '#ad4e00', borderRadius: '4px' }}>
+                💡 Serv: ₡{Number(gastosOperativos.serviciosPublicos || 0).toLocaleString('es-CR')}
+              </Tag>
+            </div>
+          </DashboardKpiCard>
         </Col>
       </Row>
 
@@ -1245,6 +1424,69 @@ const ReporteRepuestos = () => {
             )
           },
           {
+            key: '3',
+            label: (
+              <span style={{ fontSize: '16px', fontWeight: 500 }}>
+                <DollarOutlined /> Gastos Operativos (Salarios, Mantenimiento y Servicios)
+                {movimientosOperativos.length > 0 && (
+                  <Badge count={movimientosOperativos.length} style={{ backgroundColor: '#fa8c16', marginLeft: 8 }} />
+                )}
+              </span>
+            ),
+            children: (
+              <div style={{ marginTop: '8px' }}>
+                <Card
+                  bordered={false}
+                  title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                      <span style={{ fontWeight: 600, color: '#262626' }}>
+                        Desglose Operativo y Administrativo {labelPeriodo ? `(${labelPeriodo})` : '(Histórico Completo)'}
+                      </span>
+                      <Space wrap>
+                        <Tag color="gold" style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px' }}>
+                          💼 Salarios: ₡{gastosOperativos.salarios.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                        </Tag>
+                        <Tag color="cyan" style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px' }}>
+                          🔧 Mantenimiento: ₡{gastosOperativos.mantenimiento.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                        </Tag>
+                        <Tag color="blue" style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px' }}>
+                          💡 Servicios: ₡{gastosOperativos.serviciosPublicos.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                        </Tag>
+                        <Tag color="orange" style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>
+                          Total: ₡{gastosOperativos.total.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                        </Tag>
+                      </Space>
+                    </div>
+                  }
+                  style={{ borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                >
+                  <Table
+                    columns={columnasMovimientos}
+                    dataSource={movimientosOperativos}
+                    rowKey="id"
+                    loading={loadingMovimientos}
+                    pagination={{ defaultPageSize: 10, showSizeChanger: true }}
+                    size="middle"
+                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`No hay gastos operativos registrados para ${labelPeriodo || 'el filtro seleccionado'}`} /> }}
+                    summary={() => (
+                      <Table.Summary fixed>
+                        <Table.Summary.Row style={{ backgroundColor: '#fafafa', fontWeight: 600 }}>
+                          <Table.Summary.Cell index={0} colSpan={4}>TOTAL GASTOS OPERATIVOS ({movimientosOperativos.length} movimientos)</Table.Summary.Cell>
+                          <Table.Summary.Cell index={1} align="right">
+                            <Text style={{ color: '#f5222d', fontSize: '15px' }}>
+                              ₡{gastosOperativos.total.toLocaleString('es-CR', { minimumFractionDigits: 2 })}
+                            </Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={2} />
+                        </Table.Summary.Row>
+                      </Table.Summary>
+                    )}
+                  />
+                </Card>
+              </div>
+            )
+          },
+          {
             key: '2',
             label: (
               <span style={{ fontSize: '16px', fontWeight: 500 }}>
@@ -1292,37 +1534,7 @@ const ReporteRepuestos = () => {
                     loading={loadingMovimientos}
                     pagination={{ defaultPageSize: 10, showSizeChanger: true }}
                     size="middle"
-                    scroll={{ x: 1000 }}
                     locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No existen transacciones en el rango seleccionado" /> }}
-                    summary={() => {
-                      let totalIng = 0;
-                      let totalEgr = 0;
-                      (movimientos || []).forEach(m => {
-                        const isIng = m.tipoTransaccion === 'INGRESO' || m.categoria === 'INGRESO';
-                        const monto = m.monto || 0;
-                        if (isIng) totalIng += monto;
-                        else totalEgr += monto;
-                      });
-                      return (
-                        <Table.Summary fixed>
-                          <Table.Summary.Row style={{ backgroundColor: '#fafafa', fontWeight: 600 }}>
-                            <Table.Summary.Cell index={0} colSpan={4}>
-                              <Text strong style={{ whiteSpace: 'nowrap' }}>TOTAL / SUMATORIA</Text>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={1} align="right">
-                              <Text strong style={{ color: '#52c41a', fontSize: '14px', whiteSpace: 'nowrap' }}>
-                                + ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totalIng)}
-                              </Text>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={2} align="right">
-                              <Text strong style={{ color: '#f5222d', fontSize: '14px', whiteSpace: 'nowrap' }}>
-                                - ₡{new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2 }).format(totalEgr)}
-                              </Text>
-                            </Table.Summary.Cell>
-                          </Table.Summary.Row>
-                        </Table.Summary>
-                      );
-                    }}
                   />
                 </Card>
               </div>
@@ -1334,9 +1546,10 @@ const ReporteRepuestos = () => {
       <ModalEnviarReporteEmail
         visible={modalEmailVisible}
         onCancel={() => setModalEmailVisible(false)}
+        tipoReporte="Repuestos"
         periodo={(filtros.mes && filtros.anio) ? `${MESES_NOMBRES[filtros.mes - 1]} ${filtros.anio}` : `Año ${filtros.anio || moment().year()}`}
         totales={totales}
-        cantidadMovimientos={movimientos?.length || 0}
+        gastosOperativos={gastosOperativos}
         onEnviar={handleEnviarEmail}
       />
     </Content>

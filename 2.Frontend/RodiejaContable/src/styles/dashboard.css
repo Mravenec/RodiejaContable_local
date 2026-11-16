@@ -1,0 +1,199 @@
+/* ==========================================================================
+   Dashboard KPI Card Design System (Rodieja Contable)
+   Estilos unificados con herencia para tarjetas métricas y dashboards
+   ========================================================================== */
+
+/* Contenedor Base de la Tarjeta */
+.dashboard-kpi-card {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid #e8e8e8 !important;
+  height: 100% !important;
+  background: #ffffff !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden;
+}
+
+.dashboard-kpi-card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08) !important;
+  transform: translateY(-2px);
+}
+
+.dashboard-kpi-card .ant-card-body {
+  padding: 20px 22px !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+/* Modificadores Destacados (Herencia) */
+.dashboard-kpi-card--featured-orange {
+  border-color: #ffd591 !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fffbe6 100%) !important;
+  box-shadow: 0 2px 10px rgba(250, 140, 22, 0.08) !important;
+}
+
+.dashboard-kpi-card--featured-orange:hover {
+  box-shadow: 0 6px 20px rgba(250, 140, 22, 0.16) !important;
+}
+
+.dashboard-kpi-card--featured-green {
+  border-color: #b7eb8f !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f6ffed 100%) !important;
+  box-shadow: 0 2px 10px rgba(82, 196, 26, 0.08) !important;
+}
+
+.dashboard-kpi-card--featured-green:hover {
+  box-shadow: 0 6px 20px rgba(82, 196, 26, 0.16) !important;
+}
+
+.dashboard-kpi-card--featured-blue {
+  border-color: #91d5ff !important;
+  background: linear-gradient(180deg, #ffffff 0%, #e6f7ff 100%) !important;
+  box-shadow: 0 2px 10px rgba(24, 144, 255, 0.08) !important;
+}
+
+.dashboard-kpi-card--featured-blue:hover {
+  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.16) !important;
+}
+
+.dashboard-kpi-card--featured-purple {
+  border-color: #d3adf7 !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f9f0ff 100%) !important;
+  box-shadow: 0 2px 10px rgba(114, 46, 209, 0.08) !important;
+}
+
+.dashboard-kpi-card--featured-purple:hover {
+  box-shadow: 0 6px 20px rgba(114, 46, 209, 0.16) !important;
+}
+
+/* Cabecera de la Tarjeta */
+.dashboard-kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.dashboard-kpi-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8c8c8c;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.dashboard-kpi-title--orange {
+  color: #d46b08;
+  font-weight: 700;
+}
+
+.dashboard-kpi-title--green {
+  color: #389e0d;
+  font-weight: 700;
+}
+
+.dashboard-kpi-title--blue {
+  color: #096dd9;
+  font-weight: 700;
+}
+
+.dashboard-kpi-title--purple {
+  color: #722ed1;
+  font-weight: 700;
+}
+
+/* Iconos de Cabecera (Insignias Redondeadas) */
+.dashboard-kpi-icon-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  transition: transform 0.2s ease;
+}
+
+.dashboard-kpi-card:hover .dashboard-kpi-icon-badge {
+  transform: scale(1.08);
+}
+
+.dashboard-kpi-icon-badge--success {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.dashboard-kpi-icon-badge--danger {
+  background: #fff1f0;
+  color: #f5222d;
+}
+
+.dashboard-kpi-icon-badge--warning {
+  background: #fffbe6;
+  color: #faad14;
+}
+
+.dashboard-kpi-icon-badge--info {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.dashboard-kpi-icon-badge--purple {
+  background: #f9f0ff;
+  color: #722ed1;
+}
+
+/* Valor Numérico Central */
+.dashboard-kpi-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
+}
+
+.dashboard-kpi-value--success {
+  color: #389e0d;
+}
+
+.dashboard-kpi-value--danger {
+  color: #cf1322;
+}
+
+.dashboard-kpi-value--warning {
+  color: #d48806;
+}
+
+.dashboard-kpi-value--orange {
+  color: #d46b08;
+}
+
+.dashboard-kpi-value--primary {
+  color: #1890ff;
+}
+
+.dashboard-kpi-value--purple {
+  color: #722ed1;
+}
+
+/* Pie de la Tarjeta */
+.dashboard-kpi-footer {
+  font-size: 12px;
+  color: #8c8c8c;
+  padding-top: 8px;
+  border-top: 1px solid #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-kpi-footer-chips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid #ffe7ba;
+}

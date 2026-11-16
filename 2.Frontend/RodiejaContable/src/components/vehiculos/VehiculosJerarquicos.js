@@ -32,6 +32,7 @@ import {
   FileExcelOutlined
 } from '@ant-design/icons';
 import reportesService from '../../api/reportes';
+import * as XLSX from 'xlsx';
 
 import vehiculoService from '../../api/vehiculos';
 import finanzaService from '../../api/finanzas';
@@ -307,6 +308,7 @@ const normalizarEOrdenar = (
       costo_recuperado: costoRecuperado,
       costo_pendiente: costoPendiente,
       balance_neto: balanceNeto,
+      ganancia: balanceNeto,
       fecha_ingreso: v.fecha_ingreso ?? v.fechaIngreso,
       estado: toStr(v.estado, 'SIN_ESTADO'),
       precio_venta: precioVenta,
@@ -1581,23 +1583,125 @@ const VehiculosJerarquicos = () => {
     );
   };
 
-  // Exportar la jerarquía de vehículos oficial a Excel generada por el Backend con Apache POI
-  const exportarJerarquiaAExcel = async () => {
+  // Generación local en cliente con XLSX (fallback si falla la conexión al backend)
+  const exportarJerarquiaCliente = (dataAExportar) => {
     try {
-      const dataAExportar = (filteredMarcas && filteredMarcas.length > 0) ? filteredMarcas : marcas;
-      if (!dataAExportar || dataAExportar.length === 0) {
-        message.warning('No hay datos de vehículos para exportar');
-        return;
+      const wb = XLSX.utils.book_new();
+
+      // Hoja 1: Resumen de Flota y Marcas
+      const listMarcas = dataAExportar.map(m => ({
+        'Marca': m.nombre,
+        'Total Vehículos': m.total_vehiculos || 0,
+        'Total Repuestos': m.total_repuestos || 0,
+        'Inversión Total': m.total_inversion || 0,
+        'Ingresos / Venta': m.total_ingresos || 0,
+        'Ganancia Neta (Balance)': m.balance_neto || 0,
+        '% Ganancia / ROI': m.total_inversion > 0 ? `${((m.balance_neto / m.total_inversion) * 100).toFixed(1)}%` : '0.0%'
+      }));
+      const wsMarcas = XLSX.utils.json_to_sheet(listMarcas);
+      XLSX.utils.book_append_sheet(wb, wsMarcas, 'Resumen por Marca');
+
+      // Hoja 2: Resumen por Modelo
+      const listModelos = [];
+      dataAExportar.forEach(m => {
+        (m.modelos || []).forEach(mod => {
+          listModelos.push({
+            'Marca': m.nombre,
+            'Modelo': mod.nombre,
+            'Generaciones': (mod.generaciones || []).length,
+            'Total Vehículos': mod.total_vehiculos || 0,
+            'Total Repuestos': mod.total_repuestos || 0,
+            'Inversión Total': mod.total_inversion || 0,
+            'Ingresos / Venta': mod.total_ingresos || 0,
+            'Ganancia Neta (Balance)': mod.balance_neto || 0,
+            '% Ganancia / ROI': mod.total_inversion > 0 ? `${((mod.balance_neto / mod.total_inversion) * 100).toFixed(1)}%` : '0.0%'
+          });
+        });
+      });
+      const wsModelos = XLSX.utils.json_to_sheet(listModelos);
+      XLSX.utils.book_append_sheet(wb, wsModelos, 'Resumen por Modelo');
+
+      // Hoja 3: Detalle de Vehículos & Hoja 4: Vendidos
+      const listVehiculos = [];
+      const listVendidos = [];
+      dataAExportar.forEach(m => {
+        (m.modelos || []).forEach(mod => {
+          (mod.generaciones || []).forEach(gen => {
+            (gen.vehiculos || []).forEach(v => {
+              const invTot = Number(v.inversion_total || 0);
+              const rec = Number(v.precio_venta || v.costo_recuperado || 0);
+              const gan = Number(v.balance_neto || (rec - invTot));
+              const roi = invTot > 0 ? `${((gan / invTot) * 100).toFixed(1)}%` : '0.0%';
+
+              listVehiculos.push({
+                'Código': v.codigo_vehiculo,
+                'Marca': m.nombre,
+                'Modelo': mod.nombre,
+                'Generación': gen.nombre,
+                'Año': v.anio,
+                'Estado': v.estado,
+                'Fecha Venta': v.fecha_venta || '-',
+                'Inversión Total': invTot,
+                'Precio Venta / Ingresos': rec,
+                'Ganancia Neta': gan,
+                '% Margen / ROI': roi,
+                'Repuestos Extraídos': (v.repuestos || []).length
+              });
+
+              if (String(v.estado).toUpperCase() === 'VENDIDO' || (v.precio_venta && Number(v.precio_venta) > 0)) {
+                listVendidos.push({
+                  'Código': v.codigo_vehiculo,
+                  'Marca': m.nombre,
+                  'Modelo': mod.nombre,
+                  'Generación': gen.nombre,
+                  'Año': v.anio,
+                  'Fecha Ingreso': v.fecha_ingreso || '-',
+                  'Fecha Venta': v.fecha_venta || '-',
+                  'Inversión Total': invTot,
+                  'Precio Venta': rec,
+                  'Ganancia Neta': gan,
+                  '% Margen Ganancia (ROI)': roi
+                });
+              }
+            });
+          });
+        });
+      });
+
+      const wsVehiculos = XLSX.utils.json_to_sheet(listVehiculos);
+      XLSX.utils.book_append_sheet(wb, wsVehiculos, 'Detalle de Vehículos');
+
+      if (listVendidos.length > 0) {
+        const wsVendidos = XLSX.utils.json_to_sheet(listVendidos);
+        XLSX.utils.book_append_sheet(wb, wsVendidos, 'Vehículos Vendidos y Ganancias');
       }
 
-      message.loading({ content: 'Generando reporte oficial de jerarquía en el Backend...', key: 'exp-excel' });
+      const nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Jerarquia_Vehiculos');
+      XLSX.writeFile(wb, nombreArchivo);
+      message.success({ content: 'Reporte jerárquico exportado exitosamente', key: 'exp-excel' });
+    } catch (err) {
+      console.error('Error en exportación cliente jerarquía:', err);
+      message.error({ content: 'No se pudo generar el archivo Excel', key: 'exp-excel' });
+    }
+  };
+
+  // Exportar la jerarquía de vehículos oficial a Excel generada por el Backend con Apache POI (con desglose de ganancias y 4 hojas)
+  const exportarJerarquiaAExcel = async () => {
+    const dataAExportar = (filteredMarcas && filteredMarcas.length > 0) ? filteredMarcas : marcas;
+    if (!dataAExportar || dataAExportar.length === 0) {
+      message.warning('No hay datos de vehículos para exportar');
+      return;
+    }
+
+    try {
+      message.loading({ content: 'Generando reporte oficial de jerarquía en el Backend (4 hojas con ganancias)...', key: 'exp-excel' });
       const blob = await reportesService.exportarExcelJerarquiaBackend(dataAExportar);
       const nombreArchivo = reportesService.obtenerNombreArchivoConMes('Reporte_Jerarquia_Vehiculos');
       reportesService.descargarArchivo(blob, nombreArchivo);
-      message.success({ content: 'Reporte jerárquico exportado exitosamente', key: 'exp-excel' });
+      message.success({ content: 'Reporte jerárquico exportado exitosamente (4 hojas con ganancias reflejadas)', key: 'exp-excel' });
     } catch (error) {
-      console.error('Error al exportar jerarquía a Excel en Backend:', error);
-      message.error({ content: 'Error al exportar el archivo Excel', key: 'exp-excel' });
+      console.warn('Backend export falló, usando exportación en navegador:', error);
+      exportarJerarquiaCliente(dataAExportar);
     }
   };
 
