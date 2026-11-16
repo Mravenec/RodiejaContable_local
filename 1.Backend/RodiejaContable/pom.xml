@@ -163,16 +163,6 @@
 			</properties>
 		</profile>
 
-		<!-- Producción EC2: usa la misma RDS que video-on-demand. -->
-		<profile>
-			<id>production-db</id>
-			<properties>
-				<spring.datasource.url>jdbc:mariadb://tu1negocio.cxikgks2ghni.us-east-2.rds.amazonaws.com:3306/sistema_vehicular</spring.datasource.url>
-				<spring.datasource.username>root</spring.datasource.username>
-				<spring.datasource.password>Biz1stPass</spring.datasource.password>
-			</properties>
-		</profile>
-
 		<!-- Producción/CI: se activa al definir SPRING_DATASOURCE_URL. -->
 		<!-- Nunca se guardan aquí el host ni la contraseña de RDS. -->
 		<profile>
