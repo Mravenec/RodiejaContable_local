@@ -20,27 +20,13 @@ import transaccionesCompletasService from '../../api/transaccionesCompletas';
 import reportesService from '../../api/reportes';
 import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReporteEmail';
 import DashboardKpiCard from '../../components/common/DashboardKpiCard';
-import { MESES_NOMBRES } from '../../utils/dateUtils';
+import { MESES_NOMBRES, parseFecha, obtenerEtiquetaPeriodo } from '../../utils/dateUtils';
 import * as XLSX from 'xlsx';
 
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { Content } = Layout;
-
-const parseFecha = (fecha) => {
-  if (!fecha) return null;
-  if (Array.isArray(fecha)) {
-    return new Date(fecha[0], fecha[1] - 1, fecha[2]);
-  }
-  if (typeof fecha === 'string') {
-    const parts = fecha.split('T')[0].split('-');
-    if (parts.length === 3) {
-      return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-    }
-  }
-  return new Date(fecha);
-};
 
 const ReporteVehiculos = () => {
   const navigate = useNavigate();
@@ -295,12 +281,7 @@ const ReporteVehiculos = () => {
   };
 
   const labelPeriodo = useMemo(() => {
-    if (filtros.mes && filtros.anio) {
-      return `${MESES_NOMBRES[filtros.mes - 1]} ${filtros.anio}`;
-    }
-    if (filtros.mes) return MESES_NOMBRES[filtros.mes - 1];
-    if (filtros.anio) return `${filtros.anio}`;
-    return null;
+    return obtenerEtiquetaPeriodo(filtros.mes, filtros.anio);
   }, [filtros.mes, filtros.anio]);
 
   const labelVehiculo = useMemo(() => {
@@ -1092,8 +1073,10 @@ const ReporteVehiculos = () => {
             <Space>
               <Tooltip title="Enviar reporte por correo electrónico">
                 <Button
+                  type="primary"
                   icon={<MailOutlined />}
                   onClick={() => setModalEmailVisible(true)}
+                  className="btn-purple"
                 >
                   Enviar por Correo
                 </Button>
@@ -1103,11 +1086,7 @@ const ReporteVehiculos = () => {
                   type="primary"
                   icon={<FileExcelOutlined />}
                   onClick={exportarAExcel}
-                  style={{
-                    backgroundColor: '#52c41a',
-                    borderColor: '#52c41a',
-                    color: '#fff'
-                  }}
+                  className="btn-excel"
                 >
                   Exportar
                 </Button>
@@ -1187,7 +1166,7 @@ const ReporteVehiculos = () => {
                       type="link" 
                       size="small" 
                       onClick={(e) => { e.stopPropagation(); limpiarFiltros(); }} 
-                      style={{ padding: '0 4px', fontSize: '12px', height: 'auto' }}
+                      className="btn-table-action"
                     >
                       Limpiar todos
                     </Button>

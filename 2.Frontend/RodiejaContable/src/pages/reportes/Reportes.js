@@ -34,56 +34,10 @@ import {
 import dayjs from 'dayjs';
 import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReporteEmail';
 import DashboardKpiCard from '../../components/common/DashboardKpiCard';
-import { MESES_NOMBRES } from '../../utils/dateUtils';
+import { MESES_NOMBRES, parseFecha } from '../../utils/dateUtils';
+import { formatCurrency, calcularPorcentajes } from '../../utils/formatters';
 
 const { Title, Text } = Typography;
-
-// Función para parsear fecha con seguridad
-const parseFecha = (fecha) => {
-  if (!fecha) return null;
-  if (Array.isArray(fecha)) {
-    return new Date(fecha[0], fecha[1] - 1, fecha[2]);
-  }
-  if (typeof fecha === 'string') {
-    const parts = fecha.split('T')[0].split('-');
-    if (parts.length === 3) {
-      return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-    }
-  }
-  return new Date(fecha);
-};
-
-// Función para formatear moneda
-const formatCurrency = (value) => {
-  if (value === null || value === undefined || isNaN(value)) {
-    return '₡0';
-  }
-  return `₡${Number(value).toLocaleString('es-CR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  })}`;
-};
-
-// Función para calcular porcentajes de ventas
-const calcularPorcentajes = (empleados) => {
-  if (!Array.isArray(empleados) || empleados.length === 0) {
-    return [];
-  }
-
-  const totalVentas = empleados.reduce((total, emp) => {
-    return total + (emp.totalTransacciones || emp.transaccionesVenta || 0);
-  }, 0);
-
-  return empleados.map(emp => {
-    const ventasEmpleado = emp.totalTransacciones || emp.transaccionesVenta || 0;
-    const porcentaje = totalVentas > 0 ? Math.round((ventasEmpleado / totalVentas) * 100) : 0;
-
-    return {
-      ...emp,
-      porcentaje: porcentaje
-    };
-  });
-};
 
 // Función para agrupar transacciones por mes
 const agruparTransaccionesPorMes = (transacciones) => {
@@ -394,8 +348,10 @@ const Reportes = () => {
           />
           <Tooltip title="Enviar reporte de oportunidades por correo electrónico">
             <Button
+              type="primary"
               icon={<MailOutlined />}
               onClick={() => setModalEmailVisible(true)}
+              className="btn-purple"
             >
               Enviar por Correo
             </Button>
@@ -405,11 +361,7 @@ const Reportes = () => {
             icon={<FileExcelOutlined />}
             onClick={handleExportarAudatex}
             loading={loading.exportarAudatex}
-            style={{
-              backgroundColor: '#52c41a',
-              borderColor: '#52c41a',
-              color: '#fff'
-            }}
+            className="btn-excel"
           >
             Exportar Oportunidades InPart
           </Button>

@@ -1,56 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { Select, Table, Switch, message, Spin, Typography } from 'antd';
-import rolesService from '../../api/roles';
-import '../../styles/Settings.css';
+import { useRoles, usePermisosByRol, useUpdatePermiso } from '../../hooks';
+import './Settings.css';
 
 const { Option } = Select;
 const { Text } = Typography;
 
 const RolesPrivacidadTab = () => {
-  const [roles, setRoles] = useState([]);
+  const { data: roles = [], isLoading: loadingRoles } = useRoles();
   const [selectedRol, setSelectedRol] = useState(null);
+  const { data: permisosData = [], isLoading: loadingPermisos } = usePermisosByRol(selectedRol);
   const [permisos, setPermisos] = useState([]);
-  const [loadingRoles, setLoadingRoles] = useState(false);
-  const [loadingPermisos, setLoadingPermisos] = useState(false);
+  const updatePermisoMutation = useUpdatePermiso();
 
   useEffect(() => {
-    fetchRoles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchRoles = async () => {
-    try {
-      setLoadingRoles(true);
-      const res = await rolesService.getRoles();
-      setRoles(res.data || []);
-      if (res.data && res.data.length > 0) {
-        setSelectedRol(res.data[0].id);
-        fetchPermisos(res.data[0].id);
-      }
-    } catch (err) {
-      console.error("Error fetching roles", err);
-      message.error("Error al cargar los roles");
-    } finally {
-      setLoadingRoles(false);
+    if (roles.length > 0 && !selectedRol) {
+      setSelectedRol(roles[0].id);
     }
-  };
+  }, [roles, selectedRol]);
 
-  const fetchPermisos = async (rolId) => {
-    try {
-      setLoadingPermisos(true);
-      const res = await rolesService.getPermisosByRol(rolId);
-      setPermisos(res.data || []);
-    } catch (err) {
-      console.error("Error fetching permisos", err);
-      message.error("Error al cargar los permisos del rol");
-    } finally {
-      setLoadingPermisos(false);
-    }
-  };
+  useEffect(() => {
+    setPermisos(permisosData);
+  }, [permisosData]);
 
   const handleRolChange = (value) => {
     setSelectedRol(value);
-    fetchPermisos(value);
   };
 
   const handlePermisoChange = async (submoduloId, field, value) => {
@@ -83,11 +57,15 @@ const RolesPrivacidadTab = () => {
 
     if (currentSub) {
       try {
-        await rolesService.updatePermiso(selectedRol, submoduloId, {
-          canView: currentSub.canView,
-          canCreate: currentSub.canCreate,
-          canEdit: currentSub.canEdit,
-          canDelete: currentSub.canDelete
+        await updatePermisoMutation.mutateAsync({
+          rolId: selectedRol,
+          submoduloId,
+          permisosData: {
+            canView: currentSub.canView,
+            canCreate: currentSub.canCreate,
+            canEdit: currentSub.canEdit,
+            canDelete: currentSub.canDelete
+          }
         });
         message.success("Permiso actualizado");
       } catch (err) {
@@ -175,9 +153,9 @@ const RolesPrivacidadTab = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Roles y Privacidad</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Text style={{ fontWeight: 500, color: '#64748b' }}>Seleccionar Rol:</Text>
           {loadingRoles ? (
             <Spin size="small" />
@@ -197,7 +175,7 @@ const RolesPrivacidadTab = () => {
       </div>
 
       <div style={{ background: '#ffffff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
-        <Table scroll={{ x: 'max-content' }} 
+        <Table 
           columns={columns} 
           dataSource={tableData} 
           pagination={false}

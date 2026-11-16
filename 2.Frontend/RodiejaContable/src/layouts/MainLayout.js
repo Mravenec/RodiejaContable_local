@@ -1,9 +1,9 @@
 import React from 'react';
-import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 // Componentes de interfaz
-import { Layout, Menu, Avatar, Dropdown, Button } from 'antd';
+import { Layout, Menu, Avatar, Dropdown } from 'antd';
 import {
   DashboardOutlined,
   CarOutlined,
@@ -24,7 +24,6 @@ const MainLayout = () => {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = React.useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
 
   // Obtener la ruta actual para resaltar el menú correspondiente
   const getSelectedKey = () => {

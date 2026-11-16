@@ -1111,7 +1111,7 @@ const VehiculosJerarquicos = () => {
                         type="primary"
                         size="small"
                         icon={<CheckOutlined />}
-                        style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                        className="btn-excel"
                         onClick={() => handleMarcarComoDisponible(vehiculo.id)}
                       >
                         Hacer Disponible
@@ -1738,7 +1738,7 @@ const VehiculosJerarquicos = () => {
               type="primary"
               icon={<FileExcelOutlined />}
               onClick={exportarJerarquiaAExcel}
-              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              className="btn-excel"
             >
               Exportar Jerarquía a Excel
             </Button>

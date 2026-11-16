@@ -5,6 +5,7 @@ import { ArrowLeftOutlined, CarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import finanzaService from '../../api/finanzas';
 import { getTiposTransacciones } from '../../api/transacciones';
+import { formatDate } from '../../utils/dateUtils';
 
 const { Title } = Typography;
 
@@ -128,24 +129,6 @@ const DetalleTransaccion = () => {
         {sign} ₡{cleanAmount}
       </span>
     );
-  };
-
-  // Format date
-  const formatDate = (dateValue) => {
-    if (!dateValue) return 'No especificada';
-    
-    try {
-      if (Array.isArray(dateValue)) {
-        const [year, month, day] = dateValue;
-        return new Date(year, month - 1, day).toLocaleDateString();
-      }
-      
-      const date = new Date(dateValue);
-      return isNaN(date.getTime()) ? 'Fecha inválida' : date.toLocaleDateString();
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Fecha inválida';
-    }
   };
 
   const esReembolso = 

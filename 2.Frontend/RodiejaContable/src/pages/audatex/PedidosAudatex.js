@@ -9,64 +9,24 @@ import { API_BASE_URL } from '../../api/config';
 import { useGeo } from '../../hooks/useGeo';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
+import {
+  applyExcelHeaderStyles,
+  formatExcelCurrencyColumn,
+  PASTEL_PALETTE,
+  PASTEL_MEDIUM_PALETTE
+} from '../../utils/excelUtils';
+import {
+  getDetalleJson,
+  getMarcaSegura,
+  getModeloSeguro,
+  getAnioSeguro,
+  getProvinciaSegura,
+  getCantonSeguro,
+  normalizeString
+} from '../../utils/audatexUtils';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
-
-const getSafeString = (val) => (val && val !== 'null' && val !== '-' ? val.trim() : '');
-
-const getDetalleJson = (row) => {
-  if (row._parsedDetalle) return row._parsedDetalle;
-  let datos = {};
-  try {
-    if (row.detalleJson) {
-      datos = typeof row.detalleJson === 'string' ? JSON.parse(row.detalleJson) : row.detalleJson;
-    } else if (row.detalle_json) {
-      datos = typeof row.detalle_json === 'string' ? JSON.parse(row.detalle_json) : row.detalle_json;
-    } else if (row.datosCotizacion) {
-      datos = typeof row.datosCotizacion === 'string' ? JSON.parse(row.datosCotizacion) : row.datosCotizacion;
-    }
-  } catch (e) {
-    // Ignore JSON parse errors and return empty/partial object
-  }
-  row._parsedDetalle = datos || {};
-  return row._parsedDetalle;
-};
-
-const getMarcaSegura = (row) => {
-  let m = getSafeString(row.marca) || getSafeString(row.armadora);
-  if (m) return m;
-  const d = getDetalleJson(row);
-  return d['Marca'] || d['Armadora'] || 'Desc.';
-};
-
-const getModeloSeguro = (row) => {
-  let m = getSafeString(row.modelo);
-  if (m) return m;
-  const d = getDetalleJson(row);
-  return d['Modelo'] || d['Descripción'] || d['Descripcion'] || '-';
-};
-
-const getAnioSeguro = (row) => {
-  let a = getSafeString(row.anio);
-  if (a) return a;
-  const d = getDetalleJson(row);
-  return d['Año Modelo'] || d['Año Fabricación'] || d['Ano Modelo'] || '-';
-};
-
-const getProvinciaSegura = (row) => {
-  const d = getDetalleJson(row);
-  return getSafeString(d['Estado']) || getSafeString(d['Provincia']) || '-';
-};
-
-const getCantonSeguro = (row) => {
-  let c = getSafeString(row.ciudad);
-  if (c) return c;
-  const d = getDetalleJson(row);
-  return getSafeString(d['Ciudad']) || getSafeString(d['Cantón']) || getSafeString(d['Canton']) || '-';
-};
-
-const normalizeString = (str) => (str || '').toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 const samePedido = (a, b) => {
   if (!a || !b) return false;
@@ -393,17 +353,6 @@ const PedidosAudatex = () => {
     }
 
     const wb = XLSX.utils.book_new();
-    const hdrStyle = (bgHex) => ({
-      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
-      fill: { fgColor: { rgb: bgHex } },
-      border: {
-        top: { style: 'thin', color: { rgb: 'CCCCCC' } },
-        bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
-        left: { style: 'thin', color: { rgb: 'CCCCCC' } },
-        right: { style: 'thin', color: { rgb: 'CCCCCC' } },
-      },
-      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-    });
 
     const pedHeaders = ['No. Pedido', 'Cotizacion ID', 'Marca', 'Modelo', 'Año', 'Provincia', 'Cantón', 'Total', 'Estado', 'Fecha'];
     const pedData = pedidosFiltrados.map((row) => ({
@@ -421,19 +370,8 @@ const PedidosAudatex = () => {
 
     const wsPed = XLSX.utils.json_to_sheet(pedData, { header: pedHeaders });
     wsPed['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 20 }];
-    pedHeaders.forEach((_, ci) => {
-      const addr = XLSX.utils.encode_cell({ r: 0, c: ci });
-      if (wsPed[addr]) wsPed[addr].s = hdrStyle('0F172A');
-    });
-
-    // Format 'Total' column as currency in Pedidos
-    const totalColIdx = pedHeaders.indexOf('Total');
-    if (totalColIdx !== -1) {
-      for (let R = 1; R <= pedData.length; ++R) {
-        const addr = XLSX.utils.encode_cell({ r: R, c: totalColIdx });
-        if (wsPed[addr]) wsPed[addr].z = '"₡"#,##0.00';
-      }
-    }
+    applyExcelHeaderStyles(wsPed, pedHeaders, '0F172A');
+    formatExcelCurrencyColumn(wsPed, pedHeaders.indexOf('Total'), pedData.length);
 
     XLSX.utils.book_append_sheet(wb, wsPed, 'Pedidos');
 
@@ -460,7 +398,7 @@ const PedidosAudatex = () => {
       repRowMeta.push({ hpt: 20 }); // NO grouped
 
       // Filas detalle
-      items.forEach((item, idx) => {
+      items.forEach((item) => {
         repuestosData.push({
           'Detalle (Pedido / Repuesto)': item.descripcion || '',
           'Tipo Pieza': item.tipoPieza || '',
@@ -478,11 +416,9 @@ const PedidosAudatex = () => {
       wsRep['!cols'] = [{ wch: 60 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 15 }];
       wsRep['!sheetPr'] = { outlinePr: { summaryBelow: 0, summaryRight: 0 } };
 
-      const PASTEL_LIGHT = ['DBEAFE', 'DCFCE7', 'FEF9C3', 'F3E8FF'];
-      const PASTEL_MEDIUM = ['BFDBFE', 'A7F3D0', 'FDE68A', 'DDD6FE'];
       const summaryStyleLight = (bIdx) => ({
         font: { bold: false, sz: 11, color: { rgb: '1E293B' } },
-        fill: { fgColor: { rgb: PASTEL_MEDIUM[bIdx % 4] } },
+        fill: { fgColor: { rgb: PASTEL_MEDIUM_PALETTE[bIdx % PASTEL_MEDIUM_PALETTE.length] } },
         border: {
           top: { style: 'thin', color: { rgb: '94A3B8' } },
           bottom: { style: 'thin', color: { rgb: '94A3B8' } },
@@ -492,7 +428,7 @@ const PedidosAudatex = () => {
         alignment: { vertical: 'center' },
       });
       const detailStyle = (bIdx) => ({
-        fill: { fgColor: { rgb: PASTEL_LIGHT[bIdx % 4] } },
+        fill: { fgColor: { rgb: PASTEL_PALETTE[bIdx % PASTEL_PALETTE.length] } },
         border: {
           top: { style: 'hair', color: { rgb: 'D1D5DB' } },
           bottom: { style: 'hair', color: { rgb: 'D1D5DB' } },
@@ -502,10 +438,7 @@ const PedidosAudatex = () => {
         alignment: { vertical: 'center' },
       });
 
-      repHeaders.forEach((_, ci) => {
-        const addr = XLSX.utils.encode_cell({ r: 0, c: ci });
-        if (wsRep[addr]) wsRep[addr].s = hdrStyle('065F46');
-      });
+      applyExcelHeaderStyles(wsRep, repHeaders, '065F46');
 
       const precioColIdx = repHeaders.indexOf('Precio Ofrecido');
 

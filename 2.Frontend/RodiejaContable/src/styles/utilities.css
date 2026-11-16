@@ -65,3 +65,56 @@
 .font-medium { font-weight: 500 !important; }
 .font-semibold { font-weight: 600 !important; }
 .font-bold { font-weight: 700 !important; }
+
+/* ==========================================================================
+   Botones Semánticos (Herencia y Estados de Interacción)
+   ========================================================================== */
+.btn-excel {
+  background-color: #52c41a !important;
+  border-color: #52c41a !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(82, 196, 26, 0.2) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-excel:hover,
+.btn-excel:focus {
+  background-color: #73d13d !important;
+  border-color: #73d13d !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 8px rgba(82, 196, 26, 0.3) !important;
+}
+
+.btn-excel:active {
+  background-color: #389e0d !important;
+  border-color: #389e0d !important;
+}
+
+.btn-purple {
+  background-color: #722ed1 !important;
+  border-color: #722ed1 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(114, 46, 209, 0.2) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-purple:hover,
+.btn-purple:focus {
+  background-color: #9254de !important;
+  border-color: #9254de !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 8px rgba(114, 46, 209, 0.3) !important;
+}
+
+.btn-purple:active {
+  background-color: #531dab !important;
+  border-color: #531dab !important;
+}
+
+.btn-table-action {
+  padding: 0 6px !important;
+  font-size: 12px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+  border-radius: 4px !important;
+}

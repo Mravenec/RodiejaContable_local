@@ -10,67 +10,21 @@ import {
 } from '@ant-design/icons';
 import { audatexAPI } from '../../api/audatex';
 import { useAuth } from '../../context/AuthContext';
-import usersService from '../../api/users';
+import { useUsers } from '../../hooks';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
+import { formatColones } from '../../utils/formatters';
+import {
+  getMarcaSegura,
+  getModeloSeguro,
+  getAnioSeguro,
+  getPlacaSegura,
+  normalizeString
+} from '../../utils/audatexUtils';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-
-const getSafeString = (val) => (val && val !== 'null' && val !== '-' ? String(val).trim() : '');
-
-const getDetalleJson = (row) => {
-  if (row._parsedDetalle) return row._parsedDetalle;
-  let datos = {};
-  try {
-    if (row.detalleJson) {
-      datos = typeof row.detalleJson === 'string' ? JSON.parse(row.detalleJson) : row.detalleJson;
-    } else if (row.detalle_json) {
-      datos = typeof row.detalle_json === 'string' ? JSON.parse(row.detalle_json) : row.detalle_json;
-    } else if (row.datosCotizacion) {
-      datos = typeof row.datosCotizacion === 'string' ? JSON.parse(row.datosCotizacion) : row.datosCotizacion;
-    }
-  } catch (e) {
-    // Ignore JSON parse errors
-  }
-  row._parsedDetalle = datos || {};
-  return row._parsedDetalle;
-};
-
-const getMarcaSegura = (row) => {
-  let m = getSafeString(row.marca) || getSafeString(row.armadora);
-  if (m) return m;
-  const d = getDetalleJson(row);
-  return d['Marca'] || d['Armadora'] || 'Desc.';
-};
-
-const getModeloSeguro = (row) => {
-  let m = getSafeString(row.modelo);
-  if (m) return m;
-  const d = getDetalleJson(row);
-  return d['Modelo'] || d['Descripción'] || d['Descripcion'] || '-';
-};
-
-const getAnioSeguro = (row) => {
-  let a = getSafeString(row.anio);
-  if (a) return a;
-  const d = getDetalleJson(row);
-  return d['Año Modelo'] || d['Año Fabricación'] || d['Ano Modelo'] || '-';
-};
-
-const getPlacaSegura = (row) => {
-  if (row.matricula) return row.matricula;
-  const d = getDetalleJson(row);
-  return d['matricula'] || d['Matricula'] || d['Placa'] || '-';
-};
-
-const normalizeString = (str) => (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-
-const formatColones = (val) => {
-  if (val === null || val === undefined || isNaN(val)) return '₡0';
-  return `₡${new Intl.NumberFormat('es-CR').format(val)}`;
-};
 
 const defaultFiltros = {
   busqueda: '',
@@ -105,23 +59,10 @@ const InsPedidos = () => {
   const currentUserId = user?.id || user?.userId || null;
   const currentUserName = user?.nombre || user?.email || 'Mi Usuario';
 
-  const [usuariosData, setUsuariosData] = useState([]);
+  const { data: usuariosData = [] } = useUsers();
   const usuariosActivos = useMemo(() => {
     return (usuariosData || []).filter(u => u.activo !== false);
   }, [usuariosData]);
-
-  const cargarUsuarios = useCallback(async () => {
-    try {
-      const res = await usersService.getUsers();
-      setUsuariosData(res.data || res || []);
-    } catch (e) {
-      console.warn('Error cargando usuarios en PedidosIns:', e);
-    }
-  }, []);
-
-  useEffect(() => {
-    cargarUsuarios();
-  }, [cargarUsuarios]);
 
   // Modal de Detalle y Asignación
   const [selectedPedido, setSelectedPedido] = useState(null);
@@ -138,29 +79,31 @@ const InsPedidos = () => {
         ? res.data 
         : (Array.isArray(res.data?.pedidos) ? res.data.pedidos : []);
       
-      // Limpiar claves obsoletas de localStorage para que la base de datos sea la única fuente de la verdad
+      // Leer asignaciones guardadas en localStorage
+      let localAsignaciones = {};
       try {
-        localStorage.removeItem('pedidos_ins_asignaciones');
+        localAsignaciones = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
       } catch (e) {}
 
-      // Excluir estrictamente los pedidos cancelados usando los datos reales de BD
+      // Excluir estrictamente los pedidos cancelados y fusionar asignaciones sin alterar el estado del pedido
       const fusionados = rawList
         .filter(p => (p.estado || '').toLowerCase() !== 'cancelado')
         .map(p => {
-          const empId = p.userId || p.usuarioId || p.empleadoId || null;
-          let empNom = p.usuarioNombre || p.empleadoNombre || null;
-          if (!empNom && empId) {
-            const uFound = (usuariosData || []).find(u => Number(u.id) === Number(empId));
-            if (uFound) empNom = uFound.nombre || uFound.email;
+          const local = localAsignaciones[p.id];
+          if (local) {
+            return {
+              ...p,
+              userId: p.userId || p.usuarioId || local.usuarioId || local.empleadoId,
+              usuarioId: p.usuarioId || p.userId || local.usuarioId || local.empleadoId,
+              usuarioNombre: p.usuarioNombre || p.empleadoNombre || local.usuarioNombre || local.empleadoNombre,
+              empleadoId: p.empleadoId || local.empleadoId || local.usuarioId,
+              empleadoNombre: p.empleadoNombre || local.empleadoNombre || local.usuarioNombre,
+              porcentajeComision: p.porcentajeComision || local.porcentajeComision,
+              // Mantener intacto el estado original que viene del mapeo de pedidos / Audatex
+              estado: p.estado
+            };
           }
-          return {
-            ...p,
-            userId: empId,
-            usuarioId: empId,
-            empleadoId: empId,
-            usuarioNombre: empNom,
-            empleadoNombre: empNom
-          };
+          return p;
         });
 
       setPedidos(fusionados);
@@ -170,7 +113,7 @@ const InsPedidos = () => {
     } finally {
       setLoading(false);
     }
-  }, [usuariosData]);
+  }, []);
 
   useEffect(() => {
     cargarPedidos();
@@ -360,7 +303,23 @@ const InsPedidos = () => {
       const uNombre = uFound ? (uFound.nombre || uFound.email) : (Number(idToAssign) === Number(currentUserId) ? currentUserName : `Usuario #${idToAssign}`);
       const pct = porcentajeManual || 3;
 
-      // 1. Enviar al backend asignación de usuario y comisión (persiste directamente en BD)
+      // 1. Guardar en localStorage para persistencia instantánea y permanente en el cliente
+      try {
+        const stored = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
+        stored[selectedPedido.id] = {
+          usuarioId: idToAssign,
+          userId: idToAssign,
+          usuarioNombre: uNombre,
+          empleadoId: idToAssign,
+          empleadoNombre: uNombre,
+          porcentajeComision: pct
+        };
+        localStorage.setItem('pedidos_ins_asignaciones', JSON.stringify(stored));
+      } catch (e) {
+        console.warn('Error guardando en localStorage:', e);
+      }
+
+      // 2. Enviar al backend asignación de usuario y comisión (sin cambiar estado del pedido)
       try {
         if (audatexAPI.asignarUsuario) {
           await audatexAPI.asignarUsuario(selectedPedido.id, {
@@ -378,7 +337,7 @@ const InsPedidos = () => {
           });
         }
       } catch (errAsignar) {
-        console.warn('Backend asignar error:', errAsignar);
+        console.warn('Backend asignar error, fallback local activo:', errAsignar);
       }
 
       // 3. Actualizar memoria inmediata conservando el estado del pedido intacto

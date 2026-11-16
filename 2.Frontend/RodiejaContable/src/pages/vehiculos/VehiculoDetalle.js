@@ -1,22 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Typography, Tabs, Tag, Spin, message, Row, Col, Divider, Modal } from 'antd';
-import {
-  ArrowLeftOutlined,
-  EditOutlined,
+import { Card, Button, Typography, Tabs, Tag, Spin, message, Row, Col, Divider } from 'antd';
+import { 
+  ArrowLeftOutlined, 
+  EditOutlined, 
   CheckOutlined,
-  ToolOutlined,
+  ToolOutlined, 
   FileTextOutlined,
   MoneyCollectOutlined,
   ReloadOutlined,
-  HistoryOutlined,
-  DeleteOutlined
+  HistoryOutlined
 } from '@ant-design/icons';
 import vehiculoService from '../../api/vehiculos';
 import finanzaService from '../../api/finanzas';
 import inventarioService from '../../api/inventario';
 import { getTiposTransacciones } from '../../api/transacciones';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatCurrencyWithColor, formatDate } from '../../utils/formatters';
 import api from '../../api/axios';
 import HistorialVehiculo from '../../components/vehiculos/HistorialVehiculo';
 import ImageCarousel from '../../components/common/ImageCarousel';
@@ -40,20 +39,22 @@ const transaccionesService = {
   async getTransaccionesPorVehiculo(vehiculoId) {
     try {
       console.log('Fetching transactions for vehicle ID:', vehiculoId);
-
+      
       let allTransacciones, tiposTransaccion;
-
+      
       try {
+        // Use Promise.all to fetch transactions and transaction types in parallel
         [allTransacciones, tiposTransaccion] = await Promise.all([
           finanzaService.getTransacciones(),
           getTiposTransacciones()
         ]);
-
+        
+        // Ensure we have arrays to work with
         if (!Array.isArray(allTransacciones)) {
           console.error('Unexpected transactions format:', allTransacciones);
           allTransacciones = [];
         }
-
+        
         if (!Array.isArray(tiposTransaccion)) {
           console.error('Unexpected transaction types format:', tiposTransaccion);
           tiposTransaccion = [];
@@ -65,49 +66,58 @@ const transaccionesService = {
         });
         throw fetchError;
       }
-
+      
+      // Create a map of tipos for quick lookup
       const tiposMap = tiposTransaccion.reduce((acc, tipo) => {
         acc[tipo.id] = tipo;
         return acc;
       }, {});
-
+      
+      
+      // First, get all repuestos for this vehicle to find their IDs
       let repuestos = [];
       try {
+        // Use the repuestosService to get repuestos for this vehicle
         repuestos = await repuestosService.getRepuestosPorVehiculo(vehiculoId);
       } catch (repuestoError) {
         console.error('Error fetching repuestos:', repuestoError);
       }
-
+      
       const repuestoIds = repuestos.map(r => r.id);
-
+      
+      // Filter transactions for the specific vehicle or its repuestos
       const filteredTransacciones = allTransacciones.filter(transaccion => {
-        const matchesVehicle = transaccion.vehiculoId !== null &&
-          (transaccion.vehiculoId === vehiculoId ||
-            transaccion.vehiculoId === parseInt(vehiculoId));
-
-        const matchesRepuesto = transaccion.repuestoId !== null &&
-          repuestoIds.includes(transaccion.repuestoId);
-
+        // Check if transaction is directly for this vehicle
+        const matchesVehicle = transaccion.vehiculoId !== null && 
+                             (transaccion.vehiculoId === vehiculoId || 
+                              transaccion.vehiculoId === parseInt(vehiculoId));
+        
+        const matchesRepuesto = transaccion.repuestoId !== null && 
+                               repuestoIds.includes(transaccion.repuestoId);
+        
         return matchesVehicle || matchesRepuesto;
       });
-
+      
+      
+      // Map transactions with their type information
       const vehiculoTransacciones = filteredTransacciones
         .map(transaccion => {
           const tipoInfo = tiposMap[transaccion.tipoTransaccionId] || {
             nombre: 'Tipo desconocido',
             categoria: transaccion.monto > 0 ? 'INGRESO' : 'EGRESO'
           };
-
+          
           return {
             ...transaccion,
             tipo_transaccion: tipoInfo,
-            fecha: Array.isArray(transaccion.fecha)
+            // Ensure we have a proper date string for sorting
+            fecha: Array.isArray(transaccion.fecha) 
               ? new Date(transaccion.fecha[0], transaccion.fecha[1] - 1, transaccion.fecha[2])
               : new Date(transaccion.fecha)
           };
         })
-        .sort((a, b) => b.fecha - a.fecha);
-
+        .sort((a, b) => b.fecha - a.fecha); // Sort by date descending
+      
       return vehiculoTransacciones;
     } catch (error) {
       console.error('Error fetching transacciones:', error);
@@ -123,7 +133,7 @@ const VehiculoDetalle = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-
+  
   // State management
   const [vehiculo, setVehiculo] = useState(null);
   const [transacciones, setTransacciones] = useState([]);
@@ -139,16 +149,17 @@ const VehiculoDetalle = () => {
     try {
       setIsLoading(true);
       setIsError(false);
-
+      
+      // Get vehicle by ID directly from API
       let vehiculoEncontrado;
-
+      
       console.log('🔍 Buscando vehículo con ID/código:', id);
 
       if (isNaN(Number(id))) {
         console.log('🔍 Buscando por código (no numérico) - requires fetch all');
         const vehiculosResponse = await vehiculoService.getVehiculos();
-        vehiculoEncontrado = vehiculosResponse.find(v =>
-          v.codigoVehiculo === id ||
+        vehiculoEncontrado = vehiculosResponse.find(v => 
+          v.codigoVehiculo === id || 
           v.codigo_vehiculo === id ||
           v.codigoVehiculo?.toLowerCase() === id.toLowerCase() ||
           v.codigo_vehiculo?.toLowerCase() === id.toLowerCase()
@@ -157,24 +168,29 @@ const VehiculoDetalle = () => {
         console.log('🔍 Buscando por ID (numérico)');
         vehiculoEncontrado = await vehiculoService.getVehiculo(parseInt(id, 10));
       }
-
+      
       if (!vehiculoEncontrado) {
         console.error('❌ Vehículo no encontrado. ID buscado:', id);
         throw new Error(`Vehículo con código/ID "${id}" no encontrado. Verifique consola para detalles.`);
       }
 
+      // The vehiculosResponse already includes generacion attached from vehiculoService
       let vehiculoConGeneracion = vehiculoEncontrado;
 
+      // If generacion is present but lacks nested modelo/marca, fetch them
       if (vehiculoConGeneracion.generacion && vehiculoConGeneracion.generacion.modeloId && !vehiculoConGeneracion.generacion.modelo) {
         try {
           const generacion = vehiculoConGeneracion.generacion;
 
+          // Fetch modelo
           const modeloResponse = await api.get(`/modelos/${generacion.modeloId}`);
           const modelo = modeloResponse.data || { id: generacion.modeloId };
 
+          // Fetch marca
           const marcaResponse = await api.get(`/marcas/${modelo.marcaId}`);
           const marca = marcaResponse.data || { id: modelo.marcaId, nombre: 'Marca no disponible' };
 
+          // Attach nested structure
           vehiculoConGeneracion = {
             ...vehiculoEncontrado,
             generacion: {
@@ -188,6 +204,7 @@ const VehiculoDetalle = () => {
 
         } catch (nestedError) {
           console.error('Error fetching nested data (modelo/marca):', nestedError);
+          // Fallback: attach empty objects to avoid crashes
           vehiculoConGeneracion = {
             ...vehiculoEncontrado,
             generacion: {
@@ -217,6 +234,7 @@ const VehiculoDetalle = () => {
     try {
       await api.put(`/vehiculos/${vehiculo.id}/estado?estado=DISPONIBLE`);
       message.success('Vehículo marcado como disponible exitosamente');
+      // Refresh vehicle data
       refetch();
     } catch (error) {
       console.error('Error updating vehicle status:', error);
@@ -224,79 +242,25 @@ const VehiculoDetalle = () => {
     }
   };
 
-  const handleEliminarVehiculo = () => {
-    Modal.confirm({
-      title: '¿Estás completamente seguro?',
-      icon: <DeleteOutlined style={{ color: 'red' }} />,
-      content: (
-        <div>
-          <p style={{ color: '#d9363e', fontWeight: 'bold' }}>Estás a punto de eliminar este vehículo del sistema.</p>
-          <p>Al confirmar, se desactivarán en cascada los siguientes elementos específicos:</p>
-
-          {transacciones && transacciones.length > 0 && (
-            <div style={{ marginTop: '10px' }}>
-              <strong>Transacciones Financieras ({transacciones.length}):</strong>
-              <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #f0f0f0', padding: '5px', background: '#fafafa', borderRadius: '4px', fontSize: '12px' }}>
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  {transacciones.map(t => (
-                    <li key={t.id}>{t.descripcion || 'Transacción'} - ₡{Number(t.monto).toLocaleString()}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {repuestos && repuestos.length > 0 && (
-            <div style={{ marginTop: '10px' }}>
-              <strong>Repuestos Extraídos ({repuestos.length}):</strong>
-              <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #f0f0f0', padding: '5px', background: '#fafafa', borderRadius: '4px', fontSize: '12px' }}>
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  {repuestos.map(r => (
-                    <li key={r.id}>{r.parteVehiculo || r.descripcion} - ₡{Number(r.precioVenta || 0).toLocaleString()}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          <p style={{ marginTop: '15px' }}><em>Nota: Esta acción restará automáticamente todos estos montos de tus Dashboards.</em></p>
-        </div>
-      ),
-      okText: 'Sí, Eliminar todo',
-      okType: 'danger',
-      cancelText: 'Cancelar',
-      onOk: async () => {
-        try {
-          await vehiculoService.eliminarVehiculo(vehiculo.id);
-          message.success('Vehículo, transacciones y repuestos eliminados exitosamente.');
-          window.location.href = '/vehiculos';
-        } catch (error) {
-          console.error('Error al eliminar vehículo:', error);
-          message.error('Ocurrió un error al intentar eliminar el vehículo.');
-        }
-      }
-    });
-  };
-
   // Load transactions for the vehicle
   const loadTransactions = useCallback(async (vehiculoId) => {
-
+    
     if (!vehiculoId) {
       console.error('No vehicle ID provided to loadTransactions');
       setTransacciones([]);
       return;
     }
-
+    
     try {
       setLoadingTransacciones(true);
-
+      
       try {
         const transaccionesData = await transaccionesService.getTransaccionesPorVehiculo(vehiculoId);
-
+        
         const transactionsToSet = Array.isArray(transaccionesData) ? transaccionesData : [];
-
+        
         setTransacciones(transactionsToSet);
-
+        
         if (transactionsToSet.length === 0) {
           message.info('No se encontraron transacciones para este vehículo');
         }
@@ -327,14 +291,15 @@ const VehiculoDetalle = () => {
     try {
       setLoadingRepuestos(true);
       const repuestosData = await repuestosService.getRepuestosPorVehiculo(vehiculoId);
-
+      
+      // Intentar obtener las partes de vehículo para mapear los nombres si faltan
       try {
         const partesRes = await api.get('/partes-vehiculo');
         const partesMap = (partesRes.data || []).reduce((acc, p) => {
           acc[p.id] = p.nombre;
           return acc;
         }, {});
-
+        
         const repuestosMapeados = repuestosData.map(r => ({
           ...r,
           parteVehiculo: r.parteVehiculo || partesMap[r.parteVehiculoId] || 'Desconocida'
@@ -344,7 +309,7 @@ const VehiculoDetalle = () => {
         console.error("Error al obtener partes:", e);
         setRepuestos(Array.isArray(repuestosData) ? repuestosData : []);
       }
-
+      
     } catch (error) {
       console.error('Error loading repuestos:', error);
       setRepuestos([]);
@@ -401,19 +366,19 @@ const VehiculoDetalle = () => {
 
   if (isError || !vehiculo) {
     return (
-      <div className="table-container">
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
+      <div style={{ padding: '24px' }}>
+        <Button 
+          type="link" 
+          icon={<ArrowLeftOutlined />} 
           onClick={() => navigate('/vehiculos')}
         >
           Volver a la lista
         </Button>
         <Card style={{ marginTop: '16px' }}>
           <Title level={4}>No se pudo cargar la información del vehículo</Title>
-          <Button
-            type="primary"
-            icon={<ReloadOutlined />}
+          <Button 
+            type="primary" 
+            icon={<ReloadOutlined />} 
             onClick={() => refetch()}
             style={{ marginTop: '16px' }}
           >
@@ -423,7 +388,7 @@ const VehiculoDetalle = () => {
       </div>
     );
   }
-
+  
   // Helper function to get estado tag for repuestos
   const getEstadoRepuestoTag = (estado) => {
     const estados = {
@@ -432,7 +397,7 @@ const VehiculoDetalle = () => {
       RESERVADO: { color: 'warning', text: 'Reservado' },
       DAÑADO: { color: 'error', text: 'Dañado' }
     };
-
+    
     const estadoInfo = estados[estado] || { color: 'default', text: estado || 'Desconocido' };
     return <Tag color={estadoInfo.color}>{estadoInfo.text}</Tag>;
   };
@@ -442,32 +407,12 @@ const VehiculoDetalle = () => {
     if (!tipo) {
       return <Tag color="default">No especificado</Tag>;
     }
-
+    
     const isIngreso = tipo.categoria === 'INGRESO';
     const color = isIngreso ? 'green' : 'red';
     const nombre = tipo.nombre || 'Desconocido';
-
+    
     return <Tag color={color}>{nombre}</Tag>;
-  };
-
-  // Format currency with color based on context (transaction type or vehicle info)
-  const formatCurrencyWithColor = (amount, tipo) => {
-    const formattedAmount = new Intl.NumberFormat('es-CR', {
-      style: 'currency',
-      currency: 'CRC',
-      minimumFractionDigits: 0
-    }).format(amount);
-
-    if (tipo !== undefined) {
-      const isIngreso = tipo === 'INGRESO';
-      return (
-        <span style={{ color: isIngreso ? '#52c41a' : '#f5222d' }}>
-          {isIngreso ? '+' : '-'} {formattedAmount}
-        </span>
-      );
-    }
-
-    return formattedAmount;
   };
 
   const getEstadoTag = (estado) => {
@@ -477,27 +422,9 @@ const VehiculoDetalle = () => {
       DESARMADO: { color: 'warning', text: 'Desarmado' },
       REPARACION: { color: 'processing', text: 'En Reparación' }
     };
-
+    
     const estadoInfo = estados[estado] || { color: 'default', text: 'Desconocido' };
     return <Tag color={estadoInfo.color}>{estadoInfo.text}</Tag>;
-  };
-
-  // Format dates safely
-  const formatDate = (dateValue) => {
-    if (!dateValue) return 'No especificada';
-
-    try {
-      if (Array.isArray(dateValue)) {
-        const [year, month, day] = dateValue;
-        return new Date(year, month - 1, day).toLocaleDateString();
-      }
-
-      const date = new Date(dateValue);
-      return isNaN(date.getTime()) ? 'Fecha inválida' : date.toLocaleDateString();
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Fecha inválida';
-    }
   };
 
   // Get vehicle brand and model from generation info
@@ -513,15 +440,11 @@ const VehiculoDetalle = () => {
 
   const { marca, modelo } = getMarcaModelo();
 
-  // ✅ Normalizar precios a número para comparaciones seguras
-  const precioVentaNum = Number(vehiculo.precioVenta) || 0;
-  const precioCompraNum = Number(vehiculo.precioCompra) || 0;
-
   return (
-    <div className="table-container">
-      <Button
-        type="link"
-        icon={<ArrowLeftOutlined />}
+    <div style={{ padding: '24px' }}>
+      <Button 
+        type="link" 
+        icon={<ArrowLeftOutlined />} 
         onClick={() => navigate('/vehiculos')}
         style={{ marginBottom: '16px' }}
       >
@@ -529,21 +452,21 @@ const VehiculoDetalle = () => {
       </Button>
 
       {console.log('🖼️ URL de imagen a renderizar:', vehiculo?.imagenUrl || vehiculo?.imagen_url)}
-      <Card className="detalle-card" bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
+      <Card bordered={false} style={{ borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', border: '1px solid #f0f0f0' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className="vehiculo-header-container" style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '24px' }}>
-            <div className="vehiculo-image-container" style={{ flex: '0 0 300px', marginRight: '24px', marginBottom: '16px', minHeight: '200px' }}>
-              <ImageCarousel
-                imageUrlString={vehiculo?.imagenUrl || vehiculo?.imagen_url || ''}
-                alt={`${marca} ${modelo}`}
-                width="100%"
+          <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '24px' }}>
+            <div style={{ flex: '0 0 300px', marginRight: '24px', marginBottom: '16px', minHeight: '200px' }}>
+              <ImageCarousel 
+                imageUrlString={vehiculo?.imagenUrl || vehiculo?.imagen_url || ''} 
+                alt={`${marca} ${modelo}`} 
+                width="100%" 
                 height="200px"
                 borderRadius="8px"
               />
             </div>
-            <div className="vehiculo-info-container" style={{ flex: 1, minWidth: '300px' }}>
-              <div className="vehiculo-info-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <div className="vehiculo-info-left" style={{ marginBottom: '16px' }}>
+            <div style={{ flex: 1, minWidth: '300px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div style={{ marginBottom: '16px' }}>
                   <Title level={2} style={{ marginBottom: '8px' }}>
                     {marca} {modelo} {vehiculo.anio || 'Sin año'}
                   </Title>
@@ -555,24 +478,10 @@ const VehiculoDetalle = () => {
                     <strong>Código:</strong> {vehiculo.codigoVehiculo || 'Sin código'}
                   </Text>
                 </div>
-                <div className="vehiculo-info-right" style={{ textAlign: 'right' }}>
-                  {/* ✅ Precio de Venta o Compra con su label correspondiente */}
-                  {precioVentaNum > 0 ? (
-                    <>
-                      <Text type="secondary" style={{ fontSize: '12px', display: 'block' }}>Precio de Venta</Text>
-                      <Title level={3} style={{ color: '#52c41a', margin: '2px 0 4px' }}>
-                        {formatCurrency(precioVentaNum)}
-                      </Title>
-                    </>
-                  ) : precioCompraNum > 0 ? (
-                    <>
-                      <Text type="secondary" style={{ fontSize: '12px', display: 'block' }}>Precio de Compra</Text>
-                      <Title level={3} style={{ color: '#1890ff', margin: '2px 0 4px' }}>
-                        {formatCurrency(precioCompraNum)}
-                      </Title>
-                    </>
-                  ) : null}
-
+                <div style={{ textAlign: 'right' }}>
+                  <Title level={3} style={{ color: '#1890ff', marginBottom: '4px' }}>
+                    {formatCurrency(vehiculo.precioVenta || vehiculo.precioCompra || 0)}
+                  </Title>
                   <Text type="secondary">
                     Inversión: {formatCurrency(vehiculo.inversionTotal || 0)}
                   </Text>
@@ -583,30 +492,20 @@ const VehiculoDetalle = () => {
                       </Text>
                     </div>
                   )}
-                  <div className="vehiculo-actions-container" style={{ marginTop: '16px' }}>
+                  <div style={{ marginTop: '16px' }}>
                     {user?.rol !== 'CONTADOR' && (
-                      <Button
-                        type="primary"
-                        icon={<EditOutlined />}
+                      <Button 
+                        type="primary" 
+                        icon={<EditOutlined />} 
                         style={{ marginRight: '8px', marginBottom: '8px' }}
                         onClick={() => navigate(`/vehiculos/editar/${vehiculo.id}`)}
                       >
                         Editar
                       </Button>
                     )}
-                    {user?.rol !== 'CONTADOR' && (
-                      <Button
-                        danger
-                        icon={<DeleteOutlined />}
-                        style={{ marginRight: '8px', marginBottom: '8px' }}
-                        onClick={handleEliminarVehiculo}
-                      >
-                        Eliminar
-                      </Button>
-                    )}
                     {vehiculo.estado === 'REPARACION' && user?.rol !== 'CONTADOR' && (
-                      <Button
-                        type="primary"
+                      <Button 
+                        type="primary" 
                         icon={<CheckOutlined />}
                         style={{ marginRight: '8px', marginBottom: '8px', backgroundColor: '#52c41a', borderColor: '#52c41a' }}
                         onClick={() => handleMarcarComoDisponible()}
@@ -615,14 +514,14 @@ const VehiculoDetalle = () => {
                       </Button>
                     )}
                     {vehiculo.estado === 'DISPONIBLE' && user?.rol !== 'CONTADOR' && (
-                      <Button
-                        type="primary"
+                      <Button 
+                        type="primary" 
                         icon={<MoneyCollectOutlined />}
                         onClick={() => navigate('/finanzas/nueva', {
                           state: {
                             vehiculoId: vehiculo.id,
                             tipoTransaccion: 'INGRESO',
-                            monto: precioVentaNum,
+                            monto: vehiculo.precioVenta || 0,
                             esVentaVehiculo: true
                           }
                         })}
@@ -718,11 +617,10 @@ const VehiculoDetalle = () => {
                   <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Inversión Total</Text>
                   <Text strong style={{ color: '#cf1322', fontSize: '16px' }}>{formatCurrency(vehiculo.inversionTotal || 0)}</Text>
                 </Col>
-                {/* ✅ Condición robusta con Number() */}
-                {precioVentaNum > 0 && (
+                {vehiculo.precioVenta && (
                   <Col xs={12} sm={8} md={6}>
                     <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Precio de Venta</Text>
-                    <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>{formatCurrency(precioVentaNum)}</Text>
+                    <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>{formatCurrency(vehiculo.precioVenta)}</Text>
                   </Col>
                 )}
                 {vehiculo.fechaVenta && (
@@ -784,7 +682,7 @@ const VehiculoDetalle = () => {
                 </>
               )}
             </TabPane>
-
+            
             <TabPane tab={
               <span><ToolOutlined /> Repuestos</span>
             } key="2">
@@ -792,8 +690,8 @@ const VehiculoDetalle = () => {
                 <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text strong>Repuestos extraídos de este vehículo</Text>
                   {user?.rol !== 'CONTADOR' && (
-                    <Button
-                      type="primary"
+                    <Button 
+                      type="primary" 
                       size="small"
                       disabled={vehiculo.estado !== 'DESARMADO'}
                       title={vehiculo.estado !== 'DESARMADO' ? 'El vehículo debe estar en estado DESARMADO para agregar repuestos' : ''}
@@ -810,9 +708,6 @@ const VehiculoDetalle = () => {
                   </div>
                 ) : repuestos && repuestos.length > 0 ? (
                   <div style={{ overflowX: 'auto' }}>
-                    <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end', backgroundColor: '#f6ffed', padding: '12px 16px', borderRadius: '4px', border: '1px solid #b7eb8f' }}>
-                      <Text strong style={{ fontSize: '16px' }}>Valor Total Potencial (Suma de Repuestos): <span style={{ color: '#52c41a', marginLeft: '8px', fontSize: '18px' }}>{formatCurrency(repuestos.reduce((sum, r) => sum + (parseFloat(r.precioVenta) || 0), 0))}</span></Text>
-                    </div>
                     <table className="ant-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr>
@@ -856,8 +751,8 @@ const VehiculoDetalle = () => {
                                   if (oportunidades >= 7) { color = 'red'; prefix = '🔥 '; }
                                   else if (oportunidades >= 5) { color = 'gold'; }
                                   return (
-                                    <Tag
-                                      color={color}
+                                    <Tag 
+                                      color={color} 
                                       style={{ cursor: 'pointer', fontWeight: color === 'red' ? 700 : 600 }}
                                       onClick={() => navigate(`/inventario/${repuesto.id}?tab=oportunidades`)}
                                     >
@@ -869,8 +764,8 @@ const VehiculoDetalle = () => {
                               })()}
                             </td>
                             <td style={{ padding: '8px', textAlign: 'center' }}>
-                              <Button
-                                type="link"
+                              <Button 
+                                type="link" 
                                 size="small"
                                 onClick={() => navigate(`/inventario/${repuesto.id}`)}
                               >
@@ -887,8 +782,8 @@ const VehiculoDetalle = () => {
                     <ToolOutlined style={{ fontSize: '32px', color: '#1890ff', marginBottom: '16px' }} />
                     <p>No hay repuestos registrados para este vehículo.</p>
                     {user?.rol !== 'CONTADOR' && (
-                      <Button
-                        type="primary"
+                      <Button 
+                        type="primary" 
                         style={{ marginTop: '16px' }}
                         disabled={vehiculo.estado !== 'DESARMADO'}
                         title={vehiculo.estado !== 'DESARMADO' ? 'El vehículo debe estar en estado DESARMADO para agregar repuestos' : ''}
@@ -901,7 +796,7 @@ const VehiculoDetalle = () => {
                 )}
               </div>
             </TabPane>
-
+            
             <TabPane tab={
               <span><MoneyCollectOutlined /> Transacciones</span>
             } key="3">
@@ -909,8 +804,8 @@ const VehiculoDetalle = () => {
                 <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text strong>Historial de transacciones del vehículo</Text>
                   {user?.rol !== 'CONTADOR' && (
-                    <Button
-                      type="primary"
+                    <Button 
+                      type="primary" 
                       size="small"
                       onClick={() => navigate('/finanzas/nueva')}
                     >
@@ -918,7 +813,7 @@ const VehiculoDetalle = () => {
                     </Button>
                   )}
                 </div>
-
+                
                 {loadingTransacciones ? (
                   <div style={{ textAlign: 'center', padding: '24px' }}>
                     <Spin />
@@ -937,6 +832,7 @@ const VehiculoDetalle = () => {
                       </thead>
                       <tbody>
                         {transacciones.map((transaccion) => {
+                          // Determine if it's an income or expense
                           return (
                             <tr key={transaccion.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
                               <td style={{ padding: '8px' }}>{formatDate(transaccion.fecha)}</td>
@@ -946,8 +842,8 @@ const VehiculoDetalle = () => {
                               </td>
                               <td style={{ padding: '8px' }}>{transaccion.descripcion || 'Sin descripción'}</td>
                               <td style={{ padding: '8px', textAlign: 'center' }}>
-                                <Button
-                                  type="link"
+                                <Button 
+                                  type="link" 
                                   size="small"
                                   onClick={() => navigate(`/finanzas/${transaccion.id}`)}
                                 >
@@ -964,8 +860,8 @@ const VehiculoDetalle = () => {
                   <div style={{ textAlign: 'center', padding: '24px' }}>
                     <MoneyCollectOutlined style={{ fontSize: '32px', color: '#1890ff', marginBottom: '16px' }} />
                     <p>No hay transacciones registradas para este vehículo.</p>
-                    <Button
-                      type="primary"
+                    <Button 
+                      type="primary" 
                       style={{ marginTop: '16px' }}
                       onClick={() => navigate('/finanzas/nueva')}
                     >
@@ -975,7 +871,7 @@ const VehiculoDetalle = () => {
                 )}
               </div>
             </TabPane>
-
+            
             <TabPane tab={
               <span><HistoryOutlined /> Historial</span>
             } key="4">

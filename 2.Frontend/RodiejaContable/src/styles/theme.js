@@ -24,8 +24,10 @@ const theme = {
   components: {
     // Sobrescrituras específicas para componentes de Ant Design
     Button: {
-      borderRadius: 4, // Los botones mantienen un borde más pequeño
+      borderRadius: 6, // Radio moderno consistente en toda la aplicación
       fontWeight: 500,
+      controlHeight: 36,
+      paddingContentHorizontal: 16,
     },
     Layout: {
       headerBg: '#ffffff',

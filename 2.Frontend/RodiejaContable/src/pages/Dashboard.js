@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Row, Col, Card, Statistic, Typography, message, Button, Dropdown } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Button, Dropdown } from 'antd';
 import {
   CarOutlined,
   DollarOutlined,
@@ -16,13 +16,9 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 import { Loading } from '../components/Loading';
-import { dashboardService } from '../api';
-import vehiculoService from '../api/vehiculos';
-import ventasEmpleadosService from '../api/ventasEmpleados'; // Importar como en VentasReportes.js
+import { useDashboard } from '../hooks';
 import { useAuth } from '../context/AuthContext';
-
 import { formatCurrency } from '../utils/formatters';
-import { MESES_NOMBRES } from '../utils/dateUtils';
 
 // Colores para el gráfico de pastel
 const COLORS = ['#1890ff', '#52c41a', '#fa8c16', '#f5222d', '#722ed1', '#13c2c2', '#eb2f96', '#faad14'];
@@ -33,143 +29,11 @@ console.log('Versión Dashboard.js:', '1.0.0');
 const { Title, Text } = Typography;
 
 const Dashboard = () => {
-  console.log('=== DASHBOARD COMPONENT MONTADO ===');
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState({
-    totalVentas: 0,
-    totalVehiculos: 0,
-    totalRepuestos: 0,
-    totalClientes: 0,
-    totalEgresos: 0,
-    margenBeneficio: 0,
-    roiPromedio: 0,
-    ventasMensuales: [],
-    vehiculosMasVendidos: [],
-    repuestosMasVendidos: [],
-    comisiones: [],
-    vehiculosActivos: [],
-    repuestosCriticos: [],
-    topEmpleados: []
-  });
+  const { data: dashboardData, isLoading: loading } = useDashboard();
 
-  // Fetch dashboard data
-  useEffect(() => {
-    console.log('=== useEffect INICIADO ===');
-    const fetchDashboardData = async () => {
-      try {
-        console.log('=== INICIANDO fetchDashboardData ===');
-        setLoading(true);
-
-        // Fetch dashboard stats
-        console.log('Fetching dashboard stats...');
-        const stats = await dashboardService.getDashboardStats();
-        console.log('Dashboard stats obtenidos:', stats);
-
-        // Fetch additional data in parallel
-        console.log('Fetching datos adicionales en paralelo...');
-        const [
-          ventasMensuales,
-          vehiculosMasVendidos,
-          repuestosMasVendidos,
-          comisiones,
-          vehiculosActivos,
-          repuestosCriticos,
-          topEmpleados
-        ] = await Promise.all([
-          dashboardService.getVentasMensuales(),
-          dashboardService.getVehiculosMasVendidos(),
-          dashboardService.getRepuestosMasVendidos(),
-          ventasEmpleadosService.getVentasPorEmpleado(), // Usar mismo servicio que VentasReportes.js
-          vehiculoService.getVehiculosActivos(),
-          dashboardService.getAlertasInventario(),
-          ventasEmpleadosService.getTopEmpleados(5)
-        ]);
-
-        // Formatear ventasMensuales para tener nombreMes
-        const ventasFormat = (ventasMensuales || []).map(v => {
-          const mesNum = v.mes || new Date(v.fecha || v.createdAt).getMonth() + 1;
-          return {
-            ...v,
-            nombreMes: MESES_NOMBRES[mesNum - 1] || `Mes ${mesNum}`,
-            totalTransacciones: v.totalTransacciones || v.totalVentas || v.transaccionesVenta || 0,
-            totalIngresos: v.totalIngresos || v.monto || v.ingresosNetos || v.totalIngresosNetos || 0
-          };
-        });
-
-        // Calcular porcentajes para topEmpleados
-        let empleadosConPorcentajes = [];
-        if (Array.isArray(topEmpleados) && topEmpleados.length > 0) {
-          const totalVentas = topEmpleados.reduce((total, emp) => total + (emp.totalTransacciones || emp.transaccionesVenta || 0), 0);
-          empleadosConPorcentajes = topEmpleados.map(emp => {
-            const ventasEmpleado = emp.totalTransacciones || emp.transaccionesVenta || 0;
-            return {
-              ...emp,
-              porcentaje: totalVentas > 0 ? Math.round((ventasEmpleado / totalVentas) * 100) : 0
-            };
-          });
-        }
-
-        console.log('Datos adicionales obtenidos:', {
-          ventasMensuales: ventasMensuales?.length || 0,
-          vehiculosMasVendidos: vehiculosMasVendidos?.length || 0,
-          repuestosMasVendidos: repuestosMasVendidos?.length || 0,
-          comisiones: comisiones?.length || 0,
-          vehiculosActivos: vehiculosActivos?.length || 0,
-          repuestosCriticos: repuestosCriticos?.length || 0
-        });
-
-        // Logging detallado de comisiones
-        if (comisiones && comisiones.length > 0) {
-          console.log('=== ESTRUCTURA DE COMISIONES ===');
-          console.log('Primera comisión:', comisiones[0]);
-          console.log('Campos disponibles:', Object.keys(comisiones[0]));
-
-          // Filtrar solo empleados con ventas reales (transacciones > 0)
-          const comisionesConVentas = comisiones.filter(c =>
-            (c.totalTransacciones || c.total_transacciones || 0) > 0
-          );
-          console.log('Comisiones con ventas reales:', comisionesConVentas.length);
-
-          // Actualizar el estado con los datos filtrados
-          setDashboardData({
-            ...stats,
-            ventasMensuales: ventasFormat,
-            vehiculosMasVendidos: Array.isArray(vehiculosMasVendidos) ? vehiculosMasVendidos : [],
-            repuestosMasVendidos: Array.isArray(repuestosMasVendidos) ? repuestosMasVendidos : [],
-            comisiones: Array.isArray(comisionesConVentas) ? comisionesConVentas : [], // Usar datos filtrados
-            vehiculosActivos: Array.isArray(vehiculosActivos) ? vehiculosActivos : [],
-            repuestosCriticos: Array.isArray(repuestosCriticos) ? repuestosCriticos : [],
-            topEmpleados: empleadosConPorcentajes
-          });
-        } else {
-          console.log('=== NO HAY DATOS DE COMISIONES ===');
-          setDashboardData({
-            ...stats,
-            ventasMensuales: ventasFormat,
-            vehiculosMasVendidos: Array.isArray(vehiculosMasVendidos) ? vehiculosMasVendidos : [],
-            repuestosMasVendidos: Array.isArray(repuestosMasVendidos) ? repuestosMasVendidos : [],
-            comisiones: Array.isArray(comisiones) ? comisiones : [],
-            vehiculosActivos: Array.isArray(vehiculosActivos) ? vehiculosActivos : [],
-            repuestosCriticos: Array.isArray(repuestosCriticos) ? repuestosCriticos : [],
-            topEmpleados: empleadosConPorcentajes
-          });
-        }
-      } catch (error) {
-        console.error('=== ERROR EN fetchDashboardData ===', error);
-        console.error('Error completo:', error);
-        message.error('Error al cargar datos del dashboard');
-      } finally {
-        console.log('=== fetchDashboardData FINALIZADO ===');
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
-
-  if (loading) return <Loading />;
+  if (loading || !dashboardData) return <Loading />;
 
   const {
     totalVentas: ingresosTotales,

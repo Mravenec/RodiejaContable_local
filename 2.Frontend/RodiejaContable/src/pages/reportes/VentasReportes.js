@@ -41,7 +41,7 @@ import reportesService from '../../api/reportes';
 import ModalEnviarReporteEmail from '../../components/reportes/ModalEnviarReporteEmail';
 import DashboardKpiCard from '../../components/common/DashboardKpiCard';
 import { formatCurrency } from '../../utils/formatters';
-import { MESES_NOMBRES } from '../../utils/dateUtils';
+import { MESES_NOMBRES, obtenerEtiquetaPeriodo } from '../../utils/dateUtils';
 import { useVistaExcelMesActual, useVistaExcelMesEspecifico, useGenerarReporteVentasExcel } from '../../hooks/useReportes';
 import { useEmpleados } from '../../hooks/useEmpleados';
 
@@ -329,12 +329,7 @@ const VentasReportes = () => {
   };
 
   const labelPeriodo = useMemo(() => {
-    if (filtros.mes && filtros.anio) {
-      return `${MESES_NOMBRES[filtros.mes - 1]} ${filtros.anio}`;
-    }
-    if (filtros.mes) return MESES_NOMBRES[filtros.mes - 1];
-    if (filtros.anio) return `${filtros.anio}`;
-    return null;
+    return obtenerEtiquetaPeriodo(filtros.mes, filtros.anio);
   }, [filtros.mes, filtros.anio]);
 
   const labelVendedor = useMemo(() => {
@@ -735,7 +730,7 @@ const VentasReportes = () => {
                       type="link" 
                       size="small" 
                       onClick={(e) => { e.stopPropagation(); limpiarFiltros(); }} 
-                      style={{ padding: '0 4px', fontSize: '12px', height: 'auto' }}
+                      className="btn-table-action"
                     >
                       Limpiar todos
                     </Button>
@@ -981,7 +976,7 @@ const VentasReportes = () => {
                       onClick={exportarAExcelCompleto}
                       loading={exportandoExcel}
                       type="primary"
-                      style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 2px 4px rgba(82,196,26,0.2)' }}
+                      className="btn-excel"
                     >
                       Exportar a Excel
                     </Button>
@@ -1044,7 +1039,7 @@ const VentasReportes = () => {
                       <Button
                         type="primary"
                         icon={<DownloadOutlined />}
-                        style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 2px 4px rgba(82,196,26,0.2)' }}
+                        className="btn-excel"
                         onClick={exportarAExcel}
                         loading={loading.exportar}
                       >

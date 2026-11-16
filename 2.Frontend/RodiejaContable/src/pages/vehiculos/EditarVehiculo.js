@@ -37,7 +37,7 @@ import finanzaService from '../../api/finanzas';
 import inventarioService from '../../api/inventario';
 import { getTiposTransacciones } from '../../api/transacciones';
 import { generacionesAPI } from '../../api/generaciones';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatCurrencyWithColor, formatDate } from '../../utils/formatters';
 import api from '../../api/axios';
 import dayjs from 'dayjs';
 import ImageCarousel from '../../components/common/ImageCarousel';
@@ -434,42 +434,6 @@ const EditarVehiculo = () => {
     const nombre = tipo.nombre || 'Desconocido';
 
     return <Tag color={color}>{nombre}</Tag>;
-  };
-
-  const formatCurrencyWithColor = (amount, tipo) => {
-    const formattedAmount = new Intl.NumberFormat('es-CR', {
-      style: 'currency',
-      currency: 'CRC',
-      minimumFractionDigits: 0
-    }).format(amount);
-
-    if (tipo !== undefined) {
-      const isIngreso = tipo === 'INGRESO';
-      return (
-        <span style={{ color: isIngreso ? '#52c41a' : '#f5222d' }}>
-          {isIngreso ? '+' : '-'} {formattedAmount}
-        </span>
-      );
-    }
-
-    return formattedAmount;
-  };
-
-  const formatDate = (dateValue) => {
-    if (!dateValue) return 'No especificada';
-
-    try {
-      if (Array.isArray(dateValue)) {
-        const [year, month, day] = dateValue;
-        return new Date(year, month - 1, day).toLocaleDateString();
-      }
-
-      const date = new Date(dateValue);
-      return isNaN(date.getTime()) ? 'Fecha inválida' : date.toLocaleDateString();
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Fecha inválida';
-    }
   };
 
   const getMarcaModelo = () => {

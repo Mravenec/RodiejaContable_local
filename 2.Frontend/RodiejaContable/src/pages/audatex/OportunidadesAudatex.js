@@ -20,71 +20,23 @@ import { audatexService } from '../../api';
 import { API_BASE_URL } from '../../api/config';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx-js-style';
+import { applyExcelHeaderStyles, PASTEL_PALETTE } from '../../utils/excelUtils';
 import { useGeo } from '../../hooks/useGeo';
 import { useAuth } from '../../context/AuthContext';
-import usersService from '../../api/users';
+import { useUsers } from '../../hooks';
+import {
+  getDetalleJson,
+  getMarcaSegura,
+  getModeloSeguro,
+  getAnioSeguro,
+  getProvinciaSegura,
+  getCantonSeguro,
+  getDireccionSegura,
+  normalizeString
+} from '../../utils/audatexUtils';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
-
-const getDetalleJson = (row) => {
-  if (row?._parsedDetalle) return row._parsedDetalle;
-  let datos = {};
-  try {
-    if (row?.detalleJson) {
-      datos = typeof row.detalleJson === 'string' ? JSON.parse(row.detalleJson) : row.detalleJson;
-    } else if (row?.detalle_json) {
-      datos = typeof row.detalle_json === 'string' ? JSON.parse(row.detalle_json) : row.detalle_json;
-    } else if (row?.datosCotizacion) {
-      datos = typeof row.datosCotizacion === 'string' ? JSON.parse(row.datosCotizacion) : row.datosCotizacion;
-    }
-  } catch (e) {}
-  if (row) row._parsedDetalle = datos || {};
-  return datos || {};
-};
-
-const getSafeString = (val) => (val && val !== 'null' && val !== '-' ? val.trim() : '');
-
-const getMarcaSegura = (row) => {
-  let m = getSafeString(row.marca) || getSafeString(row.armadora);
-  if (m) return m;
-  if (row.datosCotizacion) return row.datosCotizacion['Marca'] || row.datosCotizacion['Armadora'] || 'Desc.';
-  return 'Desc.';
-};
-
-const getModeloSeguro = (row) => {
-  let m = getSafeString(row.modelo);
-  if (m) return m;
-  if (row.datosCotizacion) return row.datosCotizacion['Modelo'] || row.datosCotizacion['Descripción'] || row.datosCotizacion['Descripcion'] || '-';
-  return '-';
-};
-
-const getAnioSeguro = (row) => {
-  let a = getSafeString(row.anio);
-  if (a) return a;
-  if (row.datosCotizacion) return row.datosCotizacion['Año Modelo'] || row.datosCotizacion['Año Fabricación'] || row.datosCotizacion['Ano Modelo'] || '-';
-  return '-';
-};
-
-const getProvinciaSegura = (row) => {
-  if (row.datosCotizacion) return getSafeString(row.datosCotizacion['Estado']) || getSafeString(row.datosCotizacion['Provincia']) || '-';
-  return '-';
-};
-
-const getCantonSeguro = (row) => {
-  let c = getSafeString(row.ciudad);
-  if (c) return c;
-  if (row.datosCotizacion) return getSafeString(row.datosCotizacion['Ciudad']) || getSafeString(row.datosCotizacion['Cantón']) || getSafeString(row.datosCotizacion['Canton']) || '-';
-  return '-';
-};
-
-const getDireccionSegura = (row) => {
-  let d = getSafeString(row.colonia);
-  if (d) return d;
-  if (row.datosCotizacion) return getSafeString(row.datosCotizacion['Colonia']) || getSafeString(row.datosCotizacion['Dirección']) || getSafeString(row.datosCotizacion['Direccion']) || '-';
-  return '-';
-};
-
 
 const parseFechaCotizacion = (dateStr) => {
   if (!dateStr) return 0;
@@ -143,8 +95,6 @@ const parsearFechaHora = (record) => {
     minutoNum: isValid ? parsedDayjs.minute() : 0
   };
 };
-
-const normalizeString = (str) => (str || '').toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 const HighlightText = ({ text, highlight }) => {
   if (!highlight || !text) return <>{text}</>;
@@ -231,25 +181,18 @@ const OportunidadesAudatex = () => {
   const currentUserId = user?.id || user?.userId || null;
   const currentUserName = user?.nombre || user?.email || 'Mi Usuario';
 
-  const [usuariosData, setUsuariosData] = useState([]);
+  const { data: usuariosData = [] } = useUsers();
   const usuariosActivos = useMemo(() => {
     return (usuariosData || []).filter((u) => u.activo !== false);
   }, [usuariosData]);
 
-  const cargarUsuarios = useCallback(async () => {
+  const [asignacionesOportunidades, setAsignacionesOportunidades] = useState(() => {
     try {
-      const res = await usersService.getUsers();
-      setUsuariosData(res.data || res || []);
+      return JSON.parse(localStorage.getItem('oportunidades_ins_asignaciones') || '{}');
     } catch (e) {
-      console.warn('Error cargando usuarios en OportunidadesAudatex:', e);
+      return {};
     }
-  }, []);
-
-  useEffect(() => {
-    cargarUsuarios();
-  }, [cargarUsuarios]);
-
-  const [asignacionesOportunidades, setAsignacionesOportunidades] = useState({});
+  });
 
   const handleMarcarRevisada = useCallback(async (recordOrWan) => {
     const wan = typeof recordOrWan === 'string' ? recordOrWan : recordOrWan?.wan;
@@ -368,10 +311,10 @@ const OportunidadesAudatex = () => {
         console.warn('Backend sincronizar usuario error:', errApi);
       }
 
-      // 2. Persistir en el estado en memoria para reflejo inmediato
-      setAsignacionesOportunidades(prev => ({
-        ...prev,
-        [key]: {
+      // 2. Persistir en localStorage tanto para pedidos como para oportunidades
+      try {
+        const storedOps = JSON.parse(localStorage.getItem('oportunidades_ins_asignaciones') || '{}');
+        storedOps[key] = {
           usuarioId: idToAssign,
           userId: idToAssign,
           empleadoId: idToAssign,
@@ -388,8 +331,12 @@ const OportunidadesAudatex = () => {
           comisionCalculada: Number(selectedOportunidad.comisionCalculada || selectedOportunidad.comision_calculada || 0),
           porcentajeComision: Number(selectedOportunidad.porcentajeComision || 3),
           asignadoEn: new Date().toISOString()
-        }
-      }));
+        };
+        localStorage.setItem('oportunidades_ins_asignaciones', JSON.stringify(storedOps));
+        setAsignacionesOportunidades(storedOps);
+      } catch (e) {
+        console.warn('Error guardando en localStorage:', e);
+      }
 
       // Actualizar objeto en memoria
       selectedOportunidad.usuarioId = idToAssign;
@@ -600,25 +547,8 @@ const OportunidadesAudatex = () => {
   };
 
   // ─ Helpers de estilo xlsx-js-style ─────────────────────────────────────
-  const hdrStyle = (bgHex) => ({
-    font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
-    fill: { fgColor: { rgb: bgHex } },
-    border: {
-      top: { style: 'thin', color: { rgb: 'CCCCCC' } },
-      bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
-      left: { style: 'thin', color: { rgb: 'CCCCCC' } },
-      right: { style: 'thin', color: { rgb: 'CCCCCC' } },
-    },
-    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-  });
-
-
-
-
-  // Estilo de bloque por cotizacionId — paleta de 4 colores alternados
-  const BLOCK_PALETTES = ['DBEAFE', 'DCFCE7', 'FEF9C3', 'F3E8FF']; // azul/verde/amarillo/lila
   const blockRowStyle = (blockIdx) => ({
-    fill: { fgColor: { rgb: BLOCK_PALETTES[blockIdx % BLOCK_PALETTES.length] } },
+    fill: { fgColor: { rgb: PASTEL_PALETTE[blockIdx % PASTEL_PALETTE.length] } },
     border: {
       top: { style: 'hair', color: { rgb: 'C7D2DB' } },
       bottom: { style: 'hair', color: { rgb: 'C7D2DB' } },
@@ -628,14 +558,9 @@ const OportunidadesAudatex = () => {
     alignment: { vertical: 'center' },
   });
 
-  // Aplica colores de bloque a la hoja de repuestos.
-  // blockMap: array de {blockIdx} con un elemento por fila de datos (longitud = totalRows)
+  // Aplica colores de bloque a la hoja de repuestos
   const applyBlockStyles = (ws, headers, bgHex, blockMap) => {
-    // Cabecera
-    headers.forEach((_, ci) => {
-      const addr = XLSX.utils.encode_cell({ r: 0, c: ci });
-      if (ws[addr]) ws[addr].s = hdrStyle(bgHex);
-    });
+    applyExcelHeaderStyles(ws, headers, bgHex);
     // Filas de datos
     blockMap.forEach((blockIdx, di) => {
       const ri = di + 1; // fila 0 = cabecera
@@ -785,10 +710,7 @@ const OportunidadesAudatex = () => {
       });
 
       // Cabecera de hoja
-      repHeaders.forEach((_, ci) => {
-        const addr = XLSX.utils.encode_cell({ r: 0, c: ci });
-        if (wsRep[addr]) wsRep[addr].s = hdrStyle('065F46');
-      });
+      applyExcelHeaderStyles(wsRep, repHeaders, '065F46');
       // Filas de datos
       repBlockMap.forEach(({ blockIdx: bi, isSummary }, di) => {
         const ri = di + 1;

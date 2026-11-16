@@ -10,19 +10,14 @@ import {
   DollarOutlined, ShoppingCartOutlined, TeamOutlined, FileTextOutlined
 } from '@ant-design/icons';
 import { audatexAPI } from '../../api/audatex';
-import { useEmpleados } from '../../hooks/useEmpleados';
+import { useEmpleados, useUsers } from '../../hooks';
 import { useAuth } from '../../context/AuthContext';
-import usersService from '../../api/users';
 import { MESES_OPCIONES } from '../../utils/dateUtils';
+import { formatColones } from '../../utils/formatters';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-
-const formatColones = (val) => {
-  if (val === null || val === undefined || isNaN(val)) return '₡0';
-  return `₡${new Intl.NumberFormat('es-CR').format(Math.round(val))}`;
-};
 
 const parsearFechaHora = (record) => {
   const rawFecha = record.fecha || '';
@@ -136,21 +131,10 @@ const InsVentasEmpleados = () => {
   const currentUserId = user?.id || user?.userId || null;
 
   const { data: empleadosData = [] } = useEmpleados();
-  const [usuariosData, setUsuariosData] = useState([]);
+  const { data: usuariosData = [] } = useUsers();
   const usuariosActivos = useMemo(() => {
     return (usuariosData || []).filter(u => u.activo !== false);
   }, [usuariosData]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await usersService.getUsers();
-        setUsuariosData(res.data || res || []);
-      } catch (e) {
-        console.warn('Error cargando usuarios en InsVentasEmpleados:', e);
-      }
-    })();
-  }, []);
 
   const [filtros, setFiltros] = useState({
     anio: dayjs().year(),

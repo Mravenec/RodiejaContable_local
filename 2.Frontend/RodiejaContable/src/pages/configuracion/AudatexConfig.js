@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Switch, InputNumber, Divider, message, Alert, Typography } from 'antd';
+import { Card, Form, Input, Button, Switch, InputNumber, Divider, message, Alert } from 'antd';
 import { SaveOutlined, ApiOutlined, SyncOutlined } from '@ant-design/icons';
 import { audatexService } from '../../api';
-
-const { Text } = Typography;
 
 const AudatexConfig = () => {
   const [form] = Form.useForm();

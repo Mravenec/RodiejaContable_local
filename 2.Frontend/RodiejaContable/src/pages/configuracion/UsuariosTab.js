@@ -1,49 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { List, Button, Tooltip, message, Avatar, Space, Typography, Form, Input, Select, Modal } from 'antd';
 import { UserOutlined, PlusOutlined, DeleteOutlined, EditOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
-import { usersService } from '../../api/users';
-import { useAuth } from '../../context/AuthContext';
-import '../../styles/Settings.css';
+import { useUsers, useCreateUser, useDeleteUser, useUpdateUserRole } from '../../hooks';
+import './Settings.css';
 
 const { Text } = Typography;
 
 const UsuariosTab = () => {
-  const { user: currentUser } = useAuth();
-  const [usuarios, setUsuarios] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { data: usuarios = [], isLoading: loading } = useUsers();
+  const createUserMutation = useCreateUser();
+  const deleteUserMutation = useDeleteUser();
+  const updateUserRoleMutation = useUpdateUserRole();
 
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [creatingUser, setCreatingUser] = useState(false);
   const [newUserForm] = Form.useForm();
 
   // Edit Role Modal states
   const [isEditRoleModalVisible, setIsEditRoleModalVisible] = useState(false);
-  const [updatingRole, setUpdatingRole] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editRoleForm] = Form.useForm();
 
-  useEffect(() => {
-    fetchUsuarios();
-  }, []);
-
-  const fetchUsuarios = async () => {
-    try {
-      setLoading(true);
-      const res = await usersService.getUsers();
-      setUsuarios(res.data || []);
-    } catch (err) {
-      console.error("Error fetching users", err);
-      message.error("Error al cargar los usuarios");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCreateUser = async (values) => {
-    setCreatingUser(true);
     try {
-      await usersService.createUser({
+      await createUserMutation.mutateAsync({
         nombre: values.nombre,
         email: values.email,
         password: values.password,
@@ -53,12 +33,9 @@ const UsuariosTab = () => {
       message.success('Usuario creado exitosamente');
       setIsModalVisible(false);
       newUserForm.resetFields();
-      fetchUsuarios(); // Refresh list
     } catch (error) {
       console.error('Error al crear usuario:', error);
       message.error(typeof error === 'string' ? error : 'Error al crear el usuario');
-    } finally {
-      setCreatingUser(false);
     }
   };
 
@@ -71,9 +48,8 @@ const UsuariosTab = () => {
       cancelText: 'Cancelar',
       onOk: async () => {
         try {
-          await usersService.deleteUser(id);
+          await deleteUserMutation.mutateAsync(id);
           message.success('Usuario eliminado exitosamente');
-          fetchUsuarios();
         } catch (error) {
           console.error('Error al eliminar usuario:', error);
           message.error(typeof error === 'string' ? error : 'Error al eliminar el usuario');
@@ -90,17 +66,17 @@ const UsuariosTab = () => {
 
   const handleUpdateRole = async (values) => {
     if (!editingUser) return;
-    setUpdatingRole(true);
     try {
-      await usersService.updateUserRole(editingUser.id, values.rol);
+      await updateUserRoleMutation.mutateAsync({
+        id: editingUser.id,
+        roleName: values.rol
+      });
       message.success('Rol actualizado exitosamente');
       setIsEditRoleModalVisible(false);
-      fetchUsuarios();
+      setEditingUser(null);
     } catch (error) {
       console.error('Error al actualizar rol:', error);
       message.error(typeof error === 'string' ? error : 'Error al actualizar el rol');
-    } finally {
-      setUpdatingRole(false);
     }
   };
 
@@ -135,16 +111,16 @@ const UsuariosTab = () => {
             <List.Item
               className="premium-list-item"
               actions={[
-                (user.rol !== 'ADMIN' || (user.email !== currentUser?.email && usuarios.filter(u => u.rol === 'ADMIN').length > 1)) && (
-                  <Space key="actions">
-                    <Tooltip title="Editar Rol">
-                      <Button 
-                        type="text" 
-                        className="user-action-btn" 
-                        icon={<EditOutlined style={{ color: '#0284c7' }} />} 
-                        onClick={() => handleEditRoleClick(user)}
-                      />
-                    </Tooltip>
+                <Space key="actions">
+                  <Tooltip title="Editar Rol">
+                    <Button 
+                      type="text" 
+                      className="user-action-btn" 
+                      icon={<EditOutlined style={{ color: '#0284c7' }} />} 
+                      onClick={() => handleEditRoleClick(user)}
+                    />
+                  </Tooltip>
+                  {user.rol !== 'ADMIN' && (
                     <Tooltip title="Eliminar Usuario">
                       <Button 
                         type="text" 
@@ -153,9 +129,9 @@ const UsuariosTab = () => {
                         onClick={() => handleDeleteUser(user.id)}
                       />
                     </Tooltip>
-                  </Space>
-                )
-              ].filter(Boolean)}
+                  )}
+                </Space>
+              ]}
             >
               <List.Item.Meta
                 avatar={
@@ -176,8 +152,8 @@ const UsuariosTab = () => {
                   </div>
                 }
                 title={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                    <Text style={{ fontSize: '16px', fontWeight: 600, color: '#1e293b', wordBreak: 'break-word' }}>{user.nombre}</Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                    <Text style={{ fontSize: '16px', fontWeight: 600, color: '#1e293b' }}>{user.nombre}</Text>
                     <span className={`user-role-tag ${getRoleClass(user.rol)}`} style={{ fontSize: '12px' }}>
                       {user.rol || 'Sin Rol'}
                     </span>
@@ -267,7 +243,7 @@ const UsuariosTab = () => {
               size="large"
               type="primary" 
               htmlType="submit" 
-              loading={creatingUser}
+              loading={createUserMutation.isLoading}
               className="premium-submit-btn"
             >
               Crear Usuario
@@ -319,7 +295,7 @@ const UsuariosTab = () => {
               size="large"
               type="primary" 
               htmlType="submit" 
-              loading={updatingRole}
+              loading={updateUserRoleMutation.isLoading}
               className="premium-submit-btn"
             >
               Guardar Cambios

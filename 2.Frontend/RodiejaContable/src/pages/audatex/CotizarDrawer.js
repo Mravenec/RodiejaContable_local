@@ -1,24 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Drawer, Table, Button, Select, InputNumber, message, Space, Typography, Tag, Switch, Card, Row, Col, Divider, Tooltip } from 'antd';
+import { Drawer, Table, Button, Select, InputNumber, message, Space, Typography, Tag, Switch, Card, Row, Col, Tooltip } from 'antd';
 import { CarOutlined, SendOutlined, StopOutlined, CheckOutlined, TagOutlined, DollarOutlined, ToolOutlined, CalendarOutlined } from '@ant-design/icons';
 import { audatexService } from '../../api';
+import { normalizeString } from '../../utils/audatexUtils';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
 const TIPOS_PIEZA = ['Original', 'Genérica', 'Usada'];
-const RAZONES_NO_COTIZAR = [
-  'Sin existencias',
-  'No trabajamos la marca',
-  'Pieza descontinuada',
-  'No se vende por separado',
-  'Otro'
-];
-
-const normalizeString = (str) => {
-  if (!str) return '';
-  return str.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-};
 
 const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
   const [formData, setFormData] = useState({});
@@ -37,8 +26,8 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
   useEffect(() => {
     if (visible && oportunidad) {
       const initialData = {};
-      repuestosFiltrados.forEach((rep) => {
-        initialData[rep.originalIdx] = {
+      (oportunidad.repuestos || []).forEach((rep, idx) => {
+        initialData[idx] = {
           tiposPieza: [],
           plazos: {},
           precios: {},
@@ -157,7 +146,29 @@ const CotizarDrawer = ({ visible, onClose, oportunidad, filtroRepuesto }) => {
         porcentajeComision: oportunidad.porcentajeComision || 3
       };
       
-      await audatexService.enviarCotizacion(payload);
+      const resp = await audatexService.enviarCotizacion(payload);
+
+      // Sincronizar en localStorage para visibilidad inmediata en Ventas INS y Pedidos INS
+      if (oportunidad.empleadoId) {
+        try {
+          const stored = JSON.parse(localStorage.getItem('pedidos_ins_asignaciones') || '{}');
+          if (resp?.pedido?.id) {
+            stored[resp.pedido.id] = {
+              empleadoId: oportunidad.empleadoId,
+              empleadoNombre: oportunidad.empleadoNombre,
+              porcentajeComision: oportunidad.porcentajeComision || 3
+            };
+          }
+          stored[oportunidad.cotizacionId] = {
+            empleadoId: oportunidad.empleadoId,
+            empleadoNombre: oportunidad.empleadoNombre,
+            porcentajeComision: oportunidad.porcentajeComision || 3
+          };
+          localStorage.setItem('pedidos_ins_asignaciones', JSON.stringify(stored));
+        } catch (e) {
+          console.warn('Error guardando asignación de pedido:', e);
+        }
+      }
 
       message.success('Pedido creado exitosamente para Audatex InPart');
       onClose();
