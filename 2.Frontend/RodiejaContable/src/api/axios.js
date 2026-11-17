@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_BASE_URL } from './config';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api', // Backend API URL
+  baseURL: `${API_BASE_URL}/api`,
   withCredentials: false, // Disable credentials for now to avoid CORS issues
   // Remove all custom headers that might interfere with CORS
   headers: {
