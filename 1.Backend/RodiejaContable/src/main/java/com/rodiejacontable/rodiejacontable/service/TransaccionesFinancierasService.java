@@ -9,6 +9,7 @@ import com.rodiejacontable.rodiejacontable.exception.ResourceNotFoundException;
 import com.rodiejacontable.rodiejacontable.repository.TiposTransaccionesRepository;
 import com.rodiejacontable.rodiejacontable.repository.TransaccionesFinancierasRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.rodiejacontable.database.jooq.tables.pojos.InventarioRepuestos;
@@ -67,6 +68,7 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public TransaccionesFinancieras create(TransaccionesFinancieras transaccion) {
         // Validar que el código de transacción sea único
         if (transaccionesRepository.existsByCodigoTransaccion(transaccion.getCodigoTransaccion())) {
@@ -148,6 +150,7 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public TransaccionesFinancieras update(Integer id, TransaccionesFinancieras transaccion) {
         // Verificar que la transacción exista
         TransaccionesFinancieras existingTransaccion = findById(id);
@@ -159,8 +162,10 @@ public class TransaccionesFinancierasService {
         }
         
         // Validar que el tipo de transacción existe si se está cambiando
-        if (!existingTransaccion.getTipoTransaccionId().equals(transaccion.getTipoTransaccionId())) {
-            tiposTransaccionesRepository.findById(transaccion.getTipoTransaccionId())
+        TiposTransacciones nuevoTipo = null;
+        boolean tipoCambio = !existingTransaccion.getTipoTransaccionId().equals(transaccion.getTipoTransaccionId());
+        if (tipoCambio) {
+            nuevoTipo = tiposTransaccionesRepository.findById(transaccion.getTipoTransaccionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tipo de transacción no encontrado con ID: " + transaccion.getTipoTransaccionId()));
         }
         
@@ -198,7 +203,39 @@ public class TransaccionesFinancierasService {
         existingTransaccion.setMonto(transaccion.getMonto() != null ? transaccion.getMonto() : existingTransaccion.getMonto());
         existingTransaccion.setComisionEmpleado(transaccion.getComisionEmpleado());
         existingTransaccion.setDescripcion(transaccion.getDescripcion());
-        existingTransaccion.setReferencia(transaccion.getReferencia());
+        
+        // Actualizar referencia:
+        // Si el tipo de transacción cambió y la referencia era automática o no fue modificada manualmente,
+        // regenerar automáticamente la referencia para que coincida con el nuevo tipo
+        if (tipoCambio && nuevoTipo != null) {
+            boolean esReferenciaAuto = transaccion.getReferencia() == null || 
+                                       transaccion.getReferencia().trim().isEmpty() ||
+                                       (existingTransaccion.getReferencia() != null && 
+                                        existingTransaccion.getReferencia().trim().equalsIgnoreCase(transaccion.getReferencia().trim()) &&
+                                        (existingTransaccion.getReferencia().startsWith("MAN-ING-") || existingTransaccion.getReferencia().startsWith("MAN-EGR-")));
+            if (esReferenciaAuto) {
+                String categoria = nuevoTipo.getCategoria().name();
+                String prefix = "INGRESO".equals(categoria) ? "MAN-ING" : "MAN-EGR";
+                String nombreLimpio = nuevoTipo.getNombre()
+                        .toUpperCase()
+                        .replaceAll("[^A-Z0-9]", "_");
+                if (nombreLimpio.length() > 15) {
+                    nombreLimpio = nombreLimpio.substring(0, 15);
+                }
+                String consecutivo;
+                if (existingTransaccion.getReferencia() != null && existingTransaccion.getReferencia().matches(".*-\\d{4}$")) {
+                    consecutivo = existingTransaccion.getReferencia().substring(existingTransaccion.getReferencia().length() - 4);
+                } else {
+                    int count = transaccionesRepository.countByTipoTransaccionId(nuevoTipo.getId()) + 1;
+                    consecutivo = String.format("%04d", count);
+                }
+                existingTransaccion.setReferencia(prefix + "-" + nombreLimpio + "-" + consecutivo);
+            } else {
+                existingTransaccion.setReferencia(transaccion.getReferencia());
+            }
+        } else {
+            existingTransaccion.setReferencia(transaccion.getReferencia());
+        }
         existingTransaccion.setEstado(transaccion.getEstado() != null ? transaccion.getEstado() : existingTransaccion.getEstado());
         existingTransaccion.setActivo(transaccion.getActivo() != null ? transaccion.getActivo() : existingTransaccion.getActivo());
         existingTransaccion.setFechaActualizacion(LocalDateTime.now());
@@ -207,6 +244,7 @@ public class TransaccionesFinancierasService {
     }
     
     @Transactional
+    @CacheEvict(value = "vehiculosHierarchy", allEntries = true)
     public void delete(Integer id) {
         // Verificar que la transacción exista
         TransaccionesFinancieras t = findById(id);

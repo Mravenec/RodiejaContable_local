@@ -510,8 +510,122 @@ END//
 
 DELIMITER ;
 
+-- Trigger para generar automáticamente la referencia al insertar transacción si viene vacía
+DELIMITER //
+DROP TRIGGER IF EXISTS tr_generar_referencia_transaccion_insert //
+CREATE TRIGGER tr_generar_referencia_transaccion_insert
+BEFORE INSERT ON transacciones_financieras
+FOR EACH ROW
+BEGIN
+    DECLARE v_categoria VARCHAR(10);
+    DECLARE v_nombre VARCHAR(100);
+    DECLARE v_prefix VARCHAR(10);
+    DECLARE v_nombre_limpio VARCHAR(20);
+    DECLARE v_consecutivo VARCHAR(10) DEFAULT '0001';
+    DECLARE v_count INT DEFAULT 0;
+
+    IF NEW.referencia IS NULL OR TRIM(NEW.referencia) = '' THEN
+        SELECT categoria, nombre INTO v_categoria, v_nombre
+        FROM tipos_transacciones
+        WHERE id = NEW.tipo_transaccion_id
+        LIMIT 1;
+
+        IF v_categoria = 'INGRESO' THEN
+            SET v_prefix = 'MAN-ING';
+        ELSE
+            SET v_prefix = 'MAN-EGR';
+        END IF;
+
+        SET v_nombre_limpio = UPPER(v_nombre);
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, ' ', '_');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'í', 'I');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'Í', 'I');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'á', 'A');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'Á', 'A');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'é', 'E');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'É', 'E');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'ó', 'O');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'Ó', 'O');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'ú', 'U');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'Ú', 'U');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'ñ', 'N');
+        SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'Ñ', 'N');
+        SET v_nombre_limpio = SUBSTRING(v_nombre_limpio, 1, 15);
+
+        SELECT COUNT(*) + 1 INTO v_count
+        FROM transacciones_financieras
+        WHERE tipo_transaccion_id = NEW.tipo_transaccion_id;
+        SET v_consecutivo = LPAD(v_count, 4, '0');
+
+        SET NEW.referencia = CONCAT(v_prefix, '-', v_nombre_limpio, '-', v_consecutivo);
+    END IF;
+END//
+
+-- Trigger para actualizar automáticamente la referencia si cambia el tipo de transacción
+DROP TRIGGER IF EXISTS tr_actualizar_referencia_transaccion_update //
+CREATE TRIGGER tr_actualizar_referencia_transaccion_update
+BEFORE UPDATE ON transacciones_financieras
+FOR EACH ROW
+BEGIN
+    DECLARE v_categoria VARCHAR(10);
+    DECLARE v_nombre VARCHAR(100);
+    DECLARE v_prefix VARCHAR(10);
+    DECLARE v_nombre_limpio VARCHAR(20);
+    DECLARE v_consecutivo VARCHAR(10) DEFAULT '0001';
+    DECLARE v_count INT DEFAULT 0;
+
+    IF OLD.tipo_transaccion_id != NEW.tipo_transaccion_id THEN
+        IF NEW.referencia IS NULL 
+           OR NEW.referencia = '' 
+           OR NEW.referencia LIKE 'MAN-ING-%' 
+           OR NEW.referencia LIKE 'MAN-EGR-%'
+           OR (OLD.referencia IS NOT NULL AND NEW.referencia = OLD.referencia) THEN
+
+            SELECT categoria, nombre INTO v_categoria, v_nombre
+            FROM tipos_transacciones
+            WHERE id = NEW.tipo_transaccion_id
+            LIMIT 1;
+
+            IF v_categoria = 'INGRESO' THEN
+                SET v_prefix = 'MAN-ING';
+            ELSE
+                SET v_prefix = 'MAN-EGR';
+            END IF;
+
+            SET v_nombre_limpio = UPPER(v_nombre);
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, ' ', '_');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'í', 'I');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'Í', 'I');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'á', 'A');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'Á', 'A');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'é', 'E');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'É', 'E');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'ó', 'O');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'Ó', 'O');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'ú', 'U');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'Ú', 'U');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'ñ', 'N');
+            SET v_nombre_limpio = REPLACE(v_nombre_limpio, 'Ñ', 'N');
+            SET v_nombre_limpio = SUBSTRING(v_nombre_limpio, 1, 15);
+
+            IF OLD.referencia REGEXP '-[0-9]{4}$' THEN
+                SET v_consecutivo = RIGHT(OLD.referencia, 4);
+            ELSE
+                SELECT COUNT(*) + 1 INTO v_count
+                FROM transacciones_financieras
+                WHERE tipo_transaccion_id = NEW.tipo_transaccion_id;
+                SET v_consecutivo = LPAD(v_count, 4, '0');
+            END IF;
+
+            SET NEW.referencia = CONCAT(v_prefix, '-', v_nombre_limpio, '-', v_consecutivo);
+        END IF;
+    END IF;
+END//
+DELIMITER ;
+
 -- Trigger que actualiza automáticamente el estado, precio_venta y fecha_venta  cuando se registra una transacción de tipo 'Venta Vehículo'
 DELIMITER //
+DROP TRIGGER IF EXISTS tr_venta_vehiculo_actualiza_estado //
 CREATE TRIGGER tr_venta_vehiculo_actualiza_estado
 AFTER INSERT ON transacciones_financieras
 FOR EACH ROW
@@ -555,6 +669,139 @@ BEGIN
             NEW.vehiculo_id, 'UPDATE', 'estado',
             estado_anterior, 'VENDIDO', USER(), 'Cambio automático por trigger de venta'
         );
+    END IF;
+END//
+
+DROP TRIGGER IF EXISTS tr_venta_vehiculo_actualiza_estado_update //
+CREATE TRIGGER tr_venta_vehiculo_actualiza_estado_update
+AFTER UPDATE ON transacciones_financieras
+FOR EACH ROW
+BEGIN
+    DECLARE tipo_venta_id INT;
+    DECLARE estado_previo VARCHAR(20) DEFAULT 'DISPONIBLE';
+    DECLARE cant_ventas INT DEFAULT 0;
+
+    SELECT id INTO tipo_venta_id
+    FROM tipos_transacciones
+    WHERE nombre = 'Venta Vehículo'
+    LIMIT 1;
+
+    -- CASO 1: Era Venta Vehículo y dejó de serlo, o se canceló, o se desactivó, o cambió de vehículo
+    IF OLD.tipo_transaccion_id = tipo_venta_id AND OLD.vehiculo_id IS NOT NULL AND
+       (NEW.tipo_transaccion_id != tipo_venta_id OR NEW.estado = 'CANCELADA' OR NEW.activo = 0 OR NEW.vehiculo_id != OLD.vehiculo_id) THEN
+
+        SELECT COUNT(*) INTO cant_ventas
+        FROM transacciones_financieras
+        WHERE vehiculo_id = OLD.vehiculo_id
+          AND tipo_transaccion_id = tipo_venta_id
+          AND activo = 1
+          AND estado != 'CANCELADA'
+          AND id != OLD.id;
+
+        IF cant_ventas = 0 THEN
+            SELECT valor_anterior INTO estado_previo
+            FROM historial_vehiculos
+            WHERE vehiculo_id = OLD.vehiculo_id
+              AND campo_modificado = 'estado'
+              AND valor_nuevo = 'VENDIDO'
+            ORDER BY id DESC
+            LIMIT 1;
+
+            IF estado_previo IS NULL OR estado_previo NOT IN ('DISPONIBLE', 'DESARMADO', 'REPARACION') THEN
+                SET estado_previo = 'DISPONIBLE';
+            END IF;
+
+            UPDATE vehiculos
+            SET estado = estado_previo,
+                precio_venta = NULL,
+                fecha_venta = NULL,
+                fecha_actualizacion = NOW()
+            WHERE id = OLD.vehiculo_id;
+
+            INSERT INTO historial_vehiculos (
+                vehiculo_id, accion, campo_modificado,
+                valor_anterior, valor_nuevo, usuario, observaciones
+            ) VALUES (
+                OLD.vehiculo_id, 'UPDATE', 'estado',
+                'VENDIDO', estado_previo, USER(), 'Reversión automática: la transacción dejó de ser Venta Vehículo o fue cancelada'
+            );
+        END IF;
+    END IF;
+
+    -- CASO 2: Pasó a ser Venta Vehículo activa, o cambió vehículo asignado, o cambió monto o fecha
+    IF NEW.tipo_transaccion_id = tipo_venta_id AND NEW.vehiculo_id IS NOT NULL AND NEW.activo = 1 AND NEW.estado != 'CANCELADA' THEN
+        IF OLD.tipo_transaccion_id != tipo_venta_id OR OLD.vehiculo_id != NEW.vehiculo_id OR OLD.monto != NEW.monto OR OLD.fecha != NEW.fecha OR OLD.estado = 'CANCELADA' THEN
+            UPDATE vehiculos
+            SET estado = 'VENDIDO',
+                precio_venta = NEW.monto,
+                fecha_venta = NEW.fecha,
+                fecha_actualizacion = NOW()
+            WHERE id = NEW.vehiculo_id;
+
+            IF OLD.tipo_transaccion_id != tipo_venta_id OR OLD.vehiculo_id != NEW.vehiculo_id OR OLD.estado = 'CANCELADA' THEN
+                INSERT INTO historial_vehiculos (
+                    vehiculo_id, accion, campo_modificado,
+                    valor_anterior, valor_nuevo, usuario, observaciones
+                ) VALUES (
+                    NEW.vehiculo_id, 'UPDATE', 'estado',
+                    'DISPONIBLE', 'VENDIDO', USER(), 'Cambio automático por trigger de actualización a venta'
+                );
+            END IF;
+        END IF;
+    END IF;
+END//
+
+DROP TRIGGER IF EXISTS tr_venta_vehiculo_actualiza_estado_delete //
+CREATE TRIGGER tr_venta_vehiculo_actualiza_estado_delete
+AFTER DELETE ON transacciones_financieras
+FOR EACH ROW
+BEGIN
+    DECLARE tipo_venta_id INT;
+    DECLARE estado_previo VARCHAR(20) DEFAULT 'DISPONIBLE';
+    DECLARE cant_ventas INT DEFAULT 0;
+
+    SELECT id INTO tipo_venta_id
+    FROM tipos_transacciones
+    WHERE nombre = 'Venta Vehículo'
+    LIMIT 1;
+
+    IF OLD.tipo_transaccion_id = tipo_venta_id AND OLD.vehiculo_id IS NOT NULL THEN
+        SELECT COUNT(*) INTO cant_ventas
+        FROM transacciones_financieras
+        WHERE vehiculo_id = OLD.vehiculo_id
+          AND tipo_transaccion_id = tipo_venta_id
+          AND activo = 1
+          AND estado != 'CANCELADA'
+          AND id != OLD.id;
+
+        IF cant_ventas = 0 THEN
+            SELECT valor_anterior INTO estado_previo
+            FROM historial_vehiculos
+            WHERE vehiculo_id = OLD.vehiculo_id
+              AND campo_modificado = 'estado'
+              AND valor_nuevo = 'VENDIDO'
+            ORDER BY id DESC
+            LIMIT 1;
+
+            IF estado_previo IS NULL OR estado_previo NOT IN ('DISPONIBLE', 'DESARMADO', 'REPARACION') THEN
+                SET estado_previo = 'DISPONIBLE';
+            END IF;
+
+            UPDATE vehiculos
+            SET estado = estado_previo,
+                precio_venta = NULL,
+                fecha_venta = NULL,
+                fecha_actualizacion = NOW()
+            WHERE id = OLD.vehiculo_id;
+
+            INSERT INTO historial_vehiculos (
+                vehiculo_id, accion, campo_modificado,
+                valor_anterior, valor_nuevo, usuario, observaciones
+            ) VALUES (
+                OLD.vehiculo_id, 'UPDATE', 'estado',
+                'VENDIDO', estado_previo, USER(), 'Reversión automática por eliminación de transacción de venta'
+            );
+        END IF;
     END IF;
 END//
 DELIMITER ;

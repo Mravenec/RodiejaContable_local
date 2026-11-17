@@ -82,20 +82,46 @@ const EditarTransaccion = () => {
 
   const empleadoSeleccionadoId = Form.useWatch('empleadoId', form);
   const monto = Form.useWatch('monto', form);
+  const tipoTransaccionId = Form.useWatch('tipoTransaccionId', form);
 
   // Efecto para calcular comisión automáticamente
   useEffect(() => {
-    if (transaccion && tiposTransacciones.length > 0) {
-      const tipo = tiposTransacciones.find(t => t.id === form.getFieldValue('tipoTransaccionId'));
+    if (tiposTransacciones.length > 0 && tipoTransaccionId) {
+      const tipo = tiposTransacciones.find(t => t.id === tipoTransaccionId);
       if (tipo && tipo.categoria === 'INGRESO') {
         if (empleadoSeleccionadoId && monto > 0) {
           form.setFieldsValue({ comisionEmpleado: monto * 0.03 });
         } else {
           form.setFieldsValue({ comisionEmpleado: 0 });
         }
+      } else {
+        form.setFieldsValue({ comisionEmpleado: 0 });
       }
     }
-  }, [empleadoSeleccionadoId, monto, transaccion, tiposTransacciones, form]);
+  }, [empleadoSeleccionadoId, monto, tipoTransaccionId, tiposTransacciones, form]);
+
+  // Efecto para actualizar automáticamente la referencia cuando cambia el tipo de transacción
+  useEffect(() => {
+    if (tiposTransacciones.length > 0 && tipoTransaccionId) {
+      const tipo = tiposTransacciones.find(t => t.id === tipoTransaccionId);
+      if (tipo) {
+        const refActual = form.getFieldValue('referencia') || '';
+        // Si no tiene referencia o es una referencia autogenerada (MAN-ING-... o MAN-EGR-...)
+        if (!refActual || /^MAN-(ING|EGR)-/i.test(refActual)) {
+          const prefix = tipo.categoria === 'INGRESO' ? 'MAN-ING' : 'MAN-EGR';
+          const nombreLimpio = (tipo.nombre || '')
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '_')
+            .substring(0, 15);
+
+          const matchConsecutivo = refActual.match(/-(\d{4})$/);
+          const consecutivo = matchConsecutivo ? matchConsecutivo[1] : '0001';
+
+          form.setFieldsValue({ referencia: `${prefix}-${nombreLimpio}-${consecutivo}` });
+        }
+      }
+    }
+  }, [tipoTransaccionId, tiposTransacciones, form]);
 
   const isLoading = loadingTransaccion || loadingEmpleados || loadingVehiculos || loadingTipos;
 
@@ -175,7 +201,7 @@ const EditarTransaccion = () => {
                 name="tipoTransaccionId"
                 rules={[{ required: true, message: 'Este campo es requerido' }]}
               >
-                <Select placeholder="Seleccionar tipo" disabled loading={loadingTipos}>
+                <Select placeholder="Seleccionar tipo" loading={loadingTipos}>
                   {tiposTransacciones.map(tipo => (
                     <Option key={tipo.id} value={tipo.id}>
                       {tipo.nombre}
