@@ -84,31 +84,28 @@ const Inventario = () => {
   });
 
   // Fetch data from API
-  const fetchData = async (params = {}) => {
+  const fetchData = async (customFiltros) => {
     try {
       setLoading(true);
-      const { current, pageSize } = pagination;
-      const { estado, parteVehiculoId, ubicacion } = filtros;
+      const filtrosActivos = customFiltros !== undefined ? customFiltros : filtros;
+      const { estado, parteVehiculoId, ubicacion } = filtrosActivos;
 
       // Build query params
       const queryParams = {
-        page: params.pagination?.current || current,
-        pageSize: params.pagination?.pageSize || pageSize,
         ...(estado && { estado }),
         ...(parteVehiculoId && { parteVehiculoId }),
         ...(ubicacion && { ubicacion }),
-        ...params,
       };
 
       const data = await InventarioService.getRepuestos(queryParams);
       const activeData = Array.isArray(data) ? data.filter(item => item.activo) : [];
 
       setData(activeData);
-      setPagination({
-        ...pagination,
+      setPagination(prev => ({
+        ...prev,
         total: activeData.length,
-        current: pagination.current,
-      });
+        current: 1,
+      }));
     } catch (error) {
       console.error('Error fetching data:', error);
       message.error('Error al cargar el inventario');
@@ -142,13 +139,12 @@ const Inventario = () => {
   }, [data]);
 
   // Handle table change (pagination, filters, sorter)
-  const handleTableChange = (pagination, filters, sorter) => {
-    fetchData({
-      sortField: sorter.field,
-      sortOrder: sorter.order,
-      pagination,
-      ...filters,
-    });
+  const handleTableChange = (newPagination) => {
+    setPagination(prev => ({
+      ...prev,
+      current: newPagination.current,
+      pageSize: newPagination.pageSize,
+    }));
   };
 
   // Handle search
@@ -156,7 +152,9 @@ const Inventario = () => {
     if (value) {
       InventarioService.buscarPorCodigo(value)
         .then((results) => {
-          setData(Array.isArray(results) ? results.filter(item => item.activo) : []);
+          const activeResults = Array.isArray(results) ? results.filter(item => item.activo) : [];
+          setData(activeResults);
+          setPagination(prev => ({ ...prev, current: 1, total: activeResults.length }));
         })
         .catch((error) => {
           console.error('Error searching:', error);
@@ -533,12 +531,13 @@ const Inventario = () => {
             block
             style={{ marginTop: 8 }}
             onClick={() => {
-              setFiltros({
+              const filtrosLimpios = {
                 estado: null,
                 parteVehiculoId: null,
                 ubicacion: null,
-              });
-              fetchData();
+              };
+              setFiltros(filtrosLimpios);
+              fetchData(filtrosLimpios);
               setFilterVisible(false);
             }}
           >
